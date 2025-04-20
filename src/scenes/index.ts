@@ -1,3 +1,4 @@
+import { act } from 'react';
 import { MapEvent, P } from '../types';
 import { ROOT } from './constants';
 
@@ -18,6 +19,7 @@ export const eventtimes: MapEvent = new Map([
 	[6500, { name: 'end_music_fr' }],
 ]);
 
+const TEXT = 'text';
 const root = {
 	type: P.LAYER,
 	initial: {
@@ -27,19 +29,17 @@ const root = {
 		style: {
 			position: 'relative',
 			backgroundColor: 'lch(52.2% 72.2 50 / 1)',
+			// scale: 0.6,
 		},
 	},
 	actions: {
-		// [ROOT]: true,
 		action01: {
-			// transition: {
-			// 	from: { backgroundColor: 'lch(52.2% 72.2 50 / 0.5)' },
-			// 	to: { backgroundColor: 'lch(56% 63.61 262.73 / 1)' },
-			// 	duration: 1500,
-			// },
 			style: {
-				backgroundColor: 'lch(56% 63.61 262.73 / 1)',
-				duration: 1500,
+				backgroundColor: 'lch(56% 63.61 262.73 / 0.5)',
+
+				duration: 3500,
+				scale: { to: 0.6, duration: 3500 },
+				rotate: { to: '-30deg', duration: 3000 },
 			},
 		},
 	},
@@ -48,19 +48,26 @@ const root = {
 const counter = {
 	type: P.TEXT,
 	initial: {
+		id: TEXT,
 		className: 'initial item2',
-		content: 'start',
+		// content: 'start',
 		style: {
 			backgroundColor: 'orangered',
 			padding: 8,
-			'font-size': 36,
+			'font-size': '12px',
 			'text-align': 'center',
+			// x: '150px',
 		},
 	},
 	actions: {
 		enter: {
 			move: `#${ROOT}`,
 			className: 'enter',
+			style: {
+				transformOrigin: 'bottom right',
+				backgroundColor: 'lch(56% 63.61 262.73 / 0.5)',
+				rotate: { to: '30deg', duration: 1500 },
+			},
 		},
 		action01: {
 			className: 'action01',
@@ -73,15 +80,80 @@ const counter = {
 			move: true,
 			style: {
 				'font-weight': 'bold',
+				skew: { x: 0.5, y: 0.5 },
+				scale: { to: 2.6, duration: 3500 },
 				'font-size': { to: '60px', duration: 2500 },
 			},
 		},
-		action03: {
+		// action03: {
+		// 	className: {
+		// 		add: 'item3',
+		// 		remove: 'item4',
+		// 	},
+		// 	move: true,
+		// 	style: {
+		// 		color: 'blue',
+		// 		'font-size': { to: '20px' },
+		// 	},
+		// },
+	},
+} as const;
+
+const text1 = {
+	type: P.TEXT,
+	initial: {
+		content: 'thanks',
+		style: {
+			backgroundColor: 'pink',
+			padding: '0.25rem',
+		},
+	},
+	actions: {
+		enter: {
+			move: `#${TEXT}`,
+		},
+		action1: {
 			style: {
-				color: 'blue',
+				rotate: { to: '30deg', duration: 1500 },
 			},
 		},
 	},
 } as const;
 
-export const persos = [root, counter];
+const text3 = {
+	type: P.TEXT,
+	initial: {
+		content: 'Lancement',
+		className: 'initial text3 item5',
+		style: {
+			backgroundColor: 'yellow',
+			padding: '1rem',
+			'font-size': '2rem',
+			x: '-30px',
+		},
+	},
+	actions: {
+		enter: {
+			move: `#${ROOT}`,
+		},
+		action02: {
+			className: {
+				add: 'item6',
+				remove: 'item5',
+			},
+			move: true,
+		},
+		action03: {
+			className: {
+				add: 'item4',
+				remove: 'item6',
+			},
+			move: true,
+			style: {
+				color: 'cyan',
+			},
+		},
+	},
+} as const;
+
+export const persos = [root, counter, text1, text3];

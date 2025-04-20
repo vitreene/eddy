@@ -7,6 +7,9 @@ body {
 	margin: 0;
 	padding: 0;
 }
+:root {
+	--size: 10px;
+}
 
 #root,
 #container-scene {
@@ -39,7 +42,7 @@ body {
 
 	aspect-ratio: 16 / 9;
 	width: 100%;
-	background-color: aliceblue;
+	/* background-color: aliceblue; */
 	border: 1px solid grey;
 }
 
@@ -49,6 +52,7 @@ body {
 
 .initial {
 	position: relative;
+	display: flex;
 }
 .container-grid div img {
 	object-fit: contain;
@@ -65,9 +69,9 @@ body {
 }
 
 .item2 {
-	grid-area: 25 / 25 / span 30 / span 30;
+	grid-area: 50 / 25 / span 20 / span 30;
 	background-color: red;
-	border: var(--size) solid green;
+	/* border: var(--size) solid green; */
 }
 
 .item3 {
@@ -78,7 +82,7 @@ body {
 }
 
 .item4 {
-	grid-area: 70 / 60 / span 50 / span 60;
+	grid-area: 70 / 60 / span 40 / span 50;
 }
 
 .item5 {
