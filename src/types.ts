@@ -1,6 +1,7 @@
 import { AnimationParams } from 'animejs';
 import * as CSS from 'csstype';
 
+export type ID = string;
 export type MapEvent = Map<number, Eventime | Eventime[]>;
 export interface Eventime {
 	name: string;

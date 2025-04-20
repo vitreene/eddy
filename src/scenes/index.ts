@@ -1,4 +1,3 @@
-import { act } from 'react';
 import { MapEvent, P } from '../types';
 import { ROOT } from './constants';
 
@@ -19,7 +18,7 @@ export const eventtimes: MapEvent = new Map([
 	[6500, { name: 'end_music_fr' }],
 ]);
 
-const TEXT = 'text';
+const COUNTER = 'counter';
 const root = {
 	type: P.LAYER,
 	initial: {
@@ -48,8 +47,9 @@ const root = {
 const counter = {
 	type: P.TEXT,
 	initial: {
-		id: TEXT,
+		id: COUNTER,
 		className: 'initial item2',
+		move: ROOT,
 		// content: 'start',
 		style: {
 			backgroundColor: 'orangered',
@@ -61,7 +61,6 @@ const counter = {
 	},
 	actions: {
 		enter: {
-			move: `#${ROOT}`,
 			className: 'enter',
 			style: {
 				transformOrigin: 'bottom right',
@@ -102,16 +101,16 @@ const counter = {
 const text1 = {
 	type: P.TEXT,
 	initial: {
+		id: 'text1',
 		content: 'thanks',
+		move: COUNTER,
 		style: {
 			backgroundColor: 'pink',
 			padding: '0.25rem',
 		},
 	},
 	actions: {
-		enter: {
-			move: `#${TEXT}`,
-		},
+		enter: {},
 		action01: {
 			style: {
 				rotate: { to: '30deg', duration: 1500 },
@@ -123,8 +122,10 @@ const text1 = {
 const text3 = {
 	type: P.TEXT,
 	initial: {
+		id: 'text3',
 		content: 'Lancement',
 		className: 'initial text3 item5',
+		move: ROOT,
 		style: {
 			backgroundColor: 'yellow',
 			padding: '1rem',
@@ -133,9 +134,7 @@ const text3 = {
 		},
 	},
 	actions: {
-		enter: {
-			move: `#${ROOT}`,
-		},
+		enter: {},
 		action02: {
 			className: {
 				add: 'item6',

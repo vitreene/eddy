@@ -1,6 +1,6 @@
 import { createTimeline, utils } from 'animejs';
 import { eventtimes, persos } from './scenes';
-import { Eventime, Initial } from './types';
+import { Eventime, ID, Initial } from './types';
 import { ROOT, SCENE_ID } from './scenes/constants';
 import { useEffect, useRef } from 'react';
 
@@ -30,28 +30,54 @@ function scene() {
 	);
 	const labels = Object.keys(timeLine.labels);
 
-	persos.forEach((perso) => {
-		if ('initial' in perso) {
-			const $el = createPerso(perso.initial);
-			if ('id' in perso.initial && perso.initial.id == ROOT) {
-				main.appendChild($el);
+	const $elements = new Map<ID, Element>();
+	$elements.set(SCENE_ID, main);
+
+	console.log(persos);
+
+	persos.forEach(
+		({
+			initial,
+			actions,
+		}: {
+			initial: Partial<Initial>;
+			actions: Record<string, any>;
+		}) => {
+			if (initial) {
+				const $el = createPerso(initial);
+				$elements.set(initial.id, $el);
+				if ('id' in initial && initial.id == ROOT) {
+					main.appendChild($el);
+				}
+
+				for (const position in actions) {
+					if (labels.includes(position)) {
+						const a = actions[position];
+						const action = {
+							...a.style,
+							onBegin: () => {
+								[move, setClassNames].forEach((f) => f($el, a));
+							},
+						};
+						timeLine.add($el, action, position);
+					}
+				}
 			}
-			for (const position in perso.actions) {
-				if (labels.includes(position)) {
-					const a = perso.actions[position];
-					const action = {
-						...a.style,
-						onBegin: () => {
-							[move, setClassNames].forEach((f) => f($el, a));
-						},
-					};
-					timeLine.add($el, action, position);
+		}
+	);
+	persos.forEach(({ initial }: { initial: Partial<Initial> }) => {
+		const move = initial.move;
+		if (move) {
+			switch (typeof move) {
+				case 'string': {
+					const $el = $elements.get(initial.id);
+					const $parent = $elements.get(move);
+					$parent && $parent.appendChild($el);
 				}
 			}
 		}
 	});
-
-	console.log(timeLine);
+	// console.log(timeLine);
 
 	timeLine.init();
 	return timeLine;
