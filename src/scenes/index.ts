@@ -112,7 +112,7 @@ const text1 = {
 		enter: {
 			move: `#${TEXT}`,
 		},
-		action1: {
+		action01: {
 			style: {
 				rotate: { to: '30deg', duration: 1500 },
 			},
