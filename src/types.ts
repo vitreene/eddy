@@ -3,6 +3,7 @@ import * as CSS from 'csstype';
 
 export type ID = string;
 export type MapEvent = Map<number, Eventime | Eventime[]>;
+
 export interface Eventime {
 	name: string;
 	// startAt: number;
@@ -20,36 +21,48 @@ interface CSSTransformSpecialParam<T> {
 	movey: T;
 }
 
+export interface Perso {
+	type: PersoType;
+	initial: Initial;
+	actions: Record<string, Partial<Action>>;
+}
 export interface Style
 	extends CSS.Properties<string | number>,
 		CSS.PropertiesHyphen<string | number>,
 		Partial<CSSTransformSpecialParam<number>> {}
 
-export interface Initial {
-	tag: string;
-	id: string;
+export interface ClassAction {
+	add?: string;
+	remove?: string;
+}
+
+export interface Action {
 	attr: any;
 	style: AnimationParams;
-	// classStyle: Style;
-	className: string;
-	move: string;
+	className: string | ClassAction;
+	move: boolean | string;
 	content: string;
 }
 
+export interface Initial extends Partial<Action> {
+	tag?: string;
+	id: string;
+}
+
 export const persoTypes = {
-	TEXT: 'text',
-	IMG: 'img',
-	LIST: 'list',
-	BLOC: 'bloc',
-	ROOT: 'root',
-	VIDEO: 'video',
-	PROTO: 'proto',
-	LAYER: 'layer',
-	SPRITE: 'sprite',
-	BUTTON: 'button',
-	POLYGON: 'polygon',
-	SOUND: 'sound',
-	AUDIO: 'audio',
+	TEXT: 'TEXT',
+	IMG: 'IMG',
+	LIST: 'LIST',
+	BLOC: 'BLOC',
+	ROOT: 'ROOT',
+	VIDEO: 'VIDEO',
+	PROTO: 'PROTO',
+	LAYER: 'LAYER',
+	SPRITE: 'SPRITE',
+	BUTTON: 'BUTTON',
+	POLYGON: 'POLYGON',
+	SOUND: 'SOUND',
+	AUDIO: 'AUDIO',
 } as const;
 
 export const P = persoTypes;

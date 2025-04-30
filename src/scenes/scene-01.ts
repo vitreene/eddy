@@ -1,5 +1,5 @@
-import { MapEvent, P } from '../types';
-import { ROOT } from './constants';
+import { MapEvent, P, Perso } from '../types';
+import { ROOT } from '../player/constants';
 
 export const eventtimes: MapEvent = new Map([
 	[0, { name: 'enter' }],
@@ -18,33 +18,32 @@ export const eventtimes: MapEvent = new Map([
 	[6500, { name: 'end_music_fr' }],
 ]);
 
-const COUNTER = 'counter';
-const root = {
-	type: P.LAYER,
+const root: Perso = {
+	type: P.LIST,
 	initial: {
 		tag: 'div',
 		id: ROOT,
 		className: 'container-grid',
 		style: {
 			position: 'relative',
-			backgroundColor: 'lch(52.2% 72.2 50 / 1)',
+			backgroundColor: 'lch(50% 72 50 / 0.5)',
 			// scale: 0.6,
 		},
 	},
 	actions: {
 		action01: {
 			style: {
-				backgroundColor: 'lch(56% 63.61 262.73 / 0.5)',
-
+				backgroundColor: 'lch(56% 64 263 / 1)',
 				duration: 3500,
-				scale: { to: 0.6, duration: 3500 },
+				scale: { to: 0.6, duration: 500 },
 				rotate: { to: '-30deg', duration: 3000 },
 			},
 		},
 	},
 } as const;
 
-const counter = {
+const COUNTER = 'counter';
+const counter: Perso = {
 	type: P.TEXT,
 	initial: {
 		id: COUNTER,
@@ -61,7 +60,7 @@ const counter = {
 	},
 	actions: {
 		enter: {
-			className: 'enter',
+			// className: 'enter',
 			style: {
 				transformOrigin: 'bottom right',
 				backgroundColor: 'lch(56% 63.61 262.73 / 0.5)',
@@ -69,7 +68,7 @@ const counter = {
 			},
 		},
 		action01: {
-			className: 'action01',
+			className: { add: 'action01' },
 		},
 		action02: {
 			className: {
@@ -79,7 +78,7 @@ const counter = {
 			move: true,
 			style: {
 				'font-weight': 'bold',
-				skew: { x: 0.5, y: 0.5 },
+				skew: 45,
 				scale: { to: 2.6, duration: 3500 },
 				'font-size': { to: '60px', duration: 2500 },
 			},
@@ -98,7 +97,7 @@ const counter = {
 	},
 } as const;
 
-const text1 = {
+const text1: Perso = {
 	type: P.TEXT,
 	initial: {
 		id: 'text1',
@@ -119,7 +118,7 @@ const text1 = {
 	},
 } as const;
 
-const text3 = {
+const text3: Perso = {
 	type: P.TEXT,
 	initial: {
 		id: 'text3',
@@ -131,6 +130,7 @@ const text3 = {
 			padding: '1rem',
 			'font-size': '2rem',
 			x: '-30px',
+			// color: 'rgb(40, 47, 255)',
 		},
 	},
 	actions: {
@@ -141,6 +141,9 @@ const text3 = {
 				remove: 'item5',
 			},
 			move: true,
+			style: {
+				color: 'rgb(255, 168, 40)',
+			},
 		},
 		action03: {
 			className: {
@@ -148,9 +151,6 @@ const text3 = {
 				remove: 'item6',
 			},
 			move: true,
-			style: {
-				color: 'cyan',
-			},
 		},
 	},
 } as const;
