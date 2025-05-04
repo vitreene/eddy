@@ -4,10 +4,10 @@ import { Perso, ID, Initial } from '../types';
 
 export function createElements(persos: Array<Perso>) {
 	if (!document) return null;
-	const main = document.querySelector(`#${SCENE_ID}`);
+	const main: HTMLElement = document.querySelector(`#${SCENE_ID}`);
 	if (!main) return null;
 
-	const $elements = new Map<ID, Element>();
+	const $elements = new Map<ID, HTMLElement>();
 	$elements.set(SCENE_ID, main);
 
 	persos.forEach(({ initial }) => {

@@ -130,7 +130,7 @@ const text3: Perso = {
 			padding: '1rem',
 			'font-size': '2rem',
 			x: '-30px',
-			// color: 'rgb(40, 47, 255)',
+			color: 'rgb(40, 47, 255)',
 		},
 	},
 	actions: {

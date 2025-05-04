@@ -21,6 +21,9 @@ export function timeLineScene({
 	const $elements = createElements(persos);
 	const persoChanges = setStaticChanges({ eventtimes, persos });
 	const timeLine = createTimeline({
+		autoplay: true,
+		loop: 3,
+		alternate: true,
 		onUpdate: onUpdateTimeLine($elements, persoChanges),
 	});
 

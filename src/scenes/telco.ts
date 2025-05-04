@@ -29,7 +29,7 @@ export function createTelco(telco: Timeline) {
 		toggle = false;
 	}
 
-	let toggle = true;
+	let toggle = false;
 	function togglePlay(): void {
 		if (toggle) {
 			telco.pause();
@@ -43,7 +43,7 @@ export function createTelco(telco: Timeline) {
 	}
 
 	const playButton = document.createElement('button');
-	playButton.innerText = 'pause';
+	playButton.innerText = 'play';
 	playButton.addEventListener('click', togglePlay);
 
 	const progress = document.createElement('span');
