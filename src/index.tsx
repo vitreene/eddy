@@ -16,12 +16,12 @@ export default function App() {
 		if (!animeScene.current) {
 			animeScene.current = timeLineScene({ eventtimes, persos });
 			setTimeout(() => {
-				animeScene.current.complete().reverse();
+				// animeScene.current.complete().reverse();
 				animeScene.current.play();
 				console.log(animeScene.current);
 			}, 500);
 
-			// createTelco(animeScene.current);
+			createTelco(animeScene.current);
 		}
 		return () => {
 			animeScene.current.revert();

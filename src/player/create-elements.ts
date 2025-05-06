@@ -32,7 +32,9 @@ function createPerso(initial: Partial<Initial>) {
 	for (const k in initial) {
 		if (k == 'content') $el.textContent = initial.content;
 		if (k == 'id') $el.id = initial.id;
-		if (k == 'style') utils.set($el, initial.style);
+		if (k == 'style') {
+			utils.set($el, initial.style);
+		}
 		if (k == 'className')
 			if (typeof initial.className == 'string') {
 				initial.className.split(' ').forEach((c) => $el.classList.add(c));

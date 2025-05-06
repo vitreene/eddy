@@ -35,8 +35,8 @@ const root: Perso = {
 			style: {
 				backgroundColor: 'lch(56% 64 263 / 1)',
 				duration: 3500,
-				scale: { to: 0.6, duration: 500 },
-				rotate: { to: '-30deg', duration: 3000 },
+				// scale: { to: 0.6, duration: 500 },
+				// rotate: { to: '-30deg', duration: 3000 },
 			},
 		},
 	},
@@ -49,22 +49,25 @@ const counter: Perso = {
 		id: COUNTER,
 		className: 'initial item2',
 		move: ROOT,
-		// content: 'start',
+		content: 'start',
 		style: {
 			backgroundColor: 'orangered',
 			padding: 8,
-			'font-size': '12px',
+			'font-size': '2cqi',
 			'text-align': 'center',
-			// x: '150px',
+			// transform: 'rotate(0deg) scale(1) translateX(150px) translateY(0px)',
+			x: 0, // faute si > 0
+			rotate: 0,
+			scale: 1, // faute si pas present...
 		},
 	},
 	actions: {
 		enter: {
-			// className: 'enter',
 			style: {
 				transformOrigin: 'bottom right',
 				backgroundColor: 'lch(56% 63.61 262.73 / 0.5)',
 				rotate: { to: '30deg', duration: 1500 },
+				scale: { to: 0.6, duration: 1500 },
 			},
 		},
 		action01: {
@@ -78,11 +81,12 @@ const counter: Perso = {
 			move: true,
 			style: {
 				'font-weight': 'bold',
-				skew: 45,
-				scale: { to: 2.6, duration: 3500 },
-				'font-size': { to: '60px', duration: 2500 },
+				// skew: 45,
+				scale: { to: 2.6, duration: 1500 },
+				'font-size': { to: '5cqi', duration: 1500 },
 			},
 		},
+		// ,
 		// action03: {
 		// 	className: {
 		// 		add: 'item3',
@@ -128,8 +132,8 @@ const text3: Perso = {
 		style: {
 			backgroundColor: 'yellow',
 			padding: '1rem',
-			'font-size': '2rem',
-			x: '-30px',
+			'font-size': '2cqi',
+			// x: '-60px',
 			color: 'rgb(40, 47, 255)',
 		},
 	},
@@ -155,4 +159,4 @@ const text3: Perso = {
 	},
 } as const;
 
-export const persos = [root, counter, text1, text3];
+export const persos = [root, counter /* , text1, text3 */];

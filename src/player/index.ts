@@ -22,9 +22,10 @@ export function timeLineScene({
 	const persoChanges = setStaticChanges({ eventtimes, persos });
 	const timeLine = createTimeline({
 		autoplay: true,
-		loop: 3,
+		loop: 1,
 		alternate: true,
 		onUpdate: onUpdateTimeLine($elements, persoChanges),
+		onLoop: () => console.log('///////LOOP'),
 	});
 
 	const timeEvents = new Map<string, number[]>();
