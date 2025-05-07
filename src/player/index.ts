@@ -57,3 +57,18 @@ export function timeLineScene({
 	timeLine.init();
 	return timeLine;
 }
+
+/* 
+bilan : le principe de grid ne se combine pas correctementavecles transitions. chaque librairie a ses propres bugs pas répertotriés. 
+
+donc : revenir à un positionnement classique en coo absolues. 
+
+objet en pos. top: 0 left:0, plus translate x / y. 
+
+-> perte des capacités d' auto-alignement et de division. 
+
+-> vieille idée  : il pourrait y avoir un sous jacent de grille, les éléments flottants vont se caler par mimétisme sur les positions des zones choisies.
+mais necessite un gabarit inerte en dessous. 
+
+
+*/
