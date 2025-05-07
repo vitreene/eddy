@@ -1,7 +1,6 @@
-import { Timeline } from 'animejs';
 import { ROOT, SCENE_ID } from '../player/constants';
 
-export function createTelco(telco: Timeline) {
+export function createTelco(telco: gsap.core.Timeline) {
 	if (document.querySelector('#telco')) return;
 
 	const command = document.createElement('div');
@@ -20,7 +19,7 @@ export function createTelco(telco: Timeline) {
 	slider.addEventListener('click', mousemove);
 
 	function mousemove(): void {
-		const p = (Number(slider.value) * telco.duration) / 100 - 100;
+		const p = (Number(slider.value) * telco.totalDuration()) / 100 - 100;
 		const progression = p > 0 ? p : 0;
 		progress.textContent = Math.round(Number(slider.value)) + '%';
 		progress.textContent = Math.round(progression) + 'ms';

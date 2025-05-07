@@ -1,37 +1,33 @@
-import {
-	utils,
-	animate,
-	type Timeline,
-	type JSAnimation,
-	type AnimatableParams,
-	waapi,
-	WAAPIAnimation,
-} from 'animejs';
+// import {
+// 	utils,
+// 	animate,
+// 	type Timeline,
+// 	type JSAnimation,
+// 	type AnimatableParams,
+// 	waapi,
+// 	WAAPIAnimation,
+// } from 'animejs';
+
+import { gsap } from 'gsap';
+import { Flip } from 'gsap/Flip';
 
 import type { ID } from '../types';
 import type { Change } from './static-changes';
 
+gsap.registerPlugin(Flip);
+
 export function onUpdateTimeLine(
 	$elements: Map<ID, HTMLElement>,
-	persoChanges: Map<ID, Record<number, Change>>
+	persoChanges: Map<ID, Record<number, Change>>,
+	self: () => gsap.core.Timeline
 ) {
 	const persoPositions = new Map<ID, Change>();
-	const transitions = new Map<Change, JSAnimation>();
-
-	return function (self: Timeline) {
-		const currentTime = self.iterationCurrentTime;
+	const transitions = new Map<Change, any>();
+	return function () {
+		const currentTime = self().time();
 
 		persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
-
-			if (transitions.has(change)) {
-				const transition = transitions.get(change);
-				transition.progress = getProgression(
-					currentTime,
-					change.curr,
-					change.curr + 1000
-				);
-			}
 
 			if (
 				currentTime >= (change.next ?? Infinity) ||
@@ -49,14 +45,11 @@ export function onUpdateTimeLine(
 				}
 				persoPositions.set(id, nextChange);
 
-				const transition = transitions.get(change);
-				transition && utils.cleanInlineStyles(transition);
-
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
 					const transition = move($elements.get(id), nextChange.change);
 					transitions.set(nextChange, transition);
-					// self.sync(transition, nextChange.curr).seek(nextChange.curr).resume();
-					console.log('MOVE', nextChange.change.move, transition);
+					self().add(transition, currentTime);
+					console.log('MOVE', nextChange.change.move);
 				} else applyChange($elements.get(id), nextChange.change);
 			}
 		});
@@ -92,32 +85,53 @@ function applyChange($el: HTMLElement, change: Change['change']) {
 }
 
 function move($el: HTMLElement, change: Change['change']) {
-	// ATTENTION CE N'EST PLUS ADDRESSé
 	switch (typeof change.move) {
-		case 'string':
-			const [parent] = utils.$(change.move);
-			parent.appendChild($el);
-			break;
-		//
+		// ATTENTION CE N'EST PLUS ADDRESSé
+		// case 'string':
+		// 	const [parent] = utils.$(change.move);
+		// 	parent.appendChild($el);
+		// 	break;
+		// //
 
 		case 'boolean': {
+			console.log($el.id, 'move');
+
+			const state = Flip.getState($el);
+			applyChange($el, change);
+
+			return Flip.from(state, {
+				duration: 1,
+				ease: 'power1.inOut',
+				// absolute: true,
+				immediateRender: true,
+			});
+		}
+
+		case 'number': {
 			const old = getAbsoluteCoords($el);
 
 			applyChange($el, change);
 			const nex = getAbsoluteCoords($el);
 
-			const px = utils.get($el, 'x', false);
-			const py = utils.get($el, 'y', false);
+			// const px = utils.get($el, 'x', false);
+			// const py = utils.get($el, 'y', false);
+			const px = Number(gsap.getProperty($el, 'x'));
+			const py = Number(gsap.getProperty($el, 'y'));
+
+			// console.log(typeof py, py);
+
 			/* 
 			const dp = transformCoords(px, py, -30);
 
 			const dx = old.x - nex.x - dp.x * 2;
-			const dy = old.y - nex.y - dp.y * 2; */
+			const dy = old.y - nex.y - dp.y * 2; 
+      
+      */
 
-			// const dx = old.x - nex.x + px * 2;
-			// const dy = old.y - nex.y + py * 2;
-			const dx = old.x - nex.x;
-			const dy = old.y - nex.y;
+			const dx = old.x - nex.x + px * 2;
+			const dy = old.y - nex.y + py * 2;
+			// const dx = old.x - nex.x;
+			// const dy = old.y - nex.y;
 
 			const diff = getTransform($el)
 				.invertSelf()
@@ -137,24 +151,30 @@ function move($el: HTMLElement, change: Change['change']) {
       x +r : translateX(-316.203px) rotate(30deg) scale(0.608) translateY(2.2133px)
       r+S+x : rotate(30deg) translateX(-315.563px) scale(0.616) translateY(2.2095px)
       */
-			const transition = animate($el, {
-				autoplay: false,
-				composition: 'replace',
-				// x: { from: dx, to: 0 + px },
-				// y: { from: dy, to: 0 + py },
-				x: { from: diff.x, to: 0 + px },
-				y: { from: diff.y, to: 0 + py },
+			const transition = gsap.fromTo(
+				$el,
+				{
+					x: diff.x,
+					y: diff.y,
 
-				width: { from: old.width, to: nex.width },
-				height: { from: old.height, to: nex.height },
-				duration: 1000,
-				onUpdate: () => {
-					// const px = utils.get($el, 'x', false);
-					// const py = utils.get($el, 'y', false);
-					// console.log(px, py);
-					console.log($el.style.transform);
+					width: old.width,
+					height: old.height,
 				},
-			}).seek(0);
+				{
+					x: px,
+					y: py,
+
+					width: nex.width,
+					height: nex.height,
+					duration: 1.0,
+					onUpdate: () => {
+						// const px = utils.get($el, 'x', false);
+						// const py = utils.get($el, 'y', false);
+						// console.log(px, py);
+						console.log($el.style.transform);
+					},
+				}
+			);
 
 			return transition;
 		}

@@ -1,4 +1,5 @@
-import { utils } from 'animejs';
+import { gsap } from 'gsap';
+
 import { SCENE_ID, ROOT } from './constants';
 import { Perso, ID, Initial } from '../types';
 
@@ -33,7 +34,8 @@ function createPerso(initial: Partial<Initial>) {
 		if (k == 'content') $el.textContent = initial.content;
 		if (k == 'id') $el.id = initial.id;
 		if (k == 'style') {
-			utils.set($el, initial.style);
+			// utils.set($el, initial.style);
+			gsap.set($el, initial.style);
 		}
 		if (k == 'className')
 			if (typeof initial.className == 'string') {

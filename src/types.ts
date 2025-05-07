@@ -1,4 +1,5 @@
-import { AnimationParams } from 'animejs';
+// import { AnimationParams } from 'animejs';
+import gsap from 'gsap';
 import * as CSS from 'csstype';
 
 export type ID = string;
@@ -38,7 +39,7 @@ export interface ClassAction {
 
 export interface Action {
 	attr: any;
-	style: AnimationParams;
+	style: gsap.TweenVars;
 	className: string | ClassAction;
 	move: boolean | string;
 	content: string;

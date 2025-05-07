@@ -1,5 +1,6 @@
-import { createTimeline, type Timeline } from 'animejs';
-
+// import { createTimeline, type Timeline } from 'animejs';
+import { GSDevTools } from 'gsap/GSDevTools';
+import { gsap } from 'gsap';
 import { SCENE_ID } from './constants';
 import { createElements } from './create-elements';
 import { setStaticChanges } from './static-changes';
@@ -7,24 +8,27 @@ import { setStaticChanges } from './static-changes';
 import type { ID, MapEvent, Perso } from '../types';
 import { onUpdateTimeLine } from './on-update';
 
+gsap.registerPlugin(GSDevTools);
 export function timeLineScene({
 	eventtimes,
 	persos,
 }: {
 	eventtimes: MapEvent;
 	persos: Array<Perso>;
-}): Timeline {
+}): gsap.core.Timeline {
 	if (!document) return null;
 	const main = document.querySelector(`#${SCENE_ID}`);
 	if (!main) return null;
 
 	const $elements = createElements(persos);
 	const persoChanges = setStaticChanges({ eventtimes, persos });
-	const timeLine = createTimeline({
+
+	let timeline;
+	timeline = gsap.timeline({
 		autoplay: true,
 		loop: 1,
 		alternate: true,
-		onUpdate: onUpdateTimeLine($elements, persoChanges),
+		onUpdate: onUpdateTimeLine($elements, persoChanges, () => timeline),
 		onLoop: () => console.log('///////LOOP'),
 	});
 
@@ -47,13 +51,16 @@ export function timeLineScene({
 			const positions = timeEvents.get(actionName);
 			if (positions && action.style) {
 				positions.forEach((position) => {
-					timeLine.add($element, action.style, position);
+					console.log(position);
+
+					timeline.to($element, { duration: 1, ...action.style }, position);
 				});
 			}
 		}
-		timeLine.add($element, perso.initial.style, 0);
+		timeline.to($element, perso.initial.style, 0);
 	});
 
-	timeLine.init();
-	return timeLine;
+	GSDevTools.create({ animation: timeline });
+	// timeline.init();
+	return timeline;
 }
