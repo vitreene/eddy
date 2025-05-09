@@ -1,13 +1,3 @@
-// import {
-// 	utils,
-// 	animate,
-// 	type Timeline,
-// 	type JSAnimation,
-// 	type AnimatableParams,
-// 	waapi,
-// 	WAAPIAnimation,
-// } from 'animejs';
-
 import { gsap } from 'gsap';
 import { Flip } from 'gsap/Flip';
 
@@ -18,13 +8,13 @@ gsap.registerPlugin(Flip);
 
 export function onUpdateTimeLine(
 	$elements: Map<ID, HTMLElement>,
-	persoChanges: Map<ID, Record<number, Change>>,
-	self: () => gsap.core.Timeline
+	persoChanges: Map<ID, Record<number, Change>>
 ) {
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, any>();
 	return function () {
-		const currentTime = self().time();
+		const self: gsap.core.Timeline = this;
+		const currentTime = self.time();
 
 		persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
@@ -48,7 +38,7 @@ export function onUpdateTimeLine(
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
 					const transition = move($elements.get(id), nextChange.change);
 					transitions.set(nextChange, transition);
-					self().add(transition, currentTime);
+					self.add(transition, currentTime);
 					console.log('MOVE', nextChange.change.move);
 				} else applyChange($elements.get(id), nextChange.change);
 			}
@@ -95,16 +85,24 @@ function move($el: HTMLElement, change: Change['change']) {
 
 		case 'boolean': {
 			console.log($el.id, 'move');
+			const properties = getElProperties($el);
 
 			const state = Flip.getState($el);
 			applyChange($el, change);
 
-			return Flip.from(state, {
+			let transition: gsap.core.Timeline;
+			transition = Flip.from(state, {
 				duration: 1,
 				ease: 'power1.inOut',
-				// absolute: true,
-				immediateRender: true,
+				callbackScope: transition,
+				onComplete() {
+					// gsap.set($el, { clearProps: flipProps });
+				},
+				onReverseComplete() {
+					// gsap.set($el, { clearProps: flipProps });
+				},
 			});
+			return transition;
 		}
 
 		case 'number': {
@@ -183,6 +181,48 @@ function move($el: HTMLElement, change: Change['change']) {
 	}
 }
 
+const flipProps = [
+	'min-height',
+	'min-width',
+	'max-height',
+	'max-width',
+	// 'z-index',
+	// 'opacity',
+	// 'left',
+	// 'top',
+	// 'position',
+	'height',
+	'width',
+	'transform-origin',
+	'transform',
+].join(',');
+function getElProperties($el: HTMLElement) {
+	const getter = gsap.getProperty($el);
+	const properties = {
+		// transform: getter('transform'),
+		id: 'my-set',
+		// transform: 'translateX(200px)',
+	};
+	[
+		'min-height',
+		'min-width',
+		'max-height',
+		'max-width',
+		// 'z-index',
+		// 'opacity',
+		// 'left',
+		// 'top',
+		// 'position',
+		'height',
+		'width',
+		'transform-origin',
+		'transform',
+	].forEach((prop) => {
+		properties[prop] = getter(prop);
+	});
+
+	return properties;
+}
 function getAbsoluteCoords($el: HTMLElement) {
 	const coords = { x: 0, y: 0 };
 

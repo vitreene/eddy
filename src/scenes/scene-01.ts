@@ -31,10 +31,10 @@ const root: Perso = {
 		},
 	},
 	actions: {
-		action01: {
+		enter: {
 			style: {
 				backgroundColor: 'lch(56% 64 263 / 1)',
-				duration: 6.5,
+				duration: 3.5,
 				// scale: 0.6,
 				// rotate: -30,
 				// scale: { to: 0.6, duration: 500 },
@@ -57,35 +57,29 @@ const counter: Perso = {
 			padding: 8,
 			'font-size': '2cqi',
 			'text-align': 'center',
-			// transform: 'rotate(0deg) scale(1) translateX(150px) translateY(0px)',
-			// x: 300, // faute si > 0
-			// rotate: 0,
-			// scale: 1, // faute si pas present...
 		},
 	},
 	actions: {
-		enter: {
+		enter: {},
+		action01: {
+			className: { add: 'action01' },
 			style: {
 				// transformOrigin: 'bottom right',
 				// backgroundColor: 'lch(56% 63.61 262.73 / 0.5)',
 				// rotate: { to: '30deg', duration: 1500 },
 				// scale: { to: 0.6, duration: 1500 },
 				// x: 0,
-				// scale: 1.5,
-				// duration: 0.5,
-				// rotate: 90,
-				gridArea: '500 / 200 / span 200 / span 300',
+				scale: 1.5,
+				duration: 1,
+				rotate: 90,
 			},
 		},
-		action01: {
-			className: { add: 'action01' },
-		},
 		action02: {
-			// className: {
-			// 	add: 'item4',
-			// 	remove: 'item2',
-			// },
-			// move: true,
+			className: {
+				add: 'item4',
+				remove: 'item2',
+			},
+			move: true,
 			style: {
 				'font-weight': 'bold',
 				// skew: 45,
@@ -95,7 +89,6 @@ const counter: Perso = {
 				// scale: 2.6,
 				// 'font-size': { to: '5cqi', duration: 1500 },
 				// 'font-size': '5cqi',
-				gridArea: '700 / 600 / span 400 / span 500',
 			},
 		},
 		// ,

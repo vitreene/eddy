@@ -16,20 +16,24 @@ export function timeLineScene({
 	eventtimes: MapEvent;
 	persos: Array<Perso>;
 }): gsap.core.Timeline {
-	if (!document) return null;
-	const main = document.querySelector(`#${SCENE_ID}`);
-	if (!main) return null;
-
 	const $elements = createElements(persos);
 	const persoChanges = setStaticChanges({ eventtimes, persos });
 
-	let timeline;
+	let timeline: gsap.core.Timeline;
 	timeline = gsap.timeline({
 		autoplay: true,
 		loop: 1,
 		alternate: true,
-		onUpdate: onUpdateTimeLine($elements, persoChanges, () => timeline),
-		onLoop: () => console.log('///////LOOP'),
+		callbackScope: timeline,
+		onUpdate: onUpdateTimeLine($elements, persoChanges),
+		onComplete() {
+			timeline.progress(0);
+
+			console.log('///////LOOP');
+		},
+		onReverseComplete() {
+			// gsap.set($el, { clearProps: flipProps });
+		},
 	});
 
 	const timeEvents = new Map<string, number[]>();
@@ -61,6 +65,6 @@ export function timeLineScene({
 	});
 
 	GSDevTools.create({ animation: timeline });
-	// timeline.init();
+
 	return timeline;
 }

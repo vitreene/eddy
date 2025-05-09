@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 import './scenes/scene-01.css';
 
@@ -11,11 +11,11 @@ import { eventtimes, persos } from './scenes/scene-01';
 export default function App() {
 	const animeScene = useRef<gsap.core.Timeline>(null);
 
-	useEffect(() => {
+	useLayoutEffect(() => {
 		if (!animeScene.current) {
 			animeScene.current = timeLineScene({ eventtimes, persos });
+			animeScene.current.play();
 			setTimeout(() => {
-				animeScene.current.play();
 				console.log(animeScene.current);
 			}, 500);
 		}
