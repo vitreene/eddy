@@ -4,7 +4,12 @@ export interface Change {
 	prev: number | null;
 	curr: number | null;
 	next: number | null;
-
+	snapshot?: {
+		x: number | string;
+		y: number | string;
+		width: number | string;
+		height: number | string;
+	};
 	change: {
 		className?: string;
 		move?: null | boolean | string;

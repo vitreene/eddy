@@ -41,17 +41,17 @@ export function timeLineScene({
 
 	persos.forEach((perso) => {
 		if (!perso.initial.id) return;
-		const $element = $elements.get(perso.initial.id);
-		if (!$element) return;
+		const $el = $elements.get(perso.initial.id);
+		timeLine.add($el, perso.initial.style, 0);
+		if (!$el) return;
 		for (const [actionName, action] of Object.entries(perso.actions)) {
 			const positions = timeEvents.get(actionName);
 			if (positions && action.style) {
 				positions.forEach((position) => {
-					timeLine.add($element, action.style, position);
+					timeLine.add($el, action.style, position);
 				});
 			}
 		}
-		timeLine.add($element, perso.initial.style, 0);
 	});
 
 	timeLine.init();

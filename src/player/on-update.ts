@@ -23,7 +23,7 @@ export function onUpdateTimeLine(
 
 		persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
-
+			const $el = $elements.get(id);
 			if (transitions.has(change)) {
 				const transition = transitions.get(change);
 				transition.progress = getProgression(
@@ -50,14 +50,28 @@ export function onUpdateTimeLine(
 				persoPositions.set(id, nextChange);
 
 				const transition = transitions.get(change);
-				transition && utils.cleanInlineStyles(transition);
+				// transition && utils.cleanInlineStyles(transition);
+				if (change.snapshot) {
+					console.log('change.snapshot', change.curr, change.snapshot);
+
+					utils.set($el, change.snapshot);
+				}
 
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
-					const transition = move($elements.get(id), nextChange.change);
+					nextChange.snapshot = {
+						x: utils.get($el, 'x'),
+						y: utils.get($el, 'y'),
+						width: utils.get($el, 'width'),
+						height: utils.get($el, 'height'),
+					};
+					// retirer les props qui ne sont pas définies
+					const ww = $el.style.getPropertyValue('width');
+
+					const transition = move($el, nextChange.change);
 					transitions.set(nextChange, transition);
 					// self.sync(transition, nextChange.curr).seek(nextChange.curr).resume();
 					console.log('MOVE', nextChange.change.move, transition);
-				} else applyChange($elements.get(id), nextChange.change);
+				} else applyChange($el, nextChange.change);
 			}
 		});
 		return true;
@@ -108,52 +122,24 @@ function move($el: HTMLElement, change: Change['change']) {
 
 			const px = utils.get($el, 'x', false);
 			const py = utils.get($el, 'y', false);
-			/* 
-			const dp = transformCoords(px, py, -30);
 
-			const dx = old.x - nex.x - dp.x * 2;
-			const dy = old.y - nex.y - dp.y * 2; */
-
-			// const dx = old.x - nex.x + px * 2;
-			// const dy = old.y - nex.y + py * 2;
 			const dx = old.x - nex.x;
 			const dy = old.y - nex.y;
 
 			const diff = getTransform($el)
+				.translate(-px, -py)
 				.invertSelf()
 				.transformPoint(new DOMPoint(dx, dy));
 
-			/* 
-        le décalage px,py interfère avec le calcul de la position de l'element. 
-        px,py * 2 annule en partie ce décalage, mais ce n'est pas le calcul précis. ce décalage doit lui aussi est modifié par le scale et la rotation... 
-        
-        */
-			console.log('***transition****', px, py);
-			console.log(diff.x, diff.y);
-			/* 
-      rien :  : rotate(30deg) scale(0.608) translateX(-316.203px) translateY(2.2133px)
-      x: translateX(-313.648px) rotate(30deg) scale(0.6213) translateY(2.1973px)
-      r + x : rotate(30deg) translateX(-314.924px) scale(0.6133) translateY(2.2051px)
-      x +r : translateX(-316.203px) rotate(30deg) scale(0.608) translateY(2.2133px)
-      r+S+x : rotate(30deg) translateX(-315.563px) scale(0.616) translateY(2.2095px)
-      */
 			const transition = animate($el, {
-				autoplay: false,
-				composition: 'replace',
-				// x: { from: dx, to: 0 + px },
-				// y: { from: dy, to: 0 + py },
-				x: { from: diff.x, to: 0 + px },
-				y: { from: diff.y, to: 0 + py },
+				x: { from: diff.x + px, to: 0 + px },
+				y: { from: diff.y + py, to: 0 + py },
 
 				width: { from: old.width, to: nex.width },
 				height: { from: old.height, to: nex.height },
+				autoplay: false,
 				duration: 1000,
-				onUpdate: () => {
-					// const px = utils.get($el, 'x', false);
-					// const py = utils.get($el, 'y', false);
-					// console.log(px, py);
-					console.log($el.style.transform);
-				},
+				composition: 'none',
 			}).seek(0);
 
 			return transition;

@@ -3,19 +3,19 @@ import { ROOT } from '../player/constants';
 
 export const eventtimes: MapEvent = new Map([
 	[0, { name: 'enter' }],
-	[1.0, { name: 'start_sound_fr' }],
-	[1.1, { name: 'action01' }],
-	[1.5, { name: 'action02' }],
+	[1000, { name: 'start_sound_fr' }],
+	[1100, { name: 'action01' }],
+	[1500, { name: 'action02' }],
 	[
-		3.0,
+		3000,
 		{
 			name: 'action03',
 			data: { style: { 'font-size': 100, 'background-color': 'cyan' } },
 		},
 	],
-	[3.2, { name: 'action04' }],
-	[4.0, { name: 'action05' }],
-	[6.5, { name: 'end_music_fr' }],
+	[3200, { name: 'action04' }],
+	[4000, { name: 'action05' }],
+	[6500, { name: 'end_music_fr' }],
 ]);
 
 const root: Perso = {
@@ -27,6 +27,7 @@ const root: Perso = {
 		style: {
 			position: 'relative',
 			backgroundColor: 'lch(50% 72 50 / 0.5)',
+			// scale: 0.6,
 		},
 	},
 	actions: {
@@ -34,7 +35,6 @@ const root: Perso = {
 			style: {
 				backgroundColor: 'lch(56% 64 263 / 1)',
 				duration: 3500,
-
 				scale: { to: 0.6, duration: 500 },
 				rotate: { to: '-30deg', duration: 3000 },
 			},
@@ -52,55 +52,45 @@ const counter: Perso = {
 		content: 'start',
 		style: {
 			backgroundColor: 'orangered',
-			padding: 8,
+			padding: '0.5rem',
 			'font-size': '2cqi',
 			'text-align': 'center',
-			// transform: 'rotate(0deg) scale(1) translateX(150px) translateY(0px)',
-			// x: 300, // faute si > 0
 			// rotate: 0,
-			// scale: 1, // faute si pas present...
-			x: '30cqi',
-			y: '20cqi',
-			width: '30cqi',
-			height: '10cqi',
+			// scale: 1,
+			// x: 100,
+			// y: 0,
 		},
 	},
 	actions: {
 		enter: {
 			style: {
-				// transformOrigin: 'bottom right',
-				// backgroundColor: 'lch(56% 63.61 262.73 / 0.5)',
-				rotate: { to: '30deg', duration: 1500 },
-				// scale: { to: 0.6, duration: 1500 },
-				// x: 0,
-				// scale: 1.5,
-				// duration: 0.5,
-				// rotate: 90,
+				transformOrigin: 'bottom right',
+				backgroundColor: { to: 'lch(56% 63.61 262.73 / 0.5)', duration: 5000 },
+				rotate: { to: '30deg', duration: 4000 },
+				scale: { to: 0.6, duration: 1500 },
+
+				x: { to: 300 },
+				y: { to: 50 },
 			},
 		},
 		action01: {
 			className: { add: 'action01' },
+			style: {
+				x: { to: 0, duration: 300 },
+				y: { to: 0, duration: 300 },
+			},
 		},
 		action02: {
-			// className: {
-			// 	add: 'item4',
-			// 	remove: 'item2',
-			// },
-			// move: true,
+			className: {
+				add: 'item4',
+				remove: 'item2',
+			},
+			move: true,
 			style: {
 				'font-weight': 'bold',
 				// skew: 45,
-				scale: { to: 2.6, duration: 1500 },
-				// rotate: '30deg',
-
-				// scale: 2.6,
-				// 'font-size': { to: '5cqi', duration: 1500 },
-				// 'font-size': '5cqi',
-
-				x: '70cqi',
-				y: '30cqi',
-				width: '30cqi',
-				height: '30cqi',
+				// scale: { to: 2.6, duration: 1500 },
+				'font-size': { to: '5cqi', duration: 1500 },
 			},
 		},
 		// ,
@@ -133,8 +123,7 @@ const text1: Perso = {
 		enter: {},
 		action01: {
 			style: {
-				// rotate: { to: '30deg', duration: 1500 },
-				rotate: 30,
+				rotate: { to: '30deg', duration: 1500 },
 			},
 		},
 	},
