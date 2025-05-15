@@ -88,8 +88,8 @@ const counter: Perso = {
 			move: true,
 			style: {
 				'font-weight': 'bold',
-				// skew: 45,
-				// scale: { to: 2.6, duration: 1500 },
+				skew: 45,
+				scale: { to: 2.6, duration: 1500 },
 				'font-size': { to: '5cqi', duration: 1500 },
 			},
 		},
@@ -120,10 +120,14 @@ const text1: Perso = {
 		},
 	},
 	actions: {
-		enter: {},
-		action01: {
+		enter: {
 			style: {
-				rotate: { to: '30deg', duration: 1500 },
+				scale: { to: 0.6, duration: 1500 },
+			},
+		},
+		action02: {
+			style: {
+				rotate: { to: '-180deg', duration: 500 },
 			},
 		},
 	},
@@ -166,4 +170,4 @@ const text3: Perso = {
 	},
 } as const;
 
-export const persos = [root, counter /* , text1, text3 */];
+export const persos = [root, counter, text1, text3];

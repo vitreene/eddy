@@ -17,7 +17,7 @@ export function onUpdateTimeLine(
 ) {
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, JSAnimation>();
-
+	const setters = new Map<ID, JSAnimation>();
 	return function (self: Timeline) {
 		const currentTime = self.iterationCurrentTime;
 
@@ -26,11 +26,14 @@ export function onUpdateTimeLine(
 			const $el = $elements.get(id);
 			if (transitions.has(change)) {
 				const transition = transitions.get(change);
-				transition.progress = getProgression(
+				const progress = getProgression(
 					currentTime,
 					change.curr,
 					change.curr + 1000
 				);
+
+				!(progress == 1 && transition.completed) &&
+					(transition.progress = progress);
 			}
 
 			if (
@@ -45,16 +48,16 @@ export function onUpdateTimeLine(
 					)
 				) {
 					nextChange = nextChange.next ? changes[nextChange.next] : changes[0];
-					if (nextChange === change) return;
+					if (nextChange === change) return; // never
 				}
 				persoPositions.set(id, nextChange);
 
-				const transition = transitions.get(change);
-				// transition && utils.cleanInlineStyles(transition);
-				if (change.snapshot) {
-					console.log('change.snapshot', change.curr, change.snapshot);
+				if (setters.has(id)) {
+					setters.get(id).revert();
+				}
 
-					utils.set($el, change.snapshot);
+				if (change.snapshot) {
+					setters.set(id, utils.set($el, change.snapshot));
 				}
 
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
@@ -64,12 +67,10 @@ export function onUpdateTimeLine(
 						width: utils.get($el, 'width'),
 						height: utils.get($el, 'height'),
 					};
-					// retirer les props qui ne sont pas définies
-					const ww = $el.style.getPropertyValue('width');
 
 					const transition = move($el, nextChange.change);
 					transitions.set(nextChange, transition);
-					// self.sync(transition, nextChange.curr).seek(nextChange.curr).resume();
+
 					console.log('MOVE', nextChange.change.move, transition);
 				} else applyChange($el, nextChange.change);
 			}
