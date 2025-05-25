@@ -7,26 +7,30 @@ import { setStaticChanges } from './static-changes';
 import type { ID, MapEvent, Perso } from '../types';
 import { onUpdateTimeLine } from './on-update';
 
-export function timeLineScene({
+export function createTimeLine() {
+	return createTimeline({
+		autoplay: true,
+		loop: 1,
+		alternate: true,
+		onLoop: () => console.log('///////LOOP'),
+	});
+}
+
+export function createScene({
+	timeLine,
 	eventtimes,
 	persos,
 }: {
+	timeLine: Timeline;
 	eventtimes: MapEvent;
 	persos: Array<Perso>;
-}): Timeline {
+}) {
 	if (!document) return null;
 	const main = document.querySelector(`#${SCENE_ID}`);
 	if (!main) return null;
 
 	const $elements = createElements(persos);
 	const persoChanges = setStaticChanges({ eventtimes, persos });
-	const timeLine = createTimeline({
-		autoplay: true,
-		loop: 1,
-		alternate: true,
-		onUpdate: onUpdateTimeLine($elements, persoChanges),
-		onLoop: () => console.log('///////LOOP'),
-	});
 
 	const timeEvents = new Map<string, number[]>();
 
@@ -54,6 +58,5 @@ export function timeLineScene({
 		}
 	});
 
-	timeLine.init();
-	return timeLine;
+	return { $elements, persoChanges };
 }

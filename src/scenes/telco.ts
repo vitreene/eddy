@@ -1,7 +1,7 @@
-import { Timeline } from 'animejs';
+import { createTimeline, Timeline } from 'animejs';
 import { ROOT, SCENE_ID } from '../player/constants';
 
-export function createTelco(telco: Timeline) {
+export function createTelco(telco) {
 	if (document.querySelector('#telco')) return;
 
 	const command = document.createElement('div');
@@ -19,11 +19,23 @@ export function createTelco(telco: Timeline) {
 	});
 	slider.addEventListener('click', mousemove);
 
+	const playButton = document.createElement('button');
+	playButton.innerText = 'play';
+	playButton.addEventListener('click', togglePlay);
+
+	const progress = document.createElement('span');
+	command.appendChild(playButton);
+	command.appendChild(slider);
+	command.appendChild(progress);
+
+	const container = document.getElementById(`${SCENE_ID}`);
+	container.appendChild(command);
+
 	function mousemove(): void {
-		const p = (Number(slider.value) * telco.duration) / 100 - 100;
+		const p = (Number(slider.value) * telco.duration) / 100;
 		const progression = p > 0 ? p : 0;
 		progress.textContent = Math.round(Number(slider.value)) + '%';
-		progress.textContent = Math.round(progression) + 'ms';
+		// progress.textContent = Math.round(progression) + 'ms';
 		telco.seek(progression, false);
 		playButton.innerText = 'play';
 		toggle = false;
@@ -41,16 +53,10 @@ export function createTelco(telco: Timeline) {
 			toggle = true;
 		}
 	}
-
-	const playButton = document.createElement('button');
-	playButton.innerText = 'play';
-	playButton.addEventListener('click', togglePlay);
-
-	const progress = document.createElement('span');
-	command.appendChild(playButton);
-	command.appendChild(slider);
-	command.appendChild(progress);
-
-	const container = document.getElementById(`${SCENE_ID}`);
-	container.appendChild(command);
+	function onUpdate(self: Timeline) {
+		const p = (self.currentTime / telco.duration) * 100;
+		progress.textContent = Math.round(p) + '%';
+		slider.value = `${p}`;
+	}
+	return onUpdate;
 }

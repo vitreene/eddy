@@ -1,6 +1,6 @@
 import { utils } from 'animejs';
 import { SCENE_ID, ROOT } from './constants';
-import { Perso, ID, Initial } from '../types';
+import { Perso, ID, Initial, P } from '../types';
 
 export function createElements(persos: Array<Perso>) {
 	if (!document) return null;
@@ -10,8 +10,10 @@ export function createElements(persos: Array<Perso>) {
 	const $elements = new Map<ID, HTMLElement>();
 	$elements.set(SCENE_ID, main);
 
-	persos.forEach(({ initial }) => {
-		const $el = createPerso(initial);
+	console.log(persos);
+
+	persos.forEach(({ type, initial }) => {
+		const $el = createPerso(type, initial);
 		$elements.set(initial.id, $el);
 	});
 
@@ -27,10 +29,16 @@ export function createElements(persos: Array<Perso>) {
 
 	return $elements;
 }
-function createPerso(initial: Partial<Initial>) {
-	const $el = document.createElement(initial.tag || 'div');
+function createPerso(type: keyof typeof P, initial: Partial<Initial>) {
+	const $el = document.createElement(
+		initial.tag || (type === P.IMG && 'img') || 'div'
+	);
 	for (const k in initial) {
-		if (k == 'content') $el.textContent = initial.content;
+		if (k == 'content') {
+			if (type === P.IMG) {
+				($el as HTMLImageElement).src = initial.content;
+			} else $el.textContent = initial.content;
+		}
 		if (k == 'id') $el.id = initial.id;
 		if (k == 'style') {
 			utils.set($el, initial.style);

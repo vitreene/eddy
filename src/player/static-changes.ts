@@ -86,6 +86,7 @@ export function setStaticChanges({
 
 	return persoChanges;
 }
+
 function mixClassNames(oldClassName: string, className: string | ClassAction) {
 	switch (typeof className) {
 		case 'string': {

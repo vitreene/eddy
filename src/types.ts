@@ -21,11 +21,30 @@ interface CSSTransformSpecialParam<T> {
 	movey: T;
 }
 
-export interface Perso {
-	type: PersoType;
+interface PersoBase {
 	initial: Initial;
 	actions: Record<string, Partial<Action>>;
 }
+
+export interface PersoDef extends PersoBase {
+	type: PersoType;
+}
+export interface PersoImgDef extends PersoBase {
+	type: typeof persoTypes.IMG;
+	media: Record<string, Img>;
+}
+
+export type Perso = PersoDef | PersoImgDef;
+
+export interface Img {
+	img?: HTMLImageElement;
+	src: string;
+	fit?: string;
+	ratio?: number;
+	width?: number | string;
+	height?: number | string;
+}
+
 export interface Style
 	extends CSS.Properties<string | number>,
 		CSS.PropertiesHyphen<string | number>,
@@ -68,3 +87,10 @@ export const persoTypes = {
 export const P = persoTypes;
 
 export type PersoType = keyof typeof persoTypes;
+
+export interface My extends MediaElementAudioSourceNode {
+	my?: {
+		connect: () => void;
+		disconnect: () => void;
+	};
+}

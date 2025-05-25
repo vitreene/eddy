@@ -8,22 +8,28 @@ import {
 	WAAPIAnimation,
 } from 'animejs';
 
-import type { ID } from '../types';
+import { persoTypes, type ID, type Perso } from '../types';
 import type { Change } from './static-changes';
 
 export function onUpdateTimeLine(
 	$elements: Map<ID, HTMLElement>,
+	persos: Record<ID, Perso>,
 	persoChanges: Map<ID, Record<number, Change>>
 ) {
+	console.log('persos', persos);
+
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, JSAnimation>();
 	const setters = new Map<ID, JSAnimation>();
+
 	return function (self: Timeline) {
 		const currentTime = self.iterationCurrentTime;
 
 		persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
 			const $el = $elements.get(id);
+
+			// update transition
 			if (transitions.has(change)) {
 				const transition = transitions.get(change);
 				const progress = getProgression(
@@ -36,20 +42,14 @@ export function onUpdateTimeLine(
 					(transition.progress = progress);
 			}
 
+			// update sets :
 			if (
 				currentTime >= (change.next ?? Infinity) ||
 				currentTime <= change.curr
 			) {
-				let nextChange = change;
-				while (
-					!(
-						currentTime <= (nextChange.next ?? Infinity) &&
-						currentTime >= nextChange.curr
-					)
-				) {
-					nextChange = nextChange.next ? changes[nextChange.next] : changes[0];
-					if (nextChange === change) return; // never
-				}
+				const nextChange = setNextChange(change, changes);
+				if (nextChange == null) return;
+
 				persoPositions.set(id, nextChange);
 
 				if (setters.has(id)) {
@@ -59,7 +59,6 @@ export function onUpdateTimeLine(
 				if (change.snapshot) {
 					setters.set(id, utils.set($el, change.snapshot));
 				}
-
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
 					nextChange.snapshot = {
 						x: utils.get($el, 'x'),
@@ -68,14 +67,28 @@ export function onUpdateTimeLine(
 						height: utils.get($el, 'height'),
 					};
 
-					const transition = move($el, nextChange.change);
+					const transition = move($el, nextChange.change, persos[id]);
 					transitions.set(nextChange, transition);
 
 					console.log('MOVE', nextChange.change.move, transition);
-				} else applyChange($el, nextChange.change);
+				} else applyChange($el, nextChange.change, persos[id]);
 			}
 		});
 		return true;
+
+		function setNextChange(change: Change, changes: Record<number, Change>) {
+			let nextChange = change;
+			while (
+				!(
+					currentTime <= (nextChange.next ?? Infinity) &&
+					currentTime >= nextChange.curr
+				)
+			) {
+				nextChange = nextChange.next ? changes[nextChange.next] : changes[0];
+				if (nextChange === change) return null; // never
+			}
+			return nextChange;
+		}
 
 		function getChange(id: ID, currentTime: number) {
 			if (persoPositions.has(id)) return persoPositions.get(id);
@@ -94,11 +107,12 @@ export function onUpdateTimeLine(
 	};
 }
 
-function applyChange($el: HTMLElement, change: Change['change']) {
+function applyChange($el: HTMLElement, change: Change['change'], perso: Perso) {
 	if (change.className) {
 		$el.className = change.className;
 	}
-	if (change.content) {
+	if (change.content && perso.type != persoTypes.IMG) {
+		//TODO seulement si content est texte !
 		console.log('change.content', change.content);
 
 		$el.textContent = change.content;
@@ -106,7 +120,7 @@ function applyChange($el: HTMLElement, change: Change['change']) {
 	// Additional attributes can be handled here
 }
 
-function move($el: HTMLElement, change: Change['change']) {
+function move($el: HTMLElement, change: Change['change'], perso: Perso) {
 	// ATTENTION CE N'EST PLUS ADDRESSé
 	switch (typeof change.move) {
 		case 'string':
@@ -118,7 +132,7 @@ function move($el: HTMLElement, change: Change['change']) {
 		case 'boolean': {
 			const old = getAbsoluteCoords($el);
 
-			applyChange($el, change);
+			applyChange($el, change, perso);
 			const nex = getAbsoluteCoords($el);
 
 			const px = utils.get($el, 'x', false);
@@ -185,58 +199,5 @@ function getTransform($el: HTMLElement) {
 function getProgression(value: number, start: number, end: number) {
 	const diff = end - start;
 	if (diff === 0) return 1;
-	// if (value < start || value > end) return null;
 	return Math.max(0, Math.min(1, (value - start) / diff));
 }
-
-/* 
-function transformCoords(x = 0, y = 0, rotate = 0, s = 1) {
-	const scale = 1 / s;
-	const distance = hypothenuse(x, y);
-	const angle = Math.atan2(y, x);
-	const rad = DEGtoRAD(rotate);
-	const coords = {
-		x: distance * Math.cos(angle - rad) * scale,
-		y: distance * Math.sin(angle - rad) * scale,
-	};
-
-	return coords;
-}
-
-function hypothenuse(x, y) {
-	return Math.sqrt(x * x + y * y);
-}
-function DEGtoRAD(deg) {
-	return (deg * Math.PI) / 180;
-}
-
-
-function transformPoint($el: HTMLElement) {
-	const el = getAbsoluteCoords($el); // vraies coord de $el sans transform
-	const w2 = el.width / 2;
-	const h2 = el.height / 2;
-	const tP = getTransform($el)
-  .invertSelf()
-  .transformPoint(new DOMPoint(w2, h2));
-
-	const elx = el.x;
-	const ely = el.y;
-	const tpx = tP.x - w2;
-	const tpy = tP.y - h2;
-
-	const x = elx - tpx;
-	const y = ely - tpy;
-
-
-	return {
-		tpx,
-		tpy,
-		elx,
-		ely,
-		x,
-		y,
-		width: el.width,
-		height: el.height,
-		
-	};
-} */
