@@ -1,12 +1,4 @@
-import {
-	utils,
-	animate,
-	type Timeline,
-	type JSAnimation,
-	type AnimatableParams,
-	waapi,
-	WAAPIAnimation,
-} from 'animejs';
+import { utils, animate, type Timeline, type JSAnimation } from 'animejs';
 
 import { persoTypes, type ID, type Perso } from '../types';
 import type { Change } from './static-changes';

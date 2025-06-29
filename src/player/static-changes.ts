@@ -1,4 +1,4 @@
-import { MapEvent, Perso, ID, Action, ClassAction } from '../types';
+import { MapEvent, Perso, ID, Action, ClassNameAction } from '../types';
 
 export interface Change {
 	prev: number | null;
@@ -31,12 +31,7 @@ export function setStaticChanges({
 		if (!id) return;
 
 		const actions = perso.actions;
-		const actionChanges: Record<
-			number,
-			{
-				change: Partial<Action>;
-			}
-		> = {
+		const actionChanges: Record<number, { change: Partial<Action> }> = {
 			0: {
 				change: initialAction,
 			},
@@ -87,7 +82,10 @@ export function setStaticChanges({
 	return persoChanges;
 }
 
-function mixClassNames(oldClassName: string, className: string | ClassAction) {
+function mixClassNames(
+	oldClassName: string,
+	className: string | ClassNameAction
+) {
 	switch (typeof className) {
 		case 'string': {
 			const mix = new Set([

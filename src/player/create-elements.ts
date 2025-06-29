@@ -2,7 +2,7 @@ import { utils } from 'animejs';
 import { SCENE_ID, ROOT } from './constants';
 import { Perso, ID, Initial, P } from '../types';
 
-export function createElements(persos: Array<Perso>) {
+export function createElements(persos: Array<Perso>): Map<ID, HTMLElement> {
 	if (!document) return null;
 	const main: HTMLElement = document.querySelector(`#${SCENE_ID}`);
 	if (!main) return null;
@@ -13,10 +13,11 @@ export function createElements(persos: Array<Perso>) {
 	console.log(persos);
 
 	persos.forEach(({ type, initial }) => {
-		const $el = createPerso(type, initial);
+		const $el = createNode({ type, initial });
 		$elements.set(initial.id, $el);
 	});
 
+	// initial insert in DOM
 	persos.forEach(({ initial }) => {
 		if ('id' in initial && initial.id == ROOT) {
 			main.appendChild($elements.get(initial.id));
@@ -29,10 +30,14 @@ export function createElements(persos: Array<Perso>) {
 
 	return $elements;
 }
-function createPerso(type: keyof typeof P, initial: Partial<Initial>) {
-	const $el = document.createElement(
-		initial.tag || (type === P.IMG && 'img') || 'div'
-	);
+
+interface NodeProps {
+	type: keyof typeof P;
+	initial: Partial<Initial>;
+}
+function createNode({ type, initial }: NodeProps) {
+	const $el = document.createElement(createTag({ type, initial }));
+
 	for (const k in initial) {
 		if (k == 'content') {
 			if (type === P.IMG) {
@@ -49,4 +54,22 @@ function createPerso(type: keyof typeof P, initial: Partial<Initial>) {
 			}
 	}
 	return $el;
+}
+
+function createTag({ type, initial }: NodeProps) {
+	if (initial.tag) return initial.tag;
+	switch (type) {
+		case P.SPRITE:
+		case P.IMG:
+			return 'img';
+		case P.SOUND:
+		case P.VIDEO:
+			return 'video';
+		case P.THREE:
+			// case P.LOTTIE:
+			return 'canvas';
+
+		default:
+			return 'div';
+	}
 }

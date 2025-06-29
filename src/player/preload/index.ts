@@ -2,6 +2,7 @@ import { ID, Perso } from '../../types';
 import { getPersoSounds } from './audio';
 import { getPersoImages } from './ikono';
 import { getPersoVideos } from './video';
+import { getFiles } from './files';
 
 export type Store = Record<ID, Perso>;
 export interface OptionalMediasStoreProps {
@@ -21,11 +22,15 @@ export async function preload(store: Array<Perso>): Promise<Store> {
 	const st03 = await getPersoVideos(st01.persos);
 	console.log('LOAD VIDEOS');
 
+	const st04 = await getFiles(st01.persos);
+	console.log('LOAD Lotties', st04);
+
 	const persos01 = {
 		...st03.persos,
 		...st01.medias,
 		...st02.medias,
 		...st03.medias,
+		...st04.medias,
 	};
 
 	const persos: Store = {};

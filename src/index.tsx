@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import Lottie from 'lottie-web';
 
 import './scenes/scene-01.css';
 
@@ -14,14 +15,13 @@ import { onUpdateTimeLine } from './player/on-update';
 export default function App() {
 	const animeScene = useRef<Timeline>(null);
 	const sceneRef = useRef<HTMLElement>(null);
+	const lottieRef = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {
 		preload(persos).then((p) => {
 			if (!animeScene.current) {
 				console.log('LOAD STORE', p);
-
 				const timeLine = createTimeLine();
-
 				const { $elements, persoChanges } = createScene({
 					timeLine,
 					eventtimes,
@@ -32,17 +32,25 @@ export default function App() {
 				const updates = [
 					updateTelco,
 					onUpdateTimeLine($elements, p, persoChanges),
+					// onUpdateLottie,
 				];
 				timeLine.onUpdate = (self) => updates.forEach((up) => up(self));
 				animeScene.current = timeLine;
 				animeScene.current.play();
 			}
 		});
+
 		return () => {
+			console.log('REVERT');
 			animeScene.current && animeScene.current.revert();
-			sceneRef.current.firstChild.remove;
+			sceneRef.current instanceof HTMLElement &&
+				sceneRef.current.firstChild.remove;
 		};
 	}, []);
 
-	return <main ref={sceneRef} id={SCENE_ID} />;
+	return (
+		<>
+			<main ref={sceneRef} id={SCENE_ID} />
+		</>
+	);
 }

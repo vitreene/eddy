@@ -16,11 +16,15 @@
 		"jsx": "react-jsx",
 
 		/* Linting */
-		"strict": false,
-		"noUnusedLocals": false,
-		"noUnusedParameters": false,
-		"noFallthroughCasesInSwitch": false,
-		"noUncheckedSideEffectImports": false
+		"allowSyntheticDefaultImports": true,
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"forceConsistentCasingInFileNames": true
+		// "strict": false,
+		// "noUnusedLocals": true,
+		// "noUnusedParameters": true,
+		// "noFallthroughCasesInSwitch": false,
+		// "noUncheckedSideEffectImports": false
 	},
 	"include": ["src"]
 }

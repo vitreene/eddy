@@ -1,4 +1,4 @@
-import { MapEvent, P, Perso } from '../types';
+import { MapEvent, P, Perso, PersoMediaDef } from '../types';
 import { ROOT } from '../player/constants';
 
 export const eventtimes: MapEvent = new Map([
@@ -46,12 +46,7 @@ const capsule = {
 	actions: {},
 };
 
-interface Imgs {
-	src: string;
-	start: number;
-	end: number;
-}
-const ikonos = [
+const ikonos: Array<Perso> = [
 	{
 		src: '001.jpg',
 		start: 0,
@@ -68,11 +63,11 @@ const ikonos = [
 		end: 3000,
 	},
 ].map(
-	(img: Imgs, index: number): Perso => ({
+	(img, index: number): Perso => ({
 		type: P.IMG,
 		initial: {
 			id: `img-${index}`,
-			content: `/images/${img.src}`,
+			src: `/images/${img.src}`,
 			className: 'ikono',
 			move: CP01,
 			style: {
@@ -97,4 +92,25 @@ const ikonos = [
 	})
 );
 
-export const persos = [root, capsule, ...ikonos];
+const lottie: Perso = {
+	type: P.LOTTIE,
+	initial: {
+		id: 'lot-1',
+		src: '/images/animation-1748191725447.json',
+		move: ROOT,
+		style: {
+			backgroundColor: 'blue',
+		},
+	},
+	actions: {
+		'1000': {
+			media: {
+				action: 'play',
+
+				duration: 1000,
+			},
+		},
+	},
+};
+
+export const persos = [root, capsule, ...ikonos, lottie];

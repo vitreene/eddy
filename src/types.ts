@@ -12,15 +12,6 @@ export interface Eventime {
 	events?: Eventime[];
 }
 
-interface CSSTransformSpecialParam<T> {
-	x: number;
-	y: T;
-	dx: T;
-	dy: T;
-	movex: T;
-	movey: T;
-}
-
 interface PersoBase {
 	initial: Initial;
 	actions: Record<string, Partial<Action>>;
@@ -29,12 +20,20 @@ interface PersoBase {
 export interface PersoDef extends PersoBase {
 	type: PersoType;
 }
+
 export interface PersoImgDef extends PersoBase {
-	type: typeof persoTypes.IMG;
+	type: typeof persoTypes.IMG | typeof persoTypes.SPRITE;
+	initial: Initial & { src: string };
 	media: Record<string, Img>;
 }
+export interface PersoMediaDef extends PersoBase {
+	type: typeof persoTypes.VIDEO | typeof persoTypes.LOTTIE;
+	initial: Initial & { src: string };
+	media?: any;
+	actions: Record<string, Partial<Action & { media: Media }>>;
+}
 
-export type Perso = PersoDef | PersoImgDef;
+export type Perso = PersoDef | PersoImgDef | PersoMediaDef;
 
 export interface Img {
 	img?: HTMLImageElement;
@@ -45,12 +44,26 @@ export interface Img {
 	height?: number | string;
 }
 
+export interface Media {
+	action: string;
+	duration?: number;
+}
+
 export interface Style
 	extends CSS.Properties<string | number>,
 		CSS.PropertiesHyphen<string | number>,
 		Partial<CSSTransformSpecialParam<number>> {}
 
-export interface ClassAction {
+interface CSSTransformSpecialParam<T> {
+	x: number;
+	y: T;
+	dx: T;
+	dy: T;
+	movex: T;
+	movey: T;
+}
+
+export interface ClassNameAction {
 	add?: string;
 	remove?: string;
 }
@@ -58,7 +71,7 @@ export interface ClassAction {
 export interface Action {
 	attr: any;
 	style: AnimationParams;
-	className: string | ClassAction;
+	className: string | ClassNameAction;
 	move: boolean | string;
 	content: string;
 }
@@ -82,6 +95,8 @@ export const persoTypes = {
 	POLYGON: 'POLYGON',
 	SOUND: 'SOUND',
 	AUDIO: 'AUDIO',
+	LOTTIE: 'LOTTIE',
+	THREE: 'THREE',
 } as const;
 
 export const P = persoTypes;
