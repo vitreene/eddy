@@ -22,6 +22,7 @@ export async function getPersoImages(store: Record<string, Perso>) {
 			persos[id] = store[id];
 		}
 	}
+	console.log(imgSrc);
 
 	await Promise.all(
 		Object.entries(imgSrc).map(([id, srcs]) => {
@@ -45,11 +46,11 @@ export async function getPersoImages(store: Record<string, Perso>) {
 	return { persos, medias };
 }
 
-function findSrcs(perso: Perso) {
-	const srcs = [perso.initial.content];
+function findSrcs(perso: PersoImgDef) {
+	const srcs = [perso.initial.src];
 	if (perso.actions) {
 		Object.values(perso.actions).forEach(
-			(action) => action.content && srcs.push(action.content)
+			(action) => action.src && srcs.push(action.src)
 		);
 	}
 	return srcs;

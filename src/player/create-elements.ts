@@ -39,10 +39,12 @@ function createNode({ type, initial }: NodeProps) {
 	const $el = document.createElement(createTag({ type, initial }));
 
 	for (const k in initial) {
+		if (k == 'src') {
+			($el as HTMLImageElement).src = initial.src;
+		}
+
 		if (k == 'content') {
-			if (type === P.IMG) {
-				($el as HTMLImageElement).src = initial.content;
-			} else $el.textContent = initial.content;
+			$el.textContent = initial.content;
 		}
 		if (k == 'id') $el.id = initial.id;
 		if (k == 'style') {

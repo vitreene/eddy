@@ -1,5 +1,6 @@
 import { AnimationParams } from 'animejs';
 import * as CSS from 'csstype';
+import { AnimationItem, LottiePlayer } from 'lottie-web';
 
 export type ID = string;
 export type MapEvent = Map<number, Eventime | Eventime[]>;
@@ -27,9 +28,22 @@ export interface PersoImgDef extends PersoBase {
 	media: Record<string, Img>;
 }
 export interface PersoMediaDef extends PersoBase {
-	type: typeof persoTypes.VIDEO | typeof persoTypes.LOTTIE;
+	type: typeof persoTypes.LOTTIE | typeof persoTypes.VIDEO;
 	initial: Initial & { src: string };
 	media?: any;
+	actions: Record<string, Partial<Action & { media: Media }>>;
+}
+
+export interface PersoLottieDef extends PersoMediaDef {
+	type: typeof persoTypes.LOTTIE;
+	initial: Initial & { src: string };
+	media: AnimationItem;
+	actions: Record<string, Partial<Action & { media: Media }>>;
+}
+export interface PersoVideoDef extends PersoMediaDef {
+	type: typeof persoTypes.VIDEO;
+	initial: Initial & { src: string };
+	media: any;
 	actions: Record<string, Partial<Action & { media: Media }>>;
 }
 
@@ -74,6 +88,7 @@ export interface Action {
 	className: string | ClassNameAction;
 	move: boolean | string;
 	content: string;
+	src: string;
 }
 
 export interface Initial extends Partial<Action> {

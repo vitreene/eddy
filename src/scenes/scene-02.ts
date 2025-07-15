@@ -106,8 +106,7 @@ const lottie: Perso = {
 		'1000': {
 			media: {
 				action: 'play',
-
-				duration: 1000,
+				duration: 3000,
 			},
 		},
 	},

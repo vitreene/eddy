@@ -9,6 +9,7 @@ import {
 	Action,
 	Media,
 	P,
+	PersoLottieDef,
 	PersoMediaDef,
 	type ID,
 	type MapEvent,
@@ -58,6 +59,7 @@ export function createScene({
 		const $el = $elements.get(perso.initial.id);
 		if (!$el) return;
 		timeLine.add($el, perso.initial.style, 0);
+
 		for (const [actionName, action] of Object.entries(perso.actions)) {
 			const positions = timeEvents.get(actionName);
 			if (positions && action.style) {
@@ -65,17 +67,23 @@ export function createScene({
 					timeLine.add($el, action.style, position);
 				});
 			}
+
 			// temp ameliorer la gestion de la durée
-			if (perso.type == P.LOTTIE) {
+			if (perso.type == P.LOTTIE && 'media' in perso) {
 				const media = (action as Partial<Action & { media: Media }>).media;
-				if (media.action == 'play') {
-					// ($el.media as AnimationItem).
+				if (media?.action == 'play') {
+					const lottie = (perso as PersoLottieDef).media;
+
+					const duration = lottie.getDuration() * 1000;
+					const speed = duration / (media.duration ?? duration);
+					lottie.setSpeed(speed);
 					const timer1 = createTimer({
-						duration: media.duration ?? 1500,
-						onUpdate: (self) =>
+						duration: media.duration ?? duration,
+						onUpdate: (self) => {
 							((perso as PersoMediaDef).media as AnimationItem).goToAndStop(
 								self.currentTime
-							),
+							);
+						},
 					});
 					positions.forEach((position) => {
 						timeLine.sync(timer1, position);
@@ -94,14 +102,14 @@ function initMedias($elements: Map<ID, HTMLElement>, persos: Array<Perso>) {
 	) as Array<PersoMediaDef>;
 
 	lotties.forEach((l) => {
-		l.media = lottie.loadAnimation({
+		const media = lottie.loadAnimation({
 			container: $elements.get(l.initial.id),
 			renderer: 'svg',
 			loop: false,
 			autoplay: false,
 			animationData: l.media,
 		});
-
+		l.media = media;
 		// l.media.play();
 	});
 }
