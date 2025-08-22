@@ -1,6 +1,6 @@
 import { createTimeline, Timeline } from 'animejs';
 import { ID, MapEvent, Perso } from '../types';
-import { Change } from './static-changes';
+import { Change } from './deps/static-changes';
 import { createElements } from './deps/create-elements';
 import { initMedias } from './deps/init-medias';
 import { setStaticChanges } from './deps/static-changes';

@@ -1,5 +1,5 @@
-import { createTimeline, Timeline } from 'animejs';
-import { ROOT, SCENE_ID } from '../../player/constants';
+import type { Timeline } from 'animejs';
+import { SCENE_ID } from '../../player/constants';
 
 export function createTelco(telco: Timeline) {
 	if (document.querySelector('#telco')) return;

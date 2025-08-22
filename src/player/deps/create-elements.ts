@@ -1,13 +1,10 @@
 import { utils } from 'animejs';
 import { SCENE_ID, ROOT } from '../constants';
 import { Perso, ID, Initial, P, PersoMediaDef } from '../../types';
-import { Player } from '../main';
+import { Player } from '../player';
 
 export function createElements(this: Player) {
 	if (!document) return null;
-	// const main: HTMLElement = document.querySelector(`#${SCENE_ID}`);
-	// if (!main) return null;
-	// this.$elements.set(SCENE_ID, main);
 	if (!this.render) return null;
 	this.$elements.set(SCENE_ID, this.render);
 

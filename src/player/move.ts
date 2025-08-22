@@ -1,5 +1,7 @@
 import { utils, animate, Timeline } from 'animejs';
 
+// SERT ENCORE ?
+
 export function move(timeLine: Timeline, $el: HTMLElement, a) {
 	if ('move' in a) {
 		switch (typeof a.move) {

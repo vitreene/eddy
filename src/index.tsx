@@ -1,17 +1,12 @@
 import { useEffect, useRef } from 'react';
-import Lottie from 'lottie-web';
 
 import './scenes/scene-01.css';
-
-import { createScene, createTimeLine } from './player';
-import { createTelco } from './scenes/telco';
 
 import { SCENE_ID } from './player/constants';
 import { eventtimes, persos } from './scenes/scene-02';
 import { Timeline } from 'animejs';
 import { preload } from './player/preload';
-import { onUpdateTimeLine } from './player/on-update';
-import { Player } from './player/main';
+import { Player } from './player/player';
 
 export default function App() {
 	const animeScene = useRef<Timeline>(null);
@@ -25,25 +20,6 @@ export default function App() {
 				animeScene.current = player.timeLine;
 				animeScene.current.play();
 			}
-
-			/* if (!animeScene.current) {
-				console.log('LOAD STORE', p);
-				const timeLine = createTimeLine();
-				const { $elements, persoChanges } = createScene({
-					timeLine,
-					eventtimes,
-					persos: [...p.values()],
-				});
-
-				const updateTelco = createTelco(timeLine);
-				const updates = [
-					updateTelco,
-					onUpdateTimeLine($elements, p, persoChanges),
-				];
-				timeLine.onUpdate = (self) => updates.forEach((up) => up(self));
-				animeScene.current = timeLine;
-				animeScene.current.play();
-			} */
 		});
 
 		return () => {

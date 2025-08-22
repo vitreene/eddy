@@ -1,5 +1,5 @@
-import { MapEvent, Perso, ID, Action, ClassNameAction } from '../../types';
-import { Player } from '../main';
+import { Action, ClassNameAction } from '../../types';
+import { Player } from '../player';
 
 export interface Change {
 	prev: number | null;

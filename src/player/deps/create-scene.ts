@@ -1,20 +1,11 @@
 import { createTimer } from 'animejs';
 import { AnimationItem } from 'lottie-web';
 import { Action, Media, P, PersoLottieDef, PersoMediaDef } from '../../types';
-import { Player } from '../main';
+import { Player } from '../player';
 
 export function createScene(this: Player) {
-	// if (!document) return null;
-	// const main = document.querySelector(`#${SCENE_ID}`);
-	// if (!main) return null;
-
-	// const $elements = createElements(persos);
 	if (!document) return null;
 	if (!this.render) return null;
-
-	// initMedias($elements, persos, timeLine);
-	// const persoChanges = setStaticChanges({ eventtimes, persos });
-
 	const timeEvents = new Map<string, number[]>();
 
 	this.eventtimes.forEach((event, position) => {

@@ -2,7 +2,7 @@ import { utils, animate, type Timeline, type JSAnimation } from 'animejs';
 
 import { persoTypes, type ID, type Perso } from '../../types';
 import type { Change } from './static-changes';
-import { Player } from '../main';
+import { Player } from '../player';
 
 export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 	const persoPositions = new Map<ID, Change>();

@@ -1,7 +1,7 @@
 import lottie, { AnimationItem } from 'lottie-web';
 
 import { P, PersoMediaDef, PersoVideoDef } from '../../types';
-import { Player } from '../main';
+import { Player } from '../player';
 
 export function initMedias(this: Player) {
 	const lotties: Array<PersoMediaDef> = [];
