@@ -42,7 +42,7 @@ export interface PersoLottieDef extends PersoMediaDef {
 }
 export interface PersoVideoDef extends PersoMediaDef {
 	type: typeof persoTypes.VIDEO;
-	initial: Initial & { src: string };
+	initial: Initial & { src: string; master: boolean };
 	media: any;
 	actions: Record<string, Partial<Action & { media: Media }>>;
 }

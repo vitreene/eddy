@@ -1,40 +1,33 @@
 import { utils } from 'animejs';
-import { SCENE_ID, ROOT } from './constants';
-import { Perso, ID, Initial, P, PersoMediaDef } from '../types';
+import { SCENE_ID, ROOT } from '../constants';
+import { Perso, ID, Initial, P, PersoMediaDef } from '../../types';
+import { Player } from '../main';
 
-export function createElements(persos: Array<Perso>): Map<ID, HTMLElement> {
+export function createElements(this: Player) {
 	if (!document) return null;
-	const main: HTMLElement = document.querySelector(`#${SCENE_ID}`);
-	if (!main) return null;
+	// const main: HTMLElement = document.querySelector(`#${SCENE_ID}`);
+	// if (!main) return null;
+	// this.$elements.set(SCENE_ID, main);
+	if (!this.render) return null;
+	this.$elements.set(SCENE_ID, this.render);
 
-	const $elements = new Map<ID, HTMLElement>();
-	$elements.set(SCENE_ID, main);
-
-	console.log(persos);
-
-	persos.forEach((perso) => {
+	this.persos.forEach((perso) => {
 		const $el = createNode(perso);
-		$elements.set(perso.initial.id, $el);
+		this.$elements.set(perso.initial.id, $el);
 	});
 
 	// initial insert in DOM
-	persos.forEach(({ initial }) => {
+	this.persos.forEach(({ initial }) => {
 		if ('id' in initial && initial.id == ROOT) {
-			main.appendChild($elements.get(initial.id));
+			this.render.appendChild(this.$elements.get(initial.id));
 		}
 		if ('move' in initial && typeof initial.move == 'string') {
-			const $parent = $elements.get(initial.move);
-			$parent.appendChild($elements.get(initial.id));
+			const $parent = this.$elements.get(initial.move);
+			$parent.appendChild(this.$elements.get(initial.id));
 		}
 	});
-
-	return $elements;
 }
 
-interface NodeProps {
-	type: keyof typeof P;
-	initial: Partial<Initial>;
-}
 function createNode(perso: Perso) {
 	const { type, initial } = perso;
 	const $el =
@@ -61,7 +54,10 @@ function createNode(perso: Perso) {
 	}
 	return $el;
 }
-
+interface NodeProps {
+	type: keyof typeof P;
+	initial: Partial<Initial>;
+}
 function createTag({ type, initial }: NodeProps) {
 	if (initial.tag) return initial.tag;
 	switch (type) {

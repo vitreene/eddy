@@ -111,5 +111,24 @@ const lottie: Perso = {
 		},
 	},
 };
+const video: Perso = {
+	type: P.VIDEO,
+	initial: {
+		id: 'vid-1',
+		src: '/images/decollage.mp4',
+		move: ROOT,
+		style: {
+			backgroundColor: 'red',
+		},
+	},
+	actions: {
+		'1500': {
+			media: {
+				action: 'play',
+				duration: 3000,
+			},
+		},
+	},
+};
 
-export const persos = [root, capsule, ...ikonos, lottie];
+export const persos = [root, capsule, ...ikonos, video, lottie];

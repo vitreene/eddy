@@ -11,33 +11,39 @@ import { eventtimes, persos } from './scenes/scene-02';
 import { Timeline } from 'animejs';
 import { preload } from './player/preload';
 import { onUpdateTimeLine } from './player/on-update';
+import { Player } from './player/main';
 
 export default function App() {
 	const animeScene = useRef<Timeline>(null);
 	const sceneRef = useRef<HTMLElement>(null);
-	const lottieRef = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {
 		preload(persos).then((p) => {
 			if (!animeScene.current) {
+				const render: HTMLElement = document.querySelector(`#${SCENE_ID}`);
+				const player = new Player({ render, persos: p, eventtimes });
+				animeScene.current = player.timeLine;
+				animeScene.current.play();
+			}
+
+			/* if (!animeScene.current) {
 				console.log('LOAD STORE', p);
 				const timeLine = createTimeLine();
 				const { $elements, persoChanges } = createScene({
 					timeLine,
 					eventtimes,
-					persos: Object.values(p),
+					persos: [...p.values()],
 				});
 
 				const updateTelco = createTelco(timeLine);
 				const updates = [
 					updateTelco,
 					onUpdateTimeLine($elements, p, persoChanges),
-					// onUpdateLottie,
 				];
 				timeLine.onUpdate = (self) => updates.forEach((up) => up(self));
 				animeScene.current = timeLine;
 				animeScene.current.play();
-			}
+			} */
 		});
 
 		return () => {

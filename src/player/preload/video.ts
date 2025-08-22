@@ -12,11 +12,13 @@ export async function getPersoVideos(store: Store) {
 			medias[id] = store[id] as PersoVideoDef;
 			const src = medias[id].initial?.src;
 			const video = await loadVideo(src);
+
 			medias[id].media = video;
 		} else {
 			persos[id] = store[id] as PersoDef;
 		}
 	}
+
 	return { persos, medias };
 }
 

@@ -1,20 +1,22 @@
-import { createTimeline, createTimer, type Timeline } from 'animejs';
+import { createTimeline, createTimer, Timeline } from 'animejs';
 import lottie, { AnimationItem } from 'lottie-web';
 
 import { SCENE_ID } from './constants';
 import { createElements } from './create-elements';
 import { setStaticChanges } from './static-changes';
+import { P } from '../types';
 
-import {
+import type {
 	Action,
 	Media,
-	P,
+	ID,
+	MapEvent,
+	Perso,
 	PersoLottieDef,
 	PersoMediaDef,
-	type ID,
-	type MapEvent,
-	type Perso,
+	PersoVideoDef,
 } from '../types';
+
 import { onUpdateTimeLine } from './on-update';
 
 export function createTimeLine() {
@@ -40,7 +42,7 @@ export function createScene({
 	if (!main) return null;
 
 	const $elements = createElements(persos);
-	initMedias($elements, persos);
+	initMedias($elements, persos, timeLine);
 	const persoChanges = setStaticChanges({ eventtimes, persos });
 
 	const timeEvents = new Map<string, number[]>();
@@ -96,26 +98,47 @@ export function createScene({
 	return { $elements, persoChanges };
 }
 
-function initMedias($elements: Map<ID, HTMLElement>, persos: Array<Perso>) {
+function initMedias(
+	$elements: Map<ID, HTMLElement>,
+	persos: Array<Perso>,
+	timeLine: Timeline
+) {
 	const lotties = persos.filter(
 		(p) => p.type == P.LOTTIE
 	) as Array<PersoMediaDef>;
 
 	lotties.forEach((l) => {
-		const media = lottie.loadAnimation({
+		l.media = lottie.loadAnimation({
 			container: $elements.get(l.initial.id),
 			renderer: 'svg',
 			loop: false,
 			autoplay: false,
 			animationData: l.media,
 		});
-		l.media = media;
-		// l.media.play();
+	});
+
+	const videos = persos.filter(
+		(p) => p.type == P.VIDEO
+	) as Array<PersoVideoDef>;
+	videos.forEach((v) => {
+		if (!v.initial.master) return;
+		/*
+		synchroniser les pistes si diff trop importantes
+		utiliser le speed général pour éviter des sauts de temps brusques 
+		*/
+		v.media.playbackRate = 0.25;
+		let start: number;
+		(v.media as HTMLVideoElement).ontimeupdate = () => {
+			if (!start) start = Number(v.media.dataset.start);
+			const diff = v.media.currentTime * 1000 + start - timeLine.currentTime;
+			if (diff > 60) {
+				const speed =
+					Math.round(
+						((v.media.currentTime * 1000 + start) / timeLine.currentTime) * 100
+					) / 100;
+				timeLine.speed = speed;
+				console.log('speed', speed);
+			}
+		};
 	});
 }
-
-/* 
-comment lancer une anim lottie, su une duée voulue, et synchro ?
--> lancer un timer qui se sync avec l'animation ?
-
-*/

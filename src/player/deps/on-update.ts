@@ -1,25 +1,35 @@
 import { utils, animate, type Timeline, type JSAnimation } from 'animejs';
 
-import { persoTypes, type ID, type Perso } from '../types';
+import { persoTypes, type ID, type Perso } from '../../types';
 import type { Change } from './static-changes';
+import { Player } from '../main';
 
-export function onUpdateTimeLine(
-	$elements: Map<ID, HTMLElement>,
-	persos: Map<ID, Perso>,
-	persoChanges: Map<ID, Record<number, Change>>
-) {
-	console.log('persos', persos);
-
+export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, JSAnimation>();
 	const setters = new Map<ID, JSAnimation>();
 
-	return function (self: Timeline) {
+	const getChange = (id: ID, currentTime: number) => {
+		if (persoPositions.has(id)) return persoPositions.get(id);
+		const changes = this.persoChanges.get(id);
+		const change = Object.values(changes).find((ch) => {
+			return (
+				(currentTime < ch.next && ch.prev == null) ||
+				(currentTime > ch.prev && ch.next == null) ||
+				(currentTime < ch.next && currentTime > ch.prev)
+			);
+		});
+
+		persoPositions.set(id, change);
+		return change;
+	};
+
+	return (self: Timeline) => {
 		const currentTime = self.iterationCurrentTime;
 
-		persoChanges.forEach((changes, id) => {
+		this.persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
-			const $el = $elements.get(id);
+			const $el = this.$elements.get(id);
 
 			// update transition
 			if (transitions.has(change)) {
@@ -59,11 +69,12 @@ export function onUpdateTimeLine(
 						height: utils.get($el, 'height'),
 					};
 
-					const transition = move($el, nextChange.change, persos.get(id));
+					const transition = move($el, nextChange.change, this.persos.get(id));
 					transitions.set(nextChange, transition);
 
 					console.log('MOVE', nextChange.change.move, transition);
-				} else applyChange($el, nextChange.change, persos.get(id), currentTime);
+				} else
+					applyChange($el, nextChange.change, this.persos.get(id), currentTime);
 			}
 		});
 		return true;
@@ -80,21 +91,6 @@ export function onUpdateTimeLine(
 				if (nextChange === change) return null; // never
 			}
 			return nextChange;
-		}
-
-		function getChange(id: ID, currentTime: number) {
-			if (persoPositions.has(id)) return persoPositions.get(id);
-			const changes = persoChanges.get(id);
-			const change = Object.values(changes).find((ch) => {
-				return (
-					(currentTime < ch.next && ch.prev == null) ||
-					(currentTime > ch.prev && ch.next == null) ||
-					(currentTime < ch.next && currentTime > ch.prev)
-				);
-			});
-
-			persoPositions.set(id, change);
-			return change;
 		}
 	};
 }
