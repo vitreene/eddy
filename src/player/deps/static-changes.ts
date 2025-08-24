@@ -1,4 +1,4 @@
-import { Action, ClassNameAction } from '../../types';
+import { Action, ClassNameAction, P } from '../../types';
 import { Player } from '../player';
 
 export interface Change {
@@ -22,7 +22,20 @@ export function setStaticChanges(this: Player) {
 	this.persos.forEach((perso) => {
 		const { id, style, tag, move, ...initialAction } = perso.initial;
 		if (!id) return;
-
+		/* 
+toutes sortes de transformation préalables des données de départ, 
+comme l'ajout de parametres par défaut,
+devrait se faire dans une phase distincte
+pour un meilleur controle 
+suivant, à deplcer après test.
+*/
+		if (
+			'media' in perso &&
+			perso.type == P.VIDEO &&
+			!('media' in initialAction)
+		) {
+			initialAction.media = { action: 'pause' };
+		}
 		const actions = perso.actions;
 		const actionChanges: Record<number, { change: Partial<Action> }> = {
 			0: {

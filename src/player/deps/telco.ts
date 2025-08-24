@@ -1,7 +1,21 @@
 import type { Timeline } from 'animejs';
 import { SCENE_ID } from '../../player/constants';
 
-export function createTelco(telco: Timeline) {
+type Telco = {
+	seek: (
+		time: number,
+		muteCallbacks?: number | boolean,
+		internalRender?: number | boolean
+	) => Timeline;
+	pause: () => Timeline;
+	play: () => Timeline;
+	duration: number;
+	susbscribe: (up: Function) => () => void;
+};
+
+// TODO retirer toute la logique liée à tm
+// créer une façade dans Player pour çà
+export function createTelco(telco: Telco) {
 	if (document.querySelector('#telco')) return;
 
 	const command = document.createElement('div');
@@ -53,9 +67,10 @@ export function createTelco(telco: Timeline) {
 			toggle = true;
 		}
 	}
-	return function onUpdate(self: Timeline) {
+
+	telco.susbscribe((self: Timeline) => {
 		const p = (self.currentTime / telco.duration) * 100;
 		progress.textContent = Math.round(p) + '%';
 		slider.value = `${p}`;
-	};
+	});
 }

@@ -89,6 +89,7 @@ export interface Action {
 	move: boolean | string;
 	content: string;
 	src: string;
+	media: Media;
 }
 
 export interface Initial extends Partial<Action> {

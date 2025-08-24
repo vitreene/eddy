@@ -6,7 +6,7 @@ import { initMedias } from './deps/init-medias';
 import { setStaticChanges } from './deps/static-changes';
 import { createScene } from './deps/create-scene';
 import { onUpdateTimeLine } from './deps/on-update';
-import { createTelco } from './deps/telco';
+import { PubSub } from './deps/pubsub';
 
 const tmDefaults = {
 	autoplay: true,
@@ -22,6 +22,7 @@ export class Player {
 	$elements = new Map<ID, HTMLElement>();
 	persos = new Map<ID, Perso>();
 	persoChanges = new Map<ID, Record<number, Change>>();
+	updatesTM = new PubSub();
 
 	constructor({
 		render,
@@ -36,11 +37,13 @@ export class Player {
 		this.render = render;
 		this.persos = persos;
 		this.eventtimes = eventtimes;
+
 		this.createElements = createElements.bind(this);
 		this.initMedias = initMedias.bind(this);
 		this.setStaticChanges = setStaticChanges.bind(this);
 		this.createScene = createScene.bind(this);
-		this.onUpdateTimeLine = onUpdateTimeLine.bind(this);
+		this.onUpdateTM = this.onUpdateTM.bind(this);
+
 		this.init();
 	}
 
@@ -50,17 +53,27 @@ export class Player {
 		this.initMedias();
 		this.setStaticChanges();
 		this.createScene();
-		this.updates();
+		this.onUpdateTM();
+		const onUpdate = onUpdateTimeLine.bind(this)();
+		this.updatesTM.subscribe(onUpdate);
 	}
 
-	private updates() {
-		const updates = [createTelco(this.timeLine), this.onUpdateTimeLine()];
+	private onUpdateTM() {
 		this.timeLine.onUpdate = (self: Timeline) =>
-			updates.forEach((up) => up(self));
+			this.updatesTM.forEach((up) => up(self));
 	}
 	private createElements: () => void;
 	private initMedias: () => void;
 	private setStaticChanges: () => void;
 	private createScene: () => void;
-	private onUpdateTimeLine: () => (self: Timeline) => boolean;
+
+	telco = () => {
+		return {
+			seek: (time: number) => this.timeLine.seek(time),
+			pause: () => this.timeLine.pause(),
+			play: () => this.timeLine.play(),
+			duration: this.timeLine.duration,
+			susbscribe: (up: Function) => this.updatesTM.subscribe(up),
+		};
+	};
 }
