@@ -124,6 +124,7 @@ const video: Perso = {
 		'1500': {
 			media: {
 				action: 'play',
+				offset: 3000,
 			},
 		},
 	},

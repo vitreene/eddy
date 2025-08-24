@@ -59,8 +59,20 @@ export interface Img {
 }
 
 export interface Media {
-	action: string;
+	action: 'play' | 'pause'; //string;
 	duration?: number;
+	changeAt?: number;
+	offset?: number;
+}
+
+export interface MediaStatus {
+	node: HTMLElement;
+	status: 'play' | 'pause';
+	startAt: number;
+	change?: {
+		changeAt: number;
+		offset: number;
+	};
 }
 
 export interface Style

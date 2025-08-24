@@ -1,6 +1,6 @@
 import { utils, animate, type Timeline, type JSAnimation } from 'animejs';
 
-import { persoTypes, type ID, type Perso } from '../../types';
+import { MediaStatus, persoTypes, type ID, type Perso } from '../../types';
 import type { Change } from './static-changes';
 import { Player } from '../player';
 
@@ -69,12 +69,24 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 						height: utils.get($el, 'height'),
 					};
 
-					const transition = move($el, nextChange.change, this.persos.get(id));
+					const transition = move({
+						$el,
+						change: nextChange.change,
+						perso: this.persos.get(id),
+						currentTime,
+						mediaStatus: this.mediaStatus,
+					});
 					transitions.set(nextChange, transition);
 
 					console.log('MOVE', nextChange.change.move, transition);
 				} else
-					applyChange($el, nextChange.change, this.persos.get(id), currentTime);
+					applyChange({
+						$el,
+						change: nextChange.change,
+						perso: this.persos.get(id),
+						currentTime,
+						mediaStatus: this.mediaStatus,
+					});
 			}
 		});
 		return true;
@@ -95,12 +107,21 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 	};
 }
 
-function applyChange(
-	$el: HTMLElement,
-	change: Change['change'],
-	perso: Perso,
-	currentTime: number = null
-) {
+interface ApplyChange {
+	$el: HTMLElement;
+	change: Change['change'];
+	perso: Perso;
+	currentTime: number;
+	mediaStatus: Map<ID, MediaStatus>;
+}
+
+function applyChange({
+	$el,
+	change,
+	perso,
+	currentTime = null,
+	mediaStatus,
+}: ApplyChange) {
 	if (change.className) {
 		$el.className = change.className;
 	}
@@ -110,9 +131,12 @@ function applyChange(
 
 		$el.textContent = change.content;
 	}
-	if (change.media && perso.type == persoTypes.VIDEO) {
+
+	if (perso.type == persoTypes.VIDEO && change.media) {
 		if (change.media.action == 'play') {
-			$el.dataset.start = String(currentTime);
+			const $media = mediaStatus.get(perso.initial.id);
+			$media.startAt = currentTime;
+			// $el.dataset.start = String(currentTime);
 			($el as HTMLVideoElement).play();
 		}
 		change.media.action == 'pause' && ($el as HTMLVideoElement).pause();
@@ -120,7 +144,10 @@ function applyChange(
 	// Additional attributes can be handled here
 }
 
-function move($el: HTMLElement, change: Change['change'], perso: Perso) {
+// FIX ces props ne sont pas adaptées
+// //importer applyChange à la place comme callback
+function move(props: ApplyChange) {
+	const { $el, change, perso } = props;
 	// ATTENTION CE N'EST PLUS ADDRESSé
 	switch (typeof change.move) {
 		case 'string':
@@ -132,7 +159,7 @@ function move($el: HTMLElement, change: Change['change'], perso: Perso) {
 		case 'boolean': {
 			const old = getAbsoluteCoords($el);
 
-			applyChange($el, change, perso);
+			applyChange(props);
 			const nex = getAbsoluteCoords($el);
 
 			const px = utils.get($el, 'x', false);

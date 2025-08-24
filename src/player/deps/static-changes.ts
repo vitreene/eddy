@@ -29,12 +29,11 @@ devrait se faire dans une phase distincte
 pour un meilleur controle 
 suivant, à deplcer après test.
 */
-		if (
-			'media' in perso &&
-			perso.type == P.VIDEO &&
-			!('media' in initialAction)
-		) {
-			initialAction.media = { action: 'pause' };
+
+		const isVideo = 'media' in perso && perso.type == P.VIDEO;
+
+		if (isVideo && !('media' in initialAction)) {
+			initialAction.media = { action: 'pause', changeAt: 0, offset: 0 };
 		}
 		const actions = perso.actions;
 		const actionChanges: Record<number, { change: Partial<Action> }> = {
@@ -47,12 +46,39 @@ suivant, à deplcer après test.
 
 		const positions = new Set([0]);
 
+		let offset = 0;
+		let prevPosition = 0;
+		let prevAction = '';
+
 		this.eventtimes.forEach((e, position) => {
-			//TODO a traiter
+			// si c'est une video, completer les changes avec startAt et offset
+
+			//TODO a traiter la récursivité
 			if (!Array.isArray(e)) {
 				const action = actions[e.name];
 				if (action) {
 					const { style, ...change } = action;
+
+					if (isVideo && 'media' in change) {
+						change.media.changeAt = change.media.changeAt ?? position;
+
+						offset = change.media.offset ?? offset;
+						if (
+							prevAction != change.media.action &&
+							change.media.action == 'play'
+						) {
+							prevPosition = position;
+						}
+						if (
+							prevAction != change.media.action &&
+							change.media.action == 'pause'
+						) {
+							offset = offset + (position - prevPosition);
+						}
+
+						change.media.offset = offset;
+					}
+
 					positions.add(position);
 					actionChanges[position] = {
 						change: { ...actionChanges[position]?.change, ...change },

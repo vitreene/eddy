@@ -13,18 +13,10 @@ type Telco = {
 	susbscribe: (up: Function) => () => void;
 };
 
-// TODO retirer toute la logique liée à tm
-// créer une façade dans Player pour çà
 export function createTelco(telco: Telco) {
 	if (document.querySelector('#telco')) return;
+	const { slider, playButton, progress } = createTelcoElement();
 
-	const command = document.createElement('div');
-	command.id = 'telco';
-	const slider = document.createElement('input');
-	slider.setAttribute('type', 'range');
-	slider.setAttribute('min', '0');
-	slider.setAttribute('max', '100');
-	slider.setAttribute('step', '1');
 	slider.addEventListener('mousedown', () => {
 		slider.addEventListener('mousemove', mousemove);
 	});
@@ -33,17 +25,7 @@ export function createTelco(telco: Telco) {
 	});
 	slider.addEventListener('click', mousemove);
 
-	const playButton = document.createElement('button');
-	playButton.innerText = 'play';
 	playButton.addEventListener('click', togglePlay);
-
-	const progress = document.createElement('span');
-	command.appendChild(playButton);
-	command.appendChild(slider);
-	command.appendChild(progress);
-
-	const container = document.getElementById(`${SCENE_ID}`);
-	container.appendChild(command);
 
 	function mousemove(): void {
 		const p = (Number(slider.value) * telco.duration) / 100;
@@ -55,7 +37,7 @@ export function createTelco(telco: Telco) {
 		toggle = false;
 	}
 
-	let toggle = false;
+	let toggle = true;
 	function togglePlay(): void {
 		if (toggle) {
 			telco.pause();
@@ -73,4 +55,33 @@ export function createTelco(telco: Telco) {
 		progress.textContent = Math.round(p) + '%';
 		slider.value = `${p}`;
 	});
+}
+
+function createTelcoElement() {
+	const command = document.createElement('div');
+	command.id = 'telco';
+
+	const slider = document.createElement('input');
+	slider.setAttribute('type', 'range');
+	slider.setAttribute('min', '0');
+	slider.setAttribute('max', '100');
+	slider.setAttribute('step', '1');
+
+	const playButton = document.createElement('button');
+	playButton.innerText = 'pause';
+
+	const progress = document.createElement('span');
+	command.appendChild(playButton);
+	command.appendChild(slider);
+	command.appendChild(progress);
+
+	const container = document.getElementById(`${SCENE_ID}`);
+	container.appendChild(command);
+
+	return {
+		command,
+		slider,
+		playButton,
+		progress,
+	};
 }
