@@ -1,100 +1,112 @@
-import { createTimeline, Timeline } from 'animejs';
-import { ID, MapEvent, MediaStatus, Perso } from '../types';
-import { Change } from './deps/static-changes';
-import { createElements } from './deps/create-elements';
-import { initMedias } from './deps/init-medias';
-import { setStaticChanges } from './deps/static-changes';
-import { createScene } from './deps/create-scene';
-import { onUpdateTimeLine } from './deps/on-update';
-import { PubSub } from './deps/pubsub';
+import { createTimeline, Timeline } from "animejs";
+import { ID, MapEvent, MediaStatus, Perso } from "../types";
+import { Change } from "./deps/static-changes";
+import { createElements } from "./deps/create-elements";
+import { initMedias } from "./deps/init-medias";
+import { setStaticChanges } from "./deps/static-changes";
+import { createScene } from "./deps/create-scene";
+import { onUpdateTimeLine } from "./deps/on-update";
+import { PubSub } from "./deps/pubsub";
 
 const tmDefaults = {
-	autoplay: true,
-	loop: 1,
-	alternate: true,
-	onLoop: () => console.log('///////LOOP'),
+  autoplay: true,
+  loop: 1,
+  alternate: true,
+  onLoop: () => console.log("///////LOOP"),
 };
 
 export class Player {
-	timeLine: Timeline;
-	eventtimes: MapEvent;
-	render: HTMLElement;
-	$elements = new Map<ID, HTMLElement>();
-	mediaStatus = new Map<ID, MediaStatus>();
-	persos = new Map<ID, Perso>();
-	persoChanges = new Map<ID, Record<number, Change>>();
-	updatesTM = new PubSub();
+  timeLine: Timeline;
+  eventtimes: MapEvent;
+  render: HTMLElement;
+  $elements = new Map<ID, HTMLElement>();
+  mediaStatus = new Map<ID, MediaStatus>();
+  persos = new Map<ID, Perso>();
+  persoChanges = new Map<ID, Record<number, Change>>();
+  updatesTM = new PubSub();
 
-	constructor({
-		render,
-		persos,
-		eventtimes,
-	}: {
-		render: HTMLElement;
-		persos: Map<ID, Perso>;
-		eventtimes: MapEvent;
-	}) {
-		if (this.render) return this;
-		this.render = render;
-		this.persos = persos;
-		this.eventtimes = eventtimes;
+  constructor({
+    render,
+    persos,
+    eventtimes,
+  }: {
+    render: HTMLElement;
+    persos: Map<ID, Perso>;
+    eventtimes: MapEvent;
+  }) {
+    if (this.render) return this;
+    this.render = render;
+    this.persos = persos;
+    this.eventtimes = eventtimes;
 
-		this.createElements = createElements.bind(this);
-		this.initMedias = initMedias.bind(this);
-		this.setStaticChanges = setStaticChanges.bind(this);
-		this.createScene = createScene.bind(this);
-		this.onUpdateTM = this.onUpdateTM.bind(this);
+    this.createElements = createElements.bind(this);
+    this.initMedias = initMedias.bind(this);
+    this.setStaticChanges = setStaticChanges.bind(this);
+    this.createScene = createScene.bind(this);
+    this.onUpdateTM = this.onUpdateTM.bind(this);
 
-		this.init();
-	}
+    this.init();
+  }
 
-	private init() {
-		this.timeLine = createTimeline(tmDefaults);
-		this.createElements();
-		this.initMedias();
-		this.setStaticChanges();
-		this.createScene();
-		this.onUpdateTM();
-		const onUpdate = onUpdateTimeLine.bind(this)();
-		this.updatesTM.subscribe(onUpdate);
-	}
+  private init() {
+    this.timeLine = createTimeline(tmDefaults);
+    this.createElements();
+    this.initMedias();
+    this.setStaticChanges();
+    this.createScene();
+    this.onUpdateTM();
+    const onUpdate = onUpdateTimeLine.bind(this)();
+    this.updatesTM.subscribe(onUpdate);
+  }
 
-	private onUpdateTM() {
-		this.timeLine.onUpdate = (self: Timeline) =>
-			this.updatesTM.forEach((up) => up(self));
-	}
-	private createElements: () => void;
-	private initMedias: () => void;
-	private setStaticChanges: () => void;
-	private createScene: () => void;
+  private onUpdateTM() {
+    this.timeLine.onUpdate = (self: Timeline) => this.updatesTM.forEach((up) => up(self));
+  }
+  private createElements: () => void;
+  private initMedias: () => void;
+  private setStaticChanges: () => void;
+  private createScene: () => void;
 
-	telco = () => {
-		return {
-			seek: this.seek,
-			pause: () => this.timeLine.pause(),
-			play: () => this.timeLine.play(),
-			duration: this.timeLine.duration,
-			susbscribe: (up: Function) => this.updatesTM.subscribe(up),
-		};
-	};
+  telco = () => {
+    return {
+      seek: this.seek,
+      pause: () => this.timeLine.pause(),
+      play: this.play,
+      duration: this.timeLine.duration,
+      susbscribe: (up: Function) => this.updatesTM.subscribe(up),
+    };
+  };
 
-	private seek = (time: number) => {
-		/* 
+  private seek = (time: number) => {
+    /* 
 		seek : pour chaque media , 
 		calculer le deplacement relatif 
 		*/
-		this.timeLine.seek(time);
+    this.timeLine.seek(time);
 
-		console.log(this.mediaStatus);
-		// Ajouter changes à mediaStatus
-		this.mediaStatus.forEach((ms) => {
-			const currentime = ms.change.offset + (time - ms.change.changeAt);
-			(ms.node as HTMLVideoElement).currentTime = currentime / 1000;
-			ms.node[ms.status]();
-		});
+    console.log(this.mediaStatus);
+    // Ajouter changes à mediaStatus
+    this.mediaStatus.forEach((ms) => {
+      const currentime = ms.change.offset + (time - ms.change.changeAt);
+      (ms.node as HTMLVideoElement).currentTime = currentime / 1000;
+      ms.node[ms.status]();
+    });
 
-		return this.timeLine;
-	};
+    return this.timeLine;
+  };
+
+  private play = () => {
+    this.timeLine.play();
+
+    this.mediaStatus.forEach((ms) => {
+      const video = ms.node as HTMLVideoElement;
+      const currenTime = ms.change.offset ?? 0;
+      video.currentTime = currenTime;
+      video.play();
+    });
+
+    return this.timeLine;
+  };
 }
 
 /* 
