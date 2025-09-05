@@ -1,4 +1,4 @@
-import lottie, { AnimationItem } from 'lottie-web';
+import lottie from 'lottie-web';
 
 import { P, PersoMediaDef, PersoVideoDef } from '../../types';
 import { Player } from '../player';
