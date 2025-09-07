@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Scene {
+  id       Int          @id @default(autoincrement())
+  title    String       @default("Scène")
+  capsules Capsule[]
+  medias   SceneMedia[]
+
+  @@map("scene")
+}
+
+model SceneMedia {
+  id      Int    @id @default(autoincrement())
+  order   Int
+  events  String // JSON
+  mediaId Int    @map("media_id")
+  media   Media  @relation(fields: [mediaId], references: [id])
+  sceneId Int    @map("scene_id")
+  scene   Scene  @relation(fields: [sceneId], references: [id])
+
+  @@map("scene_media")
+}
+
+// enum TypeMedia {
+//   img
+//   txt
+//   son
+//   video
+//   capsule
+// }
+
+model Media {
+  id             Int              @id @default(autoincrement())
+  type           String
+  path           String?
+  content        String?
+  lang           String?
+  sceneMedia     SceneMedia[]
+  capsuleElement CapsuleElement[]
+
+  @@map("media")
+}
+
+model Capsule {
+  id       Int              @id @default(autoincrement())
+  type     String
+  elements CapsuleElement[]
+  sceneId  Int              @map("scene_id")
+  scene    Scene            @relation(fields: [sceneId], references: [id])
+
+  @@map("capsule")
+}
+
+model CapsuleElement {
+  id        Int      @id @default(autoincrement())
+  order     Int
+  events    Event[]
+  mediaId   Int      @map("media_id")
+  media     Media    @relation(fields: [mediaId], references: [id])
+  capsuleId Int      @map("capsule_id")
+  capsule   Capsule? @relation(fields: [capsuleId], references: [id])
+
+  @@map("capsule_element")
+}
+
+model Event {
+  name     String
+  action   String
+  duration Int?
+
+  elementId Int            @map("element_id")
+  element   CapsuleElement @relation(fields: [elementId], references: [id])
+
+  @@id([elementId, action])
+  @@map("event")
+}

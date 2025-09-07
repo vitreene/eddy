@@ -26,5 +26,5 @@
 		// "noFallthroughCasesInSwitch": false,
 		// "noUncheckedSideEffectImports": false
 	},
-	"include": ["src"]
+	"include": ["src", "prisma/seed.ts"]
 }
