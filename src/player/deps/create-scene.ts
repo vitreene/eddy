@@ -1,7 +1,9 @@
 import { createTimer } from 'animejs';
-import { AnimationItem } from 'lottie-web';
-import { Action, Media, P, PersoLottieDef, PersoMediaDef } from '../../types';
+import type { AnimationItem } from 'lottie-web';
 import { Player } from '../player';
+import { P } from '../../types';
+
+import type { Action, Media, PersoLottieDef, PersoMediaDef } from '../../types';
 
 export function createScene(this: Player) {
 	if (!document) return null;
@@ -21,13 +23,13 @@ export function createScene(this: Player) {
 		if (!perso.initial.id) return;
 		const $el = this.$elements.get(perso.initial.id);
 		if (!$el) return;
-		this.timeLine.add($el, perso.initial.style, 0);
+		perso.initial.style && this.timeLine.add($el, perso.initial.style, 0);
 
 		for (const [actionName, action] of Object.entries(perso.actions)) {
 			const positions = timeEvents.get(actionName);
 			if (positions && action.style) {
 				positions.forEach((position) => {
-					this.timeLine.add($el, action.style, position);
+					this.timeLine.add($el, action.style!, position);
 				});
 			}
 
@@ -48,9 +50,10 @@ export function createScene(this: Player) {
 							);
 						},
 					});
-					positions.forEach((position) => {
-						this.timeLine.sync(timer1, position);
-					});
+					positions &&
+						positions.forEach((position) => {
+							this.timeLine.sync(timer1, position);
+						});
 				}
 			}
 		}

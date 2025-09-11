@@ -1,6 +1,6 @@
 import lottie from 'lottie-web';
 
-import { P, PersoMediaDef, PersoVideoDef } from '../../types';
+import { P, type PersoMediaDef, type PersoVideoDef } from '../../types';
 import { Player } from '../player';
 
 export function initMedias(this: Player) {
@@ -21,7 +21,7 @@ export function initMedias(this: Player) {
 
 	lotties.forEach((l) => {
 		l.media = lottie.loadAnimation({
-			container: this.$elements.get(l.initial.id),
+			container: this.$elements.get(l.initial.id)!,
 			renderer: 'svg',
 			loop: false,
 			autoplay: false,
@@ -44,7 +44,7 @@ export function initMedias(this: Player) {
 		// v.media.playbackRate = 0.25;
 
 		(v.media as HTMLVideoElement).ontimeupdate = () => {
-			const start = this.mediaStatus.get(v.initial.id).startAt;
+			const start = this.mediaStatus.get(v.initial.id)!.startAt;
 
 			const diff =
 				v.media.currentTime * 1000 + start - this.timeLine.currentTime;

@@ -1,7 +1,8 @@
 import { utils } from 'animejs';
 import { SCENE_ID, ROOT } from '../constants';
-import { Perso, ID, Initial, P, PersoMediaDef } from '../../types';
+import { P } from '../../types';
 import { Player } from '../player';
+import type { Perso, Initial, PersoMediaDef } from '../../types';
 
 export function createElements(this: Player) {
 	if (!document) return null;
@@ -16,11 +17,11 @@ export function createElements(this: Player) {
 	// initial insert in DOM
 	this.persos.forEach(({ initial }) => {
 		if ('id' in initial && initial.id == ROOT) {
-			this.render.appendChild(this.$elements.get(initial.id));
+			this.render.appendChild(this.$elements.get(initial.id)!);
 		}
 		if ('move' in initial && typeof initial.move == 'string') {
 			const $parent = this.$elements.get(initial.move);
-			$parent.appendChild(this.$elements.get(initial.id));
+			$parent!.appendChild(this.$elements.get(initial.id)!);
 		}
 	});
 }
@@ -34,7 +35,7 @@ function createNode(perso: Perso) {
 
 	for (const k in initial) {
 		if (k == 'src') {
-			($el as HTMLImageElement).src = initial.src;
+			($el as HTMLImageElement).src = initial[k]!;
 		}
 
 		if (k == 'content') {
@@ -42,7 +43,7 @@ function createNode(perso: Perso) {
 		}
 		if (k == 'id') $el.id = initial.id;
 		if (k == 'style') {
-			utils.set($el, initial.style);
+			utils.set($el, initial.style!);
 		}
 		if (k == 'className')
 			if (typeof initial.className == 'string') {

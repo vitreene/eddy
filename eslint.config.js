@@ -24,6 +24,7 @@ export default tseslint.config(
 				{ allowConstantExport: true },
 			],
 			noUnusedLocals: ['warn'],
+			'@typescript-eslint/ban-ts-ignore': 'warn',
 		},
 	}
 );

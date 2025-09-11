@@ -1,6 +1,6 @@
 import { utils, animate, type Timeline, type JSAnimation } from 'animejs';
 
-import { MediaStatus, persoTypes, type ID, type Perso } from '../../types';
+import { type MediaStatus, persoTypes, type ID, type Perso } from '../../types';
 import type { Change } from './static-changes';
 import { Player } from '../player';
 
@@ -12,15 +12,16 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 	const getChange = (id: ID, currentTime: number) => {
 		if (persoPositions.has(id)) return persoPositions.get(id);
 		const changes = this.persoChanges.get(id);
+		if (!changes) return;
 		const change = Object.values(changes).find((ch) => {
 			return (
-				(currentTime < ch.next && ch.prev == null) ||
-				(currentTime > ch.prev && ch.next == null) ||
-				(currentTime < ch.next && currentTime > ch.prev)
+				(ch.next && currentTime < ch.next && ch.prev == null) ||
+				(ch.prev && currentTime > ch.prev && ch.next == null) ||
+				(ch.next && ch.prev && currentTime < ch.next && currentTime > ch.prev)
 			);
 		});
 
-		persoPositions.set(id, change);
+		change && persoPositions.set(id, change);
 		return change;
 	};
 
@@ -30,14 +31,15 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 		this.persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
 			const $el = this.$elements.get(id);
+			if (!change) return;
 
 			// update transition
-			if (transitions.has(change)) {
-				const transition = transitions.get(change);
+			if (change && transitions.has(change)) {
+				const transition = transitions.get(change)!;
 				const progress = getProgression(
 					currentTime,
-					change.curr,
-					change.curr + 1000
+					change.curr!,
+					change.curr! + 1000
 				);
 
 				!(progress == 1 && transition.completed) &&
@@ -46,8 +48,8 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 
 			// update sets :
 			if (
-				currentTime >= (change.next ?? Infinity) ||
-				currentTime <= change.curr
+				currentTime >= (change!.next ?? Infinity) ||
+				currentTime <= (change.curr! ?? 0)
 			) {
 				const nextChange = setNextChange(change, changes);
 				if (nextChange == null) return;
@@ -55,8 +57,9 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 				persoPositions.set(id, nextChange);
 
 				if (setters.has(id)) {
-					setters.get(id).revert();
+					setters.get(id)!.revert();
 				}
+				if (!$el) return;
 
 				if (change.snapshot) {
 					setters.set(id, utils.set($el, change.snapshot));
@@ -72,19 +75,19 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 					const transition = move({
 						$el,
 						change: nextChange.change,
-						perso: this.persos.get(id),
+						perso: this.persos.get(id)!,
 						currentTime,
 						mediaStatus: this.mediaStatus,
 						tmIsPlaying: !self.paused,
 					});
-					transitions.set(nextChange, transition);
+					transitions.set(nextChange, transition!);
 
 					console.log('MOVE', nextChange.change.move, transition);
 				} else
 					applyChange({
 						$el,
 						change: nextChange.change,
-						perso: this.persos.get(id),
+						perso: this.persos.get(id)!,
 						currentTime,
 						mediaStatus: this.mediaStatus,
 						tmIsPlaying: !self.paused,
@@ -98,7 +101,7 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 			while (
 				!(
 					currentTime <= (nextChange.next ?? Infinity) &&
-					currentTime >= nextChange.curr
+					currentTime >= nextChange.curr!
 				)
 			) {
 				nextChange = nextChange.next ? changes[nextChange.next] : changes[0];
@@ -113,7 +116,7 @@ interface ApplyChange {
 	$el: HTMLElement;
 	change: Change['change'];
 	perso: Perso;
-	currentTime: number;
+	currentTime: number | null;
 	mediaStatus: Map<ID, MediaStatus>;
 	tmIsPlaying: boolean;
 }
@@ -145,12 +148,12 @@ function applyChange({
 	if (perso.type == persoTypes.VIDEO && change.media) {
 		const $video = $el as HTMLVideoElement;
 
-		const $media = mediaStatus.get(perso.initial.id);
+		const $media = mediaStatus.get(perso.initial.id)!;
 		$media.change = {
 			changeAt: change.media.changeAt,
 			offset: change.media.offset,
 		};
-		$media.startAt = currentTime;
+		$media.startAt = currentTime ?? 0;
 
 		if (change.media.action == 'play') {
 			$media.status = 'play';

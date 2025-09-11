@@ -76,6 +76,8 @@ function createTelcoElement() {
 	command.appendChild(progress);
 
 	const container = document.getElementById(`${SCENE_ID}`);
+	if (!container) throw new Error("le conteneur n'est pas défini");
+
 	container.appendChild(command);
 
 	return {

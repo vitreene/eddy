@@ -1,12 +1,13 @@
 import { createTimeline, Timeline } from 'animejs';
-import { ID, MapEvent, MediaStatus, Perso } from '../types';
-import { Change } from './deps/static-changes';
 import { createElements } from './deps/create-elements';
 import { initMedias } from './deps/init-medias';
 import { setStaticChanges } from './deps/static-changes';
 import { createScene } from './deps/create-scene';
 import { onUpdateTimeLine } from './deps/on-update';
 import { PubSub } from './deps/pubsub';
+
+import type { ID, MapEvent, MediaStatus, Perso } from '../types';
+import type { Change } from './deps/static-changes';
 
 const tmDefaults = {
 	autoplay: true,
@@ -16,25 +17,30 @@ const tmDefaults = {
 };
 
 export class Player {
-	timeLine: Timeline;
-	eventtimes: MapEvent;
-	render: HTMLElement;
+	timeLine!: Timeline;
+	eventtimes!: MapEvent;
+	render!: HTMLElement;
 	$elements = new Map<ID, HTMLElement>();
 	mediaStatus = new Map<ID, MediaStatus>();
 	persos = new Map<ID, Perso>();
 	persoChanges = new Map<ID, Record<number, Change>>();
 	updatesTM = new PubSub();
+	static _instance: Player | null = null;
 
 	constructor({
 		render,
 		persos,
 		eventtimes,
 	}: {
-		render: HTMLElement;
+		render: HTMLElement | null;
 		persos: Map<ID, Perso>;
 		eventtimes: MapEvent;
 	}) {
-		if (this.render) return this;
+		if (!render) throw new Error('Le player ne peut etre rendu.');
+		if (Player._instance) {
+			return Player._instance;
+		}
+		Player._instance = this;
 		this.render = render;
 		this.persos = persos;
 		this.eventtimes = eventtimes;
@@ -63,10 +69,10 @@ export class Player {
 		this.timeLine.onUpdate = (self: Timeline) =>
 			this.updatesTM.forEach((up) => up(self));
 	}
-	private createElements: () => void;
-	private initMedias: () => void;
-	private setStaticChanges: () => void;
-	private createScene: () => void;
+	private createElements!: () => void;
+	private initMedias!: () => void;
+	private setStaticChanges!: () => void;
+	private createScene!: () => void;
 
 	telco = () => {
 		return {
@@ -102,8 +108,8 @@ export class Player {
 			const currentime = ms.change
 				? ms.change.offset + (time - ms.change.changeAt)
 				: ms.startAt <= time
-				? time - ms.startAt
-				: 0;
+					? time - ms.startAt
+					: 0;
 			$node.currentTime = currentime / 1000;
 		});
 

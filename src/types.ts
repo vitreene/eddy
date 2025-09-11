@@ -1,6 +1,6 @@
-import { AnimationParams } from 'animejs';
 import * as CSS from 'csstype';
-import { AnimationItem, LottiePlayer } from 'lottie-web';
+import type { AnimationParams } from 'animejs';
+import type { AnimationItem } from 'lottie-web';
 
 export type ID = string;
 export type MapEvent = Map<number, Eventime | Eventime[]>;
@@ -66,7 +66,7 @@ export interface Media {
 }
 
 export interface MediaStatus {
-	node: HTMLElement;
+	node: HTMLVideoElement;
 	status: 'play' | 'pause';
 	startAt: number;
 	change?: {

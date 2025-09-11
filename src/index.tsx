@@ -16,7 +16,9 @@ export default function App() {
 	useEffect(() => {
 		preload(persos).then((p) => {
 			if (!animeScene.current) {
-				const render: HTMLElement = document.querySelector(`#${SCENE_ID}`);
+				const render: HTMLElement | null = document.querySelector(
+					`#${SCENE_ID}`
+				);
 				const player = new Player({ render, persos: p, eventtimes });
 				createTelco(player.telco());
 
@@ -31,7 +33,7 @@ export default function App() {
 			console.log('REVERT');
 			animeScene.current && animeScene.current.revert();
 			sceneRef.current instanceof HTMLElement &&
-				sceneRef.current.firstChild.remove;
+				sceneRef.current.firstChild?.remove();
 		};
 	}, []);
 

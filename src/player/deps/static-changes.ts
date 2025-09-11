@@ -1,4 +1,4 @@
-import { Action, ClassNameAction, P } from '../../types';
+import { type Action, type ClassNameAction, P } from '../../types';
 import { Player } from '../player';
 
 export interface Change {
@@ -59,7 +59,7 @@ suivant, à deplcer après test.
 				if (action) {
 					const { style, ...change } = action;
 
-					if (isVideo && 'media' in change) {
+					if (change && isVideo && change.media) {
 						change.media.changeAt = change.media.changeAt ?? position;
 
 						offset = change.media.offset ?? offset;
@@ -100,9 +100,13 @@ suivant, à deplcer après test.
 
 			const mixed = mixClassNames(oldClassName, className);
 
+			// Ensure className is always a string
+			const { className: _ignoredClassName, ...restChange } =
+				actionChanges[position].change;
+
 			changes[position].change = {
 				...changes[position].change,
-				...actionChanges[position].change,
+				...restChange,
 				...(mixed.length && { className: mixed }),
 			};
 		});
@@ -112,7 +116,7 @@ suivant, à deplcer après test.
 }
 
 function mixClassNames(
-	oldClassName: string,
+	oldClassName: string = '',
 	className: string | ClassNameAction
 ) {
 	switch (typeof className) {
@@ -132,10 +136,10 @@ function mixClassNames(
 			for (const action in className) {
 				switch (action) {
 					case 'add':
-						className.add.split(' ').forEach((cl) => mix.add(cl));
+						className.add!.split(' ').forEach((cl) => mix.add(cl));
 						break;
 					case 'remove':
-						className.remove.split(' ').forEach((cl) => mix.delete(cl));
+						className.remove!.split(' ').forEach((cl) => mix.delete(cl));
 				}
 			}
 			return [...mix].join(' ');
