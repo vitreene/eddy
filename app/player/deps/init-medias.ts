@@ -1,7 +1,9 @@
 import lottie from 'lottie-web';
 
-import { P, type PersoMediaDef, type PersoVideoDef } from '../../types';
-import { Player } from '../player';
+import { P } from '../types';
+
+import type { Player } from '../player';
+import type { PersoMediaDef, PersoVideoDef } from '../types';
 
 export function initMedias(this: Player) {
 	const lotties: Array<PersoMediaDef> = [];

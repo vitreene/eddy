@@ -1,4 +1,4 @@
-import { animate, createTimeline, utils } from 'animejs';
+import { animate, createTimeline, utils, type Timeline } from 'animejs';
 
 export function setControl() {
 	if (!document.querySelector('#controls')) return;
@@ -107,22 +107,25 @@ utils.$('#controls button').forEach(($button) => {
 				duration: 1500,
 			});
 		} else {
-			masterTL[id]();
+			const method = (masterTL as any)[id];
+			if (typeof method === 'function') {
+				method.call(masterTL);
+			}
 		}
 	};
 });
 
 utils.$('fieldset').forEach(($el) => {
-	const $range: HTMLInputElement = $el.querySelector('.range');
-	const $value: HTMLInputElement = $el.querySelector('.value');
-	const prop = $el.id;
+	const $range: HTMLInputElement = $el.querySelector('.range')!;
+	const $value: HTMLInputElement = $el.querySelector('.value')!;
+	const prop = $el.id as keyof Timeline;
 	const value = masterTL[prop];
-	$range.value = value;
-	$value.value = masterTL[prop];
+	$range.value = String(value);
+	$value.value = String(masterTL[prop]);
 	$range.oninput = () => {
 		const newValue =
 			prop === 'currentTime' ? +$range.value % oneday : +$range.value;
-		utils.sync(() => (masterTL[prop] = newValue));
+		utils.sync(() => (masterTL.currentTime = newValue));
 		$value.value = `${utils.round(newValue, 0)}`;
 	};
 });

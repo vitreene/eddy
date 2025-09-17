@@ -1,4 +1,5 @@
-import { Img, P, Perso, PersoImgDef } from '../../types';
+import { P } from '../types';
+import type { Img, Perso, PersoImgDef } from '../types';
 
 type Srcs = string[];
 
@@ -57,23 +58,26 @@ function findSrcs(perso: PersoImgDef) {
 }
 
 export async function loadImages(srcs: string[] | Img[]) {
-	return await Promise.all(
-		srcs.map(
-			(source: string | Img) =>
-				new Promise((resolve) => {
-					const src = typeof source === 'string' ? source : source.src;
-					const ikono = <HTMLImageElement>new Image();
-					ikono.onload = () => {
-						console.log('IMG LOADED', src);
-						resolve({ ikono, src });
-					};
-					ikono.onerror = (err) => resolve({ ikono: DEFAULT_IMG, src });
-					ikono.src = src;
-				})
-		)
-	).catch((err) =>
-		console.log('on s’est pas trompé ; ça a pas fonctionné', err)
-	);
+	try {
+		return await Promise.all(
+			srcs.map(
+				(source: string | Img) =>
+					new Promise<{ ikono: HTMLImageElement; src: string }>((resolve) => {
+						const src = typeof source === 'string' ? source : source.src;
+						const ikono = <HTMLImageElement>new Image();
+						ikono.onload = () => {
+							console.log('IMG LOADED', src);
+							resolve({ ikono, src });
+						};
+						ikono.onerror = (err) => resolve({ ikono: new Image(), src });
+						ikono.src = src;
+					})
+			)
+		);
+	} catch (err) {
+		console.log('on s’est pas trompé ; ça a pas fonctionné', err);
+		return [];
+	}
 }
 
 export const DEFAULT_IMG = {

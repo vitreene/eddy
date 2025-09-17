@@ -1,8 +1,9 @@
 import { utils, animate, Timeline } from 'animejs';
+import type { Action } from './types';
 
 // SERT ENCORE ?
 
-export function move(timeLine: Timeline, $el: HTMLElement, a) {
+export function move(timeLine: Timeline, $el: HTMLElement, a: Action) {
 	if ('move' in a) {
 		switch (typeof a.move) {
 			case 'string':
@@ -12,7 +13,7 @@ export function move(timeLine: Timeline, $el: HTMLElement, a) {
 			case 'boolean': {
 				if ('className' in a) {
 					const old = getAbsoluteCoords($el);
-					setClassNames(timeLine, $el, a);
+					setClassNames($el, a);
 					const nex = getAbsoluteCoords($el);
 
 					const px = utils.get($el, 'x', false);
@@ -36,7 +37,7 @@ export function move(timeLine: Timeline, $el: HTMLElement, a) {
 
 						duration: 1000,
 						onComplete(self) {
-							utils.cleanInlineStyles(self), self.cancel();
+							(utils.cleanInlineStyles(self), self.cancel());
 						},
 					});
 
@@ -49,7 +50,7 @@ export function move(timeLine: Timeline, $el: HTMLElement, a) {
 	}
 }
 
-export function setClassNames(timeLine: Timeline, $el: HTMLElement, a) {
+export function setClassNames($el: HTMLElement, a: Action) {
 	if ('className' in a) {
 		switch (typeof a.className) {
 			case 'string':
@@ -59,13 +60,13 @@ export function setClassNames(timeLine: Timeline, $el: HTMLElement, a) {
 				for (const action in a.className) {
 					switch (action) {
 						case 'add':
-							a.className.add
-								.split(' ')
+							a.className
+								.add!.split(' ')
 								.forEach((c: string) => $el.classList.add(c));
 							break;
 						case 'remove':
-							a.className.remove
-								.split(' ')
+							a.className
+								.remove!.split(' ')
 								.forEach((c: string) => $el.classList.remove(c));
 					}
 				}

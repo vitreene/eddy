@@ -1,8 +1,10 @@
 import { utils } from 'animejs';
+
+import { P } from '../types';
 import { SCENE_ID, ROOT } from '../constants';
-import { P } from '../../types';
-import { Player } from '../player';
-import type { Perso, Initial, PersoMediaDef } from '../../types';
+
+import type { Player } from '../player';
+import type { Perso, Initial, PersoMediaDef } from '../types';
 
 export function createElements(this: Player) {
 	if (!document) return null;

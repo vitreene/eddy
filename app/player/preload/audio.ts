@@ -1,6 +1,5 @@
-// import { My, PersoSoundDef, Store, PersoType, PersoDef } from '../types';
-
-import { My, P, Perso } from '../../types';
+import { P } from '~/player/types';
+import type { My, Perso } from '~/player/types';
 
 type PersoDef = any;
 type PersoSoundDef = any;

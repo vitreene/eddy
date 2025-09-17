@@ -1,13 +1,14 @@
 import { createTimeline, Timeline } from 'animejs';
-import { createElements } from './deps/create-elements';
+
+import { PubSub } from './deps/pubsub';
 import { initMedias } from './deps/init-medias';
-import { setStaticChanges } from './deps/static-changes';
 import { createScene } from './deps/create-scene';
 import { onUpdateTimeLine } from './deps/on-update';
-import { PubSub } from './deps/pubsub';
+import { createElements } from './deps/create-elements';
+import { setStaticChanges } from './deps/static-changes';
 
-import type { ID, MapEvent, MediaStatus, Perso } from '../types';
 import type { Change } from './deps/static-changes';
+import type { ID, MapEvent, MediaStatus, Perso } from './types';
 
 const tmDefaults = {
 	autoplay: true,

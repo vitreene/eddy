@@ -1,9 +1,10 @@
 import { createTimer } from 'animejs';
 import type { AnimationItem } from 'lottie-web';
-import { Player } from '../player';
-import { P } from '../../types';
 
-import type { Action, Media, PersoLottieDef, PersoMediaDef } from '../../types';
+import { P } from '../types';
+
+import type { Player } from '../player';
+import type { Action, Media, PersoLottieDef, PersoMediaDef } from '../types';
 
 export function createScene(this: Player) {
 	if (!document) return null;

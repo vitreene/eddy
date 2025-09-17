@@ -15,7 +15,12 @@
 // const n4 = document.createElement('div');
 // document.body.appendChild(n4);
 
-export function plot($el, x, y, color = 'yellowgreen') {
+export function plot(
+	$el: HTMLElement,
+	x: number | string,
+	y: number | string,
+	color = 'yellowgreen'
+) {
 	if (typeof x == 'number') x = `${x}px`;
 	if (typeof y == 'number') y = `${y}px`;
 	$el.style = `

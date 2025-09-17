@@ -1,5 +1,5 @@
 // import { Store, PersoType, PersoDef, PersoVideoDef } from '../types';
-import { P } from '../../types';
+import { P } from '../types';
 type Store = any;
 type PersoDef = any;
 type PersoVideoDef = any;

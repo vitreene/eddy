@@ -1,8 +1,9 @@
-import { ID, Perso } from '../../types';
 import { getPersoSounds } from './audio';
 import { getPersoImages } from './ikono';
 import { getPersoVideos } from './video';
 import { getFiles } from './files';
+
+import type { ID, Perso } from '../types';
 
 export type Store = Map<ID, Perso>;
 export interface OptionalMediasStoreProps {

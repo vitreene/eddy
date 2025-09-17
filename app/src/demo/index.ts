@@ -17,8 +17,8 @@ createTimeline()
 	.add(
 		'div',
 		{
-			x: (_, i) => `${Math.sin(angle(i)) * distance}rem`,
-			y: (_, i) => `${Math.cos(angle(i)) * distance}rem`,
+			x: (_: any, i: number) => `${Math.sin(angle(i)) * distance}rem`,
+			y: (_: any, i: number) => `${Math.cos(angle(i)) * distance}rem`,
 			scale: [0, 0.4, 0.2, 0.9, 0],
 			playbackEase: 'inOutSine',
 			loop: true,

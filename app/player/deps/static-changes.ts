@@ -1,5 +1,7 @@
-import { type Action, type ClassNameAction, P } from '../../types';
-import { Player } from '../player';
+import { P } from '../types';
+
+import type { Player } from '../player';
+import type { Action, ClassNameAction } from '../types';
 
 export interface Change {
 	prev: number | null;

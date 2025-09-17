@@ -1,6 +1,9 @@
-import type { MapEvent, Perso, PersoMediaDef } from '../types';
-import { P } from '../types';
-import { ROOT } from '../player/constants';
+import { P } from '../../player/types';
+import { ROOT } from '~/player/constants';
+
+import type { MapEvent, Perso } from '../../player/types';
+
+import './scene-01.css';
 
 export const eventtimes: MapEvent = new Map([
 	[0, { name: '0' }],
