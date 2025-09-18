@@ -5,7 +5,7 @@ import { Player } from '~/player/player';
 import { preload } from '~/player/preload';
 import { SCENE_ID } from '~/player/constants';
 
-import { persos, eventtimes } from '../src/scenes/scene-02';
+import { persos, eventtimes } from '../demos/scenes/scene-02';
 
 import { createTelco } from '~/player/deps/telco';
 
