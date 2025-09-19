@@ -11,18 +11,40 @@ export function meta({}: Route.MetaArgs) {
 	];
 }
 import * as scene02 from '../demos/scenes/scene-02';
+import { Capsules } from '~/parts/capsules';
+import { useReducer } from 'react';
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const scene: SceneComp = await getScene(1);
-	// const scene = await fetch('./api/db/getScene');
 	return scene;
 }
 
+export interface State {
+	capsule: number | null;
+}
+
+export interface Actions extends State {
+	type: 'edit-capsule';
+}
+
+function reducer(state: State, action: Actions) {
+	switch (action.type) {
+		case 'edit-capsule':
+			return {
+				...state,
+				capsule: action.capsule,
+			};
+
+		default:
+			throw Error('Unknown action: ' + action.type);
+	}
+}
 export default function Home({ loaderData }: Route.ComponentProps) {
 	console.log(loaderData);
 
+	const [state, dispatch] = useReducer(reducer, { capsule: null });
 	return (
-		<SceneContext value={loaderData}>
+		<SceneContext value={{ scene: loaderData, state, dispatch }}>
 			<AppLayout />
 		</SceneContext>
 	);
@@ -33,7 +55,9 @@ function AppLayout() {
 		<main className="app-layout">
 			<section className="base-layout layout-menu">Eddy</section>
 			<section className="base-layout layout-chutier">Chutier</section>
-			<section className="base-layout layout-capsules">Capsules</section>
+			<section className="base-layout layout-capsules">
+				<Capsules />
+			</section>
 			<section className="base-layout layout-capsule-edit">
 				Edit capsule
 			</section>
