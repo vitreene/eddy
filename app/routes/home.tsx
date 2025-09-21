@@ -13,6 +13,7 @@ export function meta({}: Route.MetaArgs) {
 import * as scene02 from '../demos/scenes/scene-02';
 import { Capsules } from '~/parts/capsules';
 import { useReducer } from 'react';
+import { EditCapsule } from '~/parts/capsule-edit';
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const scene: SceneComp = await getScene(1);
@@ -59,7 +60,7 @@ function AppLayout() {
 				<Capsules />
 			</section>
 			<section className="base-layout layout-capsule-edit">
-				Edit capsule
+				<EditCapsule />
 			</section>
 			<section className="base-layout layout-player">
 				<PlayerRunner persos={scene02.persos} eventtimes={scene02.eventtimes} />

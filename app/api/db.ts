@@ -113,6 +113,10 @@ export async function getMedias(sceneId: number) {
 export async function getCapsules(sceneId: number) {
 	return await prisma.capsule.findMany({ where: { sceneId } });
 }
+export async function getCapsule(capsuleId: number) {
+	return await prisma.capsule.findUnique({ where: { id: capsuleId } });
+}
+
 export async function createCapsule({
 	sceneId,
 	type,
@@ -129,6 +133,13 @@ export async function createCapsule({
 		},
 	});
 	return newCapsule;
+}
+
+export async function updateCapsule({ id, ...update }: Partial<Capsule>) {
+	return await prisma.capsule.update({
+		where: { id },
+		data: update,
+	});
 }
 
 export async function deleteCapsule(id: number) {

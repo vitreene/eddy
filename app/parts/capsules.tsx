@@ -5,12 +5,9 @@ import { SceneContext } from '~/provider/scene-provider';
 export function Capsules() {
 	const comp = useContext(SceneContext);
 	const selectCapsule = (e: any) => {
-		console.log('select:', e.target.value);
-
 		comp?.dispatch({ type: 'edit-capsule', capsule: e.target.value });
 	};
 	if (!comp) return null;
-	console.log(comp.state);
 
 	return (
 		<ul className="text-xs">
