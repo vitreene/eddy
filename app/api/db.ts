@@ -13,6 +13,8 @@ export interface SceneDB {
 	capsules: Array<CapsuleComp>;
 }
 
+export type { Media } from '@prisma/client';
+
 export interface MediaComp {
 	order: number;
 	events: string;

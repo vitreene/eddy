@@ -59,7 +59,7 @@ function AppLayout() {
 			<section className="base-layout layout-capsules">
 				<Capsules />
 			</section>
-			<section className="base-layout layout-capsule-edit">
+			<section className="base-layout layout-capsule-edit flex">
 				<EditCapsule />
 			</section>
 			<section className="base-layout layout-player">
