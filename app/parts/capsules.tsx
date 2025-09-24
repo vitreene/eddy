@@ -5,7 +5,11 @@ import { SceneContext } from '~/provider/scene-provider';
 export function Capsules() {
 	const comp = useContext(SceneContext);
 	const selectCapsule = (e: any) => {
-		comp?.dispatch({ type: 'edit-capsule', capsule: e.target.value });
+		comp?.dispatch({
+			type: 'edit-capsule',
+			capsuleId: e.target.value,
+			mediaId: null,
+		});
 	};
 	if (!comp) return null;
 

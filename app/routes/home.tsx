@@ -1,8 +1,7 @@
 import type { Route } from './+types/home';
-import { Welcome } from '../welcome/welcome';
 import { PlayerRunner } from '~/player';
-import { SceneContext } from '~/provider/scene-provider';
-import { getScene, type SceneComp, type SceneDB } from '~/api/db';
+import { reducer, SceneContext } from '~/provider/scene-provider';
+import { getScene, type SceneComp } from '~/api/db';
 
 export function meta({}: Route.MetaArgs) {
 	return [
@@ -14,36 +13,20 @@ import * as scene02 from '../demos/scenes/scene-02';
 import { Capsules } from '~/parts/capsules';
 import { useReducer } from 'react';
 import { EditCapsule } from '~/parts/capsule-edit';
+import { EditMedia } from '~/parts/media-edit';
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const scene: SceneComp = await getScene(1);
 	return scene;
 }
 
-export interface State {
-	capsule: number | null;
-}
-
-export interface Actions extends State {
-	type: 'edit-capsule';
-}
-
-function reducer(state: State, action: Actions) {
-	switch (action.type) {
-		case 'edit-capsule':
-			return {
-				...state,
-				capsule: action.capsule,
-			};
-
-		default:
-			throw Error('Unknown action: ' + action.type);
-	}
-}
 export default function Home({ loaderData }: Route.ComponentProps) {
 	console.log(loaderData);
 
-	const [state, dispatch] = useReducer(reducer, { capsule: null });
+	const [state, dispatch] = useReducer(reducer, {
+		capsuleId: null,
+		mediaId: null,
+	});
 	return (
 		<SceneContext value={{ scene: loaderData, state, dispatch }}>
 			<AppLayout />
@@ -66,7 +49,9 @@ function AppLayout() {
 				<PlayerRunner persos={scene02.persos} eventtimes={scene02.eventtimes} />
 			</section>
 			<section className="base-layout layout-infos"></section>
-			<section className="base-layout layout-edit">Edit content</section>
+			<section className="base-layout layout-edit">
+				<EditMedia />
+			</section>
 		</main>
 	);
 }

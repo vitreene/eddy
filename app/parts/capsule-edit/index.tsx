@@ -1,13 +1,18 @@
-import { useContext, useEffect } from 'react';
+import { useContext } from 'react';
 import { useFetcher } from 'react-router';
-import type { CapsuleComp, Media } from '~/api/db';
+
+import type { CapsuleComp } from '~/api/db';
 import { SceneContext } from '~/provider/scene-provider';
+
+import { Media } from './display-media';
 
 export function EditCapsule() {
 	const fetcher = useFetcher();
 
 	const comp = useContext(SceneContext);
-	const capsule = comp?.scene.capsules.find((c) => c.id == comp?.state.capsule);
+	const capsule = comp?.scene.capsules.find(
+		(c) => c.id == comp?.state.capsuleId
+	);
 
 	return (
 		<section className="edit flex flex-col gap-4 w-full">
@@ -29,41 +34,22 @@ export function EditCapsule() {
 }
 
 function CapsuleContent({ capsule }: { capsule: CapsuleComp }) {
+	const { state, dispatch } = useContext(SceneContext)!;
+	const editMedia = (id: number) => () =>
+		dispatch({ type: 'edit-media', mediaId: id });
 	return (
 		<ul className="flex gap-4 ">
 			{capsule.elements
 				.sort((a, b) => a.order - b.order)
 				.map((el) => (
-					<li key={el.id}>
-						<Media attr={el.media} size="sm" />
+					<li key={el.id} onClick={editMedia(el.id)}>
+						<Media
+							attr={el.media}
+							size="sm"
+							selected={state.mediaId == el.id}
+						/>
 					</li>
 				))}
 		</ul>
 	);
-}
-
-const SIZES = {
-	sm: { w: 100, h: 80 },
-	lg: { w: 250, h: 160 },
-};
-
-function Media({ attr, size }: { attr: Media; size: 'sm' | 'lg' }) {
-	switch (attr.type) {
-		case 'img':
-			return (
-				<img
-					className="object-contain"
-					src={attr.path!}
-					width={SIZES[size].w}
-					height={SIZES[size].h}
-				/>
-			);
-		case 'text':
-			return <p>{attr.content}</p>;
-
-		default:
-			break;
-	}
-
-	return null;
 }
