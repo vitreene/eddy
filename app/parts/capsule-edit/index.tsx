@@ -46,7 +46,7 @@ function CapsuleContent({ capsule }: { capsule: CapsuleComp }) {
 						<Media
 							attr={el.media}
 							size="sm"
-							selected={state.mediaId == el.id}
+							selected={state.elementId == el.id}
 						/>
 					</li>
 				))}

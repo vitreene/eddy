@@ -5,7 +5,10 @@ import { Media } from '../capsule-edit/display-media';
 export function EditMedia() {
 	const comp = useContext(SceneContext);
 
-	const source = comp?.scene.sources.find((s) => s.id == comp.state.mediaId);
-	if (!source) return null;
-	return <Media attr={source} size={'lg'} />;
+	const capsule = comp?.scene.capsules.find(
+		(c) => c.id == comp.state.capsuleId
+	);
+	const element = capsule?.elements.find((e) => e.id == comp?.state.elementId);
+	if (!element) return null;
+	return <Media attr={element.media} size={'lg'} />;
 }

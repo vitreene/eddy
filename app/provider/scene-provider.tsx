@@ -3,13 +3,13 @@ import type { SceneComp } from '~/api/db';
 
 export const SceneContext = createContext<{
 	scene: SceneComp;
-	state: any;
+	state: State;
 	dispatch: React.ActionDispatch<[action: Actions]>;
 } | null>(null);
 
 interface State {
 	capsuleId: number | null;
-	mediaId: number | null;
+	elementId: number | null;
 }
 
 export type Actions =
@@ -22,12 +22,12 @@ export function reducer(state: State, action: Actions): State {
 			return {
 				...state,
 				capsuleId: action.capsuleId,
-				mediaId: action.mediaId,
+				elementId: action.mediaId,
 			};
 		case 'edit-media':
 			return {
 				...state,
-				mediaId: action.mediaId,
+				elementId: action.mediaId,
 			};
 
 		default:

@@ -25,7 +25,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 	const [state, dispatch] = useReducer(reducer, {
 		capsuleId: null,
-		mediaId: null,
+		elementId: null,
 	});
 	return (
 		<SceneContext value={{ scene: loaderData, state, dispatch }}>

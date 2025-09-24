@@ -20,12 +20,13 @@ export function Capsules() {
 					<button
 						className={cx(
 							'px-2 py-1 mb-1 whitespace-nowrap',
-							comp.state.capsule == c.id
+							comp.state.capsuleId == c.id
 								? 'bg-amber-200 hover:bg-amber-300'
 								: 'hover:bg-slate-200'
 						)}
 						value={c.id}
 						onClick={selectCapsule}
+						disabled={comp.state.capsuleId == c.id}
 					>{`Capsule n°${i + 1}`}</button>
 				</li>
 			))}
