@@ -10,11 +10,13 @@ export const SceneContext = createContext<{
 interface State {
 	capsuleId: number | null;
 	elementId: number | null;
+	activeCue: string | null;
 }
 
 export type Actions =
 	| { type: 'edit-capsule'; capsuleId: number; mediaId: null }
-	| { type: 'edit-media'; mediaId: number };
+	| { type: 'edit-media'; mediaId: number }
+	| { type: 'set-cue'; cue: 'string' };
 
 export function reducer(state: State, action: Actions): State {
 	switch (action.type) {
@@ -28,6 +30,11 @@ export function reducer(state: State, action: Actions): State {
 			return {
 				...state,
 				elementId: action.mediaId,
+			};
+		case 'set-cue':
+			return {
+				...state,
+				activeCue: action.cue,
 			};
 
 		default:
