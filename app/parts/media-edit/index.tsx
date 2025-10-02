@@ -5,16 +5,24 @@ import { SceneContext } from '~/provider/scene-provider';
 
 import { MediaEvents } from './media-events';
 import { EditMediaActions } from './edit-media-actions';
+import { EditMediaContext, type EditMediaPayload } from '@/provider/edit-media-provider';
 
 export function EditMedia() {
 	const comp = useContext(SceneContext);
+	const mediaActions = useContext(EditMediaContext);
 
 	const capsule = comp?.scene.capsules.find((c) => c.id == comp.state.capsuleId);
 	const element = capsule?.elements.find((e) => e.id == comp?.state.elementId);
 	const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
-		formData.forEach((v, k) => console.log(k, v));
+		const payload = {} as EditMediaPayload;
+		let target = '';
+		formData.forEach((v, k) => {
+			if (k == 'target') target = v as string;
+			else (payload as any)[k] = v as string;
+		});
+		mediaActions?.dispatch({ type: 'add', target, payload });
 	};
 
 	if (!element) return null;

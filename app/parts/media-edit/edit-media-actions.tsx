@@ -71,12 +71,13 @@ function EditAction({ event }: { event: ActionEvent }) {
 function ActionLine({ event }: { event: ActionEvent }) {
 	return (
 		<div className="text-xs mb-2">
+			<input name="target" hidden defaultValue={event.action} />
 			<dl className="">
 				<dt className="font-light">Repère</dt>
 				<dd className="">––</dd>
 				<dt className="mt-2 font-light">Action</dt>
 				<dd className="">
-					<SelectAction prefix={event.action} />
+					<SelectAction />
 				</dd>
 			</dl>
 		</div>
@@ -89,10 +90,10 @@ le state doit remonter au plus haut pour permettre la mise à jour du player a c
 
 
 */
-function SelectAction({ prefix }: { prefix: string }) {
+function SelectAction() {
 	const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => console.log('CHANGE', e.target.value);
 	return (
-		<select name={`${prefix}.transition`} onChange={onChange}>
+		<select name={'transition'} onChange={onChange}>
 			<option value={''}>––</option>
 			{Object.entries(transitions).map(([k, t]) => (
 				<option key={k} value={t.name}>
