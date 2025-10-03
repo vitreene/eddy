@@ -73,6 +73,7 @@ model CapsuleElement {
 model Event {
   name     String
   action   String
+  ref      String
   duration Int?
 
   elementId Int            @map("element_id")

@@ -1,12 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 
-import type {
-	Capsule,
-	CapsuleElement,
-	Media,
-	Scene,
-	Event as MediaEvent,
-} from '@prisma/client';
+import type { Capsule, CapsuleElement, Media, Scene, Event as MediaEvent } from '@prisma/client';
 
 export interface SceneDB {
 	medias: Array<MediaComp>;
@@ -119,13 +113,7 @@ export async function getCapsule(capsuleId: number) {
 	return await prisma.capsule.findUnique({ where: { id: capsuleId } });
 }
 
-export async function createCapsule({
-	sceneId,
-	type,
-}: {
-	sceneId: number;
-	type: string;
-}) {
+export async function createCapsule({ sceneId, type }: { sceneId: number; type: string }) {
 	const newCapsule = await prisma.capsule.create({
 		data: {
 			type,
@@ -148,16 +136,12 @@ export async function deleteCapsule(id: number) {
 	return await prisma.capsule.delete({ where: { id } });
 }
 
-export async function addEventtoMedia(
-	name: string,
-	action: string,
-	duration: number,
-	elementId: number
-) {
+export async function addEventtoMedia(name: string, action: string, ref: string, duration: number, elementId: number) {
 	const data = {
 		name,
 		action,
 		duration,
+		ref,
 		element: { connect: { id: elementId } },
 	};
 	const event = await prisma.event.upsert({

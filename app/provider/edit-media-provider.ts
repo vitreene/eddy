@@ -6,15 +6,18 @@ export const EditMediaContext = createContext<{
 } | null>(null);
 
 export interface EditMediaPayload {
-	transition: string;
-	event: string;
+	ref: string;
+	name: string;
 }
 export type Action =
+	| { type: 'set'; payload: Record<string, EditMediaPayload> }
 	| { type: 'add' | 'remove'; target: string; payload: EditMediaPayload }
 	| { type: 'update'; target: string; payload: Partial<EditMediaPayload> };
 
 export function reducer(state: Record<string, EditMediaPayload>, action: Action) {
 	switch (action.type) {
+		case 'set':
+			return { ...action.payload };
 		case 'add':
 			return {
 				...state,

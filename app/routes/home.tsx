@@ -29,8 +29,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 	const [editMediaState, dispatchEditMediaState] = useReducer(editMediaReducer, {
 		intro: {
-			transition: '',
-			event: '',
+			ref: '',
+			name: '',
 		},
 	});
 

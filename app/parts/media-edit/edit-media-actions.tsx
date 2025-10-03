@@ -4,7 +4,8 @@ import type { ElementComp } from '~/api/db';
 import { Media } from '../capsule-edit/display-media';
 
 import * as transitions from '~/player/presets/transitions';
-import { useEffect } from 'react';
+import { useContext } from 'react';
+import { EditMediaContext } from '@/provider/edit-media-provider';
 
 export function EditMediaActions({ element }: { element: ElementComp }) {
 	return (
@@ -69,31 +70,35 @@ function EditAction({ event }: { event: ActionEvent }) {
 	);
 }
 function ActionLine({ event }: { event: ActionEvent }) {
+	const mediaActions = useContext(EditMediaContext)!;
+	const ev = mediaActions.state[event.action];
+	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
+		mediaActions?.dispatch({ type: 'update', target: event.action, payload: { ref: e.target.value } });
+	};
 	return (
 		<div className="text-xs mb-2">
 			<input name="target" hidden defaultValue={event.action} />
 			<dl className="">
 				<dt className="font-light">Repère</dt>
-				<dd className="">––</dd>
-				<dt className="mt-2 font-light">Action</dt>
+				<dd className="">{ev.name}</dd>
+				<dt className="mt-2 font-light">Transition</dt>
 				<dd className="">
-					<SelectAction />
+					<SelectAction value={ev?.ref ?? '--'} onChange={onChangeAction} />
 				</dd>
 			</dl>
 		</div>
 	);
 }
 
-/* 
-le state doit remonter au plus haut pour permettre la mise à jour du player a chaque change
--> ne pas passer par un form ? 
-
-
-*/
-function SelectAction() {
-	const onChange = (e: React.ChangeEvent<HTMLSelectElement>) => console.log('CHANGE', e.target.value);
+function SelectAction({
+	value,
+	onChange,
+}: {
+	value: string;
+	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+}) {
 	return (
-		<select name={'transition'} onChange={onChange}>
+		<select name={'transition'} onChange={onChange} value={value}>
 			<option value={''}>––</option>
 			{Object.entries(transitions).map(([k, t]) => (
 				<option key={k} value={t.name}>

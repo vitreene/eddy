@@ -1,4 +1,4 @@
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { Form } from 'react-router';
 
 import { SceneContext } from '~/provider/scene-provider';
@@ -6,6 +6,21 @@ import { SceneContext } from '~/provider/scene-provider';
 import { MediaEvents } from './media-events';
 import { EditMediaActions } from './edit-media-actions';
 import { EditMediaContext, type EditMediaPayload } from '@/provider/edit-media-provider';
+import type { ElementComp } from '@/api/db';
+
+/* 
+
+ca ne correspond pas. il manque de nommer l'event pour l'édition : intro/outro/idle... 
+le repère deviendra le nom de l'action avec le contenu de la transition. 
+
+ ElementComp.events: {			->				EditMediaContext.state
+ 		ref: string;												ref: string  -> transition, details...
+    name: string; 											name: string; -> label time
+    action: string;											action: string; -> name  intro, outro..
+    duration: number | null;
+    elementId: number;
+}[]
+*/
 
 export function EditMedia() {
 	const comp = useContext(SceneContext);
@@ -13,6 +28,7 @@ export function EditMedia() {
 
 	const capsule = comp?.scene.capsules.find((c) => c.id == comp.state.capsuleId);
 	const element = capsule?.elements.find((e) => e.id == comp?.state.elementId);
+
 	const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
