@@ -5,8 +5,8 @@ import { SceneContext } from '~/provider/scene-provider';
 
 import { MediaEvents } from './media-events';
 import { EditMediaActions } from './edit-media-actions';
-import { EditMediaContext, type EditMediaPayload } from '@/provider/edit-media-provider';
-import type { ElementComp } from '@/api/db';
+import { EditMediaContext } from '@/provider/edit-media-provider';
+import type { TextTime } from '@/api/db';
 
 /* 
 
@@ -32,7 +32,7 @@ export function EditMedia() {
 	const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
-		const payload = {} as EditMediaPayload;
+		const payload = {} as TextTime;
 		let target = '';
 		formData.forEach((v, k) => {
 			if (k == 'target') target = v as string;
@@ -47,7 +47,7 @@ export function EditMedia() {
 			<Form onSubmit={onSubmit}>
 				<EditMediaActions element={element} />
 			</Form>
-			<MediaEvents />
+			<MediaEvents key={comp?.state.activeAction?.action} />
 		</section>
 	);
 }

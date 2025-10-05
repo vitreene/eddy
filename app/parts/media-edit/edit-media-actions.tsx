@@ -4,24 +4,22 @@ import type { ElementComp } from '~/api/db';
 import { Media } from '../capsule-edit/display-media';
 
 import * as transitions from '~/player/presets/transitions';
-import { useContext } from 'react';
+import { useContext, useEffect } from 'react';
 import { EditMediaContext } from '@/provider/edit-media-provider';
+import { SceneContext, type ActionEvent } from '@/provider/scene-provider';
 
 export function EditMediaActions({ element }: { element: ElementComp }) {
 	return (
 		<div className="flex gap-2">
 			<Media attr={element.media} size={'lg'} />
 			<div className="p-2 border border-slate-400 min-w-64">
-				<button className="text-xs" type="submit">
-					VALIDER
-				</button>
 				<Tabs defaultValue="animation" className="w-full">
 					<TabsList>
 						<TabsTrigger value="animation">Animation</TabsTrigger>
 						<TabsTrigger value="description">Description</TabsTrigger>
 					</TabsList>
 					<TabsContent value="animation">
-						<EditActions events={element.events} />
+						<TabActions events={element.events} />
 					</TabsContent>
 					<TabsContent value="description">To do</TabsContent>
 				</Tabs>
@@ -30,20 +28,16 @@ export function EditMediaActions({ element }: { element: ElementComp }) {
 	);
 }
 
-interface ActionEvent {
-	name: string;
-	action: string;
-	duration: number | null;
-	elementId: number;
-}
-
-function EditActions({ events }: { events: Array<ActionEvent> }) {
+function TabActions({ events }: { events: Array<ActionEvent> }) {
 	return (
 		<Tabs defaultValue="intro" orientation="vertical" className="flex flex-row gap-4">
 			<ActionsList events={events} />
+
 			<div className="border-l border-slate-500 pl-4">
-				{events.map((e) => (
-					<EditAction key={e.action} event={e} />
+				{events.map((event) => (
+					<TabsContent key={event.action} value={event.action}>
+						<ActionLine event={event} />
+					</TabsContent>
 				))}
 			</div>
 		</Tabs>
@@ -62,25 +56,25 @@ function ActionsList({ events }: { events: Array<ActionEvent> }) {
 	);
 }
 
-function EditAction({ event }: { event: ActionEvent }) {
-	return (
-		<TabsContent value={event.action}>
-			<ActionLine event={event} />
-		</TabsContent>
-	);
-}
 function ActionLine({ event }: { event: ActionEvent }) {
+	const comp = useContext(SceneContext);
 	const mediaActions = useContext(EditMediaContext)!;
 	const ev = mediaActions.state[event.action];
+
+	useEffect(() => {
+		comp!.dispatch({ type: 'set-action', event });
+	}, [comp!.dispatch, event]);
+
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		mediaActions?.dispatch({ type: 'update', target: event.action, payload: { ref: e.target.value } });
 	};
+
 	return (
 		<div className="text-xs mb-2">
 			<input name="target" hidden defaultValue={event.action} />
 			<dl className="">
 				<dt className="font-light">Repère</dt>
-				<dd className="">{ev.name}</dd>
+				<dd className="">{ev.text ?? '––'}</dd>
 				<dt className="mt-2 font-light">Transition</dt>
 				<dd className="">
 					<SelectAction value={ev?.ref ?? '--'} onChange={onChangeAction} />
@@ -98,7 +92,7 @@ function SelectAction({
 	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
 	return (
-		<select name={'transition'} onChange={onChange} value={value}>
+		<select name={'ref'} onChange={onChange} value={value}>
 			<option value={''}>––</option>
 			{Object.entries(transitions).map(([k, t]) => (
 				<option key={k} value={t.name}>

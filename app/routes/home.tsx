@@ -25,16 +25,18 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 		capsuleId: null,
 		elementId: null,
 		activeCue: null,
+		activeAction: null,
 	});
 
 	const [editMediaState, dispatchEditMediaState] = useReducer(editMediaReducer, {
 		intro: {
 			ref: '',
-			name: '',
+			text: '',
+			start: 0,
+			end: 0,
+			id: '',
 		},
 	});
-
-	console.log(editMediaState);
 
 	return (
 		<SceneContext value={{ scene: loaderData, state: stateScene, dispatch: dispatchScene }}>

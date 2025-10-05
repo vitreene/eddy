@@ -29,6 +29,7 @@ export interface TextTime {
 	start: number;
 	end: number;
 	count?: number;
+	ref?: string;
 }
 
 export interface SceneMedia extends Omit<Media, 'sceneId'> {

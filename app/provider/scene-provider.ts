@@ -1,5 +1,5 @@
 import { createContext } from 'react';
-import type { SceneComp } from '~/api/db';
+import type { SceneComp, TextTime } from '~/api/db';
 
 export const SceneContext = createContext<{
 	scene: SceneComp;
@@ -7,16 +7,25 @@ export const SceneContext = createContext<{
 	dispatch: React.ActionDispatch<[action: Actions]>;
 } | null>(null);
 
+export interface ActionEvent {
+	name: string;
+	action: string;
+	duration: number | null;
+	elementId: number;
+}
+
 interface State {
 	capsuleId: number | null;
 	elementId: number | null;
-	activeCue: string | null;
+	activeCue: TextTime | null;
+	activeAction: ActionEvent | null;
 }
 
 export type Actions =
 	| { type: 'edit-capsule'; capsuleId: number; mediaId: null }
 	| { type: 'edit-media'; mediaId: number }
-	| { type: 'set-cue'; cue: 'string' };
+	| { type: 'set-cue'; cue: TextTime }
+	| { type: 'set-action'; event: ActionEvent };
 
 export function reducer(state: State, action: Actions): State {
 	switch (action.type) {
@@ -35,6 +44,11 @@ export function reducer(state: State, action: Actions): State {
 			return {
 				...state,
 				activeCue: action.cue,
+			};
+		case 'set-action':
+			return {
+				...state,
+				activeAction: action.event,
 			};
 
 		default:

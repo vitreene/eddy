@@ -39,11 +39,14 @@ function CapsuleContent({ capsule }: { capsule: CapsuleComp }) {
 	const editMedia = (id: number) => () => {
 		comp.dispatch({ type: 'edit-media', mediaId: id });
 		const element = capsule?.elements.find((e) => e.id == id);
-		console.log('editMedia', capsule, id, element);
 
 		if (element) {
+			const cues = comp?.scene.medias[0].events!;
 			const payload: typeof mediaActions.state = {};
-			for (const { name, ref, action } of element?.events) payload[action] = { ref, name };
+			for (const { name, ref, action } of element?.events) {
+				const textTime = cues.find((c) => c.id == name);
+				payload[action] = { ...textTime!, ref };
+			}
 			mediaActions.dispatch({ type: 'set', payload });
 		}
 	};
