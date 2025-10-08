@@ -10,16 +10,18 @@ export function Media({
 	attr,
 	size,
 	selected = false,
+	className = '',
 }: {
 	attr: Media;
 	size: 'sm' | 'lg';
 	selected?: boolean;
+	className?: string;
 }) {
 	switch (attr.type) {
 		case 'img':
 			return (
 				<img
-					className={cx('object-contain', {
+					className={cx(className, 'object-contain', {
 						'border border-red-400': selected,
 					})}
 					src={attr.path!}

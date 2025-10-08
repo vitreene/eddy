@@ -8,11 +8,11 @@ export function MediaEvents() {
 	const comp = useContext(SceneContext);
 	const mediaActions = useContext(EditMediaContext)!;
 
-	// TODO mieux définir
+	// TODO mieux définir cues
 	const cues = comp?.scene.medias[0].events!;
 	const activeAction = comp?.state.activeAction;
-	console.log({ activeAction });
 
+	const action = mediaActions.state[activeAction?.action ?? ''];
 	const onChange = (event: TextTime) => {
 		activeAction && mediaActions?.dispatch({ type: 'update', target: activeAction.action, payload: event });
 	};
@@ -31,7 +31,7 @@ export function MediaEvents() {
 					<label
 						className={cx(
 							event.count ? `color-${event.count > 3 ? 3 : event.count}` : 'color-0',
-							mediaActions.state[activeAction!.action ?? ''].id == event.id && 'active'
+							action?.id == event.id && 'active'
 						)}
 						htmlFor={event.id}
 						title={String(event.start)}

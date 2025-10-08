@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { useFetcher } from 'react-router';
 
-import type { CapsuleComp } from '~/api/db';
+import type { CapsuleComp, ElementComp, TextTime } from '~/api/db';
 import { SceneContext } from '~/provider/scene-provider';
 
 import { Media } from './display-media';
@@ -12,6 +12,8 @@ export function EditCapsule() {
 
 	const comp = useContext(SceneContext);
 	const capsule = comp?.scene.capsules.find((c) => c.id == comp?.state.capsuleId);
+
+	console.log('EditCapsule', capsule);
 
 	return (
 		<section className="edit flex flex-col gap-4 w-full">
@@ -26,19 +28,20 @@ export function EditCapsule() {
 				</fetcher.Form>
 			</header>
 			<article className="flex-1 p-4 border border-slate-300">
-				{capsule && <CapsuleContent capsule={capsule} />}
+				{capsule && <CapsuleContent elements={capsule.elements} />}
 			</article>
 		</section>
 	);
 }
 
-function CapsuleContent({ capsule }: { capsule: CapsuleComp }) {
+function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
+	const fetcher = useFetcher();
 	const comp = useContext(SceneContext)!;
 	const mediaActions = useContext(EditMediaContext)!;
 
-	const editMedia = (id: number) => () => {
+	const editMedia = (id: number) => {
 		comp.dispatch({ type: 'edit-media', mediaId: id });
-		const element = capsule?.elements.find((e) => e.id == id);
+		const element = elements.find((e) => e.id == id);
 
 		if (element) {
 			const cues = comp?.scene.medias[0].events!;
@@ -50,13 +53,30 @@ function CapsuleContent({ capsule }: { capsule: CapsuleComp }) {
 			mediaActions.dispatch({ type: 'set', payload });
 		}
 	};
+
+	const editElement = (e: React.MouseEvent<HTMLUListElement>) => {
+		e.preventDefault();
+		const target = e.target as HTMLElement;
+		const id = Number(target.dataset?.id);
+		id && editMedia(id);
+
+		const lastMediaId = comp.state.elementId;
+
+		if (lastMediaId)
+			fetcher.submit(mediaActions.state as {}, {
+				method: 'post',
+				encType: 'application/json',
+				action: `api/media/${lastMediaId}`,
+			});
+	};
+
 	return (
-		<ul className="flex gap-4 ">
-			{capsule.elements
+		<ul className="flex gap-4 " onClick={editElement}>
+			{elements
 				.sort((a, b) => a.order - b.order)
 				.map((el) => (
-					<li key={el.id} onClick={editMedia(el.id)}>
-						<Media attr={el.media} size="sm" selected={comp.state.elementId == el.id} />
+					<li key={el.id} id={`element-${el.id}`} data-id={el.id} className="bg-white">
+						<Media attr={el.media} size="sm" selected={comp.state.elementId == el.id} className="pointer-events-none" />
 					</li>
 				))}
 		</ul>

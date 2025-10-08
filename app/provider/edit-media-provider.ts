@@ -2,7 +2,7 @@ import type { TextTime } from '@/api/db';
 import { createContext } from 'react';
 
 export const EditMediaContext = createContext<{
-	state: Record<string, TextTime>;
+	state: { [x: string]: TextTime };
 	dispatch: React.ActionDispatch<[action: Action]>;
 } | null>(null);
 
@@ -11,7 +11,7 @@ export type Action =
 	| { type: 'add' | 'remove'; target: string; payload: TextTime }
 	| { type: 'update'; target: string; payload: Partial<TextTime> };
 
-export function reducer(state: Record<string, TextTime>, action: Action) {
+export function reducer(state: { [x: string]: TextTime }, action: Action) {
 	switch (action.type) {
 		case 'set':
 			return { ...action.payload };
