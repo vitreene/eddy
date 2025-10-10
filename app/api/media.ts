@@ -1,16 +1,18 @@
-import type { Capsule } from '@prisma/client';
 import type { Route } from '../+types/root';
-
-// export async function loader({ params }: Route.LoaderArgs) {
-// 	const capsule = await getCapsule(Number(params.id));
-// 	return capsule;
-// }
+import { addEventtoMedia, type TextTime } from './db';
 
 export async function action({ request, params }: Route.ActionArgs) {
 	const { id } = params;
-	const data = await request.json();
+	if (!id) return { ok: false };
+	const data: {
+		[x: string]: TextTime;
+	} = await request.json();
 	console.log(id, data);
 
-	return { ok: true, id, data };
+	const events = await Promise.all(
+		Object.entries(data).map(([action, texttime]) =>
+			addEventtoMedia({ action, name: texttime.id, ref: texttime.ref!, elementId: Number(id) })
+		)
+	);
+	return { ok: true, id, events };
 }
-//

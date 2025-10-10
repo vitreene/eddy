@@ -3,7 +3,7 @@ import type { SceneComp, TextTime } from '~/api/db';
 
 export const SceneContext = createContext<{
 	scene: SceneComp;
-	state: State;
+	state: SceneState;
 	dispatch: React.ActionDispatch<[action: Actions]>;
 } | null>(null);
 
@@ -14,7 +14,7 @@ export interface ActionEvent {
 	elementId: number;
 }
 
-interface State {
+export interface SceneState {
 	capsuleId: number | null;
 	elementId: number | null;
 	activeCue: TextTime | null;
@@ -27,7 +27,7 @@ export type Actions =
 	| { type: 'set-cue'; cue: TextTime }
 	| { type: 'set-action'; event: ActionEvent };
 
-export function reducer(state: State, action: Actions): State {
+export function reducer(state: SceneState, action: Actions): SceneState {
 	switch (action.type) {
 		case 'edit-capsule':
 			return {

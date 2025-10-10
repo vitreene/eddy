@@ -137,7 +137,23 @@ export async function deleteCapsule(id: number) {
 	return await prisma.capsule.delete({ where: { id } });
 }
 
-export async function addEventtoMedia(name: string, action: string, ref: string, duration: number, elementId: number) {
+//	ref: string  -> transition, details...
+//	name: string; -> label time
+//	action: string; -> name  intro, outro..
+
+export async function addEventtoMedia({
+	name,
+	action,
+	ref,
+	duration,
+	elementId,
+}: {
+	name: string;
+	action: string;
+	ref: string;
+	duration?: number;
+	elementId: number;
+}) {
 	const data = {
 		name,
 		action,

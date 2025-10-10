@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import { useFetcher } from 'react-router';
 
-import type { CapsuleComp, ElementComp, TextTime } from '~/api/db';
-import { SceneContext } from '~/provider/scene-provider';
+import type { ElementComp, SceneComp, TextTime } from '~/api/db';
+import { SceneContext, type SceneState } from '~/provider/scene-provider';
 
 import { Media } from './display-media';
 import { EditMediaContext } from '@/provider/edit-media-provider';
@@ -13,7 +13,7 @@ export function EditCapsule() {
 	const comp = useContext(SceneContext);
 	const capsule = comp?.scene.capsules.find((c) => c.id == comp?.state.capsuleId);
 
-	console.log('EditCapsule', capsule);
+	// console.log('EditCapsule', capsule);
 
 	return (
 		<section className="edit flex flex-col gap-4 w-full">
@@ -62,7 +62,10 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 
 		const lastMediaId = comp.state.elementId;
 
-		if (lastMediaId)
+		const isChanged = compareEvents(comp, mediaActions.state);
+		console.log({ lastMediaId, isChanged, mediaActions: mediaActions.state });
+
+		if (lastMediaId && isChanged)
 			fetcher.submit(mediaActions.state as {}, {
 				method: 'post',
 				encType: 'application/json',
@@ -81,4 +84,29 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 				))}
 		</ul>
 	);
+}
+
+function compareEvents(
+	comp: {
+		scene: SceneComp;
+		state: SceneState;
+	},
+	mediaActions: {
+		[action: string]: TextTime;
+	}
+) {
+	const capsule = comp.scene.capsules.find((c) => c.id == comp.state.capsuleId);
+	const element = capsule?.elements.find((e) => e.id == comp.state.elementId);
+
+	if (!element?.events) return false;
+
+	for (const act in mediaActions) {
+		const action = mediaActions[act];
+		const sourceAction = element.events.find((e) => e.action == act);
+
+		if (!sourceAction) continue;
+
+		if (action.id != sourceAction.name || action.ref != sourceAction.ref) return true;
+	}
+	return false;
 }
