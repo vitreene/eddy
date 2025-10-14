@@ -21,8 +21,10 @@ export function createElements(this: Player) {
 		if ('id' in initial && initial.id == ROOT) {
 			this.render.appendChild(this.$elements.get(initial.id)!);
 		}
+
 		if ('move' in initial && typeof initial.move == 'string') {
 			const $parent = this.$elements.get(initial.move);
+
 			$parent!.appendChild(this.$elements.get(initial.id)!);
 		}
 	});
@@ -30,10 +32,7 @@ export function createElements(this: Player) {
 
 function createNode(perso: Perso) {
 	const { type, initial } = perso;
-	const $el =
-		type == P.VIDEO
-			? (perso as PersoMediaDef).media
-			: document.createElement(createTag({ type, initial }));
+	const $el = type == P.VIDEO ? (perso as PersoMediaDef).media : document.createElement(createTag({ type, initial }));
 
 	for (const k in initial) {
 		if (k == 'src') {

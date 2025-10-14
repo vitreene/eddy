@@ -2,7 +2,7 @@ import type * as CSS from 'csstype';
 import type { AnimationParams } from 'animejs';
 import type { AnimationItem } from 'lottie-web';
 
-export type ID = string;
+export type ID = string | number;
 export type MapEvent = Map<number, Eventime | Eventime[]>;
 
 export interface Eventime {
@@ -25,7 +25,7 @@ export interface PersoDef extends PersoBase {
 export interface PersoImgDef extends PersoBase {
 	type: typeof persoTypes.IMG | typeof persoTypes.SPRITE;
 	initial: Initial & { src: string };
-	media: Record<string, Img>;
+	media?: Record<string, Img>;
 }
 export interface PersoMediaDef extends PersoBase {
 	type: typeof persoTypes.LOTTIE | typeof persoTypes.VIDEO;
@@ -94,7 +94,7 @@ export interface ClassNameAction {
 	remove?: string;
 }
 
-export interface Action {
+export interface ActionCat {
 	attr: any;
 	style: AnimationParams;
 	className: string | ClassNameAction;
@@ -104,9 +104,11 @@ export interface Action {
 	media: Media;
 }
 
-export interface Initial extends Partial<Action> {
+export type Action = Partial<ActionCat> | boolean;
+
+export interface Initial extends Partial<ActionCat> {
 	tag?: string;
-	id: string;
+	id: string | number;
 }
 
 export const persoTypes = {

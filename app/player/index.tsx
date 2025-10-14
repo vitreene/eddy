@@ -19,29 +19,24 @@ export function PlayerRunner({ persos, eventtimes }: PlayerProps) {
 	const sceneRef = useRef<HTMLElement>(null);
 
 	useEffect(() => {
-		if (persos && typeof window !== 'undefined')
+		if (persos && eventtimes && typeof window !== 'undefined') {
+			animeScene.current && animeScene.current.revert();
+
 			preload(persos).then((p) => {
 				if (!animeScene.current) {
-					const render: HTMLElement | null = document.querySelector(
-						`#${SCENE_ID}`
-					);
+					const render: HTMLElement | null = sceneRef.current;
 					const player = new Player({ render, persos: p, eventtimes });
-					createTelco(player.telco());
-
+					const telco = player.telco();
+					createTelco(telco);
 					animeScene.current = player.timeLine;
 					animeScene.current.play();
+					telco.seek(0);
 
 					console.log(player);
 				}
 			});
-
-		return () => {
-			console.log('REVERT');
-			animeScene.current && animeScene.current.revert();
-			sceneRef.current instanceof HTMLElement &&
-				sceneRef.current.firstChild?.remove();
-		};
-	}, [persos]);
+		}
+	}, [persos, eventtimes]);
 
 	return <main ref={sceneRef} id={SCENE_ID} />;
 }

@@ -15,16 +15,16 @@ export interface OptionalMediasStoreProps {
 
 export async function preload(store: Array<Perso>): Promise<Store> {
 	const st01 = await getPersoSounds(store);
-	console.log('LOAD SOUNDS');
+	// console.log('LOAD SOUNDS');
 
 	const st02 = await getPersoImages(st01.persos);
-	console.log('LOAD IMAGES');
+	// console.log('LOAD IMAGES');
 
 	const st03 = await getPersoVideos(st01.persos);
-	console.log('LOAD VIDEOS');
+	// console.log('LOAD VIDEOS');
 
 	const st04 = await getFiles(st01.persos);
-	console.log('LOAD Lotties', st04);
+	// console.log('LOAD Lotties', st04);
 
 	const persos01 = {
 		...st03.persos,

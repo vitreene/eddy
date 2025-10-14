@@ -32,6 +32,17 @@ export interface TextTime {
 	ref?: string;
 }
 
+// export interface SceneMedia {
+//     id: number;
+//     order: number;
+//     mediaId: number;
+//     events: any;
+//     path: string | null;
+//     content: string | null;
+//     type: string;
+//     lang: string | null;
+// }
+
 export interface SceneMedia extends Omit<Media, 'sceneId'> {
 	mediaId: number;
 	order: number;

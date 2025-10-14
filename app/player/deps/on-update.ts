@@ -39,21 +39,13 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 			// update transition
 			if (change && transitions.has(change)) {
 				const transition = transitions.get(change)!;
-				const progress = getProgression(
-					currentTime,
-					change.curr!,
-					change.curr! + 1000
-				);
+				const progress = getProgression(currentTime, change.curr!, change.curr! + 1000);
 
-				!(progress == 1 && transition.completed) &&
-					(transition.progress = progress);
+				!(progress == 1 && transition.completed) && (transition.progress = progress);
 			}
 
 			// update sets :
-			if (
-				currentTime >= (change!.next ?? Infinity) ||
-				currentTime <= (change.curr! ?? 0)
-			) {
+			if (currentTime >= (change!.next ?? Infinity) || currentTime <= (change.curr! ?? 0)) {
 				const nextChange = setNextChange(change, changes);
 				if (nextChange == null) return;
 
@@ -82,10 +74,9 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 						currentTime,
 						mediaStatus: this.mediaStatus,
 						tmIsPlaying: !self.paused,
+						elements: this.$elements,
 					});
-					transitions.set(nextChange, transition!);
-
-					console.log('MOVE', nextChange.change.move, transition);
+					transition && transitions.set(nextChange, transition);
 				} else
 					applyChange({
 						$el,
@@ -94,6 +85,7 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 						currentTime,
 						mediaStatus: this.mediaStatus,
 						tmIsPlaying: !self.paused,
+						elements: this.$elements,
 					});
 			}
 		});
@@ -101,12 +93,7 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 
 		function setNextChange(change: Change, changes: Record<number, Change>) {
 			let nextChange = change;
-			while (
-				!(
-					currentTime <= (nextChange.next ?? Infinity) &&
-					currentTime >= nextChange.curr!
-				)
-			) {
+			while (!(currentTime <= (nextChange.next ?? Infinity) && currentTime >= nextChange.curr!)) {
 				nextChange = nextChange.next ? changes[nextChange.next] : changes[0];
 				if (nextChange === change) return null; // never
 			}
@@ -122,6 +109,7 @@ interface ApplyChange {
 	currentTime: number | null;
 	mediaStatus: Map<ID, MediaStatus>;
 	tmIsPlaying: boolean;
+	elements: Map<ID, HTMLElement>;
 }
 
 /* 
@@ -130,14 +118,7 @@ en particulier pour les medias qui doivent vérifier si l'état de lecture du pl
 
 */
 
-function applyChange({
-	$el,
-	change,
-	perso,
-	currentTime = null,
-	mediaStatus,
-	tmIsPlaying,
-}: ApplyChange) {
+function applyChange({ $el, change, perso, currentTime = null, mediaStatus, tmIsPlaying }: ApplyChange) {
 	if (change.className) {
 		$el.className = change.className;
 	}
@@ -179,8 +160,11 @@ function move(props: ApplyChange) {
 	// ATTENTION CE N'EST PLUS ADDRESSé
 	switch (typeof change.move) {
 		case 'string':
-			const [parent] = utils.$(change.move);
-			parent.appendChild($el);
+			//	const [parent] = utils.$(change.move);
+			const parent = props.elements.get(change.move);
+			console.log(parent, change, perso);
+
+			parent && parent.appendChild($el);
 			break;
 		//
 
@@ -196,10 +180,7 @@ function move(props: ApplyChange) {
 			const dx = old.x - nex.x;
 			const dy = old.y - nex.y;
 
-			const diff = getTransform($el)
-				.translate(-px, -py)
-				.invertSelf()
-				.transformPoint(new DOMPoint(dx, dy));
+			const diff = getTransform($el).translate(-px, -py).invertSelf().transformPoint(new DOMPoint(dx, dy));
 
 			const transition = animate($el, {
 				x: { from: diff.x + px, to: 0 + px },
@@ -243,10 +224,7 @@ function getAbsoluteCoords($el: HTMLElement) {
 function getTransform($el: HTMLElement) {
 	const style = window.getComputedStyle($el);
 
-	const transform =
-		style.transform !== 'none'
-			? new DOMMatrix(style.transform)
-			: new DOMMatrix();
+	const transform = style.transform !== 'none' ? new DOMMatrix(style.transform) : new DOMMatrix();
 
 	return transform;
 }
