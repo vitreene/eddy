@@ -11,6 +11,7 @@ import { reducer as editMediaReducer, EditMediaContext } from '~/provider/edit-m
 import * as scene02 from '../demos/scenes/scene-02';
 import { buildPlay, type Store } from '@/player/builder/build-play';
 import type { MapEvent, PersoDef, PersoVideoDef } from '@/player/types';
+import React from 'react';
 
 export function meta({}: Route.MetaArgs) {
 	return [{ title: 'New React Router App' }, { name: 'description', content: 'Welcome to React Router!' }];
@@ -23,8 +24,8 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-	console.log(loaderData);
-	const scenePlay = buildPlay(loaderData);
+	// console.log('loaderData', loaderData);Ò
+
 	// console.log('REF_DATA', { persos: scene02.persos, events: Object.fromEntries(scene02.eventtimes.entries()) });
 
 	// console.log('SCENE->', { persos: scenePlay.persos, events: Object.fromEntries(scenePlay.events.entries()) });
@@ -49,20 +50,16 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 	return (
 		<SceneContext value={{ scene: loaderData, state: stateScene, dispatch: dispatchScene }}>
 			<EditMediaContext value={{ state: editMediaState, dispatch: dispatchEditMediaState }}>
-				<AppLayout scene={scenePlay} />
+				<AppLayout data={loaderData} />
 			</EditMediaContext>
 		</SceneContext>
 	);
 }
 
-function AppLayout({
-	scene,
-}: {
-	scene: {
-		events: MapEvent;
-		persos: (PersoDef | PersoVideoDef)[];
-	};
-}) {
+const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
+	//TODO data doit etre recalculé a chaque modif
+	// player si modif ne rejoue pas, se place à l'endroit de la modif et se met en pause
+	const scene = buildPlay(data);
 	return (
 		<main className="app-layout">
 			<section className="base-layout layout-menu">Eddy</section>
@@ -73,9 +70,8 @@ function AppLayout({
 			<section className="base-layout layout-capsule-edit flex">
 				<EditCapsule />
 			</section>
-			<section className="base-layout layout-player">
-				{/* <PlayerRunner persos={scene02.persos} eventtimes={scene02.eventtimes} /> */}
-				<PlayerRunner persos={scene.persos} eventtimes={scene.events} />
+			<section className="base-layout layout-player flex flex-col">
+				<PlayerRunner scene={scene} />
 			</section>
 			<section className="base-layout layout-infos"></section>
 			<section className="base-layout layout-edit">
@@ -83,4 +79,11 @@ function AppLayout({
 			</section>
 		</main>
 	);
-}
+});
+
+/* 
+a revoir :
+- la scene n'est lue q'au demarage et enregistrée que périodiquement, 
+- la scene est un objet en memoire 
+
+*/

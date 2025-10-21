@@ -124,7 +124,6 @@ function applyChange({ $el, change, perso, currentTime = null, mediaStatus, tmIs
 	}
 	if (change.content && perso.type != persoTypes.IMG) {
 		//TODO seulement si content est texte !
-		console.log('change.content', change.content);
 
 		$el.textContent = change.content;
 	}
@@ -157,13 +156,10 @@ function applyChange({ $el, change, perso, currentTime = null, mediaStatus, tmIs
 // //importer applyChange à la place comme callback
 function move(props: ApplyChange) {
 	const { $el, change, perso } = props;
-	// ATTENTION CE N'EST PLUS ADDRESSé
+
 	switch (typeof change.move) {
 		case 'string':
-			//	const [parent] = utils.$(change.move);
 			const parent = props.elements.get(change.move);
-			console.log(parent, change, perso);
-
 			parent && parent.appendChild($el);
 			break;
 		//

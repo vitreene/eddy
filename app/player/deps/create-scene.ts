@@ -27,8 +27,9 @@ export function createScene(this: Player) {
 		perso.initial.style && this.timeLine.add($el, perso.initial.style, 0);
 
 		for (const [actionName, action] of Object.entries(perso.actions)) {
+			if (typeof action == 'boolean') continue;
 			const positions = timeEvents.get(actionName);
-			if (positions && action.style) {
+			if (positions && 'style' in action) {
 				positions.forEach((position) => {
 					this.timeLine.add($el, action.style!, position);
 				});
@@ -46,9 +47,7 @@ export function createScene(this: Player) {
 					const timer1 = createTimer({
 						duration: media.duration ?? duration,
 						onUpdate: (self) => {
-							((perso as PersoMediaDef).media as AnimationItem).goToAndStop(
-								self.currentTime
-							);
+							((perso as PersoMediaDef).media as AnimationItem).goToAndStop(self.currentTime);
 						},
 					});
 					positions &&
