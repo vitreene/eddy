@@ -1,19 +1,19 @@
-import { useReducer } from 'react';
-import type { Route } from './+types/home';
+import { useReducer } from "react";
+import type { Route } from "./+types/home";
 
-import { PlayerRunner } from '~/player';
-import { Capsules } from '~/parts/capsules';
-import { getScene, type SceneComp } from '~/api/db';
-import { EditMedia } from '~/parts/media-edit';
-import { EditCapsule } from '~/parts/capsule-edit';
-import { reducer as sceneReducer, SceneContext } from '~/provider/scene-provider';
-import { reducer as editMediaReducer, EditMediaContext } from '~/provider/edit-media-provider';
-import * as scene02 from '../demos/scenes/scene-02';
-import { buildPlay } from '@/player/builder/build-play';
-import React from 'react';
+import { PlayerRunner } from "~/player";
+import { Capsules } from "~/parts/capsules";
+import { getScene, type SceneComp } from "~/api/db";
+import { EditMedia } from "~/parts/media-edit";
+import { EditCapsule } from "~/parts/capsule-edit";
+import { reducer as sceneReducer, SceneContext } from "~/provider/scene-provider";
+import { reducer as editMediaReducer, EditMediaContext } from "~/provider/edit-media-provider";
+import * as scene02 from "../demos/scenes/scene-02";
+import { buildPlay } from "@/player/builder/build-play";
+import React from "react";
 
-export function meta({}: Route.MetaArgs) {
-	return [{ title: 'New React Router App' }, { name: 'description', content: 'Welcome to React Router!' }];
+export function meta() {
+	return [{ title: "New React Router App" }, { name: "description", content: "Welcome to React Router!" }];
 }
 
 const SCENE_ID = 1;
@@ -33,7 +33,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 		capsuleId: null,
 		elementId: null,
 		activeCue: null,
-		activeAction: null,
+		activeAction: null
 	});
 
 	/*
@@ -45,12 +45,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 	*/
 	const [editMediaState, dispatchEditMediaState] = useReducer(editMediaReducer, {
 		intro: {
-			ref: '',
-			text: '',
+			ref: "",
+			text: "",
 			start: 0,
 			end: 0,
-			id: '',
-		},
+			id: ""
+		}
 	});
 
 	return (

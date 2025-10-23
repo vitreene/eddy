@@ -1,5 +1,5 @@
-import type { TextTime } from '@/api/db';
-import { createContext } from 'react';
+import type { TextTime } from "@/api/db";
+import { createContext } from "react";
 
 export const EditMediaContext = createContext<{
 	state: { [x: string]: TextTime };
@@ -7,33 +7,33 @@ export const EditMediaContext = createContext<{
 } | null>(null);
 
 export type Action =
-	| { type: 'set'; payload: Record<string, TextTime> }
-	| { type: 'add' | 'remove'; target: string; payload: TextTime }
-	| { type: 'update'; target: string; payload: Partial<TextTime> };
+	| { type: "set"; payload: Record<string, TextTime> }
+	| { type: "add" | "remove"; target: string; payload: TextTime }
+	| { type: "update"; target: string; payload: Partial<TextTime> };
 
 export function reducer(state: { [x: string]: TextTime }, action: Action) {
 	switch (action.type) {
-		case 'set':
+		case "set":
 			return { ...action.payload };
-		case 'add':
+		case "add":
 			return {
 				...state,
-				[action.target]: action.payload,
+				[action.target]: action.payload
 			};
-		case 'remove': {
+		case "remove": {
 			const newState: Record<string, TextTime> = {};
 			for (const target in state) if (target != action.target) newState[target] = state[target];
 			return newState;
 		}
-		case 'update': {
+		case "update": {
 			const newState = {
 				...state,
-				[action.target]: { ...state[action.target], ...action.payload },
+				[action.target]: { ...state[action.target], ...action.payload }
 			};
 			return newState;
 		}
 
 		default:
-			throw Error('Unknown action: ' + (action as any).type);
+			throw Error("Unknown action: " + JSON.stringify(action as never));
 	}
 }

@@ -70,8 +70,8 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 
 	useEffect(() => {
 		if (!telco) return;
-		const unsusbscribe = telco.susbscribe((tm) => {
-			setProgress(Math.round((tm.currentTime / telco.duration) * 100));
+		const unsusbscribe = telco.susbscribe((self: Timeline) => {
+			setProgress(Math.round((self.currentTime / telco.duration) * 100));
 		});
 		return unsusbscribe;
 	}, [telco, setProgress]);

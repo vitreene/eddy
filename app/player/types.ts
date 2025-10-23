@@ -1,6 +1,6 @@
-import type * as CSS from 'csstype';
-import type { AnimationParams } from 'animejs';
-import type { AnimationItem } from 'lottie-web';
+import type * as CSS from "csstype";
+import type { AnimationParams } from "animejs";
+import type { AnimationItem } from "lottie-web";
 
 export type ID = string | number;
 export type MapEvent = Map<number, Eventime | Eventime[]>;
@@ -15,7 +15,7 @@ export interface Eventime {
 
 interface PersoBase {
 	initial: Initial;
-	actions: Record<string, Partial<Action>>;
+	actions: Record<string, Action>;
 }
 
 export interface PersoDef extends PersoBase {
@@ -31,20 +31,20 @@ export interface PersoMediaDef extends PersoBase {
 	type: typeof persoTypes.LOTTIE | typeof persoTypes.VIDEO;
 	initial: Initial & { src: string };
 	media?: any;
-	actions: Record<string, Partial<Action & { media: Media }>>;
+	actions: Record<string, Action & { media: Media }>;
 }
 
 export interface PersoLottieDef extends PersoMediaDef {
 	type: typeof persoTypes.LOTTIE;
 	initial: Initial & { src: string };
 	media: AnimationItem;
-	actions: Record<string, Partial<Action & { media: Media }>>;
+	actions: Record<string, Action & { media: Media }>;
 }
 export interface PersoVideoDef extends PersoMediaDef {
 	type: typeof persoTypes.VIDEO;
 	initial: Initial & { src: string; master: boolean };
 	media: any;
-	actions: Record<string, Partial<Action & { media: Media }>>;
+	actions: Record<string, Action & { media: Media }>;
 }
 
 export type Perso = PersoDef | PersoImgDef | PersoMediaDef;
@@ -59,7 +59,7 @@ export interface Img {
 }
 
 export interface Media {
-	action: 'play' | 'pause'; //string;
+	action: "play" | "pause"; //string;
 	duration?: number;
 	changeAt?: number;
 	offset?: number;
@@ -67,7 +67,7 @@ export interface Media {
 
 export interface MediaStatus {
 	node: HTMLVideoElement;
-	status: 'play' | 'pause';
+	status: "play" | "pause";
 	startAt: number;
 	change?: {
 		changeAt: number;
@@ -112,21 +112,21 @@ export interface Initial extends Partial<ActionCat> {
 }
 
 export const persoTypes = {
-	TEXT: 'TEXT',
-	IMG: 'IMG',
-	LIST: 'LIST',
-	BLOC: 'BLOC',
-	ROOT: 'ROOT',
-	VIDEO: 'VIDEO',
-	PROTO: 'PROTO',
-	LAYER: 'LAYER',
-	SPRITE: 'SPRITE',
-	BUTTON: 'BUTTON',
-	POLYGON: 'POLYGON',
-	SOUND: 'SOUND',
-	AUDIO: 'AUDIO',
-	LOTTIE: 'LOTTIE',
-	THREE: 'THREE',
+	TEXT: "TEXT",
+	IMG: "IMG",
+	LIST: "LIST",
+	BLOC: "BLOC",
+	ROOT: "ROOT",
+	VIDEO: "VIDEO",
+	PROTO: "PROTO",
+	LAYER: "LAYER",
+	SPRITE: "SPRITE",
+	BUTTON: "BUTTON",
+	POLYGON: "POLYGON",
+	SOUND: "SOUND",
+	AUDIO: "AUDIO",
+	LOTTIE: "LOTTIE",
+	THREE: "THREE"
 } as const;
 
 export const P = persoTypes;

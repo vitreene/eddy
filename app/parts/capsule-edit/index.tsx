@@ -1,11 +1,11 @@
-import { useContext } from 'react';
-import { useFetcher } from 'react-router';
+import { useContext } from "react";
+import { useFetcher } from "react-router";
 
-import type { ElementComp, SceneComp, TextTime } from '~/api/db';
-import { SceneContext, type SceneState } from '~/provider/scene-provider';
+import type { ElementComp, SceneComp, TextTime } from "~/api/db";
+import { SceneContext, type SceneState } from "~/provider/scene-provider";
 
-import { Media } from './display-media';
-import { EditMediaContext } from '@/provider/edit-media-provider';
+import { Media } from "./display-media";
+import { EditMediaContext } from "@/provider/edit-media-provider";
 
 export function EditCapsule() {
 	const fetcher = useFetcher();
@@ -16,9 +16,9 @@ export function EditCapsule() {
 	// console.log('EditCapsule', capsule);
 
 	return (
-		<section className="edit flex flex-col gap-4 w-full">
+		<section className="edit flex w-full flex-col gap-4">
 			<h2>EDIT</h2>
-			<header className="p-4 border border-slate-300">
+			<header className="border border-slate-300 p-4">
 				{capsule && <p>{`Capsule n°${capsule?.id} : ${capsule?.type}`}</p>}
 
 				<fetcher.Form method="post" action={`api/capsule/${capsule?.id}`}>
@@ -27,7 +27,7 @@ export function EditCapsule() {
 					<button type="submit">Valider</button>
 				</fetcher.Form>
 			</header>
-			<article className="flex-1 p-4 border border-slate-300">
+			<article className="flex-1 border border-slate-300 p-4">
 				{capsule && <CapsuleContent elements={capsule.elements} />}
 			</article>
 		</section>
@@ -40,17 +40,17 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 	const mediaActions = useContext(EditMediaContext)!;
 
 	const editMedia = (id: number) => {
-		comp.dispatch({ type: 'edit-media', mediaId: id });
+		comp.dispatch({ type: "edit-media", mediaId: id });
 		const element = elements.find((e) => e.id == id);
 
 		if (element) {
-			const cues = comp?.scene.medias[0].events!;
+			const cues = comp?.scene.medias[0].events;
 			const payload: typeof mediaActions.state = {};
-			for (const { name, ref, action } of element?.events) {
+			for (const { name, ref, action } of element.events) {
 				const textTime = cues.find((c) => c.id == name);
 				payload[action] = { ...textTime!, ref };
 			}
-			mediaActions.dispatch({ type: 'set', payload });
+			mediaActions.dispatch({ type: "set", payload });
 		}
 	};
 
@@ -67,19 +67,24 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 
 		if (lastMediaId && isChanged)
 			fetcher.submit(mediaActions.state as {}, {
-				method: 'post',
-				encType: 'application/json',
-				action: `api/media/${lastMediaId}`,
+				method: "post",
+				encType: "application/json",
+				action: `api/media/${lastMediaId}`
 			});
 	};
 
 	return (
-		<ul className="flex gap-4 " onClick={editElement}>
+		<ul className="flex gap-4" onClick={editElement}>
 			{elements
 				.sort((a, b) => a.order - b.order)
 				.map((el) => (
 					<li key={el.id} id={`element-${el.id}`} data-id={el.id} className="bg-white">
-						<Media attr={el.media} size="sm" selected={comp.state.elementId == el.id} className="pointer-events-none" />
+						<Media
+							attr={el.media}
+							size="sm"
+							selected={comp.state.elementId == el.id}
+							className="pointer-events-none"
+						/>
 					</li>
 				))}
 		</ul>

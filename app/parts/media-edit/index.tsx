@@ -1,12 +1,12 @@
-import { useContext, useEffect } from 'react';
-import { Form } from 'react-router';
+import { useContext, useEffect } from "react";
+import { Form } from "react-router";
 
-import { SceneContext } from '~/provider/scene-provider';
+import { SceneContext } from "~/provider/scene-provider";
 
-import { MediaEvents } from './media-events';
-import { EditMediaActions } from './edit-media-actions';
-import { EditMediaContext } from '@/provider/edit-media-provider';
-import type { TextTime } from '@/api/db';
+import { MediaEvents } from "./media-events";
+import { EditMediaActions } from "./edit-media-actions";
+import { EditMediaContext } from "@/provider/edit-media-provider";
+import type { TextTime } from "@/api/db";
 
 /* 
 
@@ -32,13 +32,13 @@ export function EditMedia() {
 	const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 		const formData = new FormData(event.currentTarget);
-		const payload = {} as TextTime;
-		let target = '';
+		const payload = {} as TextTime & { [key: string]: string };
+		let target = "";
 		formData.forEach((v, k) => {
-			if (k == 'target') target = v as string;
-			else (payload as any)[k] = v as string;
+			if (k == "target") target = v as string;
+			else payload[k] = v as string;
 		});
-		mediaActions?.dispatch({ type: 'add', target, payload });
+		mediaActions?.dispatch({ type: "add", target, payload });
 	};
 
 	if (!element) return null;

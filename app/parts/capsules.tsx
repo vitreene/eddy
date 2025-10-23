@@ -1,14 +1,14 @@
-import { useContext } from 'react';
-import cx from 'classnames';
-import { SceneContext } from '~/provider/scene-provider';
+import { useContext } from "react";
+import cx from "classnames";
+import { SceneContext } from "~/provider/scene-provider";
 
 export function Capsules() {
 	const comp = useContext(SceneContext);
-	const selectCapsule = (e: any) => {
+	const selectCapsule = (e: React.MouseEvent<HTMLButtonElement>) => {
 		comp?.dispatch({
-			type: 'edit-capsule',
-			capsuleId: e.target.value,
-			mediaId: null,
+			type: "edit-capsule",
+			capsuleId: Number(e.currentTarget.value),
+			mediaId: null
 		});
 	};
 	if (!comp) return null;
@@ -19,10 +19,8 @@ export function Capsules() {
 				<li key={c.id}>
 					<button
 						className={cx(
-							'px-2 py-1 mb-1 whitespace-nowrap',
-							comp.state.capsuleId == c.id
-								? 'bg-amber-200 hover:bg-amber-300'
-								: 'hover:bg-slate-200'
+							"mb-1 px-2 py-1 whitespace-nowrap",
+							comp.state.capsuleId == c.id ? "bg-amber-200 hover:bg-amber-300" : "hover:bg-slate-200"
 						)}
 						value={c.id}
 						onClick={selectCapsule}

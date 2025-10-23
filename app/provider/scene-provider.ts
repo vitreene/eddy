@@ -1,5 +1,5 @@
-import { createContext } from 'react';
-import type { SceneComp, TextTime } from '~/api/db';
+import { createContext } from "react";
+import type { SceneComp, TextTime } from "~/api/db";
 
 export const SceneContext = createContext<{
 	scene: SceneComp;
@@ -22,36 +22,36 @@ export interface SceneState {
 }
 
 export type Actions =
-	| { type: 'edit-capsule'; capsuleId: number; mediaId: null }
-	| { type: 'edit-media'; mediaId: number }
-	| { type: 'set-cue'; cue: TextTime }
-	| { type: 'set-action'; event: ActionEvent };
+	| { type: "edit-capsule"; capsuleId: number; mediaId: null }
+	| { type: "edit-media"; mediaId: number }
+	| { type: "set-cue"; cue: TextTime }
+	| { type: "set-action"; event: ActionEvent };
 
 export function reducer(state: SceneState, action: Actions): SceneState {
 	switch (action.type) {
-		case 'edit-capsule':
+		case "edit-capsule":
 			return {
 				...state,
 				capsuleId: action.capsuleId,
-				elementId: action.mediaId,
+				elementId: action.mediaId
 			};
-		case 'edit-media':
+		case "edit-media":
 			return {
 				...state,
-				elementId: action.mediaId,
+				elementId: action.mediaId
 			};
-		case 'set-cue':
+		case "set-cue":
 			return {
 				...state,
-				activeCue: action.cue,
+				activeCue: action.cue
 			};
-		case 'set-action':
+		case "set-action":
 			return {
 				...state,
-				activeAction: action.event,
+				activeAction: action.event
 			};
 
 		default:
-			throw Error('Unknown action: ' + (action as any).type);
+			throw Error("Unknown action: " + JSON.stringify(action as never));
 	}
 }

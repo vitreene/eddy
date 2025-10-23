@@ -28,7 +28,21 @@ export default [
 			"react-hooks": pluginReactHooks
 		},
 		rules: {
-			"@typescript-eslint/no-unused-vars": "warn",
+			"@typescript-eslint/no-unused-vars": [
+				"warn",
+				{
+					args: "all",
+					argsIgnorePattern: "^_",
+					caughtErrors: "all",
+					caughtErrorsIgnorePattern: "^_",
+					destructuredArrayIgnorePattern: "^_",
+					varsIgnorePattern: "^_",
+					ignoreRestSiblings: true
+				}
+			],
+			"@typescript-eslint/no-explicit-any": "warn",
+			"@typescript-eslint/no-empty-object-type": "warn",
+
 			"no-unused-expressions": ["warn", { allowTernary: true }],
 			"@typescript-eslint/no-unused-expressions": "off",
 			"react-hooks/rules-of-hooks": "error",

@@ -1,18 +1,18 @@
-import type { SceneComp, ElementComp, SceneMedia } from '@/api/db';
-import type { Event as MediaEvent } from '@prisma/client';
-import type { TextTime } from 'prisma/seed';
-import { P } from '../types';
-import type { ID, MapEvent, PersoImgDef, PersoMediaDef, PersoDef, PersoVideoDef, Action } from '../types';
-import { ROOT } from '~/player/constants';
+import type { SceneComp, ElementComp, SceneMedia } from "@/api/db";
+import type { Event as MediaEvent } from "@prisma/client";
+import type { TextTime } from "prisma/seed";
+import { P } from "../types";
+import type { ID, MapEvent, PersoImgDef, PersoMediaDef, PersoDef, PersoVideoDef, Action } from "../types";
+import { ROOT } from "~/player/constants";
 
-import './style.css';
+import "./style.css";
 
 export type Store = Record<ID, PersoDef | PersoVideoDef>;
 
-const defaultPathImage = '';
+const defaultPathImage = "";
 
-const LIST = 'list';
-const START = 'start';
+const LIST = "list";
+const START = "start";
 
 export type BuildPlayType = ReturnType<typeof buildPlay>;
 
@@ -22,7 +22,7 @@ export function buildPlay(scene: SceneComp) {
 	const mediasEvents = new Map(scene.medias.flatMap((m) => m.events).map((e) => [e.id, e]));
 
 	const sceneEvents: MapEvent = new Map();
-	sceneEvents.set(0, { name: 'go' });
+	sceneEvents.set(0, { name: "go" });
 
 	const persos = {} as Store;
 
@@ -48,7 +48,7 @@ export function buildPlay(scene: SceneComp) {
 	}
 
 	scene.medias.forEach((media) => {
-		if (media.type == 'sound') {
+		if (media.type == "sound") {
 			const perso = createVideoPerso(media);
 			persos[media.id] = perso;
 		}
@@ -79,66 +79,66 @@ function createBackgroundImage(element: ElementComp): PersoImgDef {
 		type: P.IMG,
 		initial: {
 			id: element.id,
-			className: 'background-carousel-item',
+			className: "background-carousel-item",
 			src: `/${element.media.path ?? defaultPathImage}`,
-			move: LIST,
+			move: LIST
 		},
-		actions,
+		actions
 	};
 }
 
-const backgroundImageTransition: Record<string, Partial<Action>> = {
+const backgroundImageTransition: Record<string, Action> = {
 	intro: {
 		move: LIST,
 		style: {
 			x: { from: -400, to: 0 },
-			opacity: { from: 0, to: 1 },
-		},
+			opacity: { from: 0, to: 1 }
+		}
 	},
 	outro: {
 		style: {
 			x: { from: 0, to: 400 },
-			opacity: { from: 1, to: 0 },
-		},
-	},
+			opacity: { from: 1, to: 0 }
+		}
+	}
 };
 
 const root = {
 	type: P.LIST,
 	initial: {
-		tag: 'div',
+		tag: "div",
 		id: ROOT,
-		className: 'container-grid',
+		className: "container-grid",
 		style: {
-			position: 'relative',
-			backgroundColor: 'lch(50% 72 50 / 0.5)',
-		},
+			position: "relative",
+			backgroundColor: "lch(50% 72 50 / 0.5)"
+		}
 	},
 	actions: {
 		[ROOT]: true,
 		go: {
 			style: {
 				backgroundColor: {
-					to: 'lch(56% 64 263 / 1)',
+					to: "lch(56% 64 263 / 1)"
 				},
-				duration: 1500,
-			},
-		},
-	},
+				duration: 1500
+			}
+		}
+	}
 } as const;
 
 const list = {
 	type: P.LIST,
 	initial: {
-		tag: 'div',
+		tag: "div",
 		id: LIST,
-		className: 'background-carousel',
+		className: "background-carousel",
 
-		move: ROOT,
+		move: ROOT
 	},
 	actions: {
-		[LIST]: true,
-	},
+		[LIST]: true
+	}
 } as const;
 
 function createVideoPerso(media: SceneMedia): PersoMediaDef {
@@ -147,16 +147,16 @@ function createVideoPerso(media: SceneMedia): PersoMediaDef {
 		initial: {
 			id: media.id,
 			src: media.path || defaultPathImage,
-			attr: { controls: 'true' /* autoplay: 'true' , muted: true */ },
+			attr: { controls: "true" /* autoplay: 'true' , muted: true */ }
 		},
 		actions: {
 			go: {
 				move: ROOT,
 				media: {
-					action: 'play',
-				},
-			},
-		},
+					action: "play"
+				}
+			}
+		}
 	};
 }
 

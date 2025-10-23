@@ -1,11 +1,11 @@
-import { utils, animate } from 'animejs';
+import { utils, animate } from "animejs";
 
-import { persoTypes } from '../types';
+import { persoTypes } from "../types";
 
-import type { Timeline, JSAnimation } from 'animejs';
-import type { MediaStatus, ID, Perso } from '../types';
-import type { Player } from '../player';
-import type { Change } from './static-changes';
+import type { Timeline, JSAnimation } from "animejs";
+import type { MediaStatus, ID, Perso } from "../types";
+import type { Player } from "../player";
+import type { Change } from "./static-changes";
 
 export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 	const persoPositions = new Map<ID, Change>();
@@ -61,10 +61,10 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 				}
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
 					nextChange.snapshot = {
-						x: utils.get($el, 'x'),
-						y: utils.get($el, 'y'),
-						width: utils.get($el, 'width'),
-						height: utils.get($el, 'height'),
+						x: utils.get($el, "x"),
+						y: utils.get($el, "y"),
+						width: utils.get($el, "width"),
+						height: utils.get($el, "height")
 					};
 
 					const transition = move({
@@ -74,7 +74,7 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 						currentTime,
 						mediaStatus: this.mediaStatus,
 						tmIsPlaying: !self.paused,
-						elements: this.$elements,
+						elements: this.$elements
 					});
 					transition && transitions.set(nextChange, transition);
 				} else
@@ -85,7 +85,7 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 						currentTime,
 						mediaStatus: this.mediaStatus,
 						tmIsPlaying: !self.paused,
-						elements: this.$elements,
+						elements: this.$elements
 					});
 			}
 		});
@@ -104,7 +104,7 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 
 interface ApplyChange {
 	$el: HTMLElement;
-	change: Change['change'];
+	change: Change["change"];
 	perso: Perso;
 	currentTime: number | null;
 	mediaStatus: Map<ID, MediaStatus>;
@@ -134,17 +134,17 @@ function applyChange({ $el, change, perso, currentTime = null, mediaStatus, tmIs
 		const $media = mediaStatus.get(perso.initial.id)!;
 		$media.change = {
 			changeAt: change.media.changeAt,
-			offset: change.media.offset,
+			offset: change.media.offset
 		};
 		$media.startAt = currentTime ?? 0;
 
-		if (change.media.action == 'play') {
-			$media.status = 'play';
+		if (change.media.action == "play") {
+			$media.status = "play";
 			$video.currentTime = (change.media.offset ?? 0) / 1000;
 			tmIsPlaying && $video.play();
 		}
-		if (change.media.action == 'pause') {
-			$media.status = 'pause';
+		if (change.media.action == "pause") {
+			$media.status = "pause";
 
 			$video.pause();
 		}
@@ -158,20 +158,22 @@ function move(props: ApplyChange) {
 	const { $el, change, perso } = props;
 
 	switch (typeof change.move) {
-		case 'string':
-			const parent = props.elements.get(change.move);
-			parent && parent.appendChild($el);
+		case "string":
+			{
+				const parent = props.elements.get(change.move);
+				parent && parent.appendChild($el);
+			}
 			break;
 		//
 
-		case 'boolean': {
+		case "boolean": {
 			const old = getAbsoluteCoords($el);
 
 			applyChange(props);
 			const nex = getAbsoluteCoords($el);
 
-			const px = utils.get($el, 'x', false);
-			const py = utils.get($el, 'y', false);
+			const px = utils.get($el, "x", false);
+			const py = utils.get($el, "y", false);
 
 			const dx = old.x - nex.x;
 			const dy = old.y - nex.y;
@@ -186,7 +188,7 @@ function move(props: ApplyChange) {
 				height: { from: old.height, to: nex.height },
 				autoplay: false,
 				duration: 1000,
-				composition: 'none',
+				composition: "none"
 			}).seek(0);
 
 			return transition;
@@ -205,7 +207,7 @@ function getAbsoluteCoords($el: HTMLElement) {
 		x: res.x,
 		y: res.y,
 		width: $el.offsetWidth,
-		height: $el.offsetHeight,
+		height: $el.offsetHeight
 	};
 
 	function traverse(element: HTMLElement) {
@@ -220,7 +222,7 @@ function getAbsoluteCoords($el: HTMLElement) {
 function getTransform($el: HTMLElement) {
 	const style = window.getComputedStyle($el);
 
-	const transform = style.transform !== 'none' ? new DOMMatrix(style.transform) : new DOMMatrix();
+	const transform = style.transform !== "none" ? new DOMMatrix(style.transform) : new DOMMatrix();
 
 	return transform;
 }
