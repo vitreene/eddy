@@ -1,7 +1,7 @@
 "use client";
-
 import React from "react";
 import { Timeline } from "animejs";
+import { Play, Pause } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Player } from "~/player/player";
@@ -51,17 +51,14 @@ interface TelcoProps {
 	susbscribe: (up: Subscribed<Timeline>) => () => void;
 }
 
-// TODO telco comme un composant React
 function Telco({ telco }: { telco?: TelcoProps }) {
-	const [progress, setProgress] = useState<string>();
+	const [progress, setProgress] = useState<number>();
 	const [toggle, setToggle] = useState<boolean>(false);
 
-	function mouseMove(e: React.MouseEvent<HTMLInputElement>): void {
+	function mouseMove(e: React.ChangeEvent<HTMLInputElement>): void {
 		const value = Number(e.currentTarget.value);
 		const p = (value * (telco?.duration || 0)) / 100;
 		const progression = p > 0 ? p : 0;
-
-		setProgress(Math.round(value) + "%");
 		telco?.seek(progression);
 	}
 
@@ -71,12 +68,20 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 		}
 	}, [telco, toggle]);
 
+	useEffect(() => {
+		if (!telco) return;
+		const unsusbscribe = telco.susbscribe((tm) => {
+			setProgress(Math.round((tm.currentTime / telco.duration) * 100));
+		});
+		return unsusbscribe;
+	}, [telco, setProgress]);
+
 	const togglePlay = () => setToggle((t) => !t);
 	return (
 		<div id="telco">
-			<button onClick={togglePlay}>{toggle ? "play" : "pause"}</button>
-			<input type="range" min="0" max="100" step="1" onMouseMove={mouseMove} />
-			<output>{progress}</output>
+			<button onClick={togglePlay}>{toggle ? <Play /> : <Pause />}</button>
+			<input type="range" min="0" max="100" step="1" value={progress} onChange={mouseMove} />
+			<output>{progress}&nbsp;%</output>
 		</div>
 	);
 }

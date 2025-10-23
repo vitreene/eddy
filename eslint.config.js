@@ -28,6 +28,7 @@ export default [
 			"react-hooks": pluginReactHooks
 		},
 		rules: {
+			"@typescript-eslint/no-unused-vars": "warn",
 			"no-unused-expressions": ["warn", { allowTernary: true }],
 			"@typescript-eslint/no-unused-expressions": "off",
 			"react-hooks/rules-of-hooks": "error",
