@@ -9,8 +9,7 @@ import { EditCapsule } from '~/parts/capsule-edit';
 import { reducer as sceneReducer, SceneContext } from '~/provider/scene-provider';
 import { reducer as editMediaReducer, EditMediaContext } from '~/provider/edit-media-provider';
 import * as scene02 from '../demos/scenes/scene-02';
-import { buildPlay, type Store } from '@/player/builder/build-play';
-import type { MapEvent, PersoDef, PersoVideoDef } from '@/player/types';
+import { buildPlay } from '@/player/builder/build-play';
 import React from 'react';
 
 export function meta({}: Route.MetaArgs) {
@@ -30,13 +29,20 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 	// console.log('SCENE->', { persos: scenePlay.persos, events: Object.fromEntries(scenePlay.events.entries()) });
 
-	const [stateScene, dispatchScene] = useReducer(sceneReducer, {
+	const [editStateScene, dispatchEditStateScene] = useReducer(sceneReducer, {
 		capsuleId: null,
 		elementId: null,
 		activeCue: null,
 		activeAction: null,
 	});
 
+	/*
+	pour test : 
+	remplacer les reducers par Xstate
+	- créer deux machines equivalentes, 
+	- implementer dans les composants 
+	
+	*/
 	const [editMediaState, dispatchEditMediaState] = useReducer(editMediaReducer, {
 		intro: {
 			ref: '',
@@ -48,7 +54,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 	});
 
 	return (
-		<SceneContext value={{ scene: loaderData, state: stateScene, dispatch: dispatchScene }}>
+		<SceneContext value={{ scene: loaderData, state: editStateScene, dispatch: dispatchEditStateScene }}>
 			<EditMediaContext value={{ state: editMediaState, dispatch: dispatchEditMediaState }}>
 				<AppLayout data={loaderData} />
 			</EditMediaContext>
@@ -57,7 +63,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 }
 
 const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
-	//TODO data doit etre recalculé a chaque modif
+	//TODO data doit etre recalculé a chaque modif -> dans player
 	// player si modif ne rejoue pas, se place à l'endroit de la modif et se met en pause
 	const scene = buildPlay(data);
 	return (
