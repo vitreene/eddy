@@ -1,20 +1,20 @@
-import { createTimeline, Timeline } from 'animejs';
+import { createTimeline, Timeline } from "animejs";
 
-import { PubSub } from './deps/pubsub';
-import { initMedias } from './deps/init-medias';
-import { createScene } from './deps/create-scene';
-import { onUpdateTimeLine } from './deps/on-update';
-import { createElements } from './deps/create-elements';
-import { setStaticChanges } from './deps/static-changes';
+import { PubSub, type Subscribed } from "./deps/pubsub";
+import { initMedias } from "./deps/init-medias";
+import { createScene } from "./deps/create-scene";
+import { onUpdateTimeLine } from "./deps/on-update";
+import { createElements } from "./deps/create-elements";
+import { setStaticChanges } from "./deps/static-changes";
 
-import type { Change } from './deps/static-changes';
-import type { ID, MapEvent, MediaStatus, Perso } from './types';
+import type { Change } from "./deps/static-changes";
+import type { ID, MapEvent, MediaStatus, Perso } from "./types";
 
 const tmDefaults = {
 	autoplay: true,
 	loop: 1,
 	alternate: true,
-	onLoop: () => console.log('///////LOOP'),
+	onLoop: () => console.log("///////LOOP")
 };
 
 export class Player {
@@ -25,19 +25,19 @@ export class Player {
 	mediaStatus = new Map<ID, MediaStatus>();
 	persos = new Map<ID, Perso>();
 	persoChanges = new Map<ID, Record<number, Change>>();
-	updatesTM = new PubSub();
+	updatesTM = new PubSub<Timeline>();
 	static _instance: Player | null = null;
 
 	constructor({
 		render,
 		persos,
-		eventtimes,
+		eventtimes
 	}: {
 		render: HTMLElement | null;
 		persos: Map<ID, Perso>;
 		eventtimes: MapEvent;
 	}) {
-		if (!render) throw new Error('Le player ne peut etre rendu.');
+		if (!render) throw new Error("Le player ne peut etre rendu.");
 		if (Player._instance) {
 			return Player._instance;
 		}
@@ -67,8 +67,7 @@ export class Player {
 	}
 
 	private onUpdateTM() {
-		this.timeLine.onUpdate = (self: Timeline) =>
-			this.updatesTM.forEach((up) => up(self));
+		this.timeLine.onUpdate = (self: Timeline) => this.updatesTM.forEach((up) => up(self));
 	}
 	private createElements!: () => void;
 	private initMedias!: () => void;
@@ -81,7 +80,7 @@ export class Player {
 			pause: this.pause,
 			play: this.play,
 			duration: this.timeLine.duration,
-			susbscribe: (up: Function) => this.updatesTM.subscribe(up),
+			susbscribe: (up: Subscribed<Timeline>) => this.updatesTM.subscribe(up)
 		};
 	};
 

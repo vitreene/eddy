@@ -1,5 +1,7 @@
-export class PubSub<T extends Function> extends Set {
-	subscribe = (fn: T) => {
+export type Subscribed<T> = (data: T) => void | boolean;
+
+export class PubSub<T> extends Set<Subscribed<T>> {
+	subscribe = (fn: Subscribed<T>) => {
 		this.add(fn);
 		return () => {
 			this.delete(fn);
@@ -8,7 +10,7 @@ export class PubSub<T extends Function> extends Set {
 	reset = () => {
 		this.clear();
 	};
-	update = (data: unknown) => {
+	update = (data: T) => {
 		this.forEach((fn) => fn(data));
 	};
 }

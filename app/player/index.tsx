@@ -1,13 +1,14 @@
-'use client';
+"use client";
 
-import { Timeline } from 'animejs';
-import { useEffect, useRef, useState } from 'react';
+import React from "react";
+import { Timeline } from "animejs";
+import { useEffect, useRef, useState } from "react";
 
-import { Player } from '~/player/player';
-import { preload } from '~/player/preload';
-import { SCENE_ID } from '~/player/constants';
-import type { PersoDef, MapEvent } from './types';
-import React from 'react';
+import { Player } from "~/player/player";
+import { preload } from "~/player/preload";
+import { SCENE_ID } from "~/player/constants";
+import type { PersoDef, MapEvent } from "./types";
+import type { Subscribed } from "./deps/pubsub";
 
 export interface PlayerProps {
 	persos: Array<PersoDef>;
@@ -18,10 +19,11 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 	const animeScene = useRef<Timeline>(null);
 	const sceneRef = useRef<HTMLDivElement>(null);
 	const [telco, setTelco] = useState<TelcoProps>();
+
 	useEffect(() => {
-		if (scene && typeof window !== 'undefined') {
+		if (scene && typeof window !== "undefined") {
 			if (animeScene.current) animeScene.current.revert();
-			console.log('useEffect');
+			console.log("useEffect");
 			preload(scene.persos).then((p) => {
 				const render: HTMLElement | null = sceneRef.current;
 				const player = new Player({ render, persos: p, eventtimes: scene.events });
@@ -46,7 +48,7 @@ interface TelcoProps {
 	pause: () => Timeline;
 	play: () => Timeline;
 	duration: number;
-	susbscribe: (up: Function) => () => void;
+	susbscribe: (up: Subscribed<Timeline>) => () => void;
 }
 
 // TODO telco comme un composant React
@@ -59,14 +61,20 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 		const p = (value * (telco?.duration || 0)) / 100;
 		const progression = p > 0 ? p : 0;
 
-		setProgress(Math.round(value) + '%');
+		setProgress(Math.round(value) + "%");
 		telco?.seek(progression);
 	}
-	telco && (toggle ? telco.pause() : telco.play());
+
+	useEffect(() => {
+		if (telco) {
+			toggle ? telco.pause() : telco.play();
+		}
+	}, [telco, toggle]);
+
 	const togglePlay = () => setToggle((t) => !t);
 	return (
 		<div id="telco">
-			<button onClick={togglePlay}>{toggle ? 'play' : 'pause'}</button>
+			<button onClick={togglePlay}>{toggle ? "play" : "pause"}</button>
 			<input type="range" min="0" max="100" step="1" onMouseMove={mouseMove} />
 			<output>{progress}</output>
 		</div>
