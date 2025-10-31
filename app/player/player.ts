@@ -79,6 +79,7 @@ export class Player {
 			seek: this.seek,
 			pause: this.pause,
 			play: this.play,
+			replay: this.replay,
 			duration: this.timeLine.duration,
 			susbscribe: (up: Subscribed<Timeline>) => this.updatesTM.subscribe(up)
 		};
@@ -89,6 +90,12 @@ export class Player {
 		this.mediaStatus.forEach((ms) => {
 			ms.node[ms.status]();
 		});
+		return this.timeLine;
+	};
+
+	private replay = () => {
+		this.timeLine.restart();
+		this.seekMedias(0);
 		return this.timeLine;
 	};
 	private pause = () => {
@@ -102,7 +109,12 @@ export class Player {
 	private seek = (time: number) => {
 		this.timeLine.pause();
 		this.timeLine.seek(time);
+		this.seekMedias(time);
 
+		return this.timeLine;
+	};
+
+	private seekMedias = (time: number) => {
 		this.mediaStatus.forEach((ms) => {
 			const $node = ms.node as HTMLVideoElement;
 			const currentime = ms.change
@@ -112,8 +124,6 @@ export class Player {
 					: 0;
 			$node.currentTime = currentime / 1000;
 		});
-
-		return this.timeLine;
 	};
 }
 

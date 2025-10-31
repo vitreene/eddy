@@ -1,16 +1,16 @@
-import { P } from '../types';
-import type { Img, Perso, PersoImgDef } from '../types';
+import { P } from "../types";
+import type { Img, PersoDef, PersoImgDef } from "../types";
 
 type Srcs = string[];
 
 const imgTypes = [P.IMG, P.SPRITE];
 
-function isTypeImg(perso: Perso): perso is Perso & { type: typeof P.IMG | typeof P.SPRITE } {
+function isTypeImg(perso: PersoDef): perso is PersoDef & { type: typeof P.IMG | typeof P.SPRITE } {
 	return perso.type === P.IMG || perso.type === P.SPRITE;
 }
-export async function getPersoImages(store: Record<string, Perso>) {
+export async function getPersoImages(store: Record<string, PersoDef>) {
 	const medias = {} as Record<string, PersoImgDef>;
-	const persos = {} as Record<string, Perso>;
+	const persos = {} as Record<string, PersoDef>;
 
 	const imgSrc: Record<string, Srcs> = {};
 	for (const id in store) {
@@ -31,7 +31,7 @@ export async function getPersoImages(store: Record<string, Perso>) {
 						src: ikono.src,
 						width: ikono.width,
 						height: ikono.height,
-						ratio: ikono.width / ikono.height,
+						ratio: ikono.width / ikono.height
 					};
 				});
 				medias[id].media = media;
@@ -44,7 +44,9 @@ export async function getPersoImages(store: Record<string, Perso>) {
 function findSrcs(perso: PersoImgDef) {
 	const srcs = [perso.initial.src];
 	if (perso.actions) {
-		Object.values(perso.actions).forEach((action) => action.src && srcs.push(action.src));
+		Object.values(perso.actions).forEach(
+			(action) => typeof action != "boolean" && action.src && srcs.push(action.src)
+		);
 	}
 	return srcs;
 }
@@ -55,7 +57,7 @@ export async function loadImages(srcs: string[] | Img[]) {
 			srcs.map(
 				(source: string | Img) =>
 					new Promise<{ ikono: HTMLImageElement; src: string }>((resolve) => {
-						const src = typeof source === 'string' ? source : source.src;
+						const src = typeof source === "string" ? source : source.src;
 						const ikono = <HTMLImageElement>new Image();
 						ikono.onload = () => {
 							// console.log('IMG LOADED', src);
@@ -67,7 +69,7 @@ export async function loadImages(srcs: string[] | Img[]) {
 			)
 		);
 	} catch (err) {
-		console.log('on s’est pas trompé ; ça a pas fonctionné', err);
+		console.log("on s’est pas trompé ; ça a pas fonctionné", err);
 		return [];
 	}
 }
@@ -76,5 +78,5 @@ export const DEFAULT_IMG = {
 	width: 250,
 	height: 250,
 	ratio: 1,
-	src: './ikono/placeholder.png',
+	src: "./ikono/placeholder.png"
 };

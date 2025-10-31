@@ -1,13 +1,13 @@
-import { Timeline } from 'animejs';
-import { useEffect, useRef } from 'react';
+import { Timeline } from "animejs";
+import { useEffect, useRef } from "react";
 
-import { Player } from '~/player/player';
-import { preload } from '~/player/preload';
-import { SCENE_ID } from '~/player/constants';
+import { Player } from "~/player/player";
+import { preload } from "~/player/preload";
+import { SCENE_ID } from "~/player/constants";
 
-import { persos, eventtimes } from '../demos/scenes/scene-02';
+import { persos, eventtimes } from "../demos/scenes/scene-02";
 
-import { createTelco } from '~/player/deps/telco';
+// import { createTelco } from '~/player/deps/telco';
 
 export default function App() {
 	const animeScene = useRef<Timeline>(null);
@@ -16,11 +16,9 @@ export default function App() {
 	useEffect(() => {
 		preload(persos).then((p) => {
 			if (!animeScene.current) {
-				const render: HTMLElement | null = document.querySelector(
-					`#${SCENE_ID}`
-				);
+				const render: HTMLElement | null = document.querySelector(`#${SCENE_ID}`);
 				const player = new Player({ render, persos: p, eventtimes });
-				createTelco(player.telco());
+				// createTelco(player.telco());
 
 				animeScene.current = player.timeLine;
 				animeScene.current.play();
@@ -30,10 +28,9 @@ export default function App() {
 		});
 
 		return () => {
-			console.log('REVERT');
+			console.log("REVERT");
 			animeScene.current && animeScene.current.revert();
-			sceneRef.current instanceof HTMLElement &&
-				sceneRef.current.firstChild?.remove();
+			sceneRef.current instanceof HTMLElement && sceneRef.current.firstChild?.remove();
 		};
 	}, []);
 

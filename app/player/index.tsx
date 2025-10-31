@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Timeline } from "animejs";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, RotateCcwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Player } from "~/player/player";
@@ -47,6 +47,7 @@ interface TelcoProps {
 	seek: (time: number) => Timeline;
 	pause: () => Timeline;
 	play: () => Timeline;
+	replay: () => Timeline;
 	duration: number;
 	susbscribe: (up: Subscribed<Timeline>) => () => void;
 }
@@ -77,10 +78,28 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 	}, [telco, setProgress]);
 
 	const togglePlay = () => setToggle((t) => !t);
+	const replay = () => {
+		telco?.replay();
+		setToggle(false);
+	};
+
 	return (
-		<div id="telco">
-			<button onClick={togglePlay}>{toggle ? <Play /> : <Pause />}</button>
-			<input type="range" min="0" max="100" step="1" value={progress} onChange={mouseMove} />
+		<div id="telco" className="flex items-center gap-2 border border-stone-500 p-1">
+			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={togglePlay}>
+				{toggle ? <Play /> : <Pause />}
+			</button>
+			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={replay}>
+				<RotateCcwIcon />
+			</button>
+			<input
+				type="range"
+				min="0"
+				max="100"
+				step="1"
+				value={progress}
+				onChange={mouseMove}
+				className="flex-1"
+			/>
 			<output>{progress}&nbsp;%</output>
 		</div>
 	);

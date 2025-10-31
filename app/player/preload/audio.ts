@@ -1,23 +1,17 @@
-import { P } from '~/player/types';
-import type { My, Perso } from '~/player/types';
+import { P } from "~/player/types";
 
-type PersoDef = any;
-type PersoSoundDef = any;
+import type { My, Perso, PersoDef, PersoMediaDef } from "~/player/types";
 
-const audioContext =
-	typeof window !== 'undefined' ? new AudioContext() : undefined;
+const audioContext = typeof window !== "undefined" ? new AudioContext() : undefined;
 
 export async function getPersoSounds(store: Array<Perso>) {
-	const medias = {} as Record<string, PersoSoundDef>;
+	const medias = {} as Record<string, PersoMediaDef>;
 	const persos = {} as Record<string, PersoDef>;
 	for (const id in store) {
 		if (store[id].type === P.SOUND) {
-			medias[id] = store[id] as PersoSoundDef;
+			medias[id] = store[id] as PersoMediaDef;
 			const src = medias[id].initial?.src;
-			const media: MediaElementAudioSourceNode = await loadAudio(
-				src,
-				audioContext
-			);
+			const media: MediaElementAudioSourceNode = await loadAudio(src, audioContext);
 			medias[id].media = media;
 		} else {
 			persos[id] = store[id] as PersoDef;
@@ -39,7 +33,7 @@ export async function loadAudio(
 		const media: My = audioContext.createMediaElementSource(source);
 		media.my = {
 			connect: () => media.connect(audioContext.destination),
-			disconnect: () => media.disconnect(),
+			disconnect: () => media.disconnect()
 		};
 
 		source.oncanplay = () => resolve(media);

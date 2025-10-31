@@ -1,19 +1,19 @@
-import { useReducer } from "react";
+import React, { useReducer } from "react";
 import type { Route } from "./+types/home";
 
 import { PlayerRunner } from "~/player";
+import { buildPlay } from "~/player/builder/build-play";
 import { Capsules } from "~/parts/capsules";
-import { getScene, type SceneComp } from "~/api/db";
 import { EditMedia } from "~/parts/media-edit";
 import { EditCapsule } from "~/parts/capsule-edit";
+import { getScene, type SceneComp } from "~/api/db";
 import { reducer as sceneReducer, SceneContext } from "~/provider/scene-provider";
 import { reducer as editMediaReducer, EditMediaContext } from "~/provider/edit-media-provider";
-import * as scene02 from "../demos/scenes/scene-02";
-import { buildPlay } from "@/player/builder/build-play";
-import React from "react";
+
+// import * as scene02 from "../demos/scenes/scene-02";
 
 export function meta() {
-	return [{ title: "New React Router App" }, { name: "description", content: "Welcome to React Router!" }];
+	return [{ title: "Eddy" }, { name: "description", content: "l'éditeur de séquences" }];
 }
 
 const SCENE_ID = 1;

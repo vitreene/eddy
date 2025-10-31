@@ -15,26 +15,6 @@
 	grid-template-rows: 1fr minmax(0, 3rem);
 }
 
-#telco {
-	display: flex;
-	width: 100%;
-	gap: 1rem;
-	align-items: center;
-	border: 1px solid grey;
-	padding: 0.25rem;
-}
-
-#telco input {
-	flex: 1;
-}
-
-#telco button {
-	border: 1px solid grey;
-	border-radius: 0.25rem;
-	padding: 0.15rem 0.25rem;
-	width: 5rem;
-	font-size: 0.875rem;
-}
 .container-grid {
 	position: relative;
 

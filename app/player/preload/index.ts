@@ -1,9 +1,9 @@
-import { getPersoSounds } from './audio';
-import { getPersoImages } from './ikono';
-import { getPersoVideos } from './video';
-import { getFiles } from './files';
+import { getPersoSounds } from "./audio";
+import { getPersoImages } from "./ikono";
+import { getPersoVideos } from "./video";
+import { getFiles } from "./files";
 
-import type { ID, Perso } from '../types';
+import type { ID, Perso } from "~/player/types";
 
 export type Store = Map<ID, Perso>;
 export interface OptionalMediasStoreProps {
@@ -31,17 +31,16 @@ export async function preload(store: Array<Perso>): Promise<Store> {
 		...st01.medias,
 		...st02.medias,
 		...st03.medias,
-		...st04.medias,
+		...st04.medias
 	};
 
 	const persos: Store = new Map();
 
 	// self action
 	Object.entries(persos01).map(([_, p]) => {
-		//@ts-ignore
 		persos.set(p.initial.id, {
 			...p,
-			actions: { ...p.actions, [p.initial.id]: true },
+			actions: { ...p.actions, [p.initial.id]: true }
 		});
 	});
 

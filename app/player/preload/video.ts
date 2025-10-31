@@ -1,10 +1,7 @@
-// import { Store, PersoType, PersoDef, PersoVideoDef } from '../types';
-import { P } from '../types';
-type Store = any;
-type PersoDef = any;
-type PersoVideoDef = any;
+import { P } from "../types";
+import type { PersoDef, PersoVideoDef } from "../types";
 
-export async function getPersoVideos(store: Store) {
+export async function getPersoVideos(store: Record<string, PersoDef>) {
 	const medias = {} as Record<string, PersoVideoDef>;
 	const persos = {} as Record<string, PersoDef>;
 	for (const id in store) {
@@ -24,9 +21,9 @@ export async function getPersoVideos(store: Store) {
 
 export async function loadVideo(filepath: string): Promise<HTMLVideoElement> {
 	return new Promise((resolve, reject) => {
-		const video = document.createElement('video');
-		if (video.canPlayType('video/mp4') || video.canPlayType('video/webm'))
-			video.setAttribute('src', filepath);
+		const video = document.createElement("video");
+		if (video.canPlayType("video/mp4") || video.canPlayType("video/webm"))
+			video.setAttribute("src", filepath);
 		video.oncanplaythrough = () => {
 			resolve(video);
 		};
