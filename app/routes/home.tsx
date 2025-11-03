@@ -9,6 +9,7 @@ import { EditCapsule } from "~/parts/capsule-edit";
 import { getScene, type SceneComp } from "~/api/db";
 import { reducer as sceneReducer, SceneContext } from "~/provider/scene-provider";
 import { reducer as editMediaReducer, EditMediaContext } from "~/provider/edit-media-provider";
+import { Rubber } from "@/parts/rubber";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 
@@ -69,7 +70,9 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 	return (
 		<main className="app-layout">
 			<section className="base-layout layout-menu">Eddy</section>
-			<section className="base-layout layout-chutier">Chutier</section>
+			<section className="base-layout layout-chutier">
+				<Rubber />
+			</section>
 			<section className="base-layout layout-capsules">
 				<Capsules />
 			</section>
