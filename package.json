@@ -28,7 +28,7 @@
 		"react-dom": "^19.2.0",
 		"react-router": "^7.9.4",
 		"tailwind-merge": "^3.3.1",
-		"xstate": "^5.23.0"
+		"xstate": "^5.24.0"
 	},
 	"devDependencies": {
 		"@eslint/js": "^9.38.0",
@@ -59,7 +59,7 @@
 		"semi": true,
 		"trailingComma": "none",
 		"useTabs": true,
-		"tabWidth": 2,
+		"tabWidth": 1,
 		"plugins": [
 			"prettier-plugin-tailwindcss"
 		]

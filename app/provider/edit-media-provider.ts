@@ -1,5 +1,6 @@
 import type { TextTime } from "@/api/db";
 import { createContext } from "react";
+import { assign, createMachine } from "xstate";
 
 export const EditMediaContext = createContext<{
 	state: { [x: string]: TextTime };
@@ -37,3 +38,39 @@ export function reducer(state: { [x: string]: TextTime }, action: Action) {
 			throw Error("Unknown action: " + JSON.stringify(action as never));
 	}
 }
+
+export const editMediaLogic = createMachine({
+	context: {},
+	on: {
+		SET: {
+			actions: assign(({ event }) => {
+				return {
+					[event.target]: event.payload
+				};
+			})
+		},
+		ADD: {
+			actions: assign(({ context, event }) => {
+				return {
+					...context,
+					[event.target]: event.payload
+				};
+			})
+		},
+		REMOVE: {
+			actions: assign(({ context, event }) => {
+				const newContext: Record<string, TextTime> = {};
+				for (const target in context) if (target != event.target) newContext[target] = context[target];
+				return newContext;
+			})
+		},
+		UPDATE: {
+			actions: assign(({ context, event }) => {
+				return {
+					...context,
+					[event.target]: { ...context[event.target], ...event.payload }
+				};
+			})
+		}
+	}
+});

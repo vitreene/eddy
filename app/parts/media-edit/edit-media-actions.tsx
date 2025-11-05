@@ -1,18 +1,18 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useContext, useEffect } from "react";
 
-import type { ElementComp } from '~/api/db';
-import { Media } from '../capsule-edit/display-media';
+import type { ElementComp } from "@/api/db";
+import * as transitions from "@/player/presets/transitions";
+import { SceneContext, type ActionEvent } from "@/provider/scene-provider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { EditMediaContext } from "@/provider/edit-media-provider";
 
-import * as transitions from '~/player/presets/transitions';
-import { useContext, useEffect } from 'react';
-import { EditMediaContext } from '@/provider/edit-media-provider';
-import { SceneContext, type ActionEvent } from '@/provider/scene-provider';
+import { Media } from "../capsule-edit/display-media";
 
 export function EditMediaActions({ element }: { element: ElementComp }) {
 	return (
 		<div className="flex gap-2">
-			<Media attr={element.media} size={'lg'} />
-			<div className="p-2 border border-slate-400 min-w-64">
+			<Media attr={element.media} size={"lg"} />
+			<div className="min-w-64 border border-slate-400 p-2">
 				<Tabs defaultValue="animation" className="w-full">
 					<TabsList>
 						<TabsTrigger value="animation">Animation</TabsTrigger>
@@ -62,22 +62,23 @@ function ActionLine({ event }: { event: ActionEvent }) {
 	const ev = mediaActions.state[event.action];
 
 	useEffect(() => {
-		comp!.dispatch({ type: 'set-action', event });
+		comp!.dispatch({ type: "set-action", event });
 	}, [comp!.dispatch, event]);
 
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
-		mediaActions?.dispatch({ type: 'update', target: event.action, payload: { ref: e.target.value } });
+		// send({ type: "UPDATE", target: event.action, payload: { ref: e.target.value } });
+		mediaActions?.dispatch({ type: "update", target: event.action, payload: { ref: e.target.value } });
 	};
 
 	return (
-		<div className="text-xs mb-2">
+		<div className="mb-2 text-xs">
 			<input name="target" hidden defaultValue={event.action} />
 			<dl className="">
 				<dt className="font-light">Repère</dt>
-				<dd className="">{ev.text ?? '––'}</dd>
+				<dd className="">{ev.text ?? "––"}</dd>
 				<dt className="mt-2 font-light">Transition</dt>
 				<dd className="">
-					<SelectAction value={ev?.ref ?? '--'} onChange={onChangeAction} />
+					<SelectAction value={ev?.ref ?? "--"} onChange={onChangeAction} />
 				</dd>
 			</dl>
 		</div>
@@ -86,14 +87,14 @@ function ActionLine({ event }: { event: ActionEvent }) {
 
 function SelectAction({
 	value,
-	onChange,
+	onChange
 }: {
 	value: string;
 	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
 	return (
-		<select name={'ref'} onChange={onChange} value={value}>
-			<option value={''}>––</option>
+		<select name={"ref"} onChange={onChange} value={value}>
+			<option value={""}>––</option>
 			{Object.entries(transitions).map(([k, t]) => (
 				<option key={k} value={t.name}>
 					{t.name}
