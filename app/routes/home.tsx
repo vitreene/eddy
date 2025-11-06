@@ -69,10 +69,10 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 	const scene = buildPlay(data);
 	return (
 		<main className="app-layout">
-			<section className="base-layout layout-menu">Eddy</section>
-			<section className="base-layout layout-chutier">
+			<section className="base-layout layout-menu">
 				<Rubber />
 			</section>
+			<section className="base-layout layout-chutier">Chutier</section>
 			<section className="base-layout layout-capsules">
 				<Capsules />
 			</section>
@@ -80,7 +80,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 				<EditCapsule />
 			</section>
 			<section className="base-layout layout-player flex flex-col">
-				<PlayerRunner scene={scene} />
+				{/* <PlayerRunner scene={scene} /> */}
 			</section>
 			<section className="base-layout layout-infos"></section>
 			<section className="base-layout layout-edit">
