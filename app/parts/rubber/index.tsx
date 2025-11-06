@@ -3,13 +3,12 @@ import { useActor } from "@xstate/react";
 import { useCallback, useContext, useRef } from "react";
 
 import type { TextTime } from "@/api/db";
+import { INTRO, OUTRO } from "@/lib/constants";
 import { SceneContext } from "@/provider/scene-provider";
 import { editMediaLogic } from "@/provider/edit-media-provider";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 
-const INTRO = "intro";
-const OUTRO = "outro";
 const SLIDER_START = "slider-start";
 const SLIDER_END = "slider-end";
 
@@ -30,7 +29,11 @@ export function Rubber() {
 			slider.current = e.target.id;
 		} else if (e.target instanceof HTMLLIElement) {
 			slider.current = "";
-			send({ type: "ADD", target: INTRO, payload: { id: e.target.id } });
+			if (selecteds.length == 0) {
+				send({ type: "ADD", target: INTRO, payload: { id: e.target.id } });
+			} else {
+				// add new custom points
+			}
 		}
 		e.currentTarget.addEventListener("mousemove", moveHandler);
 	};

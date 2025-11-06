@@ -10,9 +10,19 @@ export const SceneContext = createContext<{
 export interface ActionEvent {
 	name: string;
 	action: string;
+	ref: string;
 	duration: number | null;
 	elementId: number;
 }
+
+// export interface TextTime {
+// 	id: string;
+// 	text: string;
+// 	start: number;
+// 	end: number;
+// 	count?: number;
+// 	ref?: string;
+// }
 
 export interface SceneState {
 	capsuleId: number | null;

@@ -1,13 +1,13 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from "@prisma/client";
 
-import type { Capsule, CapsuleElement, Media, Scene, Event as MediaEvent } from '@prisma/client';
+import type { Capsule, CapsuleElement, Media, Scene, Event as MediaEvent } from "@prisma/client";
 
 export interface SceneDB {
 	medias: Array<MediaComp>;
 	capsules: Array<CapsuleComp>;
 }
 
-export type { Media } from '@prisma/client';
+export type { Media } from "@prisma/client";
 
 export interface MediaComp {
 	order: number;
@@ -43,7 +43,7 @@ export interface TextTime {
 //     lang: string | null;
 // }
 
-export interface SceneMedia extends Omit<Media, 'sceneId'> {
+export interface SceneMedia extends Omit<Media, "sceneId"> {
 	mediaId: number;
 	order: number;
 	events: Array<TextTime>;
@@ -75,19 +75,19 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 		where: { id: sceneId },
 		include: {
 			medias: {
-				include: { media: true },
+				include: { media: true }
 			},
 			capsules: {
 				include: {
 					elements: {
 						include: {
 							media: true,
-							events: true,
-						},
-					},
-				},
-			},
-		},
+							events: true
+						}
+					}
+				}
+			}
+		}
 	});
 
 	const medias = sceneDB!.medias.map((m) => ({
@@ -95,7 +95,7 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 		id: m.media.id,
 		order: m.order,
 		mediaId: m.media.id,
-		events: JSON.parse(m.events),
+		events: JSON.parse(m.events)
 	}));
 	const capsules = sceneDB?.capsules || [];
 	const sources = await getMedias(sceneId);
@@ -110,11 +110,11 @@ export async function getMedias(sceneId: number) {
 			capsuleElement: {
 				every: {
 					capsule: {
-						sceneId,
-					},
-				},
-			},
-		},
+						sceneId
+					}
+				}
+			}
+		}
 	});
 }
 // CAPSULE
@@ -130,9 +130,9 @@ export async function createCapsule({ sceneId, type }: { sceneId: number; type: 
 		data: {
 			type,
 			scene: {
-				connect: { id: sceneId },
-			},
-		},
+				connect: { id: sceneId }
+			}
+		}
 	});
 	return newCapsule;
 }
@@ -140,7 +140,7 @@ export async function createCapsule({ sceneId, type }: { sceneId: number; type: 
 export async function updateCapsule({ id, ...update }: Partial<Capsule>) {
 	return await prisma.capsule.update({
 		where: { id },
-		data: update,
+		data: update
 	});
 }
 
@@ -152,12 +152,12 @@ export async function deleteCapsule(id: number) {
 //	name: string; -> label time
 //	action: string; -> name  intro, outro..
 
-export async function addEventtoMedia({
+export async function addEventToMedia({
 	name,
 	action,
 	ref,
 	duration,
-	elementId,
+	elementId
 }: {
 	name: string;
 	action: string;
@@ -170,18 +170,18 @@ export async function addEventtoMedia({
 		action,
 		duration,
 		ref,
-		element: { connect: { id: elementId } },
+		element: { connect: { id: elementId } }
 	};
 	const event = await prisma.event.upsert({
 		where: { elementId_action: { elementId, action } },
 		create: data,
-		update: data,
+		update: data
 	});
 	return event;
 }
 
 export async function removeEventFromMedia(action: string, elementId: number) {
 	return await prisma.event.delete({
-		where: { elementId_action: { elementId, action } },
+		where: { elementId_action: { elementId, action } }
 	});
 }

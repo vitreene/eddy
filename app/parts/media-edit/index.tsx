@@ -1,53 +1,84 @@
-import { useContext, useEffect } from "react";
-import { Form } from "react-router";
+import { useContext } from "react";
+import { useActor } from "@xstate/react";
 
-import { SceneContext } from "~/provider/scene-provider";
+import type { ElementComp, TextTime } from "@/api/db";
+import { SceneContext, type ActionEvent } from "@/provider/scene-provider";
+import * as transitions from "@/player/presets/transitions";
+import { editMediaLogic } from "@/provider/edit-media-provider";
 
-import { MediaEvents } from "./media-events";
-import { EditMediaActions } from "./edit-media-actions";
-import { EditMediaContext } from "@/provider/edit-media-provider";
-import type { TextTime } from "@/api/db";
+// import { EditMediaContext } from "@/provider/edit-media-provider";
 
-/* 
-
-ca ne correspond pas. il manque de nommer l'event pour l'édition : intro/outro/idle... 
-le repère deviendra le nom de l'action avec le contenu de la transition. 
-
- ElementComp.events: {			->				EditMediaContext.state
- 		ref: string;												ref: string  -> transition, details...
-    name: string; 											name: string; -> label time
-    action: string;											action: string; -> name  intro, outro..
-    duration: number | null;
-    elementId: number;
-}[]
-*/
+import { Rubber } from "../rubber";
+import { MediaPanel } from "./media-panel";
 
 export function EditMedia() {
 	const comp = useContext(SceneContext);
-	const mediaActions = useContext(EditMediaContext);
+	// const mediaActions = useContext(EditMediaContext);
 
 	const capsule = comp?.scene.capsules.find((c) => c.id == comp.state.capsuleId);
 	const element = capsule?.elements.find((e) => e.id == comp?.state.elementId);
 
-	const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-		event.preventDefault();
-		const formData = new FormData(event.currentTarget);
-		const payload = {} as TextTime & { [key: string]: string };
-		let target = "";
-		formData.forEach((v, k) => {
-			if (k == "target") target = v as string;
-			else payload[k] = v as string;
-		});
-		mediaActions?.dispatch({ type: "add", target, payload });
-	};
-
 	if (!element) return null;
 	return (
 		<section className="flex gap-4">
-			<Form onSubmit={onSubmit}>
-				<EditMediaActions element={element} />
-			</Form>
-			<MediaEvents key={comp?.state.activeAction?.action} />
+			<MediaInfos element={element} />
+			<Rubber />
 		</section>
+	);
+}
+
+function MediaInfos({ element }: { element: ElementComp }) {
+	return (
+		<div className="media-infos flex gap-4">
+			<MediaPanel element={element} />
+			<div className="">
+				<p></p>Infos
+				{element.events.map((event) => (
+					<MediaEventTransition key={event.action} event={event} />
+				))}
+			</div>
+		</div>
+	);
+}
+
+// action == marker
+function MediaEventTransition({ event }: { event: ActionEvent }) {
+	const [state, send] = useActor(editMediaLogic);
+
+	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
+		console.log(e.currentTarget.value);
+		send({ type: "UPDATE", target: event.action, ref: e.currentTarget.value });
+	};
+	return (
+		<div className="mb-2 text-xs">
+			<input name="target" hidden defaultValue={event.action} />
+			<dl className="">
+				<dt className="font-light">Repère</dt>
+				<dd className="">{event.name ?? "––"}</dd>
+				<dt className="mt-2 font-light">Transition</dt>
+				<dd className="">
+					<SelectAction value={event.ref ?? "--"} onChange={onChangeAction} />
+				</dd>
+			</dl>
+		</div>
+	);
+}
+
+function SelectAction({
+	value,
+	onChange
+}: {
+	value: string;
+	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+}) {
+	return (
+		<select name={"ref"} onChange={onChange} defaultValue={value}>
+			<option value={""}>––</option>
+			{Object.entries(transitions).map(([k, t]) => (
+				<option key={k} value={t.name}>
+					{t.name}
+				</option>
+			))}
+		</select>
 	);
 }

@@ -40,7 +40,7 @@ export function reducer(state: { [x: string]: TextTime }, action: Action) {
 }
 
 export const editMediaLogic = createMachine({
-	context: {},
+	context: {} as Record<string, TextTime>,
 	on: {
 		SET: {
 			actions: assign(({ event }) => {

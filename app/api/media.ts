@@ -1,5 +1,5 @@
-import type { Route } from '../+types/root';
-import { addEventtoMedia, type TextTime } from './db';
+import type { Route } from "../+types/root";
+import { addEventToMedia, type TextTime } from "./db";
 
 export async function action({ request, params }: Route.ActionArgs) {
 	const { id } = params;
@@ -11,7 +11,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 	const events = await Promise.all(
 		Object.entries(data).map(([action, texttime]) =>
-			addEventtoMedia({ action, name: texttime.id, ref: texttime.ref!, elementId: Number(id) })
+			addEventToMedia({ action, name: texttime.id, ref: texttime.ref!, elementId: Number(id) })
 		)
 	);
 	return { ok: true, id, events };
