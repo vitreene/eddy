@@ -52,6 +52,7 @@ model Capsule {
   id       Int              @id @default(autoincrement())
   type     String
   elements CapsuleElement[]
+  events   Event[]
   sceneId  Int              @map("scene_id")
   scene    Scene            @relation(fields: [sceneId], references: [id])
 
@@ -70,15 +71,23 @@ model CapsuleElement {
   @@map("capsule_element")
 }
 
+/**
+ * name : event name (on sound)
+ * action: element action
+ * ref : content of action
+ */
 model Event {
+  id       Int    @id @default(autoincrement())
   name     String
   action   String
   ref      String
   duration Int?
 
-  elementId Int            @map("element_id")
-  element   CapsuleElement @relation(fields: [elementId], references: [id])
+  elementId Int?            @map("element_id")
+  element   CapsuleElement? @relation(fields: [elementId], references: [id])
 
-  @@id([elementId, action])
+  capsuleId Int?     @map("capsule_id")
+  capsules  Capsule? @relation(fields: [capsuleId], references: [id])
+
   @@map("event")
 }

@@ -1,4 +1,4 @@
-import type { TextTime } from "@/api/db";
+import type { SceneComp, TextTime } from "@/api/db";
 import { createContext } from "react";
 import { assign, createMachine } from "xstate";
 
@@ -39,8 +39,11 @@ export function reducer(state: { [x: string]: TextTime }, action: Action) {
 	}
 }
 
+// -> context = SceneComp
+
 export const editMediaLogic = createMachine({
 	context: {} as Record<string, TextTime>,
+	// context: {} as SceneComp,
 	on: {
 		SET: {
 			actions: assign(({ event }) => {
@@ -66,8 +69,12 @@ export const editMediaLogic = createMachine({
 		},
 		UPDATE: {
 			actions: assign(({ context, event }) => {
+				// const
 				return {
-					...context,
+					// ...context,
+					// capsules:[
+					// 	...context.capsules,
+					// ]
 					[event.target]: { ...context[event.target], ...event.payload }
 				};
 			})

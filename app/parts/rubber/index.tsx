@@ -16,11 +16,11 @@ export function Rubber() {
 	const comp = useContext(SceneContext);
 	const [state, send] = useActor(editMediaLogic);
 	const slider = useRef<string>("");
-	const ref = useRef<HTMLUListElement>(null);
+
 	// TODO mieux définir cues
 	const cues = comp?.scene.medias[0].events;
 
-	const selecteds = selectCues(cues, state.context[INTRO]?.id, state.context[OUTRO]?.id);
+	const selecteds = selectCues(cues, state.context[INTRO]?.name, state.context[OUTRO]?.name);
 	const start = selecteds[0];
 	const end = selecteds[selecteds.length - 1];
 
@@ -30,7 +30,7 @@ export function Rubber() {
 		} else if (e.target instanceof HTMLLIElement) {
 			slider.current = "";
 			if (selecteds.length == 0) {
-				send({ type: "ADD", target: INTRO, payload: { id: e.target.id } });
+				send({ type: "ADD", target: INTRO, payload: { name: e.target.id } });
 			} else {
 				// add new custom points
 			}
@@ -44,30 +44,29 @@ export function Rubber() {
 	const moveHandler = useCallback(
 		function (e: MouseEvent) {
 			const target = slider.current == SLIDER_START ? INTRO : OUTRO;
-			e.target instanceof HTMLLIElement && send({ type: "ADD", target, payload: { id: e.target.id } });
+			e.target instanceof HTMLLIElement && send({ type: "ADD", target, payload: { name: e.target.id } });
 		},
 		[send]
 	);
 
 	return (
 		<ul
-			ref={ref}
 			onMouseDown={enterSelection}
 			onMouseUp={exitSelection}
 			className="flex flex-1 flex-wrap items-start border border-amber-200"
 		>
 			{cues &&
 				cues.map((cue) => {
-					const selected = selecteds.includes(cue.id);
+					const selected = selecteds.includes(cue.name);
 					return (
 						<li
-							key={cue.id}
-							id={cue.id}
+							key={cue.name}
+							id={cue.name}
 							className={cx("px-2 py-1 text-sm select-none", { "bg-amber-200": selected })}
 						>
-							{cue.id == start && <SliderButtonStart />}
+							{cue.name == start && <SliderButtonStart />}
 							{cue.text}
-							{cue.id == end && <SliderButtonEnd />}
+							{cue.name == end && <SliderButtonEnd />}
 						</li>
 					);
 				})}
@@ -95,8 +94,8 @@ function SliderButtonEnd() {
 }
 
 function selectCues(cues: Array<TextTime> = [], start: string, end: string) {
-	let startIndex = cues.findIndex((cue) => cue.id == start);
-	let endIndex = cues.findIndex((cue) => cue.id == end);
+	let startIndex = cues.findIndex((cue) => cue.name == start);
+	let endIndex = cues.findIndex((cue) => cue.name == end);
 	if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
-	return cues.slice(startIndex, endIndex + 1).map((cue) => cue.id);
+	return cues.slice(startIndex, endIndex + 1).map((cue) => cue.name);
 }

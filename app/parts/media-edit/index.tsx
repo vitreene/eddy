@@ -1,7 +1,7 @@
 import { useContext } from "react";
 import { useActor } from "@xstate/react";
 
-import type { ElementComp, TextTime } from "@/api/db";
+import type { ElementComp, MediaEvent, TextTime } from "@/api/db";
 import { SceneContext, type ActionEvent } from "@/provider/scene-provider";
 import * as transitions from "@/player/presets/transitions";
 import { editMediaLogic } from "@/provider/edit-media-provider";
@@ -42,16 +42,16 @@ function MediaInfos({ element }: { element: ElementComp }) {
 }
 
 // action == marker
-function MediaEventTransition({ event }: { event: ActionEvent }) {
+function MediaEventTransition({ event }: { event: MediaEvent }) {
 	const [state, send] = useActor(editMediaLogic);
 
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		console.log(e.currentTarget.value);
-		send({ type: "UPDATE", target: event.action, ref: e.currentTarget.value });
+		send({ type: "UPDATE", target: event.name, ref: e.currentTarget.value });
 	};
 	return (
 		<div className="mb-2 text-xs">
-			<input name="target" hidden defaultValue={event.action} />
+			<input name="target" hidden defaultValue={event.name} />
 			<dl className="">
 				<dt className="font-light">Repère</dt>
 				<dd className="">{event.name ?? "––"}</dd>

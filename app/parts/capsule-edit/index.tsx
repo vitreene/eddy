@@ -47,7 +47,7 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 			const cues = comp?.scene.medias[0].events;
 			const payload: typeof mediaActions.state = {};
 			for (const { name, ref, action } of element.events) {
-				const textTime = cues.find((c) => c.id == name);
+				const textTime = cues.find((c) => c.name == name);
 				payload[action] = { ...textTime!, ref };
 			}
 			mediaActions.dispatch({ type: "set", payload });
@@ -63,7 +63,7 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 		const lastMediaId = comp.state.elementId;
 
 		const isChanged = compareEvents(comp, mediaActions.state);
-		console.log({ lastMediaId, isChanged, mediaActions: mediaActions.state });
+		console.log("editElement", { lastMediaId, isChanged, mediaActions: mediaActions.state });
 
 		if (lastMediaId && isChanged)
 			fetcher.submit(mediaActions.state as {}, {
@@ -111,7 +111,7 @@ function compareEvents(
 
 		if (!sourceAction) continue;
 
-		if (action.id != sourceAction.name || action.ref != sourceAction.ref) return true;
+		if (action.name != sourceAction.name || action.ref != sourceAction.ref) return true;
 	}
 	return false;
 }

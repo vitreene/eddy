@@ -7,15 +7,12 @@ export interface SceneDB {
 	capsules: Array<CapsuleComp>;
 }
 
-export type { Media } from "@prisma/client";
+export type { Media, Event as MediaEvent } from "@prisma/client";
 
 export interface MediaComp {
 	order: number;
 	events: string;
 	media: Media;
-}
-export interface CapsuleComp extends Capsule {
-	elements: Array<ElementComp>;
 }
 
 export interface ElementComp extends CapsuleElement {
@@ -23,12 +20,16 @@ export interface ElementComp extends CapsuleElement {
 	events: MediaEvent[];
 }
 
+export interface CapsuleComp extends Capsule {
+	elements: Array<ElementComp>;
+}
+
 export interface TextTime {
-	id: string;
+	id?: number;
+	name: string;
 	text: string;
 	start: number;
 	end: number;
-	count?: number;
 	ref?: string;
 }
 
@@ -153,12 +154,14 @@ export async function deleteCapsule(id: number) {
 //	action: string; -> name  intro, outro..
 
 export async function addEventToMedia({
+	id,
 	name,
 	action,
 	ref,
 	duration,
 	elementId
 }: {
+	id: number | undefined;
 	name: string;
 	action: string;
 	ref: string;
@@ -172,16 +175,15 @@ export async function addEventToMedia({
 		ref,
 		element: { connect: { id: elementId } }
 	};
-	const event = await prisma.event.upsert({
-		where: { elementId_action: { elementId, action } },
-		create: data,
-		update: data
-	});
-	return event;
+	if (id) {
+		return prisma.event.update({ where: { id }, data });
+	} else {
+		return prisma.event.create({ data });
+	}
 }
 
-export async function removeEventFromMedia(action: string, elementId: number) {
+export async function removeEventFromMedia(id: number) {
 	return await prisma.event.delete({
-		where: { elementId_action: { elementId, action } }
+		where: { id }
 	});
 }

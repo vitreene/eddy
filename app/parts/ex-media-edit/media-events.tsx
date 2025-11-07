@@ -24,17 +24,17 @@ export function MediaEvents() {
 						<input
 							form="text-time"
 							type="radio"
-							id={event.id}
+							id={event.name}
 							name="text-in-time"
 							value={event.id}
 							onChange={() => onChange(event)}
 						/>
 						<label
 							className={cx(
-								event.count ? `color-${event.count > 3 ? 3 : event.count}` : "color-0",
+								// event.count ? `color-${event.count > 3 ? 3 : event.count}` : "color-0",
 								action?.id == event.id && "active"
 							)}
-							htmlFor={event.id}
+							htmlFor={event.name}
 							title={String(event.start)}
 						>
 							{event.text}

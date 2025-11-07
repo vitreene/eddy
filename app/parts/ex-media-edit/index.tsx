@@ -1,4 +1,4 @@
-import { useContext, useEffect } from "react";
+import { useContext } from "react";
 import { Form } from "react-router";
 
 import { SceneContext } from "~/provider/scene-provider";
@@ -14,9 +14,9 @@ ca ne correspond pas. il manque de nommer l'event pour l'édition : intro/outro/
 le repère deviendra le nom de l'action avec le contenu de la transition. 
 
  ElementComp.events: {			->				EditMediaContext.state
- 		ref: string;												ref: string  -> transition, details...
-    name: string; 											name: string; -> label time
-    action: string;											action: string; -> name  intro, outro..
+ 	ref: string;								ref: string  -> transition, details...
+    name: string; 								name: string; -> label time
+    action: string;								action: string; -> name  intro, outro..
     duration: number | null;
     elementId: number;
 }[]

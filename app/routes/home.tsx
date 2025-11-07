@@ -23,7 +23,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-	// console.log("loaderData SceneComp", loaderData);
+	console.log("loaderData SceneComp", loaderData);
 
 	// console.log('REF_DATA', { persos: scene02.persos, events: Object.fromEntries(scene02.eventtimes.entries()) });
 
@@ -48,7 +48,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 			text: "",
 			start: 0,
 			end: 0,
-			id: ""
+			name: ""
 		}
 	});
 

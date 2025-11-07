@@ -1,6 +1,6 @@
-import type { SceneComp, ElementComp, SceneMedia } from "@/api/db";
+import type { SceneComp, ElementComp, SceneMedia, TextTime } from "@/api/db";
 import type { Event as MediaEvent } from "@prisma/client";
-import type { TextTime } from "prisma/seed";
+
 import { P } from "../types";
 import type { ID, MapEvent, PersoImgDef, PersoMediaDef, PersoDef, PersoVideoDef, Action } from "../types";
 import { ROOT } from "~/player/constants";
@@ -17,9 +17,7 @@ const START = "start";
 export type BuildPlayType = ReturnType<typeof buildPlay>;
 
 export function buildPlay(scene: SceneComp) {
-	const events: MapEvent = new Map();
-
-	const mediasEvents = new Map(scene.medias.flatMap((m) => m.events).map((e) => [e.id, e]));
+	const mediasEvents = new Map(scene.medias.flatMap((m) => m.events).map((e) => [e.name, e]));
 
 	const sceneEvents: MapEvent = new Map();
 	sceneEvents.set(0, { name: "go" });
@@ -53,8 +51,6 @@ export function buildPlay(scene: SceneComp) {
 			persos[media.id] = perso;
 		}
 	});
-	//Array.from(sceneEvents.values() )
-	console.log({ sceneEvents });
 
 	return { events: sceneEvents, persos: Object.values(persos) };
 }

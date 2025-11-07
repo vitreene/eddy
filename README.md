@@ -84,4 +84,5 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 
 ---
 
-Built with ❤️ using React Router.
+npx prisma generate  
+ sqlite3 ./prisma/dev.db < ./prisma/out-202503-10.sql
