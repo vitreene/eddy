@@ -4,7 +4,7 @@ import { useActor } from "@xstate/react";
 import type { ElementComp, MediaEvent, TextTime } from "@/api/db";
 import { SceneContext, type ActionEvent } from "@/provider/scene-provider";
 import * as transitions from "@/player/presets/transitions";
-import { editMediaLogic } from "@/provider/edit-media-provider";
+import { sceneLogic } from "@/provider/scene-logic";
 
 // import { EditMediaContext } from "@/provider/edit-media-provider";
 
@@ -43,7 +43,7 @@ function MediaInfos({ element }: { element: ElementComp }) {
 
 // action == marker
 function MediaEventTransition({ event }: { event: MediaEvent }) {
-	const [state, send] = useActor(editMediaLogic);
+	const [state, send] = useActor(sceneLogic);
 
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		console.log(e.currentTarget.value);

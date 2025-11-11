@@ -28,26 +28,6 @@ model SceneMedia {
   @@map("scene_media")
 }
 
-// enum TypeMedia {
-//   img
-//   txt
-//   son
-//   video
-//   capsule
-// }
-
-model Media {
-  id             Int              @id @default(autoincrement())
-  type           String
-  path           String?
-  content        String?
-  lang           String?
-  sceneMedia     SceneMedia[]
-  capsuleElement CapsuleElement[]
-
-  @@map("media")
-}
-
 model Capsule {
   id       Int              @id @default(autoincrement())
   type     String
@@ -69,6 +49,26 @@ model CapsuleElement {
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])
 
   @@map("capsule_element")
+}
+
+// enum TypeMedia {
+//   img
+//   txt
+//   son
+//   video
+//   capsule
+// }
+
+model Media {
+  id             Int              @id @default(autoincrement())
+  type           String
+  path           String?
+  content        String?
+  lang           String?
+  sceneMedia     SceneMedia[]
+  capsuleElement CapsuleElement[]
+
+  @@map("media")
 }
 
 /**

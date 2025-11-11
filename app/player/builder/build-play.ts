@@ -1,4 +1,4 @@
-import type { SceneComp, ElementComp, SceneMedia, TextTime } from "@/api/db";
+import type { DbSceneComp, ElementComp, SceneMedia, TextTime } from "@/api/db";
 import type { Event as MediaEvent } from "@prisma/client";
 
 import { P } from "../types";
@@ -16,7 +16,7 @@ const START = "start";
 
 export type BuildPlayType = ReturnType<typeof buildPlay>;
 
-export function buildPlay(scene: SceneComp) {
+export function buildPlay(scene: DbSceneComp) {
 	const mediasEvents = new Map(scene.medias.flatMap((m) => m.events).map((e) => [e.name, e]));
 
 	const sceneEvents: MapEvent = new Map();

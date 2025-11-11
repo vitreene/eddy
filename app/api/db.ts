@@ -2,11 +2,6 @@ import { PrismaClient } from "@prisma/client";
 
 import type { Capsule, CapsuleElement, Media, Scene, Event as MediaEvent } from "@prisma/client";
 
-export interface SceneDB {
-	medias: Array<MediaComp>;
-	capsules: Array<CapsuleComp>;
-}
-
 export type { Media, Event as MediaEvent } from "@prisma/client";
 
 export interface MediaComp {
@@ -16,12 +11,12 @@ export interface MediaComp {
 }
 
 export interface ElementComp extends CapsuleElement {
-	media: Media;
-	events: MediaEvent[];
+	mediaId: number;
+	eventIds: number[];
 }
 
 export interface CapsuleComp extends Capsule {
-	elements: Array<ElementComp>;
+	elementIds: number[];
 }
 
 export interface TextTime {
@@ -44,16 +39,45 @@ export interface TextTime {
 //     lang: string | null;
 // }
 
-export interface SceneMedia extends Omit<Media, "sceneId"> {
+export interface SceneMedia {
+	id: number;
 	mediaId: number;
 	order: number;
 	events: Array<TextTime>;
 }
 
-export interface SceneComp extends Scene {
-	capsules: Array<CapsuleComp>;
-	medias: Array<SceneMedia>;
-	sources: Array<Media>;
+export interface SceneComp {
+	id: number;
+	title: string;
+	events: {
+		[key: number]: Record<string, MediaEvent>;
+	};
+	sceneMedias: {
+		[key: number]: SceneMedia;
+	};
+	capsules: {
+		[key: number]: CapsuleComp;
+	};
+	elements: {
+		[key: number]: ElementComp;
+	};
+	medias: {
+		[key: number]: Media;
+	};
+}
+
+interface DbCapsule extends Capsule {
+	elements: Array<
+		CapsuleElement & {
+			media: Media;
+			events: Array<MediaEvent>;
+		}
+	>;
+}
+interface DbSceneComp extends Scene {
+	capsules: Array<DbCapsule>;
+	sceneMedias: Array<SceneMedia>;
+	medias: Array<Media>;
 }
 // SCENE
 
@@ -75,9 +99,7 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 	const sceneDB = await prisma.scene.findUnique({
 		where: { id: sceneId },
 		include: {
-			medias: {
-				include: { media: true }
-			},
+			medias: true,
 			capsules: {
 				include: {
 					elements: {
@@ -91,16 +113,70 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 		}
 	});
 
-	const medias = sceneDB!.medias.map((m) => ({
-		...m.media,
-		id: m.media.id,
-		order: m.order,
-		mediaId: m.media.id,
-		events: JSON.parse(m.events)
-	}));
+	const sceneMedias = [
+		...sceneDB!.medias.map((m) => ({
+			...m,
+			events: JSON.parse(m.events)
+		}))
+	];
 	const capsules = sceneDB?.capsules || [];
-	const sources = await getMedias(sceneId);
-	return { ...sceneDB!, capsules, medias, sources };
+	const medias = await getMedias(sceneId);
+	const scene = { ...sceneDB!, capsules, sceneMedias, medias };
+
+	return flattenScene(scene);
+}
+
+export function flattenScene(scene: DbSceneComp): SceneComp {
+	const flatScene: SceneComp = {
+		id: scene.id,
+		title: scene.title,
+		events: {},
+		sceneMedias: {},
+		capsules: {},
+		elements: {},
+		medias: {}
+	};
+
+	// Scene medias
+	if (scene.sceneMedias) {
+		scene.sceneMedias.forEach((sceneMedia) => {
+			flatScene.sceneMedias[sceneMedia.id] = sceneMedia;
+		});
+	}
+
+	// Sources
+	if (scene.medias) {
+		scene.medias.forEach((media) => {
+			flatScene.medias[media.id] = media;
+		});
+	}
+
+	// Capsules and elements
+	if (scene.capsules) {
+		scene.capsules.forEach(({ elements, ...capsule }) => {
+			const elementIds: number[] = elements.map((element) => element.id);
+
+			flatScene.capsules[capsule.id] = {
+				...capsule,
+				elementIds
+			};
+
+			elements.forEach(({ media, events, ...element }) => {
+				flatScene.elements[element.id] = {
+					...element,
+					mediaId: media.id,
+					eventIds: events.map((event) => event.id)
+				};
+
+				if (events.length > 0) {
+					const evs = Object.fromEntries(events.map((e) => [e.action, e]));
+					flatScene.events[element.id] = evs;
+				}
+			});
+		});
+	}
+
+	return flatScene;
 }
 
 // MEDIAS

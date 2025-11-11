@@ -5,22 +5,30 @@ import { useCallback, useContext, useRef } from "react";
 import type { TextTime } from "@/api/db";
 import { INTRO, OUTRO } from "@/lib/constants";
 import { SceneContext } from "@/provider/scene-provider";
-import { editMediaLogic } from "@/provider/edit-media-provider";
+import { SceneLogicContext } from "@/provider/edit-media-provider";
+import { sceneLogic } from "@/provider/scene-logic";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 
 const SLIDER_START = "slider-start";
 const SLIDER_END = "slider-end";
 
+const EL_ID = 1;
+
 export function Rubber() {
-	const comp = useContext(SceneContext);
-	const [state, send] = useActor(editMediaLogic);
+	// const comp = useContext(SceneContext);
+	// const [state, send] = useActor(sceneLogic);
 	const slider = useRef<string>("");
 
-	// TODO mieux définir cues
-	const cues = comp?.scene.medias[0].events;
+	const events = SceneLogicContext.useSelector((state) => state.context.events);
+	const sceneMedias = SceneLogicContext.useSelector((state) => state.context.sceneMedias);
+	const sceneLogic = SceneLogicContext.useActorRef();
 
-	const selecteds = selectCues(cues, state.context[INTRO]?.name, state.context[OUTRO]?.name);
+	// TODO mieux définir cues
+	const cues = sceneMedias[0].events;
+
+	// const selecteds = selectCues(cues, state.context[INTRO]?.name, state.context[OUTRO]?.name);
+	const selecteds = selectCues(cues, events[EL_ID][INTRO]?.name, events[EL_ID][OUTRO]?.name);
 	const start = selecteds[0];
 	const end = selecteds[selecteds.length - 1];
 
@@ -30,7 +38,7 @@ export function Rubber() {
 		} else if (e.target instanceof HTMLLIElement) {
 			slider.current = "";
 			if (selecteds.length == 0) {
-				send({ type: "ADD", target: INTRO, payload: { name: e.target.id } });
+				sceneLogic.send({ type: "media.UPDATE", target: INTRO, payload: { name: e.target.id } });
 			} else {
 				// add new custom points
 			}
@@ -44,9 +52,10 @@ export function Rubber() {
 	const moveHandler = useCallback(
 		function (e: MouseEvent) {
 			const target = slider.current == SLIDER_START ? INTRO : OUTRO;
-			e.target instanceof HTMLLIElement && send({ type: "ADD", target, payload: { name: e.target.id } });
+			e.target instanceof HTMLLIElement &&
+				sceneLogic.send({ type: "media.UPDATE", target, payload: { name: e.target.id } });
 		},
-		[send]
+		[sceneLogic]
 	);
 
 	return (

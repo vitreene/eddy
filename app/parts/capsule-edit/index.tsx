@@ -5,15 +5,14 @@ import type { ElementComp, SceneComp, TextTime } from "~/api/db";
 import { SceneContext, type SceneState } from "~/provider/scene-provider";
 
 import { Media } from "./display-media";
-import { EditMediaContext } from "@/provider/edit-media-provider";
+import { EditMediaContext, SceneLogicContext } from "@/provider/edit-media-provider";
 
 export function EditCapsule() {
 	const fetcher = useFetcher();
 
-	const comp = useContext(SceneContext);
-	const capsule = comp?.scene.capsules.find((c) => c.id == comp?.state.capsuleId);
-
-	// console.log('EditCapsule', capsule);
+	const capsule = SceneLogicContext.useSelector((state) =>
+		state.context.active.capsuleId ? state.context.capsules[state.context.active.capsuleId] : null
+	);
 
 	return (
 		<section className="edit flex w-full flex-col gap-4">
@@ -28,29 +27,43 @@ export function EditCapsule() {
 				</fetcher.Form>
 			</header>
 			<article className="flex-1 border border-slate-300 p-4">
-				{capsule && <CapsuleContent elements={capsule.elements} />}
+				{capsule && <CapsuleContent capsuleId={capsule.id} />}
 			</article>
 		</section>
 	);
 }
 
-function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
+function CapsuleContent({ capsuleId }: { capsuleId: number }) {
 	const fetcher = useFetcher();
-	const comp = useContext(SceneContext)!;
-	const mediaActions = useContext(EditMediaContext)!;
+
+	const sceneLogic = SceneLogicContext.useActorRef();
+	const active = SceneLogicContext.useSelector((state) => state.context.active);
+	const elements = SceneLogicContext.useSelector((state) =>
+		Object.values(state.context.elements).filter((element) => element.capsuleId == capsuleId)
+	);
+
+	const mediaIds = elements.map((element) => element.mediaId);
+
+	const medias = Object.fromEntries(
+		SceneLogicContext.useSelector((state) =>
+			Object.values(state.context.medias)
+				.filter((media) => mediaIds.includes(media.id))
+				.map((media) => [media.id, media])
+		)
+	);
 
 	const editMedia = (id: number) => {
-		comp.dispatch({ type: "edit-media", mediaId: id });
+		sceneLogic.send({ type: "edit-media", mediaId: id });
 		const element = elements.find((e) => e.id == id);
 
 		if (element) {
-			const cues = comp?.scene.medias[0].events;
+			/* const cues = comp?.scene.sceneMedias[0].events;
 			const payload: typeof mediaActions.state = {};
 			for (const { name, ref, action } of element.events) {
 				const textTime = cues.find((c) => c.name == name);
 				payload[action] = { ...textTime!, ref };
 			}
-			mediaActions.dispatch({ type: "set", payload });
+			mediaActions.dispatch({ type: "set", payload }); */
 		}
 	};
 
@@ -60,17 +73,19 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 		const id = Number(target.dataset?.id);
 		id && editMedia(id);
 
-		const lastMediaId = comp.state.elementId;
+		// const lastMediaId = comp.state.elementId;
 
-		const isChanged = compareEvents(comp, mediaActions.state);
-		console.log("editElement", { lastMediaId, isChanged, mediaActions: mediaActions.state });
+		// const isChanged = compareEvents(comp, mediaActions.state);
+		// console.log("editElement", { lastMediaId, isChanged, mediaActions: mediaActions.state });
 
-		if (lastMediaId && isChanged)
-			fetcher.submit(mediaActions.state as {}, {
-				method: "post",
-				encType: "application/json",
-				action: `api/media/${lastMediaId}`
-			});
+		// a déplacer dans la machine
+
+		// if (lastMediaId && isChanged)
+		// 	fetcher.submit(mediaActions.state as {}, {
+		// 		method: "post",
+		// 		encType: "application/json",
+		// 		action: `api/media/${lastMediaId}`
+		// 	});
 	};
 
 	return (
@@ -80,9 +95,9 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 				.map((el) => (
 					<li key={el.id} id={`element-${el.id}`} data-id={el.id} className="bg-white">
 						<Media
-							attr={el.media}
+							attr={medias[el.mediaId]}
 							size="sm"
-							selected={comp.state.elementId == el.id}
+							selected={active.elementId == el.id}
 							className="pointer-events-none"
 						/>
 					</li>
@@ -91,6 +106,7 @@ function CapsuleContent({ elements }: { elements: Array<ElementComp> }) {
 	);
 }
 
+/* 
 function compareEvents(
 	comp: {
 		scene: SceneComp;
@@ -115,3 +131,4 @@ function compareEvents(
 	}
 	return false;
 }
+ */

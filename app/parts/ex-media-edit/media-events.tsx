@@ -9,7 +9,7 @@ export function MediaEvents() {
 	const mediaActions = useContext(EditMediaContext)!;
 
 	// TODO mieux définir cues
-	const cues = comp?.scene.medias[0].events;
+	const cues = comp?.scene.sceneMedias[0].events;
 	const activeAction = comp?.state.activeAction;
 
 	const action = mediaActions.state[activeAction?.action ?? ""];
