@@ -43,8 +43,6 @@ export function EditCapsule() {
 }
 
 function CapsuleContent({ capsuleId }: { capsuleId: number }) {
-	const fetcher = useFetcher();
-
 	const sceneLogic = SceneLogicContext.useActorRef();
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
 	const elements = SceneLogicContext.useSelector((state) =>
@@ -61,27 +59,27 @@ function CapsuleContent({ capsuleId }: { capsuleId: number }) {
 		)
 	);
 
-	const editMedia = (id: number) => {
-		sceneLogic.send({ type: "edit-media", mediaId: id });
-		const element = elements.find((e) => e.id == id);
+	// const editMedia = (id: number) => {
+	// 	sceneLogic.send({ type: "edit-media", mediaId: id });
+	// 	const element = elements.find((e) => e.id == id);
 
-		if (element) {
-			/* const cues = comp?.scene.sceneMedias[0].events;
-			const payload: typeof mediaActions.state = {};
-			for (const { name, ref, action } of element.events) {
-				const textTime = cues.find((c) => c.name == name);
-				payload[action] = { ...textTime!, ref };
-			}
-			mediaActions.dispatch({ type: "set", payload }); */
-		}
-	};
+	// 	if (element) {
+	// 		/* const cues = comp?.scene.sceneMedias[0].events;
+	// 		const payload: typeof mediaActions.state = {};
+	// 		for (const { name, ref, action } of element.events) {
+	// 			const textTime = cues.find((c) => c.name == name);
+	// 			payload[action] = { ...textTime!, ref };
+	// 		}
+	// 		mediaActions.dispatch({ type: "set", payload }); */
+	// 	}
+	// };
 
 	const editElement = (e: React.MouseEvent<HTMLUListElement>) => {
 		e.preventDefault();
 		const target = e.target as HTMLElement;
 		const id = Number(target.dataset?.id);
-		id && editMedia(id);
-
+		sceneLogic.send({ type: "active.set", payload: { elementId: id } });
+		// id && editMedia(id);
 		// const lastMediaId = comp.state.elementId;
 
 		// const isChanged = compareEvents(comp, mediaActions.state);

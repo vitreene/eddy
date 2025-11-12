@@ -4,7 +4,7 @@ import { useActor } from "@xstate/react";
 import type { ElementComp, MediaEvent, TextTime } from "@/api/db";
 import { SceneContext, type ActionEvent } from "@/provider/scene-provider";
 import * as transitions from "@/player/presets/transitions";
-import { sceneLogic } from "@/provider/scene-logic";
+import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 
 // import { EditMediaContext } from "@/provider/edit-media-provider";
 
@@ -12,11 +12,16 @@ import { Rubber } from "../rubber";
 import { MediaPanel } from "./media-panel";
 
 export function EditMedia() {
-	const comp = useContext(SceneContext);
+	// const comp = useContext(SceneContext);
 	// const mediaActions = useContext(EditMediaContext);
 
-	const capsule = comp?.scene.capsules.find((c) => c.id == comp.state.capsuleId);
-	const element = capsule?.elements.find((e) => e.id == comp?.state.elementId);
+	// const capsule = comp?.scene.capsules.find((c) => c.id == comp.state.capsuleId);
+	// const element = capsule?.elements.find((e) => e.id == comp?.state.elementId);
+
+	const active = SceneLogicContext.useSelector((state) => state.context.active);
+	const element = SceneLogicContext.useSelector(
+		(state) => active && active.elementId && state.context.elements[active.elementId]
+	);
 
 	if (!element) return null;
 	return (
@@ -28,12 +33,13 @@ export function EditMedia() {
 }
 
 function MediaInfos({ element }: { element: ElementComp }) {
+	const events = SceneLogicContext.useSelector((state) => state.context.events[element.id]);
 	return (
 		<div className="media-infos flex gap-4">
-			<MediaPanel element={element} />
+			<MediaPanel id={element.mediaId} />
 			<div className="">
 				<p></p>Infos
-				{element.events.map((event) => (
+				{Object.values(events).map((event) => (
 					<MediaEventTransition key={event.action} event={event} />
 				))}
 			</div>
@@ -43,11 +49,12 @@ function MediaInfos({ element }: { element: ElementComp }) {
 
 // action == marker
 function MediaEventTransition({ event }: { event: MediaEvent }) {
-	const [state, send] = useActor(sceneLogic);
+	// const [state, send] = useActor(sceneLogic);
+	const sceneLogic = SceneLogicContext.useActorRef();
 
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		console.log(e.currentTarget.value);
-		send({ type: "UPDATE", target: event.name, ref: e.currentTarget.value });
+		sceneLogic.send({ type: "events-update", payload: { target: event.name, ref: e.currentTarget.value } });
 	};
 	return (
 		<div className="mb-2 text-xs">

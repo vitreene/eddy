@@ -1,32 +1,31 @@
 import cx from "classnames";
 import { useCallback, useRef } from "react";
 
-import type { TextTime } from "@/api/db";
 import { INTRO, OUTRO } from "@/lib/constants";
-// import { SceneContext } from "@/provider/scene-provider";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 
+import type { TextTime } from "@/api/db";
+
 const SLIDER_START = "slider-start";
 const SLIDER_END = "slider-end";
 
-const EL_ID = 1;
-
 export function Rubber() {
-	// const comp = useContext(SceneContext);
-	// const [state, send] = useActor(sceneLogic);
 	const slider = useRef<string>("");
+	const abort = useRef(new AbortController());
+	const active = SceneLogicContext.useSelector((state) => state.context.active);
 
-	const events = SceneLogicContext.useSelector((state) => state.context.events);
-	const sceneMedias = SceneLogicContext.useSelector((state) => state.context.sceneMedias);
+	const events = SceneLogicContext.useSelector((state) =>
+		active && active.elementId ? state.context.events[active.elementId] : null
+	);
+	const sceneMedias = SceneLogicContext.useSelector((state) => state.context.sceneMedias[state.context.id]);
 	const sceneLogic = SceneLogicContext.useActorRef();
 
 	// TODO mieux définir cues
-	const cues = sceneMedias[0].events;
+	const cues = sceneMedias.events;
 
-	// const selecteds = selectCues(cues, state.context[INTRO]?.name, state.context[OUTRO]?.name);
-	const selecteds = selectCues(cues, events[EL_ID][INTRO]?.name, events[EL_ID][OUTRO]?.name);
+	const selecteds = events ? selectCues(cues, events[INTRO]?.name, events[OUTRO]?.name) : [];
 	const start = selecteds[0];
 	const end = selecteds[selecteds.length - 1];
 
@@ -36,24 +35,28 @@ export function Rubber() {
 		} else if (e.target instanceof HTMLLIElement) {
 			slider.current = "";
 			if (selecteds.length == 0) {
-				sceneLogic.send({ type: "media.UPDATE", target: INTRO, payload: { name: e.target.id } });
+				const payload = events ? { ...events[INTRO], name: e.target.id } : { action: INTRO, name: e.target.id };
+				sceneLogic.send({ type: "events-update", payload });
 			} else {
 				// add new custom points
 			}
 		}
-		e.currentTarget.addEventListener("mousemove", moveHandler);
+		e.currentTarget.addEventListener("mousemove", moveHandler, { signal: abort.current.signal });
 	};
 	const exitSelection = (e: React.MouseEvent<HTMLUListElement>) => {
-		e.currentTarget.removeEventListener("mousemove", moveHandler);
+		abort.current.abort();
+		abort.current = new AbortController();
 	};
 
 	const moveHandler = useCallback(
 		function (e: MouseEvent) {
-			const target = slider.current == SLIDER_START ? INTRO : OUTRO;
-			e.target instanceof HTMLLIElement &&
-				sceneLogic.send({ type: "media.UPDATE", target, payload: { name: e.target.id } });
+			if (e.target instanceof HTMLLIElement) {
+				const action = slider.current == SLIDER_START ? INTRO : OUTRO;
+				const payload = events ? { ...events[action], name: e.target.id } : { action, name: e.target.id };
+				sceneLogic.send({ type: "events-update", payload });
+			}
 		},
-		[sceneLogic]
+		[events, sceneLogic]
 	);
 
 	return (
