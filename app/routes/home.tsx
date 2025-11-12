@@ -1,5 +1,5 @@
 import { fromPromise } from "xstate";
-import React, { useEffect, useReducer } from "react";
+import React, { useEffect } from "react";
 import type { Route } from "./+types/home";
 
 // import { PlayerRunner } from "~/player";

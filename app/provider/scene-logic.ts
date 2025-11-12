@@ -1,4 +1,4 @@
-import { setup, assign, type AnyEventObject, raise } from "xstate";
+import { setup, assign } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import type { SceneComp } from "@/api/db";
