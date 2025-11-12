@@ -10,6 +10,7 @@ import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 import { Capsules } from "~/parts/capsules";
 import { EditCapsule } from "~/parts/capsule-edit";
 import { getScene, type SceneComp } from "~/api/db";
+import { SceneTreeView } from "@/parts/scene-tree-view";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 
@@ -73,7 +74,9 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 			<section className="base-layout layout-player flex flex-col">
 				{/* <PlayerRunner scene={scene} /> */}
 			</section>
-			<section className="base-layout layout-infos"></section>
+			<section className="base-layout layout-infos">
+				<SceneTreeView />
+			</section>
 			<section className="base-layout layout-edit">
 				<EditMedia />
 			</section>
