@@ -1,7 +1,5 @@
 import type { TextTime } from "@/api/db";
-import { createActorContext } from "@xstate/react";
 import { createContext } from "react";
-import { sceneLogic } from "./scene-logic";
 
 export const EditMediaContext = createContext<{
 	state: { [x: string]: TextTime };
@@ -39,34 +37,3 @@ export function reducer(state: { [x: string]: TextTime }, action: Action) {
 			throw Error("Unknown action: " + JSON.stringify(action as never));
 	}
 }
-
-/* 
-export const sceneLogic = createMachine({
-	context: {} as SceneComp,
-	on: {
-SET: {
-			actions: assign(({ event }) => {
-				return {
-
-					[event.target]: event.payload
-				};
-			})
-		},
-		ADD: {
-			actions: assign(({ context, event }) => {
-				return {
-					...context,
-					[event.target]: event.payload
-				};
-			})
-		},
-		REMOVE: {
-			actions: assign(({ context, event }) => {
-				const newContext: Record<string, TextTime> = {};
-				for (const target in context) if (target != event.target) newContext[target] = context[target];
-				return newContext;
-			})
-		},
- */
-
-export const SceneLogicContext = createActorContext(sceneLogic);

@@ -1,5 +1,5 @@
 import cx from "classnames";
-import { SceneLogicContext } from "@/provider/edit-media-provider";
+import { SceneLogicContext } from "@/provider/scene-logic";
 
 export function Capsules() {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
@@ -8,7 +8,7 @@ export function Capsules() {
 
 	const selectCapsule = (e: React.MouseEvent<HTMLButtonElement>) => {
 		sceneLogic.send({
-			type: "active.capsule",
+			type: "active.set",
 			payload: { capsuleId: Number(e.currentTarget.value), notif: true }
 		});
 	};

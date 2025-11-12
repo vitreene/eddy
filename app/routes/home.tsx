@@ -2,17 +2,14 @@ import { fromPromise } from "xstate";
 import React, { useEffect, useReducer } from "react";
 import type { Route } from "./+types/home";
 
-import { PlayerRunner } from "~/player";
+// import { PlayerRunner } from "~/player";
 // import { buildPlay } from "~/player/builder/build-play";
-import { Capsules } from "~/parts/capsules";
 import { EditMedia } from "@/parts/media-edit";
+import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
+
+import { Capsules } from "~/parts/capsules";
 import { EditCapsule } from "~/parts/capsule-edit";
 import { getScene, type SceneComp } from "~/api/db";
-import { SceneLogicContext } from "~/provider/edit-media-provider";
-import { sceneLogic } from "@/provider/scene-logic";
-
-import { reducer as sceneReducer, SceneContext } from "~/provider/scene-provider";
-import { reducer as editMediaReducer, EditMediaContext } from "~/provider/edit-media-provider";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 
@@ -34,7 +31,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 		() =>
 			sceneLogic.provide({
 				actors: {
-					initContext: fromPromise(() => {
+					initContext: fromPromise(async () => {
 						return Promise.resolve(loaderData);
 					})
 				}
@@ -48,35 +45,7 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 		</SceneLogicContext.Provider>
 	);
 }
-/* export default function Home({ loaderData }: Route.ComponentProps) {
-	console.log("loaderData SceneComp", loaderData);
 
-	const [editStateScene, dispatchEditStateScene] = useReducer(sceneReducer, {
-		capsuleId: null,
-		elementId: null,
-		activeCue: null,
-		activeAction: null
-	});
-
-	const [editMediaState, dispatchEditMediaState] = useReducer(editMediaReducer, {
-		intro: {
-			ref: "",
-			text: "",
-			start: 0,
-			end: 0,
-			name: ""
-		}
-	});
-
-	return (
-		<SceneContext value={{ scene: loaderData, state: editStateScene, dispatch: dispatchEditStateScene }}>
-			<EditMediaContext value={{ state: editMediaState, dispatch: dispatchEditMediaState }}>
-				<AppLayout data={loaderData} />
-			</EditMediaContext>
-		</SceneContext>
-	);
-}
- */
 const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 	//TODO data doit etre recalculé a chaque modif -> dans player
 	// player si modif ne rejoue pas, se place à l'endroit de la modif et se met en pause

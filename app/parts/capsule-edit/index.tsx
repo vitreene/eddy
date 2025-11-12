@@ -1,30 +1,39 @@
-import { useContext } from "react";
 import { useFetcher } from "react-router";
 
-import type { ElementComp, SceneComp, TextTime } from "~/api/db";
-import { SceneContext, type SceneState } from "~/provider/scene-provider";
-
 import { Media } from "./display-media";
-import { EditMediaContext, SceneLogicContext } from "@/provider/edit-media-provider";
+import { SceneLogicContext } from "@/provider/scene-logic";
 
 export function EditCapsule() {
-	const fetcher = useFetcher();
-
+	const sceneLogic = SceneLogicContext.useActorRef();
 	const capsule = SceneLogicContext.useSelector((state) =>
 		state.context.active.capsuleId ? state.context.capsules[state.context.active.capsuleId] : null
 	);
 
+	const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+		e.preventDefault();
+		const formData = new FormData(e.currentTarget);
+		const type = formData.get("type");
+		sceneLogic.send({ type: "capsule.update", payload: { type } });
+	};
 	return (
 		<section className="edit flex w-full flex-col gap-4">
 			<h2>EDIT</h2>
 			<header className="border border-slate-300 p-4">
-				{capsule && <p>{`Capsule n°${capsule?.id} : ${capsule?.type}`}</p>}
+				{capsule && <p className="text-sm">{`Capsule n°${capsule?.id}`}</p>}
 
-				<fetcher.Form method="post" action={`api/capsule/${capsule?.id}`}>
+				<form onSubmit={onSubmit}>
 					<input hidden name="id" defaultValue={capsule?.id} />
-					<input name="type" defaultValue={capsule?.type} />
+					<label>
+						Type&nbsp;:
+						<input
+							key={capsule?.id}
+							className="inline-block border border-stone-300 p-1"
+							name="type"
+							defaultValue={capsule?.type}
+						/>
+					</label>
 					<button type="submit">Valider</button>
-				</fetcher.Form>
+				</form>
 			</header>
 			<article className="flex-1 border border-slate-300 p-4">
 				{capsule && <CapsuleContent capsuleId={capsule.id} />}

@@ -1,4 +1,5 @@
 import { setup, assign, type AnyEventObject } from "xstate";
+import { createActorContext } from "@xstate/react";
 
 import type { SceneComp } from "@/api/db";
 
@@ -39,29 +40,40 @@ export const sceneLogic = setup({
 			}
 		},
 		edit: {
+			type: "parallel",
 			initial: "active",
 
 			states: {
 				active: {
 					on: {
-						"active.capsule": { actions: assign(setActive), target: "capsule" },
-						"active.media": { actions: assign(setActive), target: "media" },
-						SET: { actions: assign(setActive) }
+						"active.set": { actions: assign(setActive) }
 					}
 				},
 				capsule: {
 					on: {
 						"capsule.update": {
-							actions: assign(({ context, event }) => ({
-								...context,
-								capsules: {
-									...context.capsules,
-									[event.id]: {
-										...context.capsules[event.id],
-										...event.payload
+							actions: [
+								assign(({ context, event }) => ({
+									...context,
+									capsules: {
+										...context.capsules,
+										[context.active.capsuleId!]: {
+											...context.capsules[context.active.capsuleId!],
+											...event.payload
+										}
 									}
+								})),
+								({ context, event }) => {
+									const formData = new FormData();
+									Object.entries(event.payload).forEach(([k, v]: [string, unknown]) => formData.set(k, v as any));
+									const active = context.active;
+									fetch(`api/capsule/${active.capsuleId}`, {
+										method: "POST",
+										body: formData
+									});
 								}
-							}))
+							],
+							target: "active"
 						}
 					}
 				},
@@ -98,3 +110,34 @@ function setActive({
 		}
 	};
 }
+
+/* 
+export const sceneLogic = createMachine({
+	context: {} as SceneComp,
+	on: {
+SET: {
+			actions: assign(({ event }) => {
+				return {
+
+					[event.target]: event.payload
+				};
+			})
+		},
+		ADD: {
+			actions: assign(({ context, event }) => {
+				return {
+					...context,
+					[event.target]: event.payload
+				};
+			})
+		},
+		REMOVE: {
+			actions: assign(({ context, event }) => {
+				const newContext: Record<string, TextTime> = {};
+				for (const target in context) if (target != event.target) newContext[target] = context[target];
+				return newContext;
+			})
+		},
+ */
+
+export const SceneLogicContext = createActorContext(sceneLogic);

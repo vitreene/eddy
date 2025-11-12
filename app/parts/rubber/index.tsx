@@ -1,12 +1,10 @@
 import cx from "classnames";
-import { useActor } from "@xstate/react";
-import { useCallback, useContext, useRef } from "react";
+import { useCallback, useRef } from "react";
 
 import type { TextTime } from "@/api/db";
 import { INTRO, OUTRO } from "@/lib/constants";
-import { SceneContext } from "@/provider/scene-provider";
-import { SceneLogicContext } from "@/provider/edit-media-provider";
-import { sceneLogic } from "@/provider/scene-logic";
+// import { SceneContext } from "@/provider/scene-provider";
+import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 
