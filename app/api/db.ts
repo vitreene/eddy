@@ -10,11 +10,26 @@ export interface MediaComp {
 	media: Media;
 }
 
+/* 
+ type CapsuleElement = {
+    id: number;
+    capsuleId: number;
+    order: number;
+    mediaId: number;
+}
+	 */
 export interface ElementComp extends CapsuleElement {
 	mediaId: number;
 	eventIds: number[];
 }
 
+/* 
+type Capsule = {
+    id: number;
+    type: string;
+    sceneId: number;
+}
+	 */
 export interface CapsuleComp extends Capsule {
 	elementIds: number[];
 }
@@ -144,7 +159,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 		});
 	}
 
-	// Sources
+	// Medias
 	if (scene.medias) {
 		scene.medias.forEach((media) => {
 			flatScene.medias[media.id] = media;

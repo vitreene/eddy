@@ -9,7 +9,7 @@ export function Capsules() {
 	const selectCapsule = (e: React.MouseEvent<HTMLButtonElement>) => {
 		sceneLogic.send({
 			type: "active.set",
-			payload: { capsuleId: Number(e.currentTarget.value), notif: true }
+			payload: { capsuleId: Number(e.currentTarget.value) }
 		});
 	};
 	if (!capsules || !Object.keys(capsules).length) return null;
