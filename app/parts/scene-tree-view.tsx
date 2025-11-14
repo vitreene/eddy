@@ -1,11 +1,17 @@
 import { TreeView, type TreeDataItem } from "@/components/ui/tree-view";
 import { SceneLogicContext } from "@/provider/scene-logic";
+import { Media } from "./display-media";
+import { BoxIcon } from "lucide-react";
 
 const EMPTY = "–";
 
 export function SceneTreeView() {
 	const capsules = SceneLogicContext.useSelector((state) => state.context.capsules);
 	const elements = SceneLogicContext.useSelector((state) => state.context.elements);
+	const medias = SceneLogicContext.useSelector(
+		(state) => elements && Object.values(elements).map((el) => state.context.medias[el.mediaId])
+	);
+
 	const { send } = SceneLogicContext.useActorRef();
 
 	const tree: TreeDataItem[] = capsules
@@ -19,11 +25,15 @@ export function SceneTreeView() {
 					draggable: true,
 					children: els
 						.sort((a, b) => (a.order > b.order ? 1 : -1))
-						.map((el) => ({
-							id: el.id == -1 ? String(el.capsuleId) : String(el.id),
-							name: el.id == -1 ? EMPTY : String(el.id),
-							draggable: true
-						}))
+						.map((el) => {
+							const Icon = ({ className }: { className: string }) => <Media size="icon" attr={medias[el.mediaId]} />;
+							return {
+								id: el.id == -1 ? String(el.capsuleId) : String(el.id),
+								name: el.id == -1 ? EMPTY : String(el.id),
+								icon: Icon,
+								draggable: true
+							};
+						})
 				};
 			})
 		: [];

@@ -1,4 +1,4 @@
-import { Media } from "./display-media";
+import { Media } from "../display-media";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 export function EditCapsule() {

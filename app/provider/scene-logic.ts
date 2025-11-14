@@ -221,6 +221,7 @@ export const sceneLogic = setup({
 									}
 									if (sourceType == "capsule") {
 										// todo capsule -> capsule
+										// l'id de la capsule pourrait etre dans Media.path, Media.type = capsule
 									}
 								}
 
