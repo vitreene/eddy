@@ -432,6 +432,8 @@ const TreeIcon = ({
 	isSelected?: boolean;
 	default?: any;
 }) => {
+	// console.log("item", item);
+
 	let Icon = defaultIcon;
 	if (isSelected && item.selectedIcon) {
 		Icon = item.selectedIcon;

@@ -10,7 +10,7 @@ export function EditCapsule() {
 	const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
 		const formData = new FormData(e.currentTarget);
-		const type = formData.get("type");
+		const type = formData.get("type") as string;
 		sceneLogic.send({ type: "capsule.update", payload: { type } });
 	};
 	return (

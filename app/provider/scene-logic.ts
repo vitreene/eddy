@@ -1,4 +1,4 @@
-import { setup, assign } from "xstate";
+import { setup, assign, type UnknownActorLogic } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import type { CapsuleComp, ElementComp, MediaEvent, SceneComp } from "@/api/db";
@@ -55,6 +55,9 @@ export const sceneLogic = setup({
 				});
 			}
 		}
+	},
+	actors: {
+		initContext: {} as UnknownActorLogic
 	}
 }).createMachine({
 	id: "scene",
@@ -65,7 +68,6 @@ export const sceneLogic = setup({
 	states: {
 		start: {
 			invoke: {
-				// @ts-ignore src est ok
 				src: "initContext",
 				onDone: {
 					target: "edit",
@@ -83,9 +85,8 @@ export const sceneLogic = setup({
 						"active.set": {
 							actions: [
 								{
-									// @ts-ignore src est ok
 									type: "fetchers",
-									// @ts-ignore src est ok
+
 									params: ({ context, event }) => {
 										const diffs: string[] = [];
 										for (const id in event.payload) {
@@ -187,11 +188,25 @@ export const sceneLogic = setup({
 											.filter((el) => el.id !== sourceId);
 
 										/* 
-									- si source.order > target.order -> placer source AVANT target 
-									sinon source APRES target
+										si dans la meme capsule,
+											si source.order > target.order -> placer source AVANT target 
+										sinon source APRES target	
 								
 									*/
-										let index = elements.findIndex((el) => el.order == target.order);
+
+										/* 
+									trouver la prochaine position de l'émént déplacé.
+										- placer source après target
+										- si target est capsule, placer en premier dans capsule
+							il faudrait créer un element-cible fantome pour visualiser ou se situe ledépot : ligne épaisse ou element vide.
+							la source déplacé recoit met à jour sa propriété order comme la partie entière de la valeur order de la cible + la moitié de la différence avec la cible et son suivant.
+							s'il n'a pas de suivant, dernière position, alors la valeur est la valeur order de la cible plus le pas. le pas par défaut est de 1000.
+									
+							seul l'émént déplacé doit voir sa propriété order mofifiée.
+							si, après déplacement, la valeur order de la source et de la cible sont égales, il faut signaler de réajuster l'ensemble des order de la liste (circonstance exceptionnellle )
+									*/
+
+										/* 										let index = elements.findIndex((el) => el.order == target.order);
 										index = index + (element.order > target.order ? -1 : 1);
 
 										if (index <= 0) {
@@ -204,7 +219,7 @@ export const sceneLogic = setup({
 										if (capsule != sourceCapsule) {
 											sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id != sourceId);
 											capsule.elementIds.push(sourceId);
-										}
+										} */
 
 										return {
 											...context,

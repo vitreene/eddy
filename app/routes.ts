@@ -6,5 +6,6 @@ export default [
 	route("player", "./routes/player.tsx"),
 	//APIS
 	route("api/capsule/:id", "./api/capsule.ts"),
+	route("api/element/:id", "./api/element.ts"),
 	route("api/media/:id", "./api/media.ts")
 ] satisfies RouteConfig;
