@@ -5,7 +5,7 @@ import type { Media as CapsuleMedia } from "@prisma/client";
 import { BoxIcon } from "lucide-react";
 
 const EMPTY = "–";
-
+const SEP = "__";
 export function SceneTreeView() {
 	const capsules = SceneLogicContext.useSelector((state) => state.context.capsules);
 	const elements = SceneLogicContext.useSelector((state) => state.context.elements);
@@ -20,9 +20,9 @@ export function SceneTreeView() {
 	const tree: TreeDataItem[] = capsules
 		? Object.values(capsules).map((c) => {
 				const els = c.elementIds.map((el) => elements[el]);
-				if (els.length == 0) els.push({ id: -1, order: 0, mediaId: 0, eventIds: [], capsuleId: c.id });
+				// if (els.length == 0) els.push({ id: -1, order: 0, mediaId: 0, eventIds: [], capsuleId: c.id });
 				return {
-					id: String(c.id),
+					id: `capsule${SEP}${c.id}`,
 					name: c.type,
 					droppable: true,
 					draggable: true,
@@ -30,7 +30,6 @@ export function SceneTreeView() {
 						.sort((a, b) => (a.order > b.order ? 1 : -1))
 						.map((el) => {
 							const media = medias[el.mediaId];
-
 							let Icon;
 							let name: string;
 							switch (media?.type) {
@@ -51,7 +50,7 @@ export function SceneTreeView() {
 							}
 
 							return {
-								id: el.id == -1 ? String(el.capsuleId) : String(el.id),
+								id: el.id == -1 ? `capsule${SEP}${el.capsuleId}` : `element${SEP}${el.id}`,
 								name,
 								media: medias[el.mediaId],
 
@@ -63,20 +62,22 @@ export function SceneTreeView() {
 			})
 		: [];
 
-	console.log(tree);
+	console.log("TREE", tree);
 
 	const onDocumentDrag: (sourceItem: TreeDataItem, targetItem: TreeDataItem) => void = (source, target) => {
-		console.log(source, target);
-		const isSourceCapsule = "children" in source;
-		const isTargetCapsule = target.name == EMPTY;
-		const sourceType = isSourceCapsule ? "capsule" : "element";
-		const targetType = isTargetCapsule ? "capsule" : "element";
+		console.log("onDocumentDrag", source, target);
+		// const isSourceCapsule = "children" in source;
+		// const isTargetCapsule = "children" in target || target.name == EMPTY;
+		// const sourceType = isSourceCapsule ? "capsule" : "element";
+		// const targetType = isTargetCapsule ? "capsule" : "element";
+		const [sourceType, sourceId] = source.id.split(SEP) as ["capsule" | "element", string];
+		const [targetType, targetId] = target.id.split(SEP) as ["capsule" | "element", string];
 
 		send({
 			type: "tree-move",
 			payload: {
-				sourceId: Number(source.id),
-				targetId: Number(target.id),
+				sourceId: Number(sourceId),
+				targetId: Number(targetId),
 				sourceType,
 				targetType
 			}

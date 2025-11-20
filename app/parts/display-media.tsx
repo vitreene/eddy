@@ -28,6 +28,7 @@ export function Media({
 					src={attr.path!}
 					width={SIZES[size].w}
 					height={SIZES[size].h}
+					draggable={false}
 				/>
 			);
 		case "text":

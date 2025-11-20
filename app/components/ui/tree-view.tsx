@@ -10,7 +10,9 @@ const treeVariants = cva(
 
 const selectedTreeVariants = cva("before:opacity-100 before:bg-accent/70 text-accent-foreground");
 
-const dragOverVariants = cva("before:opacity-100 before:bg-primary/20 text-primary-foreground");
+const dragOverVariants = cva(
+	"before:opacity-100 before:bg-primary/20 text-primary-foreground border-primary-500 border-b-2"
+);
 
 interface TreeDataItem {
 	id: string;

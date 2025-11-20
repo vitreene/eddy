@@ -163,109 +163,143 @@ export const sceneLogic = setup({
 						}
 					}
 				},
+
+				/* 
+				revoir la logique :
+				- invoke le calcul des ordres,
+				- si reorder fetch,
+				- fetch element
+				renvoyer les données à modifier
+				*/
+
 				tree: {
 					on: {
 						"tree-move": {
-							actions: assign(({ context, event }) => {
-								const { sourceId, targetId, sourceType, targetType } = event.payload;
+							actions: [
+								assign(({ context, event }) => {
+									const { sourceId, targetId, sourceType, targetType } = event.payload;
 
-								if (targetType == "element") {
-									if (sourceType == "element") {
+									if (targetType === "element") {
+										if (sourceType === "element") {
+											const element = context.elements[sourceId];
+											const target = context.elements[targetId];
+
+											const capsule = context.capsules[target.capsuleId];
+											const sourceCapsule = context.capsules[element.capsuleId];
+
+											// Récupérer les éléments de la capsule cible triés par order
+											const capsuleElementIds = capsule.elementIds.filter((id) => id !== sourceId);
+											const sortedElements = capsuleElementIds
+												.map((id) => context.elements[id])
+												.sort((a, b) => a.order - b.order);
+
+											// Trouver la position du target
+											const targetIndex = sortedElements.findIndex((el) => el.id === targetId);
+
+											// Déterminer la nouvelle valeur order
+											let newOrder: number;
+											if (targetIndex === -1) {
+												// Target non trouvé, placer à la fin
+												const lastElement = sortedElements[sortedElements.length - 1];
+												newOrder = calculateNewOrder(lastElement?.order ?? STEP);
+											} else {
+												// Placer après target
+												const nextElement = sortedElements[targetIndex + 1];
+												const targetOrder = sortedElements[targetIndex].order;
+												newOrder = calculateNewOrder(targetOrder, nextElement?.order);
+											}
+
+											// Mettre à jour uniquement l'élément déplacé
+											element.order = newOrder;
+											element.capsuleId = target.capsuleId;
+
+											// Mettre à jour les références des capsules si changement
+											if (element.capsuleId !== sourceCapsule.id) {
+												sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id !== sourceId);
+												capsule.elementIds.push(sourceId);
+											}
+
+											return {
+												...context,
+												capsules: {
+													...context.capsules,
+													[sourceCapsule.id]: sourceCapsule,
+													[capsule.id]: capsule
+												},
+												elements: {
+													...context.elements,
+													[sourceId]: element
+												}
+											};
+										}
+									}
+
+									if (targetType === "capsule") {
 										const element = context.elements[sourceId];
-										const target = context.elements[targetId];
-
-										const capsule = context.capsules[target.capsuleId];
+										const capsule = context.capsules[targetId];
 										const sourceCapsule = context.capsules[element.capsuleId];
 
-										const capsuleElements: { [key: number]: ElementComp } = {};
+										const nextElement = findElementWithSmallestOrder(
+											Object.values(context.elements).filter((el) => el.capsuleId == targetId)
+										);
+										const newOrder = calculateNewOrder(0, nextElement?.order);
+										// Placer en premier dans la capsule
+										element.order = newOrder;
+										element.capsuleId = capsule.id;
 
-										//Re-order
-										element.capsuleId = target.capsuleId;
-
-										const elements = Object.values(context.elements)
-											.filter((el) => sourceCapsule.elementIds.includes(el.id))
-											.sort((a, b) => (a.order > b.order ? 1 : -1))
-											.filter((el) => el.id !== sourceId);
-
-										/* 
-										si dans la meme capsule,
-											si source.order > target.order -> placer source AVANT target 
-										sinon source APRES target	
-								
-									*/
-
-										/* 
-									trouver la prochaine position de l'émént déplacé.
-										- placer source après target
-										- si target est capsule, placer en premier dans capsule
-							il faudrait créer un element-cible fantome pour visualiser ou se situe ledépot : ligne épaisse ou element vide.
-							la source déplacé recoit met à jour sa propriété order comme la partie entière de la valeur order de la cible + la moitié de la différence avec la cible et son suivant.
-							s'il n'a pas de suivant, dernière position, alors la valeur est la valeur order de la cible plus le pas. le pas par défaut est de 1000.
-									
-							seul l'émént déplacé doit voir sa propriété order mofifiée.
-							si, après déplacement, la valeur order de la source et de la cible sont égales, il faut signaler de réajuster l'ensemble des order de la liste (circonstance exceptionnellle )
-									*/
-
-										/* 										let index = elements.findIndex((el) => el.order == target.order);
-										index = index + (element.order > target.order ? -1 : 1);
-
-										if (index <= 0) {
-											elements.unshift(element);
-										} else elements.splice(index, 0, element);
-
-										elements.forEach((el, i) => (capsuleElements[el.id] = { ...el, order: i }));
-
-										// console.log("ELEMNTS", capsuleElement);
-										if (capsule != sourceCapsule) {
-											sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id != sourceId);
-											capsule.elementIds.push(sourceId);
-										} */
+										sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id !== sourceId);
+										capsule.elementIds.push(sourceId);
 
 										return {
 											...context,
 											capsules: {
 												...context.capsules,
 												[sourceCapsule.id]: sourceCapsule,
-												[target.capsuleId]: capsule
+												[targetId]: capsule
 											},
 											elements: {
 												...context.elements,
-												...capsuleElements
+												[sourceId]: element
 											}
 										};
 									}
-									if (sourceType == "capsule") {
-										// todo capsule -> capsule
-										// l'id de la capsule pourrait etre dans Media.path, Media.type = capsule
+
+									return context;
+								}),
+
+								async ({ context, event }) => {
+									const { sourceId, sourceType } = event.payload;
+									if (sourceType == "element") {
+										const element = context.elements[sourceId];
+										// Signaler pour réajustement global des orders
+										console.warn("⚠️ Réajustement nécessaire : les ordres sont identiques après déplacement");
+										const orders = await fetch(`api/capsule/${element.capsuleId}/reorder`);
+										console.log("orders====>", orders);
+										return {
+											...context,
+											active: {
+												...context.active,
+												reorder: orders
+											}
+										};
+									}
+								},
+								({ context, event }) => {
+									const { sourceId, sourceType } = event.payload;
+									if (sourceType == "element") {
+										const element = context.elements[sourceId];
+
+										const formData = new FormData();
+										formData.set("order", String(element.order));
+										formData.set("capsuleId", String(element.capsuleId));
+
+										fetch(`api/element/${element.id}`, {
+											method: "PUT",
+											body: formData
+										});
 									}
 								}
-
-								//la capsule est vide
-								if (targetType == "capsule") {
-									const element = context.elements[sourceId];
-									const capsule = context.capsules[targetId];
-									const sourceCapsule = context.capsules[element.capsuleId];
-
-									sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id != sourceId);
-									capsule.elementIds.push(sourceId);
-									element.capsuleId = capsule.id;
-
-									return {
-										...context,
-										capsules: {
-											...context.capsules,
-											[sourceCapsule.id]: sourceCapsule,
-											[targetId]: capsule
-										},
-										elements: {
-											...context.elements,
-											[sourceId]: element
-										}
-									};
-								}
-
-								return context;
-							})
+							]
 						}
 					}
 				}
@@ -276,8 +310,16 @@ export const sceneLogic = setup({
 
 export const SceneLogicContext = createActorContext(sceneLogic);
 
-export const arrayMove = <T>(arr: T[], fromIndex: number, toIndex: number) => {
-	const newArr = [...arr];
-	newArr.splice(toIndex, 0, newArr.splice(fromIndex, 1)[0]);
-	return newArr;
+const STEP = 1000;
+const calculateNewOrder = (targetOrder: number, nextElementOrder?: number, step: number = STEP): number => {
+	if (nextElementOrder === undefined) {
+		// Pas de suivant : order = target.order + step
+		return targetOrder + step;
+	}
+	// Avec suivant : order = floor(target.order + (next.order - target.order) / 2)
+	return Math.floor(targetOrder + (nextElementOrder - targetOrder) / 2);
 };
+
+function findElementWithSmallestOrder<T extends { order: number }>(elements: T[]): T | undefined {
+	return elements.reduce((min, current) => (current.order < min.order ? current : min));
+}

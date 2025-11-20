@@ -65,7 +65,9 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 	return (
 		<main className="app-layout">
 			<section className="base-layout layout-menu">Eddy</section>
-			<section className="base-layout layout-chutier">Chutier</section>
+			<section className="base-layout layout-chutier">
+				<p className="border-primary-500 border-b-2">Chutier</p>
+			</section>
 			<section className="base-layout layout-capsules">
 				<Capsules />
 				<EditCapsule />
