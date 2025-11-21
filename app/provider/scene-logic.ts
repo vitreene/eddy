@@ -1,4 +1,4 @@
-import { setup, assign, type UnknownActorLogic } from "xstate";
+import { setup, assign, type UnknownActorLogic, fromTransition, fromCallback, fromPromise } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import type { CapsuleComp, ElementComp, MediaEvent, SceneComp } from "@/api/db";
@@ -21,6 +21,28 @@ const active: ActiveState = {
 	eventTouched: false
 };
 
+interface TreeMoveEvent {
+	sourceId: number;
+	sourceType: "element" | "capsule";
+	targetId: number;
+	targetType: "element" | "capsule";
+}
+
+/* const treeMove = fromCallback(({ input: { context, event } }) => {
+	console.log("from treeMove");
+	console.log(context, event);
+
+	return event;
+});
+ */
+
+const treeMove = fromPromise(({ input: { context, event } }) => {
+	console.log("from treeMove");
+	console.log(context, event);
+
+	return { TOTO: "tutu" };
+});
+
 export const sceneLogic = setup({
 	types: {
 		context: {} as SceneComp & { active: ActiveState },
@@ -29,15 +51,7 @@ export const sceneLogic = setup({
 			| { type: "active.set"; payload: Partial<ActiveState> }
 			| { type: "capsule.update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<MediaEvent> }
-			| {
-					type: "tree-move";
-					payload: {
-						sourceId: number;
-						sourceType: "element" | "capsule";
-						targetId: number;
-						targetType: "element" | "capsule";
-					};
-			  }
+			| { type: "tree-move"; payload: TreeMoveEvent }
 	},
 	actions: {
 		fetchers: ({ context }, params: string[]) => {
@@ -57,7 +71,8 @@ export const sceneLogic = setup({
 		}
 	},
 	actors: {
-		initContext: {} as UnknownActorLogic
+		initContext: {} as UnknownActorLogic,
+		treeMove
 	}
 }).createMachine({
 	id: "scene",
@@ -125,7 +140,9 @@ export const sceneLogic = setup({
 								})),
 								({ context, event }) => {
 									const formData = new FormData();
-									Object.entries(event.payload).forEach(([k, v]: [string, unknown]) => formData.set(k, v as any));
+									Object.entries(event.payload).forEach(([k, v]: [string, unknown]) =>
+										formData.set(k, v as any)
+									);
 									const active = context.active;
 									fetch(`api/capsule/${active.capsuleId}`, {
 										method: "POST",
@@ -173,9 +190,29 @@ export const sceneLogic = setup({
 				*/
 
 				tree: {
-					on: {
-						"tree-move": {
-							actions: [
+					initial: "idle",
+					states: {
+						idle: {
+							on: { "tree-move": { target: "move" } }
+						},
+						move: {
+							invoke: {
+								id: "treeMove",
+								src: "treeMove",
+								input: (input: any) => {
+									console.log(input);
+
+									return input;
+								},
+								onDone: {
+									target: "idle",
+									actions: (output) => {
+										console.log("ACTION", output);
+									}
+								}
+
+								// input: ({ context }: { context: SceneComp & { active: ActiveState } }) => context
+								/* 	actions: [
 								assign(({ context, event }) => {
 									const { sourceId, targetId, sourceType, targetType } = event.payload;
 
@@ -298,8 +335,8 @@ export const sceneLogic = setup({
 											body: formData
 										});
 									}
-								}
-							]
+							] */
+							}
 						}
 					}
 				}
