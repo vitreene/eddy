@@ -1,7 +1,8 @@
-import { setup, assign, type UnknownActorLogic, fromTransition, fromCallback, fromPromise } from "xstate";
+import { setup, assign, type UnknownActorLogic } from "xstate";
 import { createActorContext } from "@xstate/react";
 
-import type { CapsuleComp, ElementComp, MediaEvent, SceneComp } from "@/api/db";
+import type { CapsuleComp, MediaEvent, SceneComp } from "@/api/db";
+import { reorderElements, updateOrder } from "./reorder-elements";
 
 interface ActiveState {
 	[key: string]: number | string | boolean | null;
@@ -21,27 +22,12 @@ const active: ActiveState = {
 	eventTouched: false
 };
 
-interface TreeMoveEvent {
+export interface TreeMoveEvent {
 	sourceId: number;
 	sourceType: "element" | "capsule";
 	targetId: number;
 	targetType: "element" | "capsule";
 }
-
-/* const treeMove = fromCallback(({ input: { context, event } }) => {
-	console.log("from treeMove");
-	console.log(context, event);
-
-	return event;
-});
- */
-
-const treeMove = fromPromise(({ input: { context, event } }) => {
-	console.log("from treeMove");
-	console.log(context, event);
-
-	return { TOTO: "tutu" };
-});
 
 export const sceneLogic = setup({
 	types: {
@@ -71,8 +57,7 @@ export const sceneLogic = setup({
 		}
 	},
 	actors: {
-		initContext: {} as UnknownActorLogic,
-		treeMove
+		initContext: {} as UnknownActorLogic
 	}
 }).createMachine({
 	id: "scene",
@@ -181,130 +166,40 @@ export const sceneLogic = setup({
 					}
 				},
 
-				/* 
-				revoir la logique :
-				- invoke le calcul des ordres,
-				- si reorder fetch,
-				- fetch element
-				renvoyer les données à modifier
-				*/
-
 				tree: {
 					initial: "idle",
-					states: {
-						idle: {
-							on: { "tree-move": { target: "move" } }
-						},
-						move: {
-							invoke: {
-								id: "treeMove",
-								src: "treeMove",
-								input: (input: any) => {
-									console.log(input);
-
-									return input;
-								},
-								onDone: {
-									target: "idle",
-									actions: (output) => {
-										console.log("ACTION", output);
-									}
-								}
-
-								// input: ({ context }: { context: SceneComp & { active: ActiveState } }) => context
-								/* 	actions: [
+					on: {
+						"tree-move": {
+							target: "tree.reorder-capsule",
+							actions: [
 								assign(({ context, event }) => {
-									const { sourceId, targetId, sourceType, targetType } = event.payload;
+									const { capsules, elements, moved } = reorderElements(context, event.payload);
+									moved && updateOrder(moved);
+									return { ...context, capsules, elements };
+									/* 
+									TODO si egalité dans les order, -> reorder la capsule  en base, puis updater le context 
+									*/
+								})
+							]
+						}
+					},
+					states: {
+						idle: {},
+						"reorder-capsule": {
+							entry: ({ event }) => {
+								console.log("reorder-capsule", event);
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+});
 
-									if (targetType === "element") {
-										if (sourceType === "element") {
-											const element = context.elements[sourceId];
-											const target = context.elements[targetId];
+export const SceneLogicContext = createActorContext(sceneLogic);
 
-											const capsule = context.capsules[target.capsuleId];
-											const sourceCapsule = context.capsules[element.capsuleId];
-
-											// Récupérer les éléments de la capsule cible triés par order
-											const capsuleElementIds = capsule.elementIds.filter((id) => id !== sourceId);
-											const sortedElements = capsuleElementIds
-												.map((id) => context.elements[id])
-												.sort((a, b) => a.order - b.order);
-
-											// Trouver la position du target
-											const targetIndex = sortedElements.findIndex((el) => el.id === targetId);
-
-											// Déterminer la nouvelle valeur order
-											let newOrder: number;
-											if (targetIndex === -1) {
-												// Target non trouvé, placer à la fin
-												const lastElement = sortedElements[sortedElements.length - 1];
-												newOrder = calculateNewOrder(lastElement?.order ?? STEP);
-											} else {
-												// Placer après target
-												const nextElement = sortedElements[targetIndex + 1];
-												const targetOrder = sortedElements[targetIndex].order;
-												newOrder = calculateNewOrder(targetOrder, nextElement?.order);
-											}
-
-											// Mettre à jour uniquement l'élément déplacé
-											element.order = newOrder;
-											element.capsuleId = target.capsuleId;
-
-											// Mettre à jour les références des capsules si changement
-											if (element.capsuleId !== sourceCapsule.id) {
-												sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id !== sourceId);
-												capsule.elementIds.push(sourceId);
-											}
-
-											return {
-												...context,
-												capsules: {
-													...context.capsules,
-													[sourceCapsule.id]: sourceCapsule,
-													[capsule.id]: capsule
-												},
-												elements: {
-													...context.elements,
-													[sourceId]: element
-												}
-											};
-										}
-									}
-
-									if (targetType === "capsule") {
-										const element = context.elements[sourceId];
-										const capsule = context.capsules[targetId];
-										const sourceCapsule = context.capsules[element.capsuleId];
-
-										const nextElement = findElementWithSmallestOrder(
-											Object.values(context.elements).filter((el) => el.capsuleId == targetId)
-										);
-										const newOrder = calculateNewOrder(0, nextElement?.order);
-										// Placer en premier dans la capsule
-										element.order = newOrder;
-										element.capsuleId = capsule.id;
-
-										sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id !== sourceId);
-										capsule.elementIds.push(sourceId);
-
-										return {
-											...context,
-											capsules: {
-												...context.capsules,
-												[sourceCapsule.id]: sourceCapsule,
-												[targetId]: capsule
-											},
-											elements: {
-												...context.elements,
-												[sourceId]: element
-											}
-										};
-									}
-
-									return context;
-								}),
-
-								async ({ context, event }) => {
+/* async ({ context, event }) => {
 									const { sourceId, sourceType } = event.payload;
 									if (sourceType == "element") {
 										const element = context.elements[sourceId];
@@ -320,43 +215,4 @@ export const sceneLogic = setup({
 											}
 										};
 									}
-								},
-								({ context, event }) => {
-									const { sourceId, sourceType } = event.payload;
-									if (sourceType == "element") {
-										const element = context.elements[sourceId];
-
-										const formData = new FormData();
-										formData.set("order", String(element.order));
-										formData.set("capsuleId", String(element.capsuleId));
-
-										fetch(`api/element/${element.id}`, {
-											method: "PUT",
-											body: formData
-										});
-									}
-							] */
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-});
-
-export const SceneLogicContext = createActorContext(sceneLogic);
-
-const STEP = 1000;
-const calculateNewOrder = (targetOrder: number, nextElementOrder?: number, step: number = STEP): number => {
-	if (nextElementOrder === undefined) {
-		// Pas de suivant : order = target.order + step
-		return targetOrder + step;
-	}
-	// Avec suivant : order = floor(target.order + (next.order - target.order) / 2)
-	return Math.floor(targetOrder + (nextElementOrder - targetOrder) / 2);
-};
-
-function findElementWithSmallestOrder<T extends { order: number }>(elements: T[]): T | undefined {
-	return elements.reduce((min, current) => (current.order < min.order ? current : min));
-}
+								}, */
