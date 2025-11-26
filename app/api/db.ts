@@ -240,8 +240,26 @@ export async function deleteCapsule(id: number) {
 	return await prisma.capsule.delete({ where: { id } });
 }
 
+const STEP = 1000;
 //TODO
-export async function reorderCapsule(id: number) {}
+export async function reorderCapsule(id: number) {
+	return await prisma.$transaction(async (tx) => {
+		const elements = await tx.capsuleElement.findMany({
+			where: { capsuleId: id },
+			select: { id: true },
+			orderBy: { order: "asc" }
+		});
+		return Promise.all(
+			elements.flatMap(({ id: elementId }, index) =>
+				tx.capsuleElement.updateManyAndReturn({
+					where: { id: elementId },
+					data: { order: index * STEP + STEP },
+					select: { id: true, order: true }
+				})
+			)
+		);
+	});
+}
 
 // ELEMENTS
 

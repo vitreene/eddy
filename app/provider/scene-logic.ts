@@ -1,10 +1,10 @@
-import { setup, assign, type UnknownActorLogic, fromPromise } from "xstate";
+import { setup, assign, type UnknownActorLogic } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import type { CapsuleComp, MediaEvent, SceneComp } from "@/api/db";
-import { reorderElements, updateOrder } from "./reorder-elements";
+import { fetchReorder, reorderElements, updateOrder } from "./reorder-elements";
 
-interface ActiveState {
+export interface ActiveState {
 	[key: string]: number | string | boolean | null;
 	capsuleId: number | null;
 	elementId: number | null;
@@ -59,7 +59,8 @@ export const sceneLogic = setup({
 		}
 	},
 	actors: {
-		initContext: {} as UnknownActorLogic
+		initContext: {} as UnknownActorLogic,
+		fetchReorder
 	}
 }).createMachine({
 	id: "scene",
@@ -181,80 +182,34 @@ export const sceneLogic = setup({
 										assign(({ context, event }) => {
 											const { capsules, elements, moved } = reorderElements(context, event.payload);
 											if (moved) updateOrder(moved);
-
 											return { ...context, capsules, elements };
-											/* 
-									TODO si egalité dans les order, -> reorder la capsule  en base, puis updater le context 
-									*/
 										})
 									]
 								}
 							}
-
-							// invoke:"reorderCapsule"
 						},
 						"after-move": {
-							// ici invoke ?
 							invoke: {
 								id: "reorder-capsule",
+								reenter: true,
 								input: ({ context, event }) => ({ context, event }),
-								src: fromPromise(async ({ input }) => {
-									console.log("reorder-capsule");
-									const { context, event } = input;
-									if (event.type == "tree-move") {
-										const element = context.elements[event.payload.sourceId];
-
-										const elements = Object.values(context.elements).filter(
-											(el) => el.capsuleId == element.capsuleId
-										);
-										const canReorder = new Set(elements.map((el) => el.order)).size != elements.length;
-										if (!canReorder) {
-											console.warn(
-												"⚠️ Réajustement nécessaire : les ordres sont identiques après déplacement"
-											);
-											console.log("capsule ->", context, event);
-											return fetch(`api/capsule/${element.capsuleId}/reorder`).then((response) =>
-												response.json()
-											);
-
-											//	console.log("orders====>", orders);
-										} else {
-											console.log("reject====>", canReorder);
-
-											return Promise.reject;
-										}
-									}
-								}),
+								src: "fetchReorder",
 								onDone: {
-									// actions: assign({ user: ({ event }) => event.output }),
-									actions: ({ event }) => {
-										console.log("On done : order", event.output);
-									}
+									target: "#scene.edit",
+									actions: assign(({ context, event }) => {
+										console.log(event);
+										if (event.output == "no-reorder") return context;
+										const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
+										const elements = reorders.map((r) => ({
+											[r.id]: { ...context.elements[r.id], order: r.order }
+										}));
+										return {
+											...context,
+											elements: Object.assign({}, context.elements, ...elements)
+										};
+									})
 								}
 							}
-							/* 
-							entry: ({ context, event }) => {
-								console.log("after-move ->", context, event);
-								if (event.type == "tree-move") {
-									const element = context.elements[event.payload.sourceId];
-
-									const elements = Object.values(context.elements).filter(
-										(el) => el.capsuleId == element.capsuleId
-									);
-									const canReorder = new Set(elements.map((el) => el.order)).size != elements.length;
-									return canReorder;
-								}
-							},
-							actions: async (props) => {
-								const { context, event } = props;
-
-								console.log("reorder-capsule", props, event.payload);
-								console.warn("⚠️ Réajustement nécessaire : les ordres sont identiques après déplacement");
-								console.log("capsule ->", context, event);
-								//	const orders = await fetch(`api/capsule/${element.capsuleId}/reorder`);
-								//	console.log("orders====>", orders);
-								// TODO comment remettre ces valeurs dans le context ?
-							} */
 						}
 					}
 				}

@@ -1,12 +1,12 @@
 import type { Capsule } from "@prisma/client";
 import type { Route } from "../+types/root";
-import { getCapsule, updateCapsule } from "./db";
+import { getCapsule, reorderCapsule, updateCapsule } from "./db";
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const { "*": splat, id } = params;
 	if (splat == "reorder") {
 		console.log("SPLAT", splat);
-		return { reorder: [1, 2, 3] };
+		return await reorderCapsule(Number(id));
 	}
 	const capsule = await getCapsule(Number(params.id));
 	return capsule;
