@@ -240,6 +240,9 @@ export async function deleteCapsule(id: number) {
 	return await prisma.capsule.delete({ where: { id } });
 }
 
+//TODO
+export async function reorderCapsule(id: number) {}
+
 // ELEMENTS
 
 export async function updateElement({ id, ...update }: Partial<CapsuleElement>) {

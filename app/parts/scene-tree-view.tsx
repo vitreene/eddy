@@ -12,7 +12,9 @@ export function SceneTreeView() {
 	const medias: { [key: number]: CapsuleMedia } = SceneLogicContext.useSelector(
 		(state) =>
 			elements &&
-			Object.fromEntries(Object.values(elements).map((el) => [[el.mediaId], state.context.medias[el.mediaId]]))
+			Object.fromEntries(
+				Object.values(elements).map((el) => [[el.mediaId], state.context.medias[el.mediaId]])
+			)
 	);
 
 	const { send } = SceneLogicContext.useActorRef();
@@ -62,14 +64,10 @@ export function SceneTreeView() {
 			})
 		: [];
 
-	console.log("TREE", tree);
+	// console.log("TREE", tree);
 
 	const onDocumentDrag: (sourceItem: TreeDataItem, targetItem: TreeDataItem) => void = (source, target) => {
 		console.log("onDocumentDrag", source, target);
-		// const isSourceCapsule = "children" in source;
-		// const isTargetCapsule = "children" in target || target.name == EMPTY;
-		// const sourceType = isSourceCapsule ? "capsule" : "element";
-		// const targetType = isTargetCapsule ? "capsule" : "element";
 		const [sourceType, sourceId] = source.id.split(SEP) as ["capsule" | "element", string];
 		const [targetType, targetId] = target.id.split(SEP) as ["capsule" | "element", string];
 

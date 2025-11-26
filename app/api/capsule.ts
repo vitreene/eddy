@@ -3,7 +3,7 @@ import type { Route } from "../+types/root";
 import { getCapsule, updateCapsule } from "./db";
 
 export async function loader({ params }: Route.LoaderArgs) {
-	const { "*": splat } = params;
+	const { "*": splat, id } = params;
 	if (splat == "reorder") {
 		console.log("SPLAT", splat);
 		return { reorder: [1, 2, 3] };
