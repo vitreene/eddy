@@ -241,7 +241,7 @@ export async function deleteCapsule(id: number) {
 }
 
 const STEP = 1000;
-//TODO
+
 export async function reorderCapsule(id: number) {
 	return await prisma.$transaction(async (tx) => {
 		const elements = await tx.capsuleElement.findMany({
@@ -268,6 +268,10 @@ export async function updateElement({ id, ...update }: Partial<CapsuleElement>) 
 		where: { id },
 		data: update
 	});
+}
+export async function addElementToCapsule(data: { order: number; capsuleId: number }) {
+	prisma.$transaction(async (tx) => {});
+	// return await prisma.capsuleElement.create({data});
 }
 
 //	ref: string  -> transition, details...

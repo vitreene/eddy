@@ -62,6 +62,7 @@ model CapsuleElement {
 model Media {
   id             Int              @id @default(autoincrement())
   type           String
+  referenceId    Int?
   path           String?
   content        String?
   lang           String?
