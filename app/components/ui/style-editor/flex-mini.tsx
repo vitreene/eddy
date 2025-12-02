@@ -44,12 +44,12 @@ export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
 	return (
 		<div>
 			<div className="mb-1 text-[10px] opacity-60">Flex</div>
-			<div className="grid grid-cols-3 gap-1">
+			<div className="grid aspect-square w-10 grid-cols-3 gap-1">
 				{grid.map((_, i) => (
 					<button
 						key={i}
 						className={cn(
-							"h-5 w-5 rounded border",
+							"h-3 w-3 rounded-xs border",
 							selected === i ? "bg-blue-500" : "bg-muted hover:bg-accent"
 						)}
 						onClick={() => select(i)}

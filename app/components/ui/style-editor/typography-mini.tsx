@@ -16,9 +16,9 @@ export const TypographyMini: React.FC<Props> = ({ value, onChange }) => {
 	const size = parseInt(value.fontSize || "16");
 
 	return (
-		<div className="space-y-2">
+		<div className="space-y-4">
 			<div className="flex items-center gap-2">
-				<span className="w-8 text-[10px] opacity-60">Size</span>
+				<span className="w-8 text-xs">Taille</span>
 				<Slider
 					value={[size]}
 					onValueChange={([v]) => update("fontSize", v + "px")}
@@ -26,12 +26,12 @@ export const TypographyMini: React.FC<Props> = ({ value, onChange }) => {
 					max={48}
 					className="flex-1"
 				/>
-				<span className="w-6 text-right text-[10px]">{size}</span>
+				<span className="w-6 text-right text-xs">{size}</span>
 			</div>
 
-			<div className="flex gap-1">
+			<div className="flex gap-2">
 				<Button
-					size="icon"
+					size="icon-sm"
 					variant={value.fontWeight === "bold" ? "default" : "outline"}
 					onClick={() => update("fontWeight", value.fontWeight === "bold" ? "normal" : "bold")}
 				>
@@ -39,15 +39,15 @@ export const TypographyMini: React.FC<Props> = ({ value, onChange }) => {
 				</Button>
 
 				<Button
-					size="icon"
+					size="icon-sm"
 					variant={value.fontStyle === "italic" ? "default" : "outline"}
 					onClick={() => update("fontStyle", value.fontStyle === "italic" ? "normal" : "italic")}
 				>
 					<Italic className="h-4 w-4" />
 				</Button>
-
+				<span className="m-auto" />
 				<Button
-					size="icon"
+					size="icon-sm"
 					variant={value.textAlign === "left" ? "default" : "outline"}
 					onClick={() => update("textAlign", "left")}
 				>
@@ -55,7 +55,7 @@ export const TypographyMini: React.FC<Props> = ({ value, onChange }) => {
 				</Button>
 
 				<Button
-					size="icon"
+					size="icon-sm"
 					variant={value.textAlign === "center" ? "default" : "outline"}
 					onClick={() => update("textAlign", "center")}
 				>
@@ -63,7 +63,7 @@ export const TypographyMini: React.FC<Props> = ({ value, onChange }) => {
 				</Button>
 
 				<Button
-					size="icon"
+					size="icon-sm"
 					variant={value.textAlign === "right" ? "default" : "outline"}
 					onClick={() => update("textAlign", "right")}
 				>
