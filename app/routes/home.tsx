@@ -1,5 +1,5 @@
 import { fromPromise } from "xstate";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import type { Route } from "./+types/home";
 
 // import { PlayerRunner } from "~/player";
@@ -11,6 +11,7 @@ import { Capsules } from "~/parts/capsules";
 import { EditCapsule } from "~/parts/capsule-edit";
 import { getScene, type SceneComp } from "~/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";
+import { StyleEditor } from "@/components/ui/style-editor";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 
@@ -67,6 +68,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 			<section className="base-layout layout-menu">Eddy</section>
 			<section className="base-layout layout-chutier">
 				<p className="border-primary-500 border-b-2">Chutier</p>
+				<StyleEditor />
 			</section>
 			<section className="base-layout layout-capsules">
 				<Capsules />
