@@ -12,18 +12,25 @@ model Scene {
   title    String       @default("Scène")
   capsules Capsule[]
   medias   SceneMedia[]
+  theme    Decor[]
+  themes   Theme[]
 
   @@map("scene")
 }
 
 model SceneMedia {
-  id      Int    @id @default(autoincrement())
-  order   Int
-  events  String // JSON
-  mediaId Int    @map("media_id")
-  media   Media  @relation(fields: [mediaId], references: [id])
-  sceneId Int    @map("scene_id")
-  scene   Scene  @relation(fields: [sceneId], references: [id])
+  id     Int    @id @default(autoincrement())
+  order  Int
+  events String // JSON
+
+  mediaId Int   @map("media_id")
+  media   Media @relation(fields: [mediaId], references: [id])
+
+  sceneId Int   @map("scene_id")
+  scene   Scene @relation(fields: [sceneId], references: [id])
+
+  decorId Int?   @unique @map("decor_id") // basé sur  // name
+  decor   Decor? @relation(fields: [decorId], references: [id])
 
   @@map("scene_media")
 }
@@ -33,18 +40,24 @@ model Capsule {
   type     String
   elements CapsuleElement[]
   events   Event[]
-  sceneId  Int              @map("scene_id")
-  scene    Scene            @relation(fields: [sceneId], references: [id])
+
+  sceneId Int   @map("scene_id")
+  scene   Scene @relation(fields: [sceneId], references: [id])
+
+  decorId Int?   @unique @map("decor_id") // basé sur  // name
+  decor   Decor? @relation(fields: [decorId], references: [id])
 
   @@map("capsule")
 }
 
 model CapsuleElement {
-  id        Int      @id @default(autoincrement())
-  order     Int
-  events    Event[]
-  mediaId   Int      @map("media_id")
-  media     Media    @relation(fields: [mediaId], references: [id])
+  id     Int     @id @default(autoincrement())
+  order  Int
+  events Event[]
+
+  mediaId Int   @map("media_id")
+  media   Media @relation(fields: [mediaId], references: [id])
+
   capsuleId Int      @map("capsule_id")
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])
 
@@ -60,12 +73,13 @@ model CapsuleElement {
 // }
 
 model Media {
-  id             Int              @id @default(autoincrement())
-  type           String
-  referenceId    Int?
-  path           String?
-  content        String?
-  lang           String?
+  id          Int     @id @default(autoincrement())
+  type        String
+  referenceId Int?
+  path        String?
+  content     String?
+  lang        String?
+
   sceneMedia     SceneMedia[]
   capsuleElement CapsuleElement[]
 
@@ -81,7 +95,7 @@ model Event {
   id       Int    @id @default(autoincrement())
   name     String
   action   String
-  ref      String
+  ref      String // référence nommée dans une config, sans décor 
   duration Int?
 
   elementId Int?            @map("element_id")
@@ -90,5 +104,43 @@ model Event {
   capsuleId Int?     @map("capsule_id")
   capsules  Capsule? @relation(fields: [capsuleId], references: [id])
 
+  decorId Int?   @unique @map("decor_id") // basé sur  // name
+  decor   Decor? @relation(fields: [decorId], references: [id])
+
   @@map("event")
+}
+
+model Decor {
+  id        Int     @id @default(autoincrement())
+  name      String?
+  style     String? // JSON
+  className String?
+
+  targetId Int?     @map("target_id") // capsuleId
+  order    Int? // ordre d'insertion dans la capsule ; n° du slot
+  capsule  Capsule? //target 
+
+  sceneId Int?
+  scene   Scene? @relation(fields: [sceneId], references: [id])
+
+  basedUpon Int?    @map("based_upon") // ref decor id  // name
+  base      Decor?  @relation("BasedUpon", fields: [basedUpon], references: [id])
+  bases     Decor[] @relation("BasedUpon")
+
+  sceneMedia SceneMedia?
+  event      Event?
+
+  @@map("decor")
+}
+
+model Theme {
+  id        Int     @id @default(autoincrement())
+  name      String?
+  custom    String?
+  generated String?
+
+  sceneId Int?
+  scene   Scene? @relation(fields: [sceneId], references: [id])
+
+  @@map("theme")
 }
