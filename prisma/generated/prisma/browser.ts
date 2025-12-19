@@ -56,6 +56,11 @@ export type Event = Prisma.EventModel
  */
 export type Decor = Prisma.DecorModel
 /**
+ * Model ElementTarget
+ * 
+ */
+export type ElementTarget = Prisma.ElementTargetModel
+/**
  * Model Theme
  * 
  */

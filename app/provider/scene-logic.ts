@@ -3,6 +3,7 @@ import { createActorContext } from "@xstate/react";
 
 import type { CapsuleComp, MediaEvent, SceneComp } from "@/api/db";
 import { fetchReorder, reorderElements, updateOrder } from "./reorder-elements";
+import type { Decor } from "@prisma/client";
 
 export interface ActiveState {
 	[key: string]: number | string | boolean | null;
@@ -12,6 +13,7 @@ export interface ActiveState {
 	cue: string | null;
 	action: string | null;
 	eventTouched: boolean;
+	decorTouched: boolean;
 }
 const active: ActiveState = {
 	capsuleId: null,
@@ -19,7 +21,8 @@ const active: ActiveState = {
 	mediaId: null,
 	cue: null,
 	action: null,
-	eventTouched: false
+	eventTouched: false,
+	decorTouched: false
 };
 
 export interface TreeMoveEvent {
@@ -35,7 +38,7 @@ export const sceneLogic = setup({
 		input: {} as SceneComp,
 		events: {} as
 			| { type: "active.set"; payload: Partial<ActiveState> }
-			| { type: "capsule.update"; payload: Partial<CapsuleComp> }
+			| { type: "capsule.update"; payload: Partial<CapsuleComp & Decor> }
 			| { type: "events-update"; payload: Partial<MediaEvent> }
 			| { type: "tree-move"; payload: TreeMoveEvent }
 			| { type: "after-move"; payload: TreeMoveEvent }
@@ -43,10 +46,11 @@ export const sceneLogic = setup({
 	},
 	actions: {
 		fetchers: ({ context }, params: string[]) => {
-			const elementId = context.active.elementId;
-			if (!params.length || !elementId) return;
+			if (!params.length) return;
 
-			if (params.includes("eventTouched")) {
+			// events changes (per element)
+			const elementId = context.active.elementId;
+			if (elementId && params.includes("eventTouched")) {
 				fetch(`api/media/${elementId}`, {
 					method: "POST",
 					headers: {
@@ -55,6 +59,24 @@ export const sceneLogic = setup({
 					},
 					body: JSON.stringify(context.events[elementId])
 				});
+			}
+
+			// decor changes — envoyer à la base quand on quitte l'édition d'une capsule ET decorTouched est vrai
+			const capsuleIdChanged = params.includes("capsuleId");
+			const elementIdChanged = params.includes("elementId");
+
+			if ((capsuleIdChanged || elementIdChanged) && context.active.decorTouched) {
+				const capsuleId = context.active.capsuleId;
+				if (capsuleId) {
+					const decor = context.decors?.capsules?.[capsuleId];
+					if (decor) {
+						fetch(`api/decor`, {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ capsuleId, ...decor })
+						});
+					}
+				}
 			}
 		}
 	},
@@ -96,6 +118,7 @@ export const sceneLogic = setup({
 											if (context.active[id] !== event.payload[id]) diffs.push(id);
 										}
 										if (context.active.eventTouched) diffs.push("eventTouched");
+										if (context.active.decorTouched) diffs.push("decorTouched");
 										return diffs;
 									}
 								},
@@ -105,7 +128,8 @@ export const sceneLogic = setup({
 									active: {
 										...context.active,
 										...event.payload,
-										eventTouched: false
+										eventTouched: false,
+										decorTouched: false
 									}
 								}))
 							]
@@ -116,21 +140,42 @@ export const sceneLogic = setup({
 					on: {
 						"capsule.update": {
 							actions: [
-								assign(({ context, event }) => ({
-									...context,
-									capsules: {
-										...context.capsules,
-										[context.active.capsuleId!]: {
-											...context.capsules[context.active.capsuleId!],
-											...event.payload
+								assign(({ context, event }) => {
+									const capsuleId = context.active.capsuleId!;
+									const { decor: newDecor, ...payload }: any = event.payload as any;
+									const newCapsule = {
+										...context.capsules[capsuleId],
+										...payload
+									};
+									const decors = {
+										...(context.decors || { capsules: {}, elements: {} }),
+										capsules: {
+											...(context.decors?.capsules || {}),
+											...(newDecor
+												? {
+														[capsuleId]: {
+															...context.decors?.capsules?.[capsuleId],
+															...newDecor
+														}
+													}
+												: {})
 										}
-									}
-								})),
+									};
+									return {
+										...context,
+										capsules: {
+											...context.capsules,
+											[capsuleId]: newCapsule
+										},
+										decors
+									};
+								}),
 								({ context, event }) => {
+									// Only persist capsule basic fields immediately; decor is persisted on active change
+									const payload: any = event.payload as any;
+									if (payload && payload.decor) return;
 									const formData = new FormData();
-									Object.entries(event.payload).forEach(([k, v]: [string, unknown]) =>
-										formData.set(k, v as any)
-									);
+									Object.entries(payload).forEach(([k, v]: [string, unknown]) => formData.set(k, v as any));
 									const active = context.active;
 									fetch(`api/capsule/${active.capsuleId}`, {
 										method: "POST",

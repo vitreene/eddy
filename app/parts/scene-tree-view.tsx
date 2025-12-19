@@ -1,33 +1,51 @@
-import { TreeView, type TreeDataItem } from "@/components/ui/tree-view";
-import { SceneLogicContext } from "@/provider/scene-logic";
-import { Media } from "./display-media";
-import type { Media as CapsuleMedia } from "@prisma/client";
+import cx from "classnames";
 import { BoxIcon } from "lucide-react";
+import type { Media as CapsuleMedia } from "@prisma/client";
+import { SceneLogicContext } from "@/provider/scene-logic";
+import { TreeView, type TreeDataItem } from "@/components/ui/tree-view";
+
+import { Media } from "./display-media";
 
 const EMPTY = "–";
 const SEP = "__";
 export function SceneTreeView() {
+	const active = SceneLogicContext.useSelector((state) => state.context.active);
 	const capsules = SceneLogicContext.useSelector((state) => state.context.capsules);
 	const elements = SceneLogicContext.useSelector((state) => state.context.elements);
 	const medias: { [key: number]: CapsuleMedia } = SceneLogicContext.useSelector(
 		(state) =>
 			elements &&
-			Object.fromEntries(
-				Object.values(elements).map((el) => [[el.mediaId], state.context.medias[el.mediaId]])
-			)
+			Object.fromEntries(Object.values(elements).map((el) => [[el.mediaId], state.context.medias[el.mediaId]]))
 	);
 
 	const { send } = SceneLogicContext.useActorRef();
 
+	const selectCapsule = (capsuleId: number) => {
+		if (active.capsuleId !== capsuleId)
+			send({
+				type: "active.set",
+				payload: { capsuleId }
+			});
+	};
+
+	const editElement = (elementId: number) => {
+		send({ type: "active.set", payload: { elementId } });
+	};
+
 	const tree: TreeDataItem[] = capsules
 		? Object.values(capsules).map((c) => {
 				const els = c.elementIds.map((el) => elements[el]);
-				// if (els.length == 0) els.push({ id: -1, order: 0, mediaId: 0, eventIds: [], capsuleId: c.id });
+
 				return {
 					id: `capsule${SEP}${c.id}`,
 					name: c.type,
 					droppable: true,
 					draggable: true,
+					className: cx("uppercase text-left hover:bg-amber-100", {
+						"bg-amber-200 hover:bg-amber-300": c.id == active.capsuleId
+					}),
+
+					onClick: () => selectCapsule(c.id),
 					children: els
 						.sort((a, b) => (a.order > b.order ? 1 : -1))
 						.map((el) => {
@@ -56,6 +74,7 @@ export function SceneTreeView() {
 								name,
 								media: medias[el.mediaId],
 
+								onClick: () => editElement(el.id),
 								icon: Icon,
 								draggable: true
 							};
@@ -92,6 +111,9 @@ export function SceneTreeView() {
 	const onSelectChange: (item: TreeDataItem | undefined) => void = (item) => {
 		console.log("onSelectChange", item);
 	};
+
+	if (!capsules || !Object.keys(capsules).length) return null;
+
 	return (
 		<TreeView
 			data={tree}

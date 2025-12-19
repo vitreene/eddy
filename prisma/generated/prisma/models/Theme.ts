@@ -28,12 +28,10 @@ export type AggregateTheme = {
 
 export type ThemeAvgAggregateOutputType = {
   id: number | null
-  sceneId: number | null
 }
 
 export type ThemeSumAggregateOutputType = {
   id: number | null
-  sceneId: number | null
 }
 
 export type ThemeMinAggregateOutputType = {
@@ -41,7 +39,6 @@ export type ThemeMinAggregateOutputType = {
   name: string | null
   custom: string | null
   generated: string | null
-  sceneId: number | null
 }
 
 export type ThemeMaxAggregateOutputType = {
@@ -49,7 +46,6 @@ export type ThemeMaxAggregateOutputType = {
   name: string | null
   custom: string | null
   generated: string | null
-  sceneId: number | null
 }
 
 export type ThemeCountAggregateOutputType = {
@@ -57,19 +53,16 @@ export type ThemeCountAggregateOutputType = {
   name: number
   custom: number
   generated: number
-  sceneId: number
   _all: number
 }
 
 
 export type ThemeAvgAggregateInputType = {
   id?: true
-  sceneId?: true
 }
 
 export type ThemeSumAggregateInputType = {
   id?: true
-  sceneId?: true
 }
 
 export type ThemeMinAggregateInputType = {
@@ -77,7 +70,6 @@ export type ThemeMinAggregateInputType = {
   name?: true
   custom?: true
   generated?: true
-  sceneId?: true
 }
 
 export type ThemeMaxAggregateInputType = {
@@ -85,7 +77,6 @@ export type ThemeMaxAggregateInputType = {
   name?: true
   custom?: true
   generated?: true
-  sceneId?: true
 }
 
 export type ThemeCountAggregateInputType = {
@@ -93,7 +84,6 @@ export type ThemeCountAggregateInputType = {
   name?: true
   custom?: true
   generated?: true
-  sceneId?: true
   _all?: true
 }
 
@@ -188,7 +178,6 @@ export type ThemeGroupByOutputType = {
   name: string | null
   custom: string | null
   generated: string | null
-  sceneId: number | null
   _count: ThemeCountAggregateOutputType | null
   _avg: ThemeAvgAggregateOutputType | null
   _sum: ThemeSumAggregateOutputType | null
@@ -219,8 +208,7 @@ export type ThemeWhereInput = {
   name?: Prisma.StringNullableFilter<"Theme"> | string | null
   custom?: Prisma.StringNullableFilter<"Theme"> | string | null
   generated?: Prisma.StringNullableFilter<"Theme"> | string | null
-  sceneId?: Prisma.IntNullableFilter<"Theme"> | number | null
-  scene?: Prisma.XOR<Prisma.SceneNullableScalarRelationFilter, Prisma.SceneWhereInput> | null
+  scene?: Prisma.SceneListRelationFilter
 }
 
 export type ThemeOrderByWithRelationInput = {
@@ -228,8 +216,7 @@ export type ThemeOrderByWithRelationInput = {
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   custom?: Prisma.SortOrderInput | Prisma.SortOrder
   generated?: Prisma.SortOrderInput | Prisma.SortOrder
-  sceneId?: Prisma.SortOrderInput | Prisma.SortOrder
-  scene?: Prisma.SceneOrderByWithRelationInput
+  scene?: Prisma.SceneOrderByRelationAggregateInput
 }
 
 export type ThemeWhereUniqueInput = Prisma.AtLeast<{
@@ -240,8 +227,7 @@ export type ThemeWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringNullableFilter<"Theme"> | string | null
   custom?: Prisma.StringNullableFilter<"Theme"> | string | null
   generated?: Prisma.StringNullableFilter<"Theme"> | string | null
-  sceneId?: Prisma.IntNullableFilter<"Theme"> | number | null
-  scene?: Prisma.XOR<Prisma.SceneNullableScalarRelationFilter, Prisma.SceneWhereInput> | null
+  scene?: Prisma.SceneListRelationFilter
 }, "id">
 
 export type ThemeOrderByWithAggregationInput = {
@@ -249,7 +235,6 @@ export type ThemeOrderByWithAggregationInput = {
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   custom?: Prisma.SortOrderInput | Prisma.SortOrder
   generated?: Prisma.SortOrderInput | Prisma.SortOrder
-  sceneId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ThemeCountOrderByAggregateInput
   _avg?: Prisma.ThemeAvgOrderByAggregateInput
   _max?: Prisma.ThemeMaxOrderByAggregateInput
@@ -265,14 +250,13 @@ export type ThemeScalarWhereWithAggregatesInput = {
   name?: Prisma.StringNullableWithAggregatesFilter<"Theme"> | string | null
   custom?: Prisma.StringNullableWithAggregatesFilter<"Theme"> | string | null
   generated?: Prisma.StringNullableWithAggregatesFilter<"Theme"> | string | null
-  sceneId?: Prisma.IntNullableWithAggregatesFilter<"Theme"> | number | null
 }
 
 export type ThemeCreateInput = {
   name?: string | null
   custom?: string | null
   generated?: string | null
-  scene?: Prisma.SceneCreateNestedOneWithoutThemesInput
+  scene?: Prisma.SceneCreateNestedManyWithoutThemeInput
 }
 
 export type ThemeUncheckedCreateInput = {
@@ -280,14 +264,14 @@ export type ThemeUncheckedCreateInput = {
   name?: string | null
   custom?: string | null
   generated?: string | null
-  sceneId?: number | null
+  scene?: Prisma.SceneUncheckedCreateNestedManyWithoutThemeInput
 }
 
 export type ThemeUpdateInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  scene?: Prisma.SceneUpdateOneWithoutThemesNestedInput
+  scene?: Prisma.SceneUpdateManyWithoutThemeNestedInput
 }
 
 export type ThemeUncheckedUpdateInput = {
@@ -295,7 +279,7 @@ export type ThemeUncheckedUpdateInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sceneId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  scene?: Prisma.SceneUncheckedUpdateManyWithoutThemeNestedInput
 }
 
 export type ThemeCreateManyInput = {
@@ -303,7 +287,6 @@ export type ThemeCreateManyInput = {
   name?: string | null
   custom?: string | null
   generated?: string | null
-  sceneId?: number | null
 }
 
 export type ThemeUpdateManyMutationInput = {
@@ -317,17 +300,11 @@ export type ThemeUncheckedUpdateManyInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  sceneId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
-export type ThemeListRelationFilter = {
-  every?: Prisma.ThemeWhereInput
-  some?: Prisma.ThemeWhereInput
-  none?: Prisma.ThemeWhereInput
-}
-
-export type ThemeOrderByRelationAggregateInput = {
-  _count?: Prisma.SortOrder
+export type ThemeNullableScalarRelationFilter = {
+  is?: Prisma.ThemeWhereInput | null
+  isNot?: Prisma.ThemeWhereInput | null
 }
 
 export type ThemeCountOrderByAggregateInput = {
@@ -335,12 +312,10 @@ export type ThemeCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   custom?: Prisma.SortOrder
   generated?: Prisma.SortOrder
-  sceneId?: Prisma.SortOrder
 }
 
 export type ThemeAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  sceneId?: Prisma.SortOrder
 }
 
 export type ThemeMaxOrderByAggregateInput = {
@@ -348,7 +323,6 @@ export type ThemeMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   custom?: Prisma.SortOrder
   generated?: Prisma.SortOrder
-  sceneId?: Prisma.SortOrder
 }
 
 export type ThemeMinOrderByAggregateInput = {
@@ -356,54 +330,26 @@ export type ThemeMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   custom?: Prisma.SortOrder
   generated?: Prisma.SortOrder
-  sceneId?: Prisma.SortOrder
 }
 
 export type ThemeSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
-  sceneId?: Prisma.SortOrder
 }
 
-export type ThemeCreateNestedManyWithoutSceneInput = {
-  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput> | Prisma.ThemeCreateWithoutSceneInput[] | Prisma.ThemeUncheckedCreateWithoutSceneInput[]
-  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput | Prisma.ThemeCreateOrConnectWithoutSceneInput[]
-  createMany?: Prisma.ThemeCreateManySceneInputEnvelope
-  connect?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
+export type ThemeCreateNestedOneWithoutSceneInput = {
+  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
+  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput
+  connect?: Prisma.ThemeWhereUniqueInput
 }
 
-export type ThemeUncheckedCreateNestedManyWithoutSceneInput = {
-  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput> | Prisma.ThemeCreateWithoutSceneInput[] | Prisma.ThemeUncheckedCreateWithoutSceneInput[]
-  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput | Prisma.ThemeCreateOrConnectWithoutSceneInput[]
-  createMany?: Prisma.ThemeCreateManySceneInputEnvelope
-  connect?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-}
-
-export type ThemeUpdateManyWithoutSceneNestedInput = {
-  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput> | Prisma.ThemeCreateWithoutSceneInput[] | Prisma.ThemeUncheckedCreateWithoutSceneInput[]
-  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput | Prisma.ThemeCreateOrConnectWithoutSceneInput[]
-  upsert?: Prisma.ThemeUpsertWithWhereUniqueWithoutSceneInput | Prisma.ThemeUpsertWithWhereUniqueWithoutSceneInput[]
-  createMany?: Prisma.ThemeCreateManySceneInputEnvelope
-  set?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  disconnect?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  delete?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  connect?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  update?: Prisma.ThemeUpdateWithWhereUniqueWithoutSceneInput | Prisma.ThemeUpdateWithWhereUniqueWithoutSceneInput[]
-  updateMany?: Prisma.ThemeUpdateManyWithWhereWithoutSceneInput | Prisma.ThemeUpdateManyWithWhereWithoutSceneInput[]
-  deleteMany?: Prisma.ThemeScalarWhereInput | Prisma.ThemeScalarWhereInput[]
-}
-
-export type ThemeUncheckedUpdateManyWithoutSceneNestedInput = {
-  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput> | Prisma.ThemeCreateWithoutSceneInput[] | Prisma.ThemeUncheckedCreateWithoutSceneInput[]
-  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput | Prisma.ThemeCreateOrConnectWithoutSceneInput[]
-  upsert?: Prisma.ThemeUpsertWithWhereUniqueWithoutSceneInput | Prisma.ThemeUpsertWithWhereUniqueWithoutSceneInput[]
-  createMany?: Prisma.ThemeCreateManySceneInputEnvelope
-  set?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  disconnect?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  delete?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  connect?: Prisma.ThemeWhereUniqueInput | Prisma.ThemeWhereUniqueInput[]
-  update?: Prisma.ThemeUpdateWithWhereUniqueWithoutSceneInput | Prisma.ThemeUpdateWithWhereUniqueWithoutSceneInput[]
-  updateMany?: Prisma.ThemeUpdateManyWithWhereWithoutSceneInput | Prisma.ThemeUpdateManyWithWhereWithoutSceneInput[]
-  deleteMany?: Prisma.ThemeScalarWhereInput | Prisma.ThemeScalarWhereInput[]
+export type ThemeUpdateOneWithoutSceneNestedInput = {
+  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
+  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput
+  upsert?: Prisma.ThemeUpsertWithoutSceneInput
+  disconnect?: Prisma.ThemeWhereInput | boolean
+  delete?: Prisma.ThemeWhereInput | boolean
+  connect?: Prisma.ThemeWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ThemeUpdateToOneWithWhereWithoutSceneInput, Prisma.ThemeUpdateWithoutSceneInput>, Prisma.ThemeUncheckedUpdateWithoutSceneInput>
 }
 
 export type ThemeCreateWithoutSceneInput = {
@@ -424,42 +370,15 @@ export type ThemeCreateOrConnectWithoutSceneInput = {
   create: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
 }
 
-export type ThemeCreateManySceneInputEnvelope = {
-  data: Prisma.ThemeCreateManySceneInput | Prisma.ThemeCreateManySceneInput[]
-}
-
-export type ThemeUpsertWithWhereUniqueWithoutSceneInput = {
-  where: Prisma.ThemeWhereUniqueInput
+export type ThemeUpsertWithoutSceneInput = {
   update: Prisma.XOR<Prisma.ThemeUpdateWithoutSceneInput, Prisma.ThemeUncheckedUpdateWithoutSceneInput>
   create: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
+  where?: Prisma.ThemeWhereInput
 }
 
-export type ThemeUpdateWithWhereUniqueWithoutSceneInput = {
-  where: Prisma.ThemeWhereUniqueInput
+export type ThemeUpdateToOneWithWhereWithoutSceneInput = {
+  where?: Prisma.ThemeWhereInput
   data: Prisma.XOR<Prisma.ThemeUpdateWithoutSceneInput, Prisma.ThemeUncheckedUpdateWithoutSceneInput>
-}
-
-export type ThemeUpdateManyWithWhereWithoutSceneInput = {
-  where: Prisma.ThemeScalarWhereInput
-  data: Prisma.XOR<Prisma.ThemeUpdateManyMutationInput, Prisma.ThemeUncheckedUpdateManyWithoutSceneInput>
-}
-
-export type ThemeScalarWhereInput = {
-  AND?: Prisma.ThemeScalarWhereInput | Prisma.ThemeScalarWhereInput[]
-  OR?: Prisma.ThemeScalarWhereInput[]
-  NOT?: Prisma.ThemeScalarWhereInput | Prisma.ThemeScalarWhereInput[]
-  id?: Prisma.IntFilter<"Theme"> | number
-  name?: Prisma.StringNullableFilter<"Theme"> | string | null
-  custom?: Prisma.StringNullableFilter<"Theme"> | string | null
-  generated?: Prisma.StringNullableFilter<"Theme"> | string | null
-  sceneId?: Prisma.IntNullableFilter<"Theme"> | number | null
-}
-
-export type ThemeCreateManySceneInput = {
-  id?: number
-  name?: string | null
-  custom?: string | null
-  generated?: string | null
 }
 
 export type ThemeUpdateWithoutSceneInput = {
@@ -475,13 +394,35 @@ export type ThemeUncheckedUpdateWithoutSceneInput = {
   generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
-export type ThemeUncheckedUpdateManyWithoutSceneInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+
+/**
+ * Count Type ThemeCountOutputType
+ */
+
+export type ThemeCountOutputType = {
+  scene: number
 }
 
+export type ThemeCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  scene?: boolean | ThemeCountOutputTypeCountSceneArgs
+}
+
+/**
+ * ThemeCountOutputType without action
+ */
+export type ThemeCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ThemeCountOutputType
+   */
+  select?: Prisma.ThemeCountOutputTypeSelect<ExtArgs> | null
+}
+
+/**
+ * ThemeCountOutputType without action
+ */
+export type ThemeCountOutputTypeCountSceneArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SceneWhereInput
+}
 
 
 export type ThemeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -489,8 +430,8 @@ export type ThemeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   name?: boolean
   custom?: boolean
   generated?: boolean
-  sceneId?: boolean
   scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
+  _count?: boolean | Prisma.ThemeCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["theme"]>
 
 export type ThemeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -498,8 +439,6 @@ export type ThemeSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   custom?: boolean
   generated?: boolean
-  sceneId?: boolean
-  scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
 }, ExtArgs["result"]["theme"]>
 
 export type ThemeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -507,8 +446,6 @@ export type ThemeSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   custom?: boolean
   generated?: boolean
-  sceneId?: boolean
-  scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
 }, ExtArgs["result"]["theme"]>
 
 export type ThemeSelectScalar = {
@@ -516,31 +453,26 @@ export type ThemeSelectScalar = {
   name?: boolean
   custom?: boolean
   generated?: boolean
-  sceneId?: boolean
 }
 
-export type ThemeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "custom" | "generated" | "sceneId", ExtArgs["result"]["theme"]>
+export type ThemeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "custom" | "generated", ExtArgs["result"]["theme"]>
 export type ThemeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
+  _count?: boolean | Prisma.ThemeCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type ThemeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
-}
-export type ThemeIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
-}
+export type ThemeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type ThemeIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
 
 export type $ThemePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Theme"
   objects: {
-    scene: Prisma.$ScenePayload<ExtArgs> | null
+    scene: Prisma.$ScenePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     name: string | null
     custom: string | null
     generated: string | null
-    sceneId: number | null
   }, ExtArgs["result"]["theme"]>
   composites: {}
 }
@@ -935,7 +867,7 @@ readonly fields: ThemeFieldRefs;
  */
 export interface Prisma__ThemeClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  scene<T extends Prisma.Theme$sceneArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Theme$sceneArgs<ExtArgs>>): Prisma.Prisma__SceneClient<runtime.Types.Result.GetResult<Prisma.$ScenePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  scene<T extends Prisma.Theme$sceneArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Theme$sceneArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScenePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -969,7 +901,6 @@ export interface ThemeFieldRefs {
   readonly name: Prisma.FieldRef<"Theme", 'String'>
   readonly custom: Prisma.FieldRef<"Theme", 'String'>
   readonly generated: Prisma.FieldRef<"Theme", 'String'>
-  readonly sceneId: Prisma.FieldRef<"Theme", 'Int'>
 }
     
 
@@ -1217,10 +1148,6 @@ export type ThemeCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * The data used to create many Themes.
    */
   data: Prisma.ThemeCreateManyInput | Prisma.ThemeCreateManyInput[]
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ThemeIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1291,10 +1218,6 @@ export type ThemeUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * Limit how many Themes to update.
    */
   limit?: number
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ThemeIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1380,6 +1303,11 @@ export type Theme$sceneArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
    */
   include?: Prisma.SceneInclude<ExtArgs> | null
   where?: Prisma.SceneWhereInput
+  orderBy?: Prisma.SceneOrderByWithRelationInput | Prisma.SceneOrderByWithRelationInput[]
+  cursor?: Prisma.SceneWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SceneScalarFieldEnum | Prisma.SceneScalarFieldEnum[]
 }
 
 /**

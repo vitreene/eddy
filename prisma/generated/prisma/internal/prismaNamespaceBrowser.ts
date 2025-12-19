@@ -58,6 +58,7 @@ export const ModelName = {
   Media: 'Media',
   Event: 'Event',
   Decor: 'Decor',
+  ElementTarget: 'ElementTarget',
   Theme: 'Theme'
 } as const
 
@@ -76,7 +77,9 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const SceneScalarFieldEnum = {
   id: 'id',
-  title: 'title'
+  title: 'title',
+  decorId: 'decorId',
+  themeId: 'themeId'
 } as const
 
 export type SceneScalarFieldEnum = (typeof SceneScalarFieldEnum)[keyof typeof SceneScalarFieldEnum]
@@ -108,7 +111,8 @@ export const CapsuleElementScalarFieldEnum = {
   id: 'id',
   order: 'order',
   mediaId: 'mediaId',
-  capsuleId: 'capsuleId'
+  capsuleId: 'capsuleId',
+  decorId: 'decorId'
 } as const
 
 export type CapsuleElementScalarFieldEnum = (typeof CapsuleElementScalarFieldEnum)[keyof typeof CapsuleElementScalarFieldEnum]
@@ -145,21 +149,27 @@ export const DecorScalarFieldEnum = {
   name: 'name',
   style: 'style',
   className: 'className',
-  targetId: 'targetId',
-  order: 'order',
-  sceneId: 'sceneId',
   basedUpon: 'basedUpon'
 } as const
 
 export type DecorScalarFieldEnum = (typeof DecorScalarFieldEnum)[keyof typeof DecorScalarFieldEnum]
 
 
+export const ElementTargetScalarFieldEnum = {
+  id: 'id',
+  order: 'order',
+  targetId: 'targetId',
+  elementId: 'elementId'
+} as const
+
+export type ElementTargetScalarFieldEnum = (typeof ElementTargetScalarFieldEnum)[keyof typeof ElementTargetScalarFieldEnum]
+
+
 export const ThemeScalarFieldEnum = {
   id: 'id',
   name: 'name',
   custom: 'custom',
-  generated: 'generated',
-  sceneId: 'sceneId'
+  generated: 'generated'
 } as const
 
 export type ThemeScalarFieldEnum = (typeof ThemeScalarFieldEnum)[keyof typeof ThemeScalarFieldEnum]

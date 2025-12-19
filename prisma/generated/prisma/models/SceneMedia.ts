@@ -408,11 +408,6 @@ export type SceneMediaSumOrderByAggregateInput = {
   decorId?: Prisma.SortOrder
 }
 
-export type SceneMediaNullableScalarRelationFilter = {
-  is?: Prisma.SceneMediaWhereInput | null
-  isNot?: Prisma.SceneMediaWhereInput | null
-}
-
 export type SceneMediaCreateNestedManyWithoutSceneInput = {
   create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutSceneInput, Prisma.SceneMediaUncheckedCreateWithoutSceneInput> | Prisma.SceneMediaCreateWithoutSceneInput[] | Prisma.SceneMediaUncheckedCreateWithoutSceneInput[]
   connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutSceneInput | Prisma.SceneMediaCreateOrConnectWithoutSceneInput[]
@@ -453,14 +448,6 @@ export type SceneMediaUncheckedUpdateManyWithoutSceneNestedInput = {
   update?: Prisma.SceneMediaUpdateWithWhereUniqueWithoutSceneInput | Prisma.SceneMediaUpdateWithWhereUniqueWithoutSceneInput[]
   updateMany?: Prisma.SceneMediaUpdateManyWithWhereWithoutSceneInput | Prisma.SceneMediaUpdateManyWithWhereWithoutSceneInput[]
   deleteMany?: Prisma.SceneMediaScalarWhereInput | Prisma.SceneMediaScalarWhereInput[]
-}
-
-export type NullableIntFieldUpdateOperationsInput = {
-  set?: number | null
-  increment?: number
-  decrement?: number
-  multiply?: number
-  divide?: number
 }
 
 export type SceneMediaCreateNestedManyWithoutMediaInput = {
@@ -505,36 +492,46 @@ export type SceneMediaUncheckedUpdateManyWithoutMediaNestedInput = {
   deleteMany?: Prisma.SceneMediaScalarWhereInput | Prisma.SceneMediaScalarWhereInput[]
 }
 
-export type SceneMediaCreateNestedOneWithoutDecorInput = {
-  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput>
-  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput
-  connect?: Prisma.SceneMediaWhereUniqueInput
+export type SceneMediaCreateNestedManyWithoutDecorInput = {
+  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput> | Prisma.SceneMediaCreateWithoutDecorInput[] | Prisma.SceneMediaUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput | Prisma.SceneMediaCreateOrConnectWithoutDecorInput[]
+  createMany?: Prisma.SceneMediaCreateManyDecorInputEnvelope
+  connect?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
 }
 
-export type SceneMediaUncheckedCreateNestedOneWithoutDecorInput = {
-  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput>
-  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput
-  connect?: Prisma.SceneMediaWhereUniqueInput
+export type SceneMediaUncheckedCreateNestedManyWithoutDecorInput = {
+  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput> | Prisma.SceneMediaCreateWithoutDecorInput[] | Prisma.SceneMediaUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput | Prisma.SceneMediaCreateOrConnectWithoutDecorInput[]
+  createMany?: Prisma.SceneMediaCreateManyDecorInputEnvelope
+  connect?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
 }
 
-export type SceneMediaUpdateOneWithoutDecorNestedInput = {
-  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput>
-  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput
-  upsert?: Prisma.SceneMediaUpsertWithoutDecorInput
-  disconnect?: Prisma.SceneMediaWhereInput | boolean
-  delete?: Prisma.SceneMediaWhereInput | boolean
-  connect?: Prisma.SceneMediaWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.SceneMediaUpdateToOneWithWhereWithoutDecorInput, Prisma.SceneMediaUpdateWithoutDecorInput>, Prisma.SceneMediaUncheckedUpdateWithoutDecorInput>
+export type SceneMediaUpdateManyWithoutDecorNestedInput = {
+  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput> | Prisma.SceneMediaCreateWithoutDecorInput[] | Prisma.SceneMediaUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput | Prisma.SceneMediaCreateOrConnectWithoutDecorInput[]
+  upsert?: Prisma.SceneMediaUpsertWithWhereUniqueWithoutDecorInput | Prisma.SceneMediaUpsertWithWhereUniqueWithoutDecorInput[]
+  createMany?: Prisma.SceneMediaCreateManyDecorInputEnvelope
+  set?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  disconnect?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  delete?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  connect?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  update?: Prisma.SceneMediaUpdateWithWhereUniqueWithoutDecorInput | Prisma.SceneMediaUpdateWithWhereUniqueWithoutDecorInput[]
+  updateMany?: Prisma.SceneMediaUpdateManyWithWhereWithoutDecorInput | Prisma.SceneMediaUpdateManyWithWhereWithoutDecorInput[]
+  deleteMany?: Prisma.SceneMediaScalarWhereInput | Prisma.SceneMediaScalarWhereInput[]
 }
 
-export type SceneMediaUncheckedUpdateOneWithoutDecorNestedInput = {
-  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput>
-  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput
-  upsert?: Prisma.SceneMediaUpsertWithoutDecorInput
-  disconnect?: Prisma.SceneMediaWhereInput | boolean
-  delete?: Prisma.SceneMediaWhereInput | boolean
-  connect?: Prisma.SceneMediaWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.SceneMediaUpdateToOneWithWhereWithoutDecorInput, Prisma.SceneMediaUpdateWithoutDecorInput>, Prisma.SceneMediaUncheckedUpdateWithoutDecorInput>
+export type SceneMediaUncheckedUpdateManyWithoutDecorNestedInput = {
+  create?: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput> | Prisma.SceneMediaCreateWithoutDecorInput[] | Prisma.SceneMediaUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.SceneMediaCreateOrConnectWithoutDecorInput | Prisma.SceneMediaCreateOrConnectWithoutDecorInput[]
+  upsert?: Prisma.SceneMediaUpsertWithWhereUniqueWithoutDecorInput | Prisma.SceneMediaUpsertWithWhereUniqueWithoutDecorInput[]
+  createMany?: Prisma.SceneMediaCreateManyDecorInputEnvelope
+  set?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  disconnect?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  delete?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  connect?: Prisma.SceneMediaWhereUniqueInput | Prisma.SceneMediaWhereUniqueInput[]
+  update?: Prisma.SceneMediaUpdateWithWhereUniqueWithoutDecorInput | Prisma.SceneMediaUpdateWithWhereUniqueWithoutDecorInput[]
+  updateMany?: Prisma.SceneMediaUpdateManyWithWhereWithoutDecorInput | Prisma.SceneMediaUpdateManyWithWhereWithoutDecorInput[]
+  deleteMany?: Prisma.SceneMediaScalarWhereInput | Prisma.SceneMediaScalarWhereInput[]
 }
 
 export type SceneMediaCreateWithoutSceneInput = {
@@ -649,30 +646,24 @@ export type SceneMediaCreateOrConnectWithoutDecorInput = {
   create: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput>
 }
 
-export type SceneMediaUpsertWithoutDecorInput = {
-  update: Prisma.XOR<Prisma.SceneMediaUpdateWithoutDecorInput, Prisma.SceneMediaUncheckedUpdateWithoutDecorInput>
-  create: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput>
-  where?: Prisma.SceneMediaWhereInput
+export type SceneMediaCreateManyDecorInputEnvelope = {
+  data: Prisma.SceneMediaCreateManyDecorInput | Prisma.SceneMediaCreateManyDecorInput[]
 }
 
-export type SceneMediaUpdateToOneWithWhereWithoutDecorInput = {
-  where?: Prisma.SceneMediaWhereInput
+export type SceneMediaUpsertWithWhereUniqueWithoutDecorInput = {
+  where: Prisma.SceneMediaWhereUniqueInput
+  update: Prisma.XOR<Prisma.SceneMediaUpdateWithoutDecorInput, Prisma.SceneMediaUncheckedUpdateWithoutDecorInput>
+  create: Prisma.XOR<Prisma.SceneMediaCreateWithoutDecorInput, Prisma.SceneMediaUncheckedCreateWithoutDecorInput>
+}
+
+export type SceneMediaUpdateWithWhereUniqueWithoutDecorInput = {
+  where: Prisma.SceneMediaWhereUniqueInput
   data: Prisma.XOR<Prisma.SceneMediaUpdateWithoutDecorInput, Prisma.SceneMediaUncheckedUpdateWithoutDecorInput>
 }
 
-export type SceneMediaUpdateWithoutDecorInput = {
-  order?: Prisma.IntFieldUpdateOperationsInput | number
-  events?: Prisma.StringFieldUpdateOperationsInput | string
-  media?: Prisma.MediaUpdateOneRequiredWithoutSceneMediaNestedInput
-  scene?: Prisma.SceneUpdateOneRequiredWithoutMediasNestedInput
-}
-
-export type SceneMediaUncheckedUpdateWithoutDecorInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  order?: Prisma.IntFieldUpdateOperationsInput | number
-  events?: Prisma.StringFieldUpdateOperationsInput | string
-  mediaId?: Prisma.IntFieldUpdateOperationsInput | number
-  sceneId?: Prisma.IntFieldUpdateOperationsInput | number
+export type SceneMediaUpdateManyWithWhereWithoutDecorInput = {
+  where: Prisma.SceneMediaScalarWhereInput
+  data: Prisma.XOR<Prisma.SceneMediaUpdateManyMutationInput, Prisma.SceneMediaUncheckedUpdateManyWithoutDecorInput>
 }
 
 export type SceneMediaCreateManySceneInput = {
@@ -735,6 +726,37 @@ export type SceneMediaUncheckedUpdateManyWithoutMediaInput = {
   events?: Prisma.StringFieldUpdateOperationsInput | string
   sceneId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
+export type SceneMediaCreateManyDecorInput = {
+  id?: number
+  order: number
+  events: string
+  mediaId: number
+  sceneId: number
+}
+
+export type SceneMediaUpdateWithoutDecorInput = {
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  events?: Prisma.StringFieldUpdateOperationsInput | string
+  media?: Prisma.MediaUpdateOneRequiredWithoutSceneMediaNestedInput
+  scene?: Prisma.SceneUpdateOneRequiredWithoutMediasNestedInput
+}
+
+export type SceneMediaUncheckedUpdateWithoutDecorInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  events?: Prisma.StringFieldUpdateOperationsInput | string
+  mediaId?: Prisma.IntFieldUpdateOperationsInput | number
+  sceneId?: Prisma.IntFieldUpdateOperationsInput | number
+}
+
+export type SceneMediaUncheckedUpdateManyWithoutDecorInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  events?: Prisma.StringFieldUpdateOperationsInput | string
+  mediaId?: Prisma.IntFieldUpdateOperationsInput | number
+  sceneId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
 

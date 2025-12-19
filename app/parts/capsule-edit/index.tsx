@@ -1,10 +1,34 @@
-import { Media } from "../display-media";
+import { useCallback } from "react";
+
 import { SceneLogicContext } from "@/provider/scene-logic";
+import { CompactStyleEditor } from "@/components/ui/style-editor/compact-style-editor";
+import { gridWHClassName, ResizableGridFrame, type GridSize } from "@/components/draw-grid";
+
+import type { EditableStyle } from "@/components/ui/style-editor/types";
+
+const DEFAULT_STYLE = { fontFamily: "Inter", fontSize: "16px", color: "#222222" };
 
 export function EditCapsule() {
 	const sceneLogic = SceneLogicContext.useActorRef();
 	const capsule = SceneLogicContext.useSelector((state) =>
 		state.context.active.capsuleId ? state.context.capsules[state.context.active.capsuleId] : null
+	);
+	const decor = SceneLogicContext.useSelector(
+		(state) => (capsule && state.context.decors?.capsules[capsule.id]) || null
+	);
+
+	const onStyleChange = useCallback(
+		(newStyle: EditableStyle) => {
+			// Enregistrer le style dans le contexte (decor) de la capsule
+			sceneLogic.send({
+				type: "capsule.update",
+				payload: { decor: { ...decor, style: newStyle } }
+			});
+
+			// Marquer que le decor a été modifié pour déclencher la persistance ultérieure
+			sceneLogic.send({ type: "active.set", payload: { decorTouched: true } });
+		},
+		[sceneLogic, decor]
 	);
 
 	const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -13,71 +37,27 @@ export function EditCapsule() {
 		const type = formData.get("type") as string;
 		sceneLogic.send({ type: "capsule.update", payload: { type } });
 	};
-	return (
-		<section className="edit flex w-full flex-col gap-4">
-			<h2>EDIT</h2>
-			<header className="border border-slate-300 p-4">
-				{capsule && <p className="text-sm">{`Capsule n°${capsule?.id}`}</p>}
 
-				<form onSubmit={onSubmit}>
-					<input hidden name="id" defaultValue={capsule?.id} />
-					<label>
-						Type&nbsp;:
-						<input
-							key={capsule?.id}
-							className="inline-block border border-stone-300 p-1"
-							name="type"
-							defaultValue={capsule?.type}
-						/>
-					</label>
-					<button type="submit">Valider</button>
-				</form>
-			</header>
-			<article className="flex-1 border border-slate-300 p-4">
-				{capsule && <CapsuleContent capsuleId={capsule.id} />}
-			</article>
-		</section>
-	);
-}
-
-function CapsuleContent({ capsuleId }: { capsuleId: number }) {
-	const sceneLogic = SceneLogicContext.useActorRef();
-	const active = SceneLogicContext.useSelector((state) => state.context.active);
-	const elements = SceneLogicContext.useSelector((state) =>
-		Object.values(state.context.elements).filter((element) => element.capsuleId == capsuleId)
-	);
-
-	const mediaIds = elements.map((element) => element.mediaId);
-
-	const medias = Object.fromEntries(
-		SceneLogicContext.useSelector((state) =>
-			Object.values(state.context.medias)
-				.filter((media) => mediaIds.includes(media.id))
-				.map((media) => [media.id, media])
-		)
-	);
-
-	const editElement = (e: React.MouseEvent<HTMLUListElement>) => {
-		e.preventDefault();
-		const target = e.target as HTMLElement;
-		const id = Number(target.dataset?.id);
-		sceneLogic.send({ type: "active.set", payload: { elementId: id } });
+	const onChangeGrid = (size: GridSize) => {
+		const gridClassName = gridWHClassName(size);
+		console.log(gridClassName);
 	};
 
 	return (
-		<ul className="flex gap-4" onClick={editElement}>
-			{elements
-				.sort((a, b) => a.order - b.order)
-				.map((el) => (
-					<li key={el.id} id={`element-${el.id}`} data-id={el.id} className="bg-white">
-						<Media
-							attr={medias[el.mediaId]}
-							size="sm"
-							selected={active.elementId == el.id}
-							className="pointer-events-none"
-						/>
-					</li>
-				))}
-		</ul>
+		<>
+			<form onBlur={onSubmit} className="mb-2">
+				<input hidden name="id" defaultValue={capsule?.id} />
+				<label className="mr-2 text-xs">Nom</label>
+				<input
+					key={capsule?.id}
+					className="inline-block border border-stone-300 p-1"
+					name="type"
+					defaultValue={capsule?.type}
+				/>
+			</form>
+			<ResizableGridFrame onChange={onChangeGrid} />
+
+			<CompactStyleEditor value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE} onChange={onStyleChange} />
+		</>
 	);
 }

@@ -26,6 +26,7 @@ interface TreeDataItem {
 	draggable?: boolean;
 	droppable?: boolean;
 	disabled?: boolean;
+	className?: string;
 }
 
 type TreeProps = React.HTMLAttributes<HTMLDivElement> & {
@@ -253,6 +254,10 @@ const TreeNode = ({
 		handleDrop?.(item);
 	};
 
+	const itemAction = (e: React.MouseEvent<HTMLElement>) => {
+		e.preventDefault();
+		item.onClick?.();
+	};
 	return (
 		<AccordionPrimitive.Root type="multiple" value={value} onValueChange={(s) => setValue(s)}>
 			<AccordionPrimitive.Item value={item.id}>
@@ -260,11 +265,11 @@ const TreeNode = ({
 					className={cn(
 						treeVariants(),
 						selectedItemId === item.id && selectedTreeVariants(),
-						isDragOver && dragOverVariants()
+						isDragOver && dragOverVariants(),
+						item.className
 					)}
 					onClick={() => {
 						handleSelectChange(item);
-						item.onClick?.();
 					}}
 					draggable={!!item.draggable}
 					onDragStart={onDragStart}
@@ -278,7 +283,9 @@ const TreeNode = ({
 						isOpen={value.includes(item.id)}
 						default={defaultNodeIcon}
 					/>
-					<span className="truncate text-sm">{item.name}</span>
+					<span onClick={itemAction} className="w-full truncate text-sm">
+						{item.name}
+					</span>
 					<TreeActions isSelected={selectedItemId === item.id}>{item.actions}</TreeActions>
 				</AccordionTrigger>
 				<AccordionContent className="ml-4 border-l pl-1">

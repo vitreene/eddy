@@ -1,0 +1,217 @@
+import cx from "classnames";
+import { Grid2x2 } from "lucide-react";
+import { useId, useState, useRef, useMemo } from "react";
+
+export type GridSize = { x: number; y: number };
+
+export type ResizableGridFrameProps = {
+	stepPx?: number; // défaut: 16
+	gapPx?: number; // défaut: 4
+	paddingPx?: number; // défaut: 4
+	minCells?: number; // >= 1
+	maxCells?: number; // défaut: 16 (limite x/y)
+	defaultCells?: GridSize; // défaut: {x:3,y:3}
+	canvasWidth?: number;
+	canvasHeight?: number;
+	onChange?: (size: GridSize) => void;
+};
+
+export function ResizableGridFrame({
+	stepPx = 16,
+	gapPx = 4,
+	paddingPx = 4,
+	minCells = 1,
+	maxCells = 16,
+	defaultCells = { x: 3, y: 3 },
+	canvasWidth = 250,
+	canvasHeight = 120,
+	onChange
+}: ResizableGridFrameProps) {
+	const patternId = useId();
+
+	const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+	const [cells, setCells] = useState<GridSize>(() => ({
+		x: clamp(Math.floor(defaultCells.x), minCells, maxCells),
+		y: clamp(Math.floor(defaultCells.y), minCells, maxCells)
+	}));
+
+	const maxFromCanvas = useMemo(
+		() => ({
+			x: Math.max(minCells, Math.floor((canvasWidth - paddingPx * 2) / stepPx)),
+			y: Math.max(minCells, Math.floor((canvasHeight - paddingPx * 2) / stepPx))
+		}),
+		[canvasWidth, canvasHeight, paddingPx, stepPx, minCells]
+	);
+
+	const maxX = Math.max(minCells, Math.min(maxCells, maxFromCanvas.x));
+	const maxY = Math.max(minCells, Math.min(maxCells, maxFromCanvas.y));
+
+	const framePx = useMemo(
+		() => ({
+			w: paddingPx * 2 + cells.x * stepPx,
+			h: paddingPx * 2 + cells.y * stepPx,
+			innerW: cells.x * stepPx,
+			innerH: cells.y * stepPx
+		}),
+		[cells.x, cells.y, stepPx, paddingPx]
+	);
+
+	// motif “carré + gap” : on dessine un carré de taille (step-gap) dans un pas step
+	const g = clamp(gapPx, 0, stepPx - 1);
+	const tile = Math.max(1, stepPx - g);
+	const inset = g / 2;
+
+	const resizeRef = useRef<{
+		startClientX: number;
+		startClientY: number;
+		startX: number;
+		startY: number;
+		resizing: boolean;
+	} | null>(null);
+
+	const onHandlePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+		e.currentTarget.setPointerCapture?.(e.pointerId);
+		resizeRef.current = {
+			startClientX: e.clientX,
+			startClientY: e.clientY,
+			startX: cells.x,
+			startY: cells.y,
+			resizing: true
+		};
+	};
+
+	const onHandlePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+		const s = resizeRef.current;
+		if (!s?.resizing) return;
+
+		const dx = e.clientX - s.startClientX;
+		const dy = e.clientY - s.startClientY;
+
+		const nextX = clamp(s.startX + Math.round(dx / stepPx), minCells, maxX);
+		const nextY = clamp(s.startY + Math.round(dy / stepPx), minCells, maxY);
+
+		if (nextX === cells.x && nextY === cells.y) return;
+		setCells({ x: nextX, y: nextY });
+	};
+
+	const onHandlePointerUp = () => {
+		if (resizeRef.current) resizeRef.current.resizing = false;
+		resizeRef.current = null;
+	};
+
+	const ref = useRef<HTMLDivElement>(null);
+	const [isGridVisible, setGridVisible] = useState(false);
+
+	const onDisplayGrid = (e: React.MouseEvent<HTMLElement>) => {
+		function outsideClick() {
+			setGridVisible(false);
+			onChange?.(cells);
+			document.body.removeEventListener("click", outsideClick);
+		}
+		document.body.addEventListener("click", outsideClick);
+		setGridVisible(true);
+	};
+	return (
+		<div ref={ref} className="grid-size-info relative" onClick={onDisplayGrid}>
+			<div className="flex cursor-pointer items-center gap-2 text-xs">
+				<span>Grille</span>
+				<span className="text-sm font-semibold">
+					<span>{cells.x}</span> × <span>{cells.y}</span>
+				</span>
+				<Grid2x2 className="w-4" />
+			</div>
+			<div
+				className={cx("absolute border border-gray-500 bg-white", isGridVisible ? "grid" : "hidden")}
+				style={{ width: framePx.w, height: framePx.h, padding: paddingPx }}
+			>
+				<div className="grid">
+					{/* SVG pattern */}
+					<svg
+						className="col-start-1 row-start-1 block"
+						width={framePx.innerW}
+						height={framePx.innerH}
+						viewBox={`0 0 ${framePx.innerW} ${framePx.innerH}`}
+						aria-hidden="true"
+						strokeWidth={1}
+						shapeRendering="crispEdges"
+					>
+						<defs>
+							<pattern id={patternId} width={stepPx} height={stepPx} patternUnits="userSpaceOnUse">
+								<rect
+									x={inset}
+									y={inset}
+									width={tile}
+									height={tile}
+									rx={1}
+									className="stroke-muted-foreground fill-muted"
+								/>
+							</pattern>
+						</defs>
+						<rect width="100%" height="100%" fill={`url(#${patternId})`} />
+					</svg>
+
+					{/* Poignée */}
+					<div
+						role="slider"
+						aria-label="Redimensionner"
+						onPointerDown={onHandlePointerDown}
+						onPointerMove={onHandlePointerMove}
+						onPointerUp={onHandlePointerUp}
+						onPointerCancel={onHandlePointerUp}
+						title="Redimensionner"
+						className="border-border col-start-1 row-start-1 -mr-2 -mb-2 h-4 w-4 cursor-nwse-resize place-self-end rounded-full border bg-gray-600"
+					/>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+export function gridWHClassName(
+	size: GridSize,
+	opts?: { prefix?: string }
+): { className: string; cssText: string } {
+	const prefix = opts?.prefix ?? "g";
+	const styles = gridStyleFromXY(size.x, size.y);
+	const signature = cssObjectToClass(styles);
+	const hash = `grid-w${size.x}-h${size.y}`;
+
+	const className = `${prefix}-${hash}`;
+	const cssText = `.${className}{${signature}}`;
+	return { className, cssText };
+}
+
+function gridStyleFromXY(x: number, y: number): React.CSSProperties {
+	const cols = Math.max(1, Math.floor(x));
+	const rows = Math.max(1, Math.floor(y));
+
+	return {
+		display: "grid",
+		gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+		gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`
+	};
+}
+
+function cssObjectToClass(styles: React.CSSProperties): string {
+	const toKebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+
+	const entries = Object.entries(styles).filter(([, v]) => v != null && v !== "");
+	const signature = entries
+		.map(([k, v]) => `${toKebab(k)}:${String(v).trim()}`)
+		.sort()
+		.join(";");
+
+	return signature;
+}
+
+function gimiHash(signature: string) {
+	// hash FNV-1a (simple + stable)
+	let h = 2166136261;
+	for (let i = 0; i < signature.length; i++) {
+		h ^= signature.charCodeAt(i);
+		h = Math.imul(h, 16777619);
+	}
+	const hash = (h >>> 0).toString(36);
+	return hash;
+}

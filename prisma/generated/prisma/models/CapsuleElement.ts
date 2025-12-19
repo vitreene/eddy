@@ -31,6 +31,7 @@ export type CapsuleElementAvgAggregateOutputType = {
   order: number | null
   mediaId: number | null
   capsuleId: number | null
+  decorId: number | null
 }
 
 export type CapsuleElementSumAggregateOutputType = {
@@ -38,6 +39,7 @@ export type CapsuleElementSumAggregateOutputType = {
   order: number | null
   mediaId: number | null
   capsuleId: number | null
+  decorId: number | null
 }
 
 export type CapsuleElementMinAggregateOutputType = {
@@ -45,6 +47,7 @@ export type CapsuleElementMinAggregateOutputType = {
   order: number | null
   mediaId: number | null
   capsuleId: number | null
+  decorId: number | null
 }
 
 export type CapsuleElementMaxAggregateOutputType = {
@@ -52,6 +55,7 @@ export type CapsuleElementMaxAggregateOutputType = {
   order: number | null
   mediaId: number | null
   capsuleId: number | null
+  decorId: number | null
 }
 
 export type CapsuleElementCountAggregateOutputType = {
@@ -59,6 +63,7 @@ export type CapsuleElementCountAggregateOutputType = {
   order: number
   mediaId: number
   capsuleId: number
+  decorId: number
   _all: number
 }
 
@@ -68,6 +73,7 @@ export type CapsuleElementAvgAggregateInputType = {
   order?: true
   mediaId?: true
   capsuleId?: true
+  decorId?: true
 }
 
 export type CapsuleElementSumAggregateInputType = {
@@ -75,6 +81,7 @@ export type CapsuleElementSumAggregateInputType = {
   order?: true
   mediaId?: true
   capsuleId?: true
+  decorId?: true
 }
 
 export type CapsuleElementMinAggregateInputType = {
@@ -82,6 +89,7 @@ export type CapsuleElementMinAggregateInputType = {
   order?: true
   mediaId?: true
   capsuleId?: true
+  decorId?: true
 }
 
 export type CapsuleElementMaxAggregateInputType = {
@@ -89,6 +97,7 @@ export type CapsuleElementMaxAggregateInputType = {
   order?: true
   mediaId?: true
   capsuleId?: true
+  decorId?: true
 }
 
 export type CapsuleElementCountAggregateInputType = {
@@ -96,6 +105,7 @@ export type CapsuleElementCountAggregateInputType = {
   order?: true
   mediaId?: true
   capsuleId?: true
+  decorId?: true
   _all?: true
 }
 
@@ -190,6 +200,7 @@ export type CapsuleElementGroupByOutputType = {
   order: number
   mediaId: number
   capsuleId: number
+  decorId: number | null
   _count: CapsuleElementCountAggregateOutputType | null
   _avg: CapsuleElementAvgAggregateOutputType | null
   _sum: CapsuleElementSumAggregateOutputType | null
@@ -220,9 +231,12 @@ export type CapsuleElementWhereInput = {
   order?: Prisma.IntFilter<"CapsuleElement"> | number
   mediaId?: Prisma.IntFilter<"CapsuleElement"> | number
   capsuleId?: Prisma.IntFilter<"CapsuleElement"> | number
+  decorId?: Prisma.IntNullableFilter<"CapsuleElement"> | number | null
   events?: Prisma.EventListRelationFilter
   media?: Prisma.XOR<Prisma.MediaScalarRelationFilter, Prisma.MediaWhereInput>
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
+  decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
+  elementTargets?: Prisma.ElementTargetListRelationFilter
 }
 
 export type CapsuleElementOrderByWithRelationInput = {
@@ -230,13 +244,17 @@ export type CapsuleElementOrderByWithRelationInput = {
   order?: Prisma.SortOrder
   mediaId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
+  decorId?: Prisma.SortOrderInput | Prisma.SortOrder
   events?: Prisma.EventOrderByRelationAggregateInput
   media?: Prisma.MediaOrderByWithRelationInput
   capsule?: Prisma.CapsuleOrderByWithRelationInput
+  decor?: Prisma.DecorOrderByWithRelationInput
+  elementTargets?: Prisma.ElementTargetOrderByRelationAggregateInput
 }
 
 export type CapsuleElementWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  decorId?: number
   AND?: Prisma.CapsuleElementWhereInput | Prisma.CapsuleElementWhereInput[]
   OR?: Prisma.CapsuleElementWhereInput[]
   NOT?: Prisma.CapsuleElementWhereInput | Prisma.CapsuleElementWhereInput[]
@@ -246,13 +264,16 @@ export type CapsuleElementWhereUniqueInput = Prisma.AtLeast<{
   events?: Prisma.EventListRelationFilter
   media?: Prisma.XOR<Prisma.MediaScalarRelationFilter, Prisma.MediaWhereInput>
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
-}, "id">
+  decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
+  elementTargets?: Prisma.ElementTargetListRelationFilter
+}, "id" | "decorId">
 
 export type CapsuleElementOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
   mediaId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
+  decorId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.CapsuleElementCountOrderByAggregateInput
   _avg?: Prisma.CapsuleElementAvgOrderByAggregateInput
   _max?: Prisma.CapsuleElementMaxOrderByAggregateInput
@@ -268,6 +289,7 @@ export type CapsuleElementScalarWhereWithAggregatesInput = {
   order?: Prisma.IntWithAggregatesFilter<"CapsuleElement"> | number
   mediaId?: Prisma.IntWithAggregatesFilter<"CapsuleElement"> | number
   capsuleId?: Prisma.IntWithAggregatesFilter<"CapsuleElement"> | number
+  decorId?: Prisma.IntNullableWithAggregatesFilter<"CapsuleElement"> | number | null
 }
 
 export type CapsuleElementCreateInput = {
@@ -275,6 +297,8 @@ export type CapsuleElementCreateInput = {
   events?: Prisma.EventCreateNestedManyWithoutElementInput
   media: Prisma.MediaCreateNestedOneWithoutCapsuleElementInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutElementsInput
+  decor?: Prisma.DecorCreateNestedOneWithoutCapsuleElementInput
+  elementTargets?: Prisma.ElementTargetCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementUncheckedCreateInput = {
@@ -282,7 +306,9 @@ export type CapsuleElementUncheckedCreateInput = {
   order: number
   mediaId: number
   capsuleId: number
+  decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutElementInput
+  elementTargets?: Prisma.ElementTargetUncheckedCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementUpdateInput = {
@@ -290,6 +316,8 @@ export type CapsuleElementUpdateInput = {
   events?: Prisma.EventUpdateManyWithoutElementNestedInput
   media?: Prisma.MediaUpdateOneRequiredWithoutCapsuleElementNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutElementsNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutCapsuleElementNestedInput
+  elementTargets?: Prisma.ElementTargetUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementUncheckedUpdateInput = {
@@ -297,7 +325,9 @@ export type CapsuleElementUncheckedUpdateInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   mediaId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutElementNestedInput
+  elementTargets?: Prisma.ElementTargetUncheckedUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementCreateManyInput = {
@@ -305,6 +335,7 @@ export type CapsuleElementCreateManyInput = {
   order: number
   mediaId: number
   capsuleId: number
+  decorId?: number | null
 }
 
 export type CapsuleElementUpdateManyMutationInput = {
@@ -316,6 +347,7 @@ export type CapsuleElementUncheckedUpdateManyInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   mediaId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type CapsuleElementListRelationFilter = {
@@ -333,6 +365,7 @@ export type CapsuleElementCountOrderByAggregateInput = {
   order?: Prisma.SortOrder
   mediaId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
+  decorId?: Prisma.SortOrder
 }
 
 export type CapsuleElementAvgOrderByAggregateInput = {
@@ -340,6 +373,7 @@ export type CapsuleElementAvgOrderByAggregateInput = {
   order?: Prisma.SortOrder
   mediaId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
+  decorId?: Prisma.SortOrder
 }
 
 export type CapsuleElementMaxOrderByAggregateInput = {
@@ -347,6 +381,7 @@ export type CapsuleElementMaxOrderByAggregateInput = {
   order?: Prisma.SortOrder
   mediaId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
+  decorId?: Prisma.SortOrder
 }
 
 export type CapsuleElementMinOrderByAggregateInput = {
@@ -354,6 +389,7 @@ export type CapsuleElementMinOrderByAggregateInput = {
   order?: Prisma.SortOrder
   mediaId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
+  decorId?: Prisma.SortOrder
 }
 
 export type CapsuleElementSumOrderByAggregateInput = {
@@ -361,11 +397,17 @@ export type CapsuleElementSumOrderByAggregateInput = {
   order?: Prisma.SortOrder
   mediaId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
+  decorId?: Prisma.SortOrder
 }
 
 export type CapsuleElementNullableScalarRelationFilter = {
   is?: Prisma.CapsuleElementWhereInput | null
   isNot?: Prisma.CapsuleElementWhereInput | null
+}
+
+export type CapsuleElementScalarRelationFilter = {
+  is?: Prisma.CapsuleElementWhereInput
+  isNot?: Prisma.CapsuleElementWhereInput
 }
 
 export type CapsuleElementCreateNestedManyWithoutCapsuleInput = {
@@ -468,17 +510,77 @@ export type CapsuleElementUpdateOneWithoutEventsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.CapsuleElementUpdateToOneWithWhereWithoutEventsInput, Prisma.CapsuleElementUpdateWithoutEventsInput>, Prisma.CapsuleElementUncheckedUpdateWithoutEventsInput>
 }
 
+export type CapsuleElementCreateNestedManyWithoutDecorInput = {
+  create?: Prisma.XOR<Prisma.CapsuleElementCreateWithoutDecorInput, Prisma.CapsuleElementUncheckedCreateWithoutDecorInput> | Prisma.CapsuleElementCreateWithoutDecorInput[] | Prisma.CapsuleElementUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.CapsuleElementCreateOrConnectWithoutDecorInput | Prisma.CapsuleElementCreateOrConnectWithoutDecorInput[]
+  createMany?: Prisma.CapsuleElementCreateManyDecorInputEnvelope
+  connect?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+}
+
+export type CapsuleElementUncheckedCreateNestedManyWithoutDecorInput = {
+  create?: Prisma.XOR<Prisma.CapsuleElementCreateWithoutDecorInput, Prisma.CapsuleElementUncheckedCreateWithoutDecorInput> | Prisma.CapsuleElementCreateWithoutDecorInput[] | Prisma.CapsuleElementUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.CapsuleElementCreateOrConnectWithoutDecorInput | Prisma.CapsuleElementCreateOrConnectWithoutDecorInput[]
+  createMany?: Prisma.CapsuleElementCreateManyDecorInputEnvelope
+  connect?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+}
+
+export type CapsuleElementUpdateManyWithoutDecorNestedInput = {
+  create?: Prisma.XOR<Prisma.CapsuleElementCreateWithoutDecorInput, Prisma.CapsuleElementUncheckedCreateWithoutDecorInput> | Prisma.CapsuleElementCreateWithoutDecorInput[] | Prisma.CapsuleElementUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.CapsuleElementCreateOrConnectWithoutDecorInput | Prisma.CapsuleElementCreateOrConnectWithoutDecorInput[]
+  upsert?: Prisma.CapsuleElementUpsertWithWhereUniqueWithoutDecorInput | Prisma.CapsuleElementUpsertWithWhereUniqueWithoutDecorInput[]
+  createMany?: Prisma.CapsuleElementCreateManyDecorInputEnvelope
+  set?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  disconnect?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  delete?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  connect?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  update?: Prisma.CapsuleElementUpdateWithWhereUniqueWithoutDecorInput | Prisma.CapsuleElementUpdateWithWhereUniqueWithoutDecorInput[]
+  updateMany?: Prisma.CapsuleElementUpdateManyWithWhereWithoutDecorInput | Prisma.CapsuleElementUpdateManyWithWhereWithoutDecorInput[]
+  deleteMany?: Prisma.CapsuleElementScalarWhereInput | Prisma.CapsuleElementScalarWhereInput[]
+}
+
+export type CapsuleElementUncheckedUpdateManyWithoutDecorNestedInput = {
+  create?: Prisma.XOR<Prisma.CapsuleElementCreateWithoutDecorInput, Prisma.CapsuleElementUncheckedCreateWithoutDecorInput> | Prisma.CapsuleElementCreateWithoutDecorInput[] | Prisma.CapsuleElementUncheckedCreateWithoutDecorInput[]
+  connectOrCreate?: Prisma.CapsuleElementCreateOrConnectWithoutDecorInput | Prisma.CapsuleElementCreateOrConnectWithoutDecorInput[]
+  upsert?: Prisma.CapsuleElementUpsertWithWhereUniqueWithoutDecorInput | Prisma.CapsuleElementUpsertWithWhereUniqueWithoutDecorInput[]
+  createMany?: Prisma.CapsuleElementCreateManyDecorInputEnvelope
+  set?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  disconnect?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  delete?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  connect?: Prisma.CapsuleElementWhereUniqueInput | Prisma.CapsuleElementWhereUniqueInput[]
+  update?: Prisma.CapsuleElementUpdateWithWhereUniqueWithoutDecorInput | Prisma.CapsuleElementUpdateWithWhereUniqueWithoutDecorInput[]
+  updateMany?: Prisma.CapsuleElementUpdateManyWithWhereWithoutDecorInput | Prisma.CapsuleElementUpdateManyWithWhereWithoutDecorInput[]
+  deleteMany?: Prisma.CapsuleElementScalarWhereInput | Prisma.CapsuleElementScalarWhereInput[]
+}
+
+export type CapsuleElementCreateNestedOneWithoutElementTargetsInput = {
+  create?: Prisma.XOR<Prisma.CapsuleElementCreateWithoutElementTargetsInput, Prisma.CapsuleElementUncheckedCreateWithoutElementTargetsInput>
+  connectOrCreate?: Prisma.CapsuleElementCreateOrConnectWithoutElementTargetsInput
+  connect?: Prisma.CapsuleElementWhereUniqueInput
+}
+
+export type CapsuleElementUpdateOneRequiredWithoutElementTargetsNestedInput = {
+  create?: Prisma.XOR<Prisma.CapsuleElementCreateWithoutElementTargetsInput, Prisma.CapsuleElementUncheckedCreateWithoutElementTargetsInput>
+  connectOrCreate?: Prisma.CapsuleElementCreateOrConnectWithoutElementTargetsInput
+  upsert?: Prisma.CapsuleElementUpsertWithoutElementTargetsInput
+  connect?: Prisma.CapsuleElementWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.CapsuleElementUpdateToOneWithWhereWithoutElementTargetsInput, Prisma.CapsuleElementUpdateWithoutElementTargetsInput>, Prisma.CapsuleElementUncheckedUpdateWithoutElementTargetsInput>
+}
+
 export type CapsuleElementCreateWithoutCapsuleInput = {
   order: number
   events?: Prisma.EventCreateNestedManyWithoutElementInput
   media: Prisma.MediaCreateNestedOneWithoutCapsuleElementInput
+  decor?: Prisma.DecorCreateNestedOneWithoutCapsuleElementInput
+  elementTargets?: Prisma.ElementTargetCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementUncheckedCreateWithoutCapsuleInput = {
   id?: number
   order: number
   mediaId: number
+  decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutElementInput
+  elementTargets?: Prisma.ElementTargetUncheckedCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementCreateOrConnectWithoutCapsuleInput = {
@@ -514,19 +616,24 @@ export type CapsuleElementScalarWhereInput = {
   order?: Prisma.IntFilter<"CapsuleElement"> | number
   mediaId?: Prisma.IntFilter<"CapsuleElement"> | number
   capsuleId?: Prisma.IntFilter<"CapsuleElement"> | number
+  decorId?: Prisma.IntNullableFilter<"CapsuleElement"> | number | null
 }
 
 export type CapsuleElementCreateWithoutMediaInput = {
   order: number
   events?: Prisma.EventCreateNestedManyWithoutElementInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutElementsInput
+  decor?: Prisma.DecorCreateNestedOneWithoutCapsuleElementInput
+  elementTargets?: Prisma.ElementTargetCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementUncheckedCreateWithoutMediaInput = {
   id?: number
   order: number
   capsuleId: number
+  decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutElementInput
+  elementTargets?: Prisma.ElementTargetUncheckedCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementCreateOrConnectWithoutMediaInput = {
@@ -558,6 +665,8 @@ export type CapsuleElementCreateWithoutEventsInput = {
   order: number
   media: Prisma.MediaCreateNestedOneWithoutCapsuleElementInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutElementsInput
+  decor?: Prisma.DecorCreateNestedOneWithoutCapsuleElementInput
+  elementTargets?: Prisma.ElementTargetCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementUncheckedCreateWithoutEventsInput = {
@@ -565,6 +674,8 @@ export type CapsuleElementUncheckedCreateWithoutEventsInput = {
   order: number
   mediaId: number
   capsuleId: number
+  decorId?: number | null
+  elementTargets?: Prisma.ElementTargetUncheckedCreateNestedManyWithoutElementInput
 }
 
 export type CapsuleElementCreateOrConnectWithoutEventsInput = {
@@ -587,6 +698,8 @@ export type CapsuleElementUpdateWithoutEventsInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   media?: Prisma.MediaUpdateOneRequiredWithoutCapsuleElementNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutElementsNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutCapsuleElementNestedInput
+  elementTargets?: Prisma.ElementTargetUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementUncheckedUpdateWithoutEventsInput = {
@@ -594,55 +707,192 @@ export type CapsuleElementUncheckedUpdateWithoutEventsInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   mediaId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  elementTargets?: Prisma.ElementTargetUncheckedUpdateManyWithoutElementNestedInput
+}
+
+export type CapsuleElementCreateWithoutDecorInput = {
+  order: number
+  events?: Prisma.EventCreateNestedManyWithoutElementInput
+  media: Prisma.MediaCreateNestedOneWithoutCapsuleElementInput
+  capsule?: Prisma.CapsuleCreateNestedOneWithoutElementsInput
+  elementTargets?: Prisma.ElementTargetCreateNestedManyWithoutElementInput
+}
+
+export type CapsuleElementUncheckedCreateWithoutDecorInput = {
+  id?: number
+  order: number
+  mediaId: number
+  capsuleId: number
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutElementInput
+  elementTargets?: Prisma.ElementTargetUncheckedCreateNestedManyWithoutElementInput
+}
+
+export type CapsuleElementCreateOrConnectWithoutDecorInput = {
+  where: Prisma.CapsuleElementWhereUniqueInput
+  create: Prisma.XOR<Prisma.CapsuleElementCreateWithoutDecorInput, Prisma.CapsuleElementUncheckedCreateWithoutDecorInput>
+}
+
+export type CapsuleElementCreateManyDecorInputEnvelope = {
+  data: Prisma.CapsuleElementCreateManyDecorInput | Prisma.CapsuleElementCreateManyDecorInput[]
+}
+
+export type CapsuleElementUpsertWithWhereUniqueWithoutDecorInput = {
+  where: Prisma.CapsuleElementWhereUniqueInput
+  update: Prisma.XOR<Prisma.CapsuleElementUpdateWithoutDecorInput, Prisma.CapsuleElementUncheckedUpdateWithoutDecorInput>
+  create: Prisma.XOR<Prisma.CapsuleElementCreateWithoutDecorInput, Prisma.CapsuleElementUncheckedCreateWithoutDecorInput>
+}
+
+export type CapsuleElementUpdateWithWhereUniqueWithoutDecorInput = {
+  where: Prisma.CapsuleElementWhereUniqueInput
+  data: Prisma.XOR<Prisma.CapsuleElementUpdateWithoutDecorInput, Prisma.CapsuleElementUncheckedUpdateWithoutDecorInput>
+}
+
+export type CapsuleElementUpdateManyWithWhereWithoutDecorInput = {
+  where: Prisma.CapsuleElementScalarWhereInput
+  data: Prisma.XOR<Prisma.CapsuleElementUpdateManyMutationInput, Prisma.CapsuleElementUncheckedUpdateManyWithoutDecorInput>
+}
+
+export type CapsuleElementCreateWithoutElementTargetsInput = {
+  order: number
+  events?: Prisma.EventCreateNestedManyWithoutElementInput
+  media: Prisma.MediaCreateNestedOneWithoutCapsuleElementInput
+  capsule?: Prisma.CapsuleCreateNestedOneWithoutElementsInput
+  decor?: Prisma.DecorCreateNestedOneWithoutCapsuleElementInput
+}
+
+export type CapsuleElementUncheckedCreateWithoutElementTargetsInput = {
+  id?: number
+  order: number
+  mediaId: number
+  capsuleId: number
+  decorId?: number | null
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutElementInput
+}
+
+export type CapsuleElementCreateOrConnectWithoutElementTargetsInput = {
+  where: Prisma.CapsuleElementWhereUniqueInput
+  create: Prisma.XOR<Prisma.CapsuleElementCreateWithoutElementTargetsInput, Prisma.CapsuleElementUncheckedCreateWithoutElementTargetsInput>
+}
+
+export type CapsuleElementUpsertWithoutElementTargetsInput = {
+  update: Prisma.XOR<Prisma.CapsuleElementUpdateWithoutElementTargetsInput, Prisma.CapsuleElementUncheckedUpdateWithoutElementTargetsInput>
+  create: Prisma.XOR<Prisma.CapsuleElementCreateWithoutElementTargetsInput, Prisma.CapsuleElementUncheckedCreateWithoutElementTargetsInput>
+  where?: Prisma.CapsuleElementWhereInput
+}
+
+export type CapsuleElementUpdateToOneWithWhereWithoutElementTargetsInput = {
+  where?: Prisma.CapsuleElementWhereInput
+  data: Prisma.XOR<Prisma.CapsuleElementUpdateWithoutElementTargetsInput, Prisma.CapsuleElementUncheckedUpdateWithoutElementTargetsInput>
+}
+
+export type CapsuleElementUpdateWithoutElementTargetsInput = {
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  events?: Prisma.EventUpdateManyWithoutElementNestedInput
+  media?: Prisma.MediaUpdateOneRequiredWithoutCapsuleElementNestedInput
+  capsule?: Prisma.CapsuleUpdateOneWithoutElementsNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutCapsuleElementNestedInput
+}
+
+export type CapsuleElementUncheckedUpdateWithoutElementTargetsInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  mediaId?: Prisma.IntFieldUpdateOperationsInput | number
+  capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  events?: Prisma.EventUncheckedUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementCreateManyCapsuleInput = {
   id?: number
   order: number
   mediaId: number
+  decorId?: number | null
 }
 
 export type CapsuleElementUpdateWithoutCapsuleInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUpdateManyWithoutElementNestedInput
   media?: Prisma.MediaUpdateOneRequiredWithoutCapsuleElementNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutCapsuleElementNestedInput
+  elementTargets?: Prisma.ElementTargetUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementUncheckedUpdateWithoutCapsuleInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   mediaId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutElementNestedInput
+  elementTargets?: Prisma.ElementTargetUncheckedUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementUncheckedUpdateManyWithoutCapsuleInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   mediaId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type CapsuleElementCreateManyMediaInput = {
   id?: number
   order: number
   capsuleId: number
+  decorId?: number | null
 }
 
 export type CapsuleElementUpdateWithoutMediaInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUpdateManyWithoutElementNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutElementsNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutCapsuleElementNestedInput
+  elementTargets?: Prisma.ElementTargetUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementUncheckedUpdateWithoutMediaInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutElementNestedInput
+  elementTargets?: Prisma.ElementTargetUncheckedUpdateManyWithoutElementNestedInput
 }
 
 export type CapsuleElementUncheckedUpdateManyWithoutMediaInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
+  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
+export type CapsuleElementCreateManyDecorInput = {
+  id?: number
+  order: number
+  mediaId: number
+  capsuleId: number
+}
+
+export type CapsuleElementUpdateWithoutDecorInput = {
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  events?: Prisma.EventUpdateManyWithoutElementNestedInput
+  media?: Prisma.MediaUpdateOneRequiredWithoutCapsuleElementNestedInput
+  capsule?: Prisma.CapsuleUpdateOneWithoutElementsNestedInput
+  elementTargets?: Prisma.ElementTargetUpdateManyWithoutElementNestedInput
+}
+
+export type CapsuleElementUncheckedUpdateWithoutDecorInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  mediaId?: Prisma.IntFieldUpdateOperationsInput | number
+  capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
+  events?: Prisma.EventUncheckedUpdateManyWithoutElementNestedInput
+  elementTargets?: Prisma.ElementTargetUncheckedUpdateManyWithoutElementNestedInput
+}
+
+export type CapsuleElementUncheckedUpdateManyWithoutDecorInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  order?: Prisma.IntFieldUpdateOperationsInput | number
+  mediaId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
 }
 
@@ -653,10 +903,12 @@ export type CapsuleElementUncheckedUpdateManyWithoutMediaInput = {
 
 export type CapsuleElementCountOutputType = {
   events: number
+  elementTargets: number
 }
 
 export type CapsuleElementCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   events?: boolean | CapsuleElementCountOutputTypeCountEventsArgs
+  elementTargets?: boolean | CapsuleElementCountOutputTypeCountElementTargetsArgs
 }
 
 /**
@@ -676,15 +928,25 @@ export type CapsuleElementCountOutputTypeCountEventsArgs<ExtArgs extends runtime
   where?: Prisma.EventWhereInput
 }
 
+/**
+ * CapsuleElementCountOutputType without action
+ */
+export type CapsuleElementCountOutputTypeCountElementTargetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.ElementTargetWhereInput
+}
+
 
 export type CapsuleElementSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   order?: boolean
   mediaId?: boolean
   capsuleId?: boolean
+  decorId?: boolean
   events?: boolean | Prisma.CapsuleElement$eventsArgs<ExtArgs>
   media?: boolean | Prisma.MediaDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.CapsuleElement$capsuleArgs<ExtArgs>
+  decor?: boolean | Prisma.CapsuleElement$decorArgs<ExtArgs>
+  elementTargets?: boolean | Prisma.CapsuleElement$elementTargetsArgs<ExtArgs>
   _count?: boolean | Prisma.CapsuleElementCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["capsuleElement"]>
 
@@ -693,8 +955,10 @@ export type CapsuleElementSelectCreateManyAndReturn<ExtArgs extends runtime.Type
   order?: boolean
   mediaId?: boolean
   capsuleId?: boolean
+  decorId?: boolean
   media?: boolean | Prisma.MediaDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.CapsuleElement$capsuleArgs<ExtArgs>
+  decor?: boolean | Prisma.CapsuleElement$decorArgs<ExtArgs>
 }, ExtArgs["result"]["capsuleElement"]>
 
 export type CapsuleElementSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -702,8 +966,10 @@ export type CapsuleElementSelectUpdateManyAndReturn<ExtArgs extends runtime.Type
   order?: boolean
   mediaId?: boolean
   capsuleId?: boolean
+  decorId?: boolean
   media?: boolean | Prisma.MediaDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.CapsuleElement$capsuleArgs<ExtArgs>
+  decor?: boolean | Prisma.CapsuleElement$decorArgs<ExtArgs>
 }, ExtArgs["result"]["capsuleElement"]>
 
 export type CapsuleElementSelectScalar = {
@@ -711,22 +977,27 @@ export type CapsuleElementSelectScalar = {
   order?: boolean
   mediaId?: boolean
   capsuleId?: boolean
+  decorId?: boolean
 }
 
-export type CapsuleElementOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "order" | "mediaId" | "capsuleId", ExtArgs["result"]["capsuleElement"]>
+export type CapsuleElementOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "order" | "mediaId" | "capsuleId" | "decorId", ExtArgs["result"]["capsuleElement"]>
 export type CapsuleElementInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   events?: boolean | Prisma.CapsuleElement$eventsArgs<ExtArgs>
   media?: boolean | Prisma.MediaDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.CapsuleElement$capsuleArgs<ExtArgs>
+  decor?: boolean | Prisma.CapsuleElement$decorArgs<ExtArgs>
+  elementTargets?: boolean | Prisma.CapsuleElement$elementTargetsArgs<ExtArgs>
   _count?: boolean | Prisma.CapsuleElementCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type CapsuleElementIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   media?: boolean | Prisma.MediaDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.CapsuleElement$capsuleArgs<ExtArgs>
+  decor?: boolean | Prisma.CapsuleElement$decorArgs<ExtArgs>
 }
 export type CapsuleElementIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   media?: boolean | Prisma.MediaDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.CapsuleElement$capsuleArgs<ExtArgs>
+  decor?: boolean | Prisma.CapsuleElement$decorArgs<ExtArgs>
 }
 
 export type $CapsuleElementPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -735,12 +1006,15 @@ export type $CapsuleElementPayload<ExtArgs extends runtime.Types.Extensions.Inte
     events: Prisma.$EventPayload<ExtArgs>[]
     media: Prisma.$MediaPayload<ExtArgs>
     capsule: Prisma.$CapsulePayload<ExtArgs> | null
+    decor: Prisma.$DecorPayload<ExtArgs> | null
+    elementTargets: Prisma.$ElementTargetPayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     order: number
     mediaId: number
     capsuleId: number
+    decorId: number | null
   }, ExtArgs["result"]["capsuleElement"]>
   composites: {}
 }
@@ -1138,6 +1412,8 @@ export interface Prisma__CapsuleElementClient<T, Null = never, ExtArgs extends r
   events<T extends Prisma.CapsuleElement$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CapsuleElement$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   media<T extends Prisma.MediaDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.MediaDefaultArgs<ExtArgs>>): Prisma.Prisma__MediaClient<runtime.Types.Result.GetResult<Prisma.$MediaPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   capsule<T extends Prisma.CapsuleElement$capsuleArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CapsuleElement$capsuleArgs<ExtArgs>>): Prisma.Prisma__CapsuleClient<runtime.Types.Result.GetResult<Prisma.$CapsulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  decor<T extends Prisma.CapsuleElement$decorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CapsuleElement$decorArgs<ExtArgs>>): Prisma.Prisma__DecorClient<runtime.Types.Result.GetResult<Prisma.$DecorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  elementTargets<T extends Prisma.CapsuleElement$elementTargetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.CapsuleElement$elementTargetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ElementTargetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1171,6 +1447,7 @@ export interface CapsuleElementFieldRefs {
   readonly order: Prisma.FieldRef<"CapsuleElement", 'Int'>
   readonly mediaId: Prisma.FieldRef<"CapsuleElement", 'Int'>
   readonly capsuleId: Prisma.FieldRef<"CapsuleElement", 'Int'>
+  readonly decorId: Prisma.FieldRef<"CapsuleElement", 'Int'>
 }
     
 
@@ -1605,6 +1882,49 @@ export type CapsuleElement$capsuleArgs<ExtArgs extends runtime.Types.Extensions.
    */
   include?: Prisma.CapsuleInclude<ExtArgs> | null
   where?: Prisma.CapsuleWhereInput
+}
+
+/**
+ * CapsuleElement.decor
+ */
+export type CapsuleElement$decorArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Decor
+   */
+  select?: Prisma.DecorSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Decor
+   */
+  omit?: Prisma.DecorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DecorInclude<ExtArgs> | null
+  where?: Prisma.DecorWhereInput
+}
+
+/**
+ * CapsuleElement.elementTargets
+ */
+export type CapsuleElement$elementTargetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the ElementTarget
+   */
+  select?: Prisma.ElementTargetSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the ElementTarget
+   */
+  omit?: Prisma.ElementTargetOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.ElementTargetInclude<ExtArgs> | null
+  where?: Prisma.ElementTargetWhereInput
+  orderBy?: Prisma.ElementTargetOrderByWithRelationInput | Prisma.ElementTargetOrderByWithRelationInput[]
+  cursor?: Prisma.ElementTargetWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.ElementTargetScalarFieldEnum | Prisma.ElementTargetScalarFieldEnum[]
 }
 
 /**

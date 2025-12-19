@@ -12,8 +12,12 @@ model Scene {
   title    String       @default("Scène")
   capsules Capsule[]
   medias   SceneMedia[]
-  theme    Decor[]
-  themes   Theme[]
+
+  decorId Int?   @unique @map("decor_id") // basé sur  // name
+  decor   Decor? @relation(fields: [decorId], references: [id])
+
+  themeId Int?   @unique @map("theme_id") // basé sur  // name
+  theme   Theme? @relation(fields: [themeId], references: [id])
 
   @@map("scene")
 }
@@ -44,8 +48,9 @@ model Capsule {
   sceneId Int   @map("scene_id")
   scene   Scene @relation(fields: [sceneId], references: [id])
 
-  decorId Int?   @unique @map("decor_id") // basé sur  // name
-  decor   Decor? @relation(fields: [decorId], references: [id])
+  decorId        Int?            @unique @map("decor_id") // basé sur  // name
+  decor          Decor?          @relation(fields: [decorId], references: [id])
+  elementTargets ElementTarget[]
 
   @@map("capsule")
 }
@@ -60,6 +65,10 @@ model CapsuleElement {
 
   capsuleId Int      @map("capsule_id")
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])
+
+  decorId        Int?            @unique @map("decor_id") // basé sur  // name
+  decor          Decor?          @relation(fields: [decorId], references: [id])
+  elementTargets ElementTarget[]
 
   @@map("capsule_element")
 }
@@ -116,21 +125,28 @@ model Decor {
   style     String? // JSON
   className String?
 
-  targetId Int?     @map("target_id") // capsuleId
-  order    Int? // ordre d'insertion dans la capsule ; n° du slot
-  capsule  Capsule? //target 
-
-  sceneId Int?
-  scene   Scene? @relation(fields: [sceneId], references: [id])
-
   basedUpon Int?    @map("based_upon") // ref decor id  // name
   base      Decor?  @relation("BasedUpon", fields: [basedUpon], references: [id])
   bases     Decor[] @relation("BasedUpon")
 
-  sceneMedia SceneMedia?
-  event      Event?
+  scene          Scene[]
+  sceneMedia     SceneMedia[]
+  event          Event[]
+  capsule        Capsule[]
+  capsuleElement CapsuleElement[]
 
   @@map("decor")
+}
+
+model ElementTarget {
+  id        Int            @id @default(autoincrement())
+  order     Int? // ordre d'insertion dans la capsule ; n° du slot
+  targetId  Int            @map("target_id") // capsuleId
+  capsule   Capsule        @relation(fields: [targetId], references: [id])
+  elementId Int            @map("element_id")
+  element   CapsuleElement @relation(fields: [elementId], references: [id])
+
+  @@map("element_target")
 }
 
 model Theme {
@@ -139,8 +155,7 @@ model Theme {
   custom    String?
   generated String?
 
-  sceneId Int?
-  scene   Scene? @relation(fields: [sceneId], references: [id])
+  scene Scene[]
 
   @@map("theme")
 }

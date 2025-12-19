@@ -1,5 +1,4 @@
 import React from "react";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy } from "lucide-react";
 
@@ -29,7 +28,7 @@ export const CompactStyleEditor: React.FC<Props> = ({ value, onChange }) => {
 	};
 
 	return (
-		<Card className="w-64 gap-2 p-3">
+		<div className="mt-2">
 			<div className="mb-1 flex justify-between">
 				<Button size="sm" variant="outline" onClick={() => onChange({})}>
 					Reset
@@ -52,6 +51,6 @@ export const CompactStyleEditor: React.FC<Props> = ({ value, onChange }) => {
 			<SpacingMini value={value} onChange={onChange} />
 
 			<FlexMini value={value} onChange={onChange} />
-		</Card>
+		</div>
 	);
 };

@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.1.0
- * Query Engine version: ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba
+ * Prisma Client JS version: 7.2.0
+ * Query Engine version: 0c8ef2ce45c83248ab3df073180d5eda9e8be7a3
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.1.0",
-  engine: "ab635e6b9d606fa5c8fb8b1a7f909c3c3c1c98ba"
+  client: "7.2.0",
+  engine: "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3"
 }
 
 /**
@@ -391,6 +391,7 @@ export const ModelName = {
   Media: 'Media',
   Event: 'Event',
   Decor: 'Decor',
+  ElementTarget: 'ElementTarget',
   Theme: 'Theme'
 } as const
 
@@ -407,7 +408,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "scene" | "sceneMedia" | "capsule" | "capsuleElement" | "media" | "event" | "decor" | "theme"
+    modelProps: "scene" | "sceneMedia" | "capsule" | "capsuleElement" | "media" | "event" | "decor" | "elementTarget" | "theme"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -929,6 +930,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         }
       }
     }
+    ElementTarget: {
+      payload: Prisma.$ElementTargetPayload<ExtArgs>
+      fields: Prisma.ElementTargetFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.ElementTargetFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.ElementTargetFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>
+        }
+        findFirst: {
+          args: Prisma.ElementTargetFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.ElementTargetFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>
+        }
+        findMany: {
+          args: Prisma.ElementTargetFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>[]
+        }
+        create: {
+          args: Prisma.ElementTargetCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>
+        }
+        createMany: {
+          args: Prisma.ElementTargetCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.ElementTargetCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>[]
+        }
+        delete: {
+          args: Prisma.ElementTargetDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>
+        }
+        update: {
+          args: Prisma.ElementTargetUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>
+        }
+        deleteMany: {
+          args: Prisma.ElementTargetDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.ElementTargetUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.ElementTargetUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>[]
+        }
+        upsert: {
+          args: Prisma.ElementTargetUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$ElementTargetPayload>
+        }
+        aggregate: {
+          args: Prisma.ElementTargetAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateElementTarget>
+        }
+        groupBy: {
+          args: Prisma.ElementTargetGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ElementTargetGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.ElementTargetCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.ElementTargetCountAggregateOutputType> | number
+        }
+      }
+    }
     Theme: {
       payload: Prisma.$ThemePayload<ExtArgs>
       fields: Prisma.ThemeFieldRefs
@@ -1041,7 +1116,9 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 
 export const SceneScalarFieldEnum = {
   id: 'id',
-  title: 'title'
+  title: 'title',
+  decorId: 'decorId',
+  themeId: 'themeId'
 } as const
 
 export type SceneScalarFieldEnum = (typeof SceneScalarFieldEnum)[keyof typeof SceneScalarFieldEnum]
@@ -1073,7 +1150,8 @@ export const CapsuleElementScalarFieldEnum = {
   id: 'id',
   order: 'order',
   mediaId: 'mediaId',
-  capsuleId: 'capsuleId'
+  capsuleId: 'capsuleId',
+  decorId: 'decorId'
 } as const
 
 export type CapsuleElementScalarFieldEnum = (typeof CapsuleElementScalarFieldEnum)[keyof typeof CapsuleElementScalarFieldEnum]
@@ -1110,21 +1188,27 @@ export const DecorScalarFieldEnum = {
   name: 'name',
   style: 'style',
   className: 'className',
-  targetId: 'targetId',
-  order: 'order',
-  sceneId: 'sceneId',
   basedUpon: 'basedUpon'
 } as const
 
 export type DecorScalarFieldEnum = (typeof DecorScalarFieldEnum)[keyof typeof DecorScalarFieldEnum]
 
 
+export const ElementTargetScalarFieldEnum = {
+  id: 'id',
+  order: 'order',
+  targetId: 'targetId',
+  elementId: 'elementId'
+} as const
+
+export type ElementTargetScalarFieldEnum = (typeof ElementTargetScalarFieldEnum)[keyof typeof ElementTargetScalarFieldEnum]
+
+
 export const ThemeScalarFieldEnum = {
   id: 'id',
   name: 'name',
   custom: 'custom',
-  generated: 'generated',
-  sceneId: 'sceneId'
+  generated: 'generated'
 } as const
 
 export type ThemeScalarFieldEnum = (typeof ThemeScalarFieldEnum)[keyof typeof ThemeScalarFieldEnum]
@@ -1274,6 +1358,7 @@ export type GlobalOmitConfig = {
   media?: Prisma.MediaOmit
   event?: Prisma.EventOmit
   decor?: Prisma.DecorOmit
+  elementTarget?: Prisma.ElementTargetOmit
   theme?: Prisma.ThemeOmit
 }
 

@@ -6,8 +6,10 @@ import type {
 	CapsuleElement,
 	Media,
 	Scene,
-	Event as MediaEvent
+	Event as MediaEvent,
+	Theme
 } from "prisma/generated/prisma/client";
+import type { Decor } from "@prisma/client";
 
 export type { Media, Event as MediaEvent } from "prisma/generated/prisma/client";
 
@@ -72,20 +74,30 @@ export interface SceneComp {
 	id: number;
 	title: string;
 	events: {
-		[key: number]: Record<string, MediaEvent>;
+		[id: number]: Record<string, MediaEvent>;
 	};
 	sceneMedias: {
-		[key: number]: SceneMedia;
+		[id: number]: SceneMedia;
 	};
 	capsules: {
-		[key: number]: CapsuleComp;
+		[id: number]: CapsuleComp;
 	};
 	elements: {
-		[key: number]: ElementComp;
+		[id: number]: ElementComp;
 	};
 	medias: {
-		[key: number]: Media;
+		[id: number]: Media;
 	};
+	decors: {
+		capsules: {
+			[id: number]: Decor;
+		};
+		elements: {
+			[id: number]: Decor;
+		};
+	};
+	decor?: Decor;
+	theme?: Theme;
 }
 
 interface DbCapsule extends Capsule {
@@ -93,13 +105,17 @@ interface DbCapsule extends Capsule {
 		CapsuleElement & {
 			media: Media;
 			events: Array<MediaEvent>;
+			decor?: Decor | null;
 		}
 	>;
+	decor?: Decor | null;
 }
 interface DbSceneComp extends Scene {
 	capsules: Array<DbCapsule>;
 	sceneMedias: Array<SceneMedia>;
 	medias: Array<Media>;
+	decor?: Decor | null;
+	theme?: Theme | null;
 }
 
 // SCENE
@@ -132,11 +148,15 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 					elements: {
 						include: {
 							media: true,
-							events: true
+							events: true,
+							decor: true
 						}
-					}
+					},
+					decor: true
 				}
-			}
+			},
+			decor: true,
+			theme: true
 		}
 	});
 
@@ -161,7 +181,13 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 		sceneMedias: {},
 		capsules: {},
 		elements: {},
-		medias: {}
+		medias: {},
+		decors: {
+			capsules: {},
+			elements: {}
+		},
+		decor: scene.decor ?? undefined,
+		theme: scene.theme ?? undefined
 	};
 
 	// Scene medias
@@ -180,7 +206,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 
 	// Capsules and elements
 	if (scene.capsules) {
-		scene.capsules.forEach(({ elements, ...capsule }) => {
+		scene.capsules.forEach(({ elements, decor, ...capsule }) => {
 			const elementIds: number[] = elements.map((element) => element.id);
 
 			flatScene.capsules[capsule.id] = {
@@ -188,12 +214,24 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 				elementIds
 			};
 
-			elements.forEach(({ media, events, ...element }) => {
+			// Store decor in flat structure
+			if (decor) {
+				const { style, ...d } = decor;
+				flatScene.decors.capsules[capsule.id] = { ...d, style: JSON.parse(style) };
+			}
+
+			elements.forEach(({ media, events, decor, ...element }) => {
 				flatScene.elements[element.id] = {
 					...element,
 					mediaId: media.id,
 					eventIds: events.map((event) => event.id)
 				};
+
+				// Store decor in flat structure
+				if (decor) {
+					const { style, ...d } = decor;
+					flatScene.decors.elements[element.id] = { ...d, style: JSON.parse(style) };
+				}
 
 				if (events.length > 0) {
 					const evs = Object.fromEntries(events.map((e) => [e.action, e]));
@@ -323,4 +361,24 @@ export async function removeEventFromMedia(id: number) {
 	return await prisma.event.delete({
 		where: { id }
 	});
+}
+
+// DECOR
+export async function createDecor(data: Partial<Decor>) {
+	return await prisma.decor.create({ data });
+}
+
+export async function updateDecor({ id, ...update }: Partial<Decor>) {
+	return await prisma.decor.update({
+		where: { id: id as number },
+		data: update
+	});
+}
+
+export async function getDecorById(id: number) {
+	return await prisma.decor.findUnique({ where: { id } });
+}
+
+export async function getDecorByCapsuleId(capsuleId: number) {
+	return await prisma.capsule.findUnique({ where: { id: capsuleId } }).decor();
 }

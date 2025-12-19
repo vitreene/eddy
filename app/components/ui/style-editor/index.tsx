@@ -11,9 +11,5 @@ export const StyleEditor = () => {
 		color: "#222222"
 	});
 
-	return (
-		<div className="h-full w-full p-4">
-			<CompactStyleEditor value={style} onChange={setStyle} />
-		</div>
-	);
+	return <CompactStyleEditor value={style} onChange={setStyle} />;
 };

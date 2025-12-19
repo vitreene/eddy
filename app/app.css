@@ -141,10 +141,9 @@ body {
 	padding: 1rem;
 	grid-template:
 		"menu menu menu menu" 1fr
-		"chutier capsules  player infos" 6fr
-		"chutier capsules player infos" 2fr
-		"edit edit edit edit" 4fr;
-	grid-template-columns: 2fr 1fr 5fr 4fr;
+		"chutier capsules  player infos" 10fr
+		"edit edit edit infos" 4fr;
+	grid-template-columns: 2fr 1fr 5fr 2fr;
 	width: 100vw;
 	height: 100vh;
 	min-height: 100vh;
