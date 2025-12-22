@@ -279,8 +279,8 @@ export async function createCapsule({ sceneId, type }: { sceneId: number; type: 
 	return newCapsule;
 }
 
-export async function updateCapsule({ id, ...update }: Partial<Capsule>) {
-	return await prisma.capsule.update({
+export function updateCapsule({ id, ...update }: Partial<Capsule>) {
+	return prisma.capsule.update({
 		where: { id },
 		data: update
 	});

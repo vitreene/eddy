@@ -1,6 +1,6 @@
 import type { Route } from "../+types/root";
 import type { Decor } from "@prisma/client";
-import { createDecor, updateDecor, getDecorByCapsuleId, prisma } from "./db";
+import { createDecor, updateDecor, getDecorByCapsuleId, updateCapsule } from "./db";
 
 export async function action({ request }: Route.ActionArgs) {
 	const contentType = request.headers.get("content-type") || "";
@@ -25,10 +25,8 @@ export async function action({ request }: Route.ActionArgs) {
 				// Créer un nouveau decor pour la capsule
 				const created = await createDecor({ ...decorData });
 				// Lier le decor à la capsule
-				await prisma.capsule.update({
-					where: { id: Number(capsuleId) },
-					data: { decorId: created.id }
-				});
+				await updateCapsule({ id: Number(capsuleId), decorId: created.id });
+
 				return { ok: true, decorId: created.id };
 			}
 		}

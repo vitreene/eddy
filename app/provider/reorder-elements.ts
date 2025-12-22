@@ -6,9 +6,9 @@ export const fetchReorder = fromPromise(async ({ input }) => {
 	console.log("reorder-capsule");
 	const { context, event } = input as {
 		context: SceneComp & { active: ActiveState };
-		event: { type: "tree-move"; payload: TreeMoveEvent };
+		event: { type: "tree-move-item"; payload: TreeMoveEvent };
 	};
-	if (event.type == "tree-move") {
+	if (event.type == "tree-move-item") {
 		const element = context.elements[event.payload.sourceId];
 		const elements = Object.values(context.elements).filter((el) => el.capsuleId == element.capsuleId);
 		const canReorder = new Set(elements.map((el) => el.order)).size != elements.length;

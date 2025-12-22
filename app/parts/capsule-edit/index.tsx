@@ -21,12 +21,14 @@ export function EditCapsule() {
 		(newStyle: EditableStyle) => {
 			// Enregistrer le style dans le contexte (decor) de la capsule
 			sceneLogic.send({
-				type: "capsule.update",
+				type: "capsule-update",
 				payload: { decor: { ...decor, style: newStyle } }
 			});
 
+			console.log("onStyleChange");
+
 			// Marquer que le decor a été modifié pour déclencher la persistance ultérieure
-			sceneLogic.send({ type: "active.set", payload: { decorTouched: true } });
+			sceneLogic.send({ type: "active-set", payload: { decorTouched: true } });
 		},
 		[sceneLogic, decor]
 	);
@@ -35,7 +37,7 @@ export function EditCapsule() {
 		e.preventDefault();
 		const formData = new FormData(e.currentTarget);
 		const type = formData.get("type") as string;
-		sceneLogic.send({ type: "capsule.update", payload: { type } });
+		sceneLogic.send({ type: "capsule-update", payload: { type } });
 	};
 
 	const onChangeGrid = (size: GridSize) => {

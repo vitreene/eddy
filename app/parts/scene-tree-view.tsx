@@ -23,13 +23,13 @@ export function SceneTreeView() {
 	const selectCapsule = (capsuleId: number) => {
 		if (active.capsuleId !== capsuleId)
 			send({
-				type: "active.set",
+				type: "active-set",
 				payload: { capsuleId }
 			});
 	};
 
 	const editElement = (elementId: number) => {
-		send({ type: "active.set", payload: { elementId } });
+		send({ type: "active-set", payload: { elementId } });
 	};
 
 	const tree: TreeDataItem[] = capsules
@@ -91,7 +91,7 @@ export function SceneTreeView() {
 		const [targetType, targetId] = target.id.split(SEP) as ["capsule" | "element", string];
 
 		send({
-			type: "tree-move",
+			type: "tree-move-item",
 			payload: {
 				sourceId: Number(sourceId),
 				targetId: Number(targetId),
@@ -110,6 +110,7 @@ export function SceneTreeView() {
 
 	const onSelectChange: (item: TreeDataItem | undefined) => void = (item) => {
 		console.log("onSelectChange", item);
+		send({ type: "commit", payload: { capsuleId: Number(item?.id) } });
 	};
 
 	if (!capsules || !Object.keys(capsules).length) return null;

@@ -37,15 +37,19 @@ export const sceneLogic = setup({
 		context: {} as SceneComp & { active: ActiveState },
 		input: {} as SceneComp,
 		events: {} as
-			| { type: "active.set"; payload: Partial<ActiveState> }
-			| { type: "capsule.update"; payload: Partial<CapsuleComp & Decor> }
+			| { type: "active-set"; payload: Partial<ActiveState> }
+			| { type: "commit"; payload: Partial<ActiveState> }
+			| { type: "reset" }
+			| { type: "capsule-update"; payload: Partial<CapsuleComp & Decor> }
 			| { type: "events-update"; payload: Partial<MediaEvent> }
-			| { type: "tree-move"; payload: TreeMoveEvent }
-			| { type: "after-move"; payload: TreeMoveEvent }
+			| { type: "tree-move-item"; payload: TreeMoveEvent }
+			| { type: "tree-after-move"; payload: TreeMoveEvent }
 			| { type: "reorder.capsule"; payload: TreeMoveEvent }
 	},
 	actions: {
 		fetchers: ({ context }, params: string[]) => {
+			console.log("COMMIT", "fetchers");
+
 			if (!params.length) return;
 
 			// events changes (per element)
@@ -64,8 +68,9 @@ export const sceneLogic = setup({
 			// decor changes — envoyer à la base quand on quitte l'édition d'une capsule ET decorTouched est vrai
 			const capsuleIdChanged = params.includes("capsuleId");
 			const elementIdChanged = params.includes("elementId");
+			const decorTouched = params.includes("decorTouched");
 
-			if ((capsuleIdChanged || elementIdChanged) && context.active.decorTouched) {
+			if ((capsuleIdChanged || elementIdChanged) && decorTouched) {
 				const capsuleId = context.active.capsuleId;
 				if (capsuleId) {
 					const decor = context.decors?.capsules?.[capsuleId];
@@ -107,42 +112,63 @@ export const sceneLogic = setup({
 			states: {
 				active: {
 					on: {
-						"active.set": {
+						"active-set": {
 							actions: [
-								{
-									type: "fetchers",
-
-									params: ({ context, event }) => {
-										const diffs: string[] = [];
-										for (const id in event.payload) {
-											if (context.active[id] !== event.payload[id]) diffs.push(id);
+								//@ts-ignore
+								assign(({ context, event }) => {
+									console.log("SET", event.payload);
+									return {
+										...context,
+										active: {
+											...context.active,
+											...event.payload
 										}
-										if (context.active.eventTouched) diffs.push("eventTouched");
-										if (context.active.decorTouched) diffs.push("decorTouched");
-										return diffs;
-									}
-								},
-
-								assign(({ context, event }) => ({
-									...context,
-									active: {
-										...context.active,
-										...event.payload,
-										eventTouched: false,
-										decorTouched: false
-									}
-								}))
+									};
+								})
 							]
+						},
+						commit: {
+							target: "reset",
+							actions: {
+								type: "fetchers",
+
+								params: ({ context, event }) => {
+									const diffs: string[] = [];
+									for (const id in event.payload) {
+										if (context.active[id] !== event.payload[id]) diffs.push(id);
+									}
+									if (context.active.eventTouched) diffs.push("eventTouched");
+									if (context.active.decorTouched) diffs.push("decorTouched");
+
+									console.log("COMMIT", diffs);
+
+									return diffs;
+								}
+							}
 						}
 					}
 				},
+				reset: {
+					target: "active",
+					actions: assign(({ context }) => {
+						return {
+							...context,
+							active: {
+								...context.active,
+								eventTouched: false,
+								decorTouched: false
+							}
+						};
+					})
+				},
+
 				capsule: {
 					on: {
-						"capsule.update": {
+						"capsule-update": {
 							actions: [
 								assign(({ context, event }) => {
 									const capsuleId = context.active.capsuleId!;
-									const { decor: newDecor, ...payload }: any = event.payload as any;
+									const { decor: newDecor, ...payload } = event.payload;
 									const newCapsule = {
 										...context.capsules[capsuleId],
 										...payload
@@ -183,7 +209,7 @@ export const sceneLogic = setup({
 									});
 								}
 							],
-							target: "active"
+							target: "#scene.edit"
 						}
 					}
 				},
@@ -220,8 +246,8 @@ export const sceneLogic = setup({
 					states: {
 						idle: {
 							on: {
-								"tree-move": {
-									target: "after-move",
+								"tree-move-item": {
+									target: "tree-after-move",
 
 									actions: [
 										assign(({ context, event }) => {
@@ -233,16 +259,15 @@ export const sceneLogic = setup({
 								}
 							}
 						},
-						"after-move": {
+						"tree-after-move": {
 							invoke: {
-								id: "reorder-capsule",
+								id: "tree-capsule-reorder",
 								reenter: true,
 								input: ({ context, event }) => ({ context, event }),
 								src: "fetchReorder",
 								onDone: {
 									target: "#scene.edit",
 									actions: assign(({ context, event }) => {
-										console.log(event);
 										if (event.output == "no-reorder") return context;
 										const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
 										const elements = reorders.map((r) => ({
