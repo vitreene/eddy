@@ -5,6 +5,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { TreeView, type TreeDataItem } from "@/components/ui/tree-view";
 
 import { Media } from "./display-media";
+import { useState } from "react";
 
 const EMPTY = "–";
 const SEP = "__";
@@ -20,32 +21,37 @@ export function SceneTreeView() {
 
 	const { send } = SceneLogicContext.useActorRef();
 
-	const selectCapsule = (capsuleId: number) => {
-		if (active.capsuleId !== capsuleId)
+	const [selected, setSelected] = useState<string>("");
+
+	const editCapsule = (capsuleId: number, item: string) => {
+		if (active.capsuleId !== capsuleId) {
 			send({
 				type: "active-set",
 				payload: { capsuleId }
 			});
+			setSelected(item);
+		}
 	};
 
-	const editElement = (elementId: number) => {
+	const editElement = (elementId: number, item: string) => {
 		send({ type: "active-set", payload: { elementId } });
+		setSelected(item);
 	};
 
 	const tree: TreeDataItem[] = capsules
 		? Object.values(capsules).map((c) => {
 				const els = c.elementIds.map((el) => elements[el]);
-
+				const id = `capsule${SEP}${c.id}`;
 				return {
-					id: `capsule${SEP}${c.id}`,
+					id,
 					name: c.type,
 					droppable: true,
 					draggable: true,
 					className: cx("uppercase text-left hover:bg-amber-100", {
-						"bg-amber-200 hover:bg-amber-300": c.id == active.capsuleId
+						"bg-amber-200 hover:bg-amber-300": id == selected
 					}),
 
-					onClick: () => selectCapsule(c.id),
+					onClick: () => editCapsule(c.id, id),
 					children: els
 						.sort((a, b) => (a.order > b.order ? 1 : -1))
 						.map((el) => {
@@ -69,12 +75,15 @@ export function SceneTreeView() {
 									break;
 							}
 
+							const id = el.id == -1 ? `capsule${SEP}${el.capsuleId}` : `element${SEP}${el.id}`;
 							return {
-								id: el.id == -1 ? `capsule${SEP}${el.capsuleId}` : `element${SEP}${el.id}`,
+								id,
 								name,
 								media: medias[el.mediaId],
-
-								onClick: () => editElement(el.id),
+								className: cx("text-left hover:bg-amber-100", {
+									"bg-amber-200 hover:bg-amber-300": id == selected
+								}),
+								onClick: () => editElement(el.id, id),
 								icon: Icon,
 								draggable: true
 							};
@@ -82,8 +91,6 @@ export function SceneTreeView() {
 				};
 			})
 		: [];
-
-	// console.log("TREE", tree);
 
 	const onDocumentDrag: (sourceItem: TreeDataItem, targetItem: TreeDataItem) => void = (source, target) => {
 		console.log("onDocumentDrag", source, target);
@@ -125,69 +132,6 @@ export function SceneTreeView() {
 		/>
 	);
 }
-
-/* 
-function findCapsuleTarget(data: TreeDataItem[], id: string | number): TreeDataItem | undefined {
-	for (let i = 0; i < data.length; i++) {
-		const d = data[i];
-		if (d.id == id) {
-			return d;
-		} else if ("children" in d) {
-			const d2 = findCapsuleTarget(d.children!, id);
-			if (d2) return d;
-		}
-	}
-}
-
-
-function findTarget(data: TreeDataItem[], id: string | number): TreeDataItem | undefined {
-	for (let i = 0; i < data.length; i++) {
-		const d = data[i];
-		if (d.id == id) {
-			return d;
-		} else if ("children" in d) {
-			const d2 = findTarget(d.children!, id);
-			if (d2) return d2;
-		}
-	}
-}
-
-function removeSource(data: TreeDataItem[], id: string | number) {
-	for (let i = 0; i < data.length; i++) {
-		const d = data[i];
-		if (d.id == id) {
-			return data.filter((d) => d.id !== id);
-		} else if ("children" in d) {
-			const d2 = removeSource(d.children!, id);
-			if (d2) {
-				data[i].children = d2;
-				return data;
-			}
-		}
-	}
-}
-
-function moveTarget(data: TreeDataItem[], id: string | number, source: TreeDataItem) {
-	for (let i = 0; i < data.length; i++) {
-		const d = data[i];
-		if (d.id == id) {
-			data[i].children?.push(source);
-			return data;
-		} else if ("children" in d) {
-			const d2 = moveTarget(d.children!, id, source);
-			if (d2) {
-				data[i].children = d2;
-				return data;
-			}
-		}
-	}
-} */
-/* 
-rendre l'organisation Capsules / elements conforme à cette forme,
-dans les deux sens entrées / sortie,
-accepter un drop de l'extérieur pour ajouter une image, une ressource 
-
-*/
 
 const initial = [
 	{

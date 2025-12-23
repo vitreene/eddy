@@ -370,7 +370,8 @@ const TreeLeaf = React.forwardRef<
 					className,
 					selectedItemId === item.id && selectedTreeVariants(),
 					isDragOver && dragOverVariants(),
-					item.disabled && "pointer-events-none cursor-not-allowed opacity-50"
+					item.disabled && "pointer-events-none cursor-not-allowed opacity-50",
+					!item.disabled && item.className
 				)}
 				onClick={() => {
 					if (item.disabled) return;
@@ -385,7 +386,7 @@ const TreeLeaf = React.forwardRef<
 				{...props}
 			>
 				<TreeIcon item={item} isSelected={selectedItemId === item.id} default={defaultLeafIcon} />
-				<span className="flex-grow truncate text-sm">{item.name}</span>
+				<span className="grow truncate text-sm">{item.name}</span>
 				<TreeActions isSelected={selectedItemId === item.id && !item.disabled}>{item.actions}</TreeActions>
 			</div>
 		);
