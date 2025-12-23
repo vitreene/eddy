@@ -4,12 +4,13 @@ import type { Route } from "./+types/home";
 
 // import { PlayerRunner } from "~/player";
 // import { buildPlay } from "~/player/builder/build-play";
-import { EditMedia } from "@/parts/media-edit";
+import { EditEvent } from "@/parts/event-edit";
 import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 
 import { EditCapsule } from "~/parts/capsule-edit";
 import { getScene, type SceneComp } from "~/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";
+import { EditElement } from "@/parts/element-edit";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 
@@ -76,9 +77,10 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 			</section>
 			<section className="base-layout layout-infos">
 				<EditCapsule />
+				<EditElement />
 			</section>
 			<section className="base-layout layout-edit">
-				<EditMedia />
+				<EditEvent />
 			</section>
 		</main>
 	);

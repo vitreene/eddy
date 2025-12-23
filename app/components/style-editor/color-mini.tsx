@@ -3,17 +3,18 @@ import type { EditableStyle } from "./types";
 import Color from "color";
 import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import {
-	ColorPicker,
-	ColorPickerAlpha,
-	ColorPickerEyeDropper,
-	ColorPickerFormat,
-	ColorPickerHue,
-	ColorPickerOutput,
-	ColorPickerSelection
-} from "../shadcn-io/color-picker";
+
 import type { ColorLike } from "color";
 import { GradientCreator } from "./gradient-color";
+import {
+	ColorPicker,
+	ColorPickerSelection,
+	ColorPickerEyeDropper,
+	ColorPickerHue,
+	ColorPickerAlpha,
+	ColorPickerOutput,
+	ColorPickerFormat
+} from "../ui/shadcn-io/color-picker";
 
 interface Props {
 	value: EditableStyle;

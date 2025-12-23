@@ -8,9 +8,9 @@ import * as transitions from "@/player/presets/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";
-import { MediaPanel } from "./media-panel";
+import { MediaPanel } from "./event-panel";
 
-export function EditMedia() {
+export function EditEvent() {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
 	const element = SceneLogicContext.useSelector(
 		(state) => active && active.elementId && state.context.elements[active.elementId]

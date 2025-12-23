@@ -116,8 +116,13 @@ export function SceneTreeView() {
 	};
 
 	const onSelectChange: (item: TreeDataItem | undefined) => void = (item) => {
-		console.log("onSelectChange", item);
-		send({ type: "commit", payload: { capsuleId: Number(item?.id) } });
+		const payload = item
+			? "children" in item
+				? { capsuleId: Number(item?.id) }
+				: { elementId: Number(item?.id) }
+			: null;
+		console.log("onSelectChange", item, payload);
+		if (payload) send({ type: "commit", payload });
 	};
 
 	if (!capsules || !Object.keys(capsules).length) return null;
@@ -169,3 +174,9 @@ const initial = [
 		draggable: true
 	}
 ];
+
+/* TODO
+- element -> lien vers edition
+- capsule lien vers events
+
+*/

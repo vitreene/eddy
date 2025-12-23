@@ -382,3 +382,6 @@ export async function getDecorById(id: number) {
 export async function getDecorByCapsuleId(capsuleId: number) {
 	return await prisma.capsule.findUnique({ where: { id: capsuleId } }).decor();
 }
+export async function getDecorByElementId(elementId: number) {
+	return await prisma.capsuleElement.findUnique({ where: { id: elementId } }).decor();
+}

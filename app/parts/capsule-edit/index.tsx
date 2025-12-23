@@ -1,12 +1,11 @@
 import { useCallback } from "react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
-import { CompactStyleEditor } from "@/components/ui/style-editor/compact-style-editor";
+import { CompactStyleEditor } from "@/components/style-editor/compact-style-editor";
 import { gridWHClassName, ResizableGridFrame, type GridSize } from "@/components/draw-grid";
 
-import type { EditableStyle } from "@/components/ui/style-editor/types";
-
-const DEFAULT_STYLE = { fontFamily: "Inter", fontSize: "16px", color: "#222222" };
+import type { EditableStyle } from "@/components/style-editor/types";
+import { DEFAULT_STYLE } from "@/lib/constants";
 
 export function EditCapsule() {
 	const sceneLogic = SceneLogicContext.useActorRef();
@@ -44,7 +43,7 @@ export function EditCapsule() {
 		const gridClassName = gridWHClassName(size);
 		console.log(gridClassName);
 	};
-
+	if (!capsule) return null;
 	return (
 		<>
 			<form onBlur={onSubmit} className="mb-2">

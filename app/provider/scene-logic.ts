@@ -40,6 +40,7 @@ export const sceneLogic = setup({
 			| { type: "active-set"; payload: Partial<ActiveState> }
 			| { type: "commit"; payload: Partial<ActiveState> }
 			| { type: "reset" }
+			| { type: "element-update"; payload: Partial<CapsuleComp & Decor> }
 			| { type: "capsule-update"; payload: Partial<CapsuleComp & Decor> }
 			| { type: "events-update"; payload: Partial<MediaEvent> }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
@@ -48,13 +49,19 @@ export const sceneLogic = setup({
 	},
 	actions: {
 		fetchers: ({ context }, params: string[]) => {
-			console.log("COMMIT", "fetchers");
-
 			if (!params.length) return;
 
 			// events changes (per element)
 			const elementId = context.active.elementId;
-			if (elementId && params.includes("eventTouched")) {
+			const capsuleId = context.active.capsuleId;
+			// decor changes — envoyer à la base quand on quitte l'édition d'une capsule ET decorTouched est vrai
+			const capsuleIdChanged = params.includes("capsuleId");
+			const elementIdChanged = params.includes("elementId");
+
+			const decorTouched = params.includes("decorTouched");
+			const eventTouched = params.includes("eventTouched");
+
+			if (elementId && eventTouched) {
 				fetch(`api/media/${elementId}`, {
 					method: "POST",
 					headers: {
@@ -65,22 +72,25 @@ export const sceneLogic = setup({
 				});
 			}
 
-			// decor changes — envoyer à la base quand on quitte l'édition d'une capsule ET decorTouched est vrai
-			const capsuleIdChanged = params.includes("capsuleId");
-			const elementIdChanged = params.includes("elementId");
-			const decorTouched = params.includes("decorTouched");
+			if (elementIdChanged && elementId && decorTouched) {
+				const decor = context.decors?.elements?.[elementId];
+				if (decor) {
+					fetch(`api/decor`, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ elementId, ...decor })
+					});
+				}
+			}
 
-			if ((capsuleIdChanged || elementIdChanged) && decorTouched) {
-				const capsuleId = context.active.capsuleId;
-				if (capsuleId) {
-					const decor = context.decors?.capsules?.[capsuleId];
-					if (decor) {
-						fetch(`api/decor`, {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({ capsuleId, ...decor })
-						});
-					}
+			if (capsuleIdChanged && capsuleId && decorTouched) {
+				const decor = context.decors?.capsules?.[capsuleId];
+				if (decor) {
+					fetch(`api/decor`, {
+						method: "POST",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ capsuleId, ...decor })
+					});
 				}
 			}
 		}
@@ -121,7 +131,9 @@ export const sceneLogic = setup({
 										...context,
 										active: {
 											...context.active,
-											...event.payload
+											...event.payload,
+											...("elementId" in event.payload && { capsuleId: null }),
+											...("capsuleId" in event.payload && { elementId: null })
 										}
 									};
 								})
@@ -197,7 +209,7 @@ export const sceneLogic = setup({
 									};
 								}),
 								({ context, event }) => {
-									// Only persist capsule basic fields immediately; decor is persisted on active change
+									// a passer en commit
 									const payload: any = event.payload as any;
 									if (payload && payload.decor) return;
 									const formData = new FormData();
@@ -209,6 +221,44 @@ export const sceneLogic = setup({
 									});
 								}
 							],
+							target: "#scene.edit"
+						}
+					}
+				},
+				element: {
+					on: {
+						"element-update": {
+							actions: assign(({ context, event }) => {
+								const elementId = context.active.elementId!;
+								const { decor: newDecor, ...payload } = event.payload;
+								const newElement = {
+									...context.elements[elementId],
+									...payload
+								};
+								const decors = {
+									...(context.decors || { capsules: {}, elements: {} }),
+									elements: {
+										...(context.decors?.elements || {}),
+										...(newDecor
+											? {
+													[elementId]: {
+														...context.decors?.elements?.[elementId],
+														...newDecor
+													}
+												}
+											: {})
+									}
+								};
+								return {
+									...context,
+									elements: {
+										...context.elements,
+										[elementId]: newElement
+									},
+									decors
+								};
+							}),
+
 							target: "#scene.edit"
 						}
 					}
