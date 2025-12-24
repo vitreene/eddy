@@ -385,6 +385,7 @@ type FieldRefInputType<Model, FieldType> = Model extends never ? never : FieldRe
 
 export const ModelName = {
   Scene: 'Scene',
+  SceneCapsule: 'SceneCapsule',
   SceneMedia: 'SceneMedia',
   Capsule: 'Capsule',
   CapsuleElement: 'CapsuleElement',
@@ -408,7 +409,7 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
     omit: GlobalOmitOptions
   }
   meta: {
-    modelProps: "scene" | "sceneMedia" | "capsule" | "capsuleElement" | "media" | "event" | "decor" | "elementTarget" | "theme"
+    modelProps: "scene" | "sceneCapsule" | "sceneMedia" | "capsule" | "capsuleElement" | "media" | "event" | "decor" | "elementTarget" | "theme"
     txIsolationLevel: TransactionIsolationLevel
   }
   model: {
@@ -483,6 +484,80 @@ export type TypeMap<ExtArgs extends runtime.Types.Extensions.InternalArgs = runt
         count: {
           args: Prisma.SceneCountArgs<ExtArgs>
           result: runtime.Types.Utils.Optional<Prisma.SceneCountAggregateOutputType> | number
+        }
+      }
+    }
+    SceneCapsule: {
+      payload: Prisma.$SceneCapsulePayload<ExtArgs>
+      fields: Prisma.SceneCapsuleFieldRefs
+      operations: {
+        findUnique: {
+          args: Prisma.SceneCapsuleFindUniqueArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload> | null
+        }
+        findUniqueOrThrow: {
+          args: Prisma.SceneCapsuleFindUniqueOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>
+        }
+        findFirst: {
+          args: Prisma.SceneCapsuleFindFirstArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload> | null
+        }
+        findFirstOrThrow: {
+          args: Prisma.SceneCapsuleFindFirstOrThrowArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>
+        }
+        findMany: {
+          args: Prisma.SceneCapsuleFindManyArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>[]
+        }
+        create: {
+          args: Prisma.SceneCapsuleCreateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>
+        }
+        createMany: {
+          args: Prisma.SceneCapsuleCreateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        createManyAndReturn: {
+          args: Prisma.SceneCapsuleCreateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>[]
+        }
+        delete: {
+          args: Prisma.SceneCapsuleDeleteArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>
+        }
+        update: {
+          args: Prisma.SceneCapsuleUpdateArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>
+        }
+        deleteMany: {
+          args: Prisma.SceneCapsuleDeleteManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateMany: {
+          args: Prisma.SceneCapsuleUpdateManyArgs<ExtArgs>
+          result: BatchPayload
+        }
+        updateManyAndReturn: {
+          args: Prisma.SceneCapsuleUpdateManyAndReturnArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>[]
+        }
+        upsert: {
+          args: Prisma.SceneCapsuleUpsertArgs<ExtArgs>
+          result: runtime.Types.Utils.PayloadToResult<Prisma.$SceneCapsulePayload>
+        }
+        aggregate: {
+          args: Prisma.SceneCapsuleAggregateArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.AggregateSceneCapsule>
+        }
+        groupBy: {
+          args: Prisma.SceneCapsuleGroupByArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SceneCapsuleGroupByOutputType>[]
+        }
+        count: {
+          args: Prisma.SceneCapsuleCountArgs<ExtArgs>
+          result: runtime.Types.Utils.Optional<Prisma.SceneCapsuleCountAggregateOutputType> | number
         }
       }
     }
@@ -1117,11 +1192,21 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const SceneScalarFieldEnum = {
   id: 'id',
   title: 'title',
+  capsuleId: 'capsuleId',
   decorId: 'decorId',
   themeId: 'themeId'
 } as const
 
 export type SceneScalarFieldEnum = (typeof SceneScalarFieldEnum)[keyof typeof SceneScalarFieldEnum]
+
+
+export const SceneCapsuleScalarFieldEnum = {
+  id: 'id',
+  sceneId: 'sceneId',
+  capsuleId: 'capsuleId'
+} as const
+
+export type SceneCapsuleScalarFieldEnum = (typeof SceneCapsuleScalarFieldEnum)[keyof typeof SceneCapsuleScalarFieldEnum]
 
 
 export const SceneMediaScalarFieldEnum = {
@@ -1139,7 +1224,6 @@ export type SceneMediaScalarFieldEnum = (typeof SceneMediaScalarFieldEnum)[keyof
 export const CapsuleScalarFieldEnum = {
   id: 'id',
   type: 'type',
-  sceneId: 'sceneId',
   decorId: 'decorId'
 } as const
 
@@ -1163,7 +1247,8 @@ export const MediaScalarFieldEnum = {
   referenceId: 'referenceId',
   path: 'path',
   content: 'content',
-  lang: 'lang'
+  lang: 'lang',
+  capsuleId: 'capsuleId'
 } as const
 
 export type MediaScalarFieldEnum = (typeof MediaScalarFieldEnum)[keyof typeof MediaScalarFieldEnum]
@@ -1352,6 +1437,7 @@ export type PrismaClientOptions = ({
 }
 export type GlobalOmitConfig = {
   scene?: Prisma.SceneOmit
+  sceneCapsule?: Prisma.SceneCapsuleOmit
   sceneMedia?: Prisma.SceneMediaOmit
   capsule?: Prisma.CapsuleOmit
   capsuleElement?: Prisma.CapsuleElementOmit

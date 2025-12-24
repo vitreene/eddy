@@ -29,11 +29,13 @@ export type AggregateMedia = {
 export type MediaAvgAggregateOutputType = {
   id: number | null
   referenceId: number | null
+  capsuleId: number | null
 }
 
 export type MediaSumAggregateOutputType = {
   id: number | null
   referenceId: number | null
+  capsuleId: number | null
 }
 
 export type MediaMinAggregateOutputType = {
@@ -43,6 +45,7 @@ export type MediaMinAggregateOutputType = {
   path: string | null
   content: string | null
   lang: string | null
+  capsuleId: number | null
 }
 
 export type MediaMaxAggregateOutputType = {
@@ -52,6 +55,7 @@ export type MediaMaxAggregateOutputType = {
   path: string | null
   content: string | null
   lang: string | null
+  capsuleId: number | null
 }
 
 export type MediaCountAggregateOutputType = {
@@ -61,6 +65,7 @@ export type MediaCountAggregateOutputType = {
   path: number
   content: number
   lang: number
+  capsuleId: number
   _all: number
 }
 
@@ -68,11 +73,13 @@ export type MediaCountAggregateOutputType = {
 export type MediaAvgAggregateInputType = {
   id?: true
   referenceId?: true
+  capsuleId?: true
 }
 
 export type MediaSumAggregateInputType = {
   id?: true
   referenceId?: true
+  capsuleId?: true
 }
 
 export type MediaMinAggregateInputType = {
@@ -82,6 +89,7 @@ export type MediaMinAggregateInputType = {
   path?: true
   content?: true
   lang?: true
+  capsuleId?: true
 }
 
 export type MediaMaxAggregateInputType = {
@@ -91,6 +99,7 @@ export type MediaMaxAggregateInputType = {
   path?: true
   content?: true
   lang?: true
+  capsuleId?: true
 }
 
 export type MediaCountAggregateInputType = {
@@ -100,6 +109,7 @@ export type MediaCountAggregateInputType = {
   path?: true
   content?: true
   lang?: true
+  capsuleId?: true
   _all?: true
 }
 
@@ -196,6 +206,7 @@ export type MediaGroupByOutputType = {
   path: string | null
   content: string | null
   lang: string | null
+  capsuleId: number | null
   _count: MediaCountAggregateOutputType | null
   _avg: MediaAvgAggregateOutputType | null
   _sum: MediaSumAggregateOutputType | null
@@ -228,6 +239,8 @@ export type MediaWhereInput = {
   path?: Prisma.StringNullableFilter<"Media"> | string | null
   content?: Prisma.StringNullableFilter<"Media"> | string | null
   lang?: Prisma.StringNullableFilter<"Media"> | string | null
+  capsuleId?: Prisma.IntNullableFilter<"Media"> | number | null
+  capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   sceneMedia?: Prisma.SceneMediaListRelationFilter
   capsuleElement?: Prisma.CapsuleElementListRelationFilter
 }
@@ -239,12 +252,15 @@ export type MediaOrderByWithRelationInput = {
   path?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   lang?: Prisma.SortOrderInput | Prisma.SortOrder
+  capsuleId?: Prisma.SortOrderInput | Prisma.SortOrder
+  capsule?: Prisma.CapsuleOrderByWithRelationInput
   sceneMedia?: Prisma.SceneMediaOrderByRelationAggregateInput
   capsuleElement?: Prisma.CapsuleElementOrderByRelationAggregateInput
 }
 
 export type MediaWhereUniqueInput = Prisma.AtLeast<{
   id?: number
+  capsuleId?: number
   AND?: Prisma.MediaWhereInput | Prisma.MediaWhereInput[]
   OR?: Prisma.MediaWhereInput[]
   NOT?: Prisma.MediaWhereInput | Prisma.MediaWhereInput[]
@@ -253,9 +269,10 @@ export type MediaWhereUniqueInput = Prisma.AtLeast<{
   path?: Prisma.StringNullableFilter<"Media"> | string | null
   content?: Prisma.StringNullableFilter<"Media"> | string | null
   lang?: Prisma.StringNullableFilter<"Media"> | string | null
+  capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   sceneMedia?: Prisma.SceneMediaListRelationFilter
   capsuleElement?: Prisma.CapsuleElementListRelationFilter
-}, "id">
+}, "id" | "capsuleId">
 
 export type MediaOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -264,6 +281,7 @@ export type MediaOrderByWithAggregationInput = {
   path?: Prisma.SortOrderInput | Prisma.SortOrder
   content?: Prisma.SortOrderInput | Prisma.SortOrder
   lang?: Prisma.SortOrderInput | Prisma.SortOrder
+  capsuleId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.MediaCountOrderByAggregateInput
   _avg?: Prisma.MediaAvgOrderByAggregateInput
   _max?: Prisma.MediaMaxOrderByAggregateInput
@@ -281,6 +299,7 @@ export type MediaScalarWhereWithAggregatesInput = {
   path?: Prisma.StringNullableWithAggregatesFilter<"Media"> | string | null
   content?: Prisma.StringNullableWithAggregatesFilter<"Media"> | string | null
   lang?: Prisma.StringNullableWithAggregatesFilter<"Media"> | string | null
+  capsuleId?: Prisma.IntNullableWithAggregatesFilter<"Media"> | number | null
 }
 
 export type MediaCreateInput = {
@@ -289,6 +308,7 @@ export type MediaCreateInput = {
   path?: string | null
   content?: string | null
   lang?: string | null
+  capsule?: Prisma.CapsuleCreateNestedOneWithoutMediaInput
   sceneMedia?: Prisma.SceneMediaCreateNestedManyWithoutMediaInput
   capsuleElement?: Prisma.CapsuleElementCreateNestedManyWithoutMediaInput
 }
@@ -300,6 +320,7 @@ export type MediaUncheckedCreateInput = {
   path?: string | null
   content?: string | null
   lang?: string | null
+  capsuleId?: number | null
   sceneMedia?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutMediaInput
   capsuleElement?: Prisma.CapsuleElementUncheckedCreateNestedManyWithoutMediaInput
 }
@@ -310,6 +331,7 @@ export type MediaUpdateInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  capsule?: Prisma.CapsuleUpdateOneWithoutMediaNestedInput
   sceneMedia?: Prisma.SceneMediaUpdateManyWithoutMediaNestedInput
   capsuleElement?: Prisma.CapsuleElementUpdateManyWithoutMediaNestedInput
 }
@@ -321,6 +343,7 @@ export type MediaUncheckedUpdateInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sceneMedia?: Prisma.SceneMediaUncheckedUpdateManyWithoutMediaNestedInput
   capsuleElement?: Prisma.CapsuleElementUncheckedUpdateManyWithoutMediaNestedInput
 }
@@ -332,6 +355,7 @@ export type MediaCreateManyInput = {
   path?: string | null
   content?: string | null
   lang?: string | null
+  capsuleId?: number | null
 }
 
 export type MediaUpdateManyMutationInput = {
@@ -349,11 +373,17 @@ export type MediaUncheckedUpdateManyInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type MediaScalarRelationFilter = {
   is?: Prisma.MediaWhereInput
   isNot?: Prisma.MediaWhereInput
+}
+
+export type MediaNullableScalarRelationFilter = {
+  is?: Prisma.MediaWhereInput | null
+  isNot?: Prisma.MediaWhereInput | null
 }
 
 export type MediaCountOrderByAggregateInput = {
@@ -363,11 +393,13 @@ export type MediaCountOrderByAggregateInput = {
   path?: Prisma.SortOrder
   content?: Prisma.SortOrder
   lang?: Prisma.SortOrder
+  capsuleId?: Prisma.SortOrder
 }
 
 export type MediaAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   referenceId?: Prisma.SortOrder
+  capsuleId?: Prisma.SortOrder
 }
 
 export type MediaMaxOrderByAggregateInput = {
@@ -377,6 +409,7 @@ export type MediaMaxOrderByAggregateInput = {
   path?: Prisma.SortOrder
   content?: Prisma.SortOrder
   lang?: Prisma.SortOrder
+  capsuleId?: Prisma.SortOrder
 }
 
 export type MediaMinOrderByAggregateInput = {
@@ -386,11 +419,13 @@ export type MediaMinOrderByAggregateInput = {
   path?: Prisma.SortOrder
   content?: Prisma.SortOrder
   lang?: Prisma.SortOrder
+  capsuleId?: Prisma.SortOrder
 }
 
 export type MediaSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   referenceId?: Prisma.SortOrder
+  capsuleId?: Prisma.SortOrder
 }
 
 export type MediaCreateNestedOneWithoutSceneMediaInput = {
@@ -405,6 +440,38 @@ export type MediaUpdateOneRequiredWithoutSceneMediaNestedInput = {
   upsert?: Prisma.MediaUpsertWithoutSceneMediaInput
   connect?: Prisma.MediaWhereUniqueInput
   update?: Prisma.XOR<Prisma.XOR<Prisma.MediaUpdateToOneWithWhereWithoutSceneMediaInput, Prisma.MediaUpdateWithoutSceneMediaInput>, Prisma.MediaUncheckedUpdateWithoutSceneMediaInput>
+}
+
+export type MediaCreateNestedOneWithoutCapsuleInput = {
+  create?: Prisma.XOR<Prisma.MediaCreateWithoutCapsuleInput, Prisma.MediaUncheckedCreateWithoutCapsuleInput>
+  connectOrCreate?: Prisma.MediaCreateOrConnectWithoutCapsuleInput
+  connect?: Prisma.MediaWhereUniqueInput
+}
+
+export type MediaUncheckedCreateNestedOneWithoutCapsuleInput = {
+  create?: Prisma.XOR<Prisma.MediaCreateWithoutCapsuleInput, Prisma.MediaUncheckedCreateWithoutCapsuleInput>
+  connectOrCreate?: Prisma.MediaCreateOrConnectWithoutCapsuleInput
+  connect?: Prisma.MediaWhereUniqueInput
+}
+
+export type MediaUpdateOneWithoutCapsuleNestedInput = {
+  create?: Prisma.XOR<Prisma.MediaCreateWithoutCapsuleInput, Prisma.MediaUncheckedCreateWithoutCapsuleInput>
+  connectOrCreate?: Prisma.MediaCreateOrConnectWithoutCapsuleInput
+  upsert?: Prisma.MediaUpsertWithoutCapsuleInput
+  disconnect?: Prisma.MediaWhereInput | boolean
+  delete?: Prisma.MediaWhereInput | boolean
+  connect?: Prisma.MediaWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MediaUpdateToOneWithWhereWithoutCapsuleInput, Prisma.MediaUpdateWithoutCapsuleInput>, Prisma.MediaUncheckedUpdateWithoutCapsuleInput>
+}
+
+export type MediaUncheckedUpdateOneWithoutCapsuleNestedInput = {
+  create?: Prisma.XOR<Prisma.MediaCreateWithoutCapsuleInput, Prisma.MediaUncheckedCreateWithoutCapsuleInput>
+  connectOrCreate?: Prisma.MediaCreateOrConnectWithoutCapsuleInput
+  upsert?: Prisma.MediaUpsertWithoutCapsuleInput
+  disconnect?: Prisma.MediaWhereInput | boolean
+  delete?: Prisma.MediaWhereInput | boolean
+  connect?: Prisma.MediaWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.MediaUpdateToOneWithWhereWithoutCapsuleInput, Prisma.MediaUpdateWithoutCapsuleInput>, Prisma.MediaUncheckedUpdateWithoutCapsuleInput>
 }
 
 export type MediaCreateNestedOneWithoutCapsuleElementInput = {
@@ -431,6 +498,7 @@ export type MediaCreateWithoutSceneMediaInput = {
   path?: string | null
   content?: string | null
   lang?: string | null
+  capsule?: Prisma.CapsuleCreateNestedOneWithoutMediaInput
   capsuleElement?: Prisma.CapsuleElementCreateNestedManyWithoutMediaInput
 }
 
@@ -441,6 +509,7 @@ export type MediaUncheckedCreateWithoutSceneMediaInput = {
   path?: string | null
   content?: string | null
   lang?: string | null
+  capsuleId?: number | null
   capsuleElement?: Prisma.CapsuleElementUncheckedCreateNestedManyWithoutMediaInput
 }
 
@@ -466,6 +535,7 @@ export type MediaUpdateWithoutSceneMediaInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  capsule?: Prisma.CapsuleUpdateOneWithoutMediaNestedInput
   capsuleElement?: Prisma.CapsuleElementUpdateManyWithoutMediaNestedInput
 }
 
@@ -476,6 +546,65 @@ export type MediaUncheckedUpdateWithoutSceneMediaInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  capsuleElement?: Prisma.CapsuleElementUncheckedUpdateManyWithoutMediaNestedInput
+}
+
+export type MediaCreateWithoutCapsuleInput = {
+  type: string
+  referenceId?: number | null
+  path?: string | null
+  content?: string | null
+  lang?: string | null
+  sceneMedia?: Prisma.SceneMediaCreateNestedManyWithoutMediaInput
+  capsuleElement?: Prisma.CapsuleElementCreateNestedManyWithoutMediaInput
+}
+
+export type MediaUncheckedCreateWithoutCapsuleInput = {
+  id?: number
+  type: string
+  referenceId?: number | null
+  path?: string | null
+  content?: string | null
+  lang?: string | null
+  sceneMedia?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutMediaInput
+  capsuleElement?: Prisma.CapsuleElementUncheckedCreateNestedManyWithoutMediaInput
+}
+
+export type MediaCreateOrConnectWithoutCapsuleInput = {
+  where: Prisma.MediaWhereUniqueInput
+  create: Prisma.XOR<Prisma.MediaCreateWithoutCapsuleInput, Prisma.MediaUncheckedCreateWithoutCapsuleInput>
+}
+
+export type MediaUpsertWithoutCapsuleInput = {
+  update: Prisma.XOR<Prisma.MediaUpdateWithoutCapsuleInput, Prisma.MediaUncheckedUpdateWithoutCapsuleInput>
+  create: Prisma.XOR<Prisma.MediaCreateWithoutCapsuleInput, Prisma.MediaUncheckedCreateWithoutCapsuleInput>
+  where?: Prisma.MediaWhereInput
+}
+
+export type MediaUpdateToOneWithWhereWithoutCapsuleInput = {
+  where?: Prisma.MediaWhereInput
+  data: Prisma.XOR<Prisma.MediaUpdateWithoutCapsuleInput, Prisma.MediaUncheckedUpdateWithoutCapsuleInput>
+}
+
+export type MediaUpdateWithoutCapsuleInput = {
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  referenceId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sceneMedia?: Prisma.SceneMediaUpdateManyWithoutMediaNestedInput
+  capsuleElement?: Prisma.CapsuleElementUpdateManyWithoutMediaNestedInput
+}
+
+export type MediaUncheckedUpdateWithoutCapsuleInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  type?: Prisma.StringFieldUpdateOperationsInput | string
+  referenceId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  sceneMedia?: Prisma.SceneMediaUncheckedUpdateManyWithoutMediaNestedInput
   capsuleElement?: Prisma.CapsuleElementUncheckedUpdateManyWithoutMediaNestedInput
 }
 
@@ -485,6 +614,7 @@ export type MediaCreateWithoutCapsuleElementInput = {
   path?: string | null
   content?: string | null
   lang?: string | null
+  capsule?: Prisma.CapsuleCreateNestedOneWithoutMediaInput
   sceneMedia?: Prisma.SceneMediaCreateNestedManyWithoutMediaInput
 }
 
@@ -495,6 +625,7 @@ export type MediaUncheckedCreateWithoutCapsuleElementInput = {
   path?: string | null
   content?: string | null
   lang?: string | null
+  capsuleId?: number | null
   sceneMedia?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutMediaInput
 }
 
@@ -520,6 +651,7 @@ export type MediaUpdateWithoutCapsuleElementInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  capsule?: Prisma.CapsuleUpdateOneWithoutMediaNestedInput
   sceneMedia?: Prisma.SceneMediaUpdateManyWithoutMediaNestedInput
 }
 
@@ -530,6 +662,7 @@ export type MediaUncheckedUpdateWithoutCapsuleElementInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   content?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sceneMedia?: Prisma.SceneMediaUncheckedUpdateManyWithoutMediaNestedInput
 }
 
@@ -580,6 +713,8 @@ export type MediaSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   path?: boolean
   content?: boolean
   lang?: boolean
+  capsuleId?: boolean
+  capsule?: boolean | Prisma.Media$capsuleArgs<ExtArgs>
   sceneMedia?: boolean | Prisma.Media$sceneMediaArgs<ExtArgs>
   capsuleElement?: boolean | Prisma.Media$capsuleElementArgs<ExtArgs>
   _count?: boolean | Prisma.MediaCountOutputTypeDefaultArgs<ExtArgs>
@@ -592,6 +727,8 @@ export type MediaSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   path?: boolean
   content?: boolean
   lang?: boolean
+  capsuleId?: boolean
+  capsule?: boolean | Prisma.Media$capsuleArgs<ExtArgs>
 }, ExtArgs["result"]["media"]>
 
 export type MediaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -601,6 +738,8 @@ export type MediaSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   path?: boolean
   content?: boolean
   lang?: boolean
+  capsuleId?: boolean
+  capsule?: boolean | Prisma.Media$capsuleArgs<ExtArgs>
 }, ExtArgs["result"]["media"]>
 
 export type MediaSelectScalar = {
@@ -610,20 +749,27 @@ export type MediaSelectScalar = {
   path?: boolean
   content?: boolean
   lang?: boolean
+  capsuleId?: boolean
 }
 
-export type MediaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "referenceId" | "path" | "content" | "lang", ExtArgs["result"]["media"]>
+export type MediaOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "referenceId" | "path" | "content" | "lang" | "capsuleId", ExtArgs["result"]["media"]>
 export type MediaInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  capsule?: boolean | Prisma.Media$capsuleArgs<ExtArgs>
   sceneMedia?: boolean | Prisma.Media$sceneMediaArgs<ExtArgs>
   capsuleElement?: boolean | Prisma.Media$capsuleElementArgs<ExtArgs>
   _count?: boolean | Prisma.MediaCountOutputTypeDefaultArgs<ExtArgs>
 }
-export type MediaIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
-export type MediaIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
+export type MediaIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  capsule?: boolean | Prisma.Media$capsuleArgs<ExtArgs>
+}
+export type MediaIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  capsule?: boolean | Prisma.Media$capsuleArgs<ExtArgs>
+}
 
 export type $MediaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Media"
   objects: {
+    capsule: Prisma.$CapsulePayload<ExtArgs> | null
     sceneMedia: Prisma.$SceneMediaPayload<ExtArgs>[]
     capsuleElement: Prisma.$CapsuleElementPayload<ExtArgs>[]
   }
@@ -634,6 +780,7 @@ export type $MediaPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     path: string | null
     content: string | null
     lang: string | null
+    capsuleId: number | null
   }, ExtArgs["result"]["media"]>
   composites: {}
 }
@@ -1028,6 +1175,7 @@ readonly fields: MediaFieldRefs;
  */
 export interface Prisma__MediaClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
+  capsule<T extends Prisma.Media$capsuleArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Media$capsuleArgs<ExtArgs>>): Prisma.Prisma__CapsuleClient<runtime.Types.Result.GetResult<Prisma.$CapsulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   sceneMedia<T extends Prisma.Media$sceneMediaArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Media$sceneMediaArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SceneMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   capsuleElement<T extends Prisma.Media$capsuleElementArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Media$capsuleElementArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$CapsuleElementPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
@@ -1065,6 +1213,7 @@ export interface MediaFieldRefs {
   readonly path: Prisma.FieldRef<"Media", 'String'>
   readonly content: Prisma.FieldRef<"Media", 'String'>
   readonly lang: Prisma.FieldRef<"Media", 'String'>
+  readonly capsuleId: Prisma.FieldRef<"Media", 'Int'>
 }
     
 
@@ -1312,6 +1461,10 @@ export type MediaCreateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * The data used to create many Media.
    */
   data: Prisma.MediaCreateManyInput | Prisma.MediaCreateManyInput[]
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MediaIncludeCreateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1382,6 +1535,10 @@ export type MediaUpdateManyAndReturnArgs<ExtArgs extends runtime.Types.Extension
    * Limit how many Media to update.
    */
   limit?: number
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.MediaIncludeUpdateManyAndReturn<ExtArgs> | null
 }
 
 /**
@@ -1448,6 +1605,25 @@ export type MediaDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Limit how many Media to delete.
    */
   limit?: number
+}
+
+/**
+ * Media.capsule
+ */
+export type Media$capsuleArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Capsule
+   */
+  select?: Prisma.CapsuleSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Capsule
+   */
+  omit?: Prisma.CapsuleOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.CapsuleInclude<ExtArgs> | null
+  where?: Prisma.CapsuleWhereInput
 }
 
 /**

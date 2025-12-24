@@ -8,10 +8,13 @@ datasource db {
 }
 
 model Scene {
-  id       Int          @id @default(autoincrement())
-  title    String       @default("Scène")
-  capsules Capsule[]
-  medias   SceneMedia[]
+  id            Int            @id @default(autoincrement())
+  title         String         @default("Scène")
+  medias        SceneMedia[]
+  sceneCapsules SceneCapsule[]
+
+  capsuleId Int?     @unique @map("capsule_id")
+  capsule   Capsule? @relation(fields: [capsuleId], references: [id])
 
   decorId Int?   @unique @map("decor_id") // basé sur  // name
   decor   Decor? @relation(fields: [decorId], references: [id])
@@ -20,6 +23,18 @@ model Scene {
   theme   Theme? @relation(fields: [themeId], references: [id])
 
   @@map("scene")
+}
+
+model SceneCapsule {
+  id Int @id @default(autoincrement())
+
+  sceneId Int   @map("scene_id")
+  scene   Scene @relation(fields: [sceneId], references: [id])
+
+  capsuleId Int      @map("capsule_id")
+  capsule   Capsule? @relation(fields: [capsuleId], references: [id])
+
+  @@map("scene_capsule")
 }
 
 model SceneMedia {
@@ -33,24 +48,24 @@ model SceneMedia {
   sceneId Int   @map("scene_id")
   scene   Scene @relation(fields: [sceneId], references: [id])
 
-  decorId Int?   @unique @map("decor_id") // basé sur  // name
+  decorId Int?   @map("decor_id") // basé sur  // name
   decor   Decor? @relation(fields: [decorId], references: [id])
 
   @@map("scene_media")
 }
 
 model Capsule {
-  id       Int              @id @default(autoincrement())
-  type     String
-  elements CapsuleElement[]
-  events   Event[]
-
-  sceneId Int   @map("scene_id")
-  scene   Scene @relation(fields: [sceneId], references: [id])
-
-  decorId        Int?            @unique @map("decor_id") // basé sur  // name
-  decor          Decor?          @relation(fields: [decorId], references: [id])
+  id             Int              @id @default(autoincrement())
+  type           String
+  events         Event[]
+  media          Media?
+  scene          Scene?
+  elements       CapsuleElement[]
+  sceneCapsules  SceneCapsule[]
   elementTargets ElementTarget[]
+
+  decorId Int?
+  decor   Decor? @relation(fields: [decorId], references: [id])
 
   @@map("capsule")
 }
@@ -88,6 +103,9 @@ model Media {
   path        String?
   content     String?
   lang        String?
+
+  capsuleId Int?     @unique @map("capsule_id")
+  capsule   Capsule? @relation(fields: [capsuleId], references: [id])
 
   sceneMedia     SceneMedia[]
   capsuleElement CapsuleElement[]

@@ -19,6 +19,7 @@ export function meta() {
 }
 
 const SCENE_ID = 1;
+
 export async function loader({ params }: Route.LoaderArgs) {
 	// @ts-expect-error route provisoire
 	const scene: SceneComp = await getScene(params?.id || SCENE_ID);
@@ -26,7 +27,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-	// console.log("loaderData SceneComp", loaderData);
+	console.log("loaderData SceneComp", loaderData);
 
 	const logic = React.useMemo(
 		() =>
@@ -85,3 +86,18 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 		</main>
 	);
 });
+
+/* 
+erreur de conception :
+- ne pas définir capsule comme un objet, sinon on duplique toute la logique de capsuleElement. 
+idéalement : renommer capsuleElement 
+capsuleElement -> capsuleItem ? 
+
+cela implique que scene va désigner une capsule-maitre qui va contenir toutes les autres capsules, 
+ce qui va permettre de les ordonner et leur attribuer un décor.
+-> capsule n'a plus besoin de la relation decor. 
+
+dans scene, ajouter initial : id de la capsule-maitre
+dans ce cas, pas besoin de relation "capsules"  assuré par capsuleItems
+->si créer une table de liaison
+*/

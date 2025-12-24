@@ -10,6 +10,7 @@ import { useState } from "react";
 const EMPTY = "–";
 const SEP = "__";
 export function SceneTreeView() {
+	const main = SceneLogicContext.useSelector((state) => state.context.main);
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
 	const capsules = SceneLogicContext.useSelector((state) => state.context.capsules);
 	const elements = SceneLogicContext.useSelector((state) => state.context.elements);
@@ -38,59 +39,71 @@ export function SceneTreeView() {
 		setSelected(item);
 	};
 
-	const tree: TreeDataItem[] = capsules
-		? Object.values(capsules).map((c) => {
-				const els = c.elementIds.map((el) => elements[el]);
-				const id = `capsule${SEP}${c.id}`;
-				return {
-					id,
-					name: c.type,
-					droppable: true,
-					draggable: true,
-					className: cx("uppercase text-left hover:bg-amber-100", {
-						"bg-amber-200 hover:bg-amber-300": id == selected
-					}),
+	if (!main || !capsules || !Object.keys(capsules).length) return null;
 
-					onClick: () => editCapsule(c.id, id),
-					children: els
-						.sort((a, b) => (a.order > b.order ? 1 : -1))
-						.map((el) => {
-							const media = medias[el.mediaId];
-							let Icon;
-							let name: string;
-							switch (media?.type) {
-								case "img":
-									Icon = ({ className: _ }: { className: string }) => (
-										<Media size="icon" attr={medias[el.mediaId]} className="mr-2" />
-									);
-									name = String(el.id);
-									break;
-								case "text":
-									Icon = BoxIcon;
-									name = media.content || EMPTY;
-									break;
-								default:
-									Icon = null;
-									name = EMPTY;
-									break;
-							}
+	console.log(medias);
 
-							const id = el.id == -1 ? `capsule${SEP}${el.capsuleId}` : `element${SEP}${el.id}`;
-							return {
-								id,
-								name,
-								media: medias[el.mediaId],
-								className: cx("text-left hover:bg-amber-100", {
-									"bg-amber-200 hover:bg-amber-300": id == selected
-								}),
-								onClick: () => editElement(el.id, id),
-								icon: Icon,
-								draggable: true
-							};
-						})
-				};
-			})
-		: [];
+	const tree: TreeDataItem[] = capsules[main].elementIds
+		.map((id) => elements[id])
+		.sort((a, b) => (a.order > b.order ? 1 : -1))
+		.map((element) => capsules[medias[element.mediaId].capsuleId])
+		.map((c) => {
+			const els = c.elementIds.map((el) => elements[el]);
+			const id = `capsule${SEP}${c.id}`;
+
+			return {
+				id,
+				capsuleId: c.id,
+				name: c.type,
+				droppable: true,
+				draggable: true,
+				className: cx("uppercase text-left hover:bg-amber-100", {
+					"bg-amber-200 hover:bg-amber-300": id == selected
+				}),
+
+				onClick: () => editCapsule(c.id, id),
+				children: els
+					.sort((a, b) => (a.order > b.order ? 1 : -1))
+					.map((el) => {
+						const media = medias[el.mediaId];
+						console.log(media);
+
+						let Icon;
+						let name: string;
+						switch (media?.type) {
+							case "img":
+								Icon = ({ className: _ }: { className: string }) => (
+									<Media size="icon" attr={medias[el.mediaId]} className="mr-2" />
+								);
+								name = String(el.id);
+								break;
+							case "text":
+								Icon = BoxIcon;
+								name = media.content || EMPTY;
+								break;
+							default:
+								Icon = null;
+								name = EMPTY;
+								break;
+						}
+
+						const id = el.id == -1 ? `capsule${SEP}${el.capsuleId}` : `element${SEP}${el.id}`;
+						return {
+							id,
+							name,
+							elementId: c.id,
+
+							media: medias[el.mediaId],
+							className: cx("text-left hover:bg-amber-100", {
+								"bg-amber-200 hover:bg-amber-300": id == selected
+							}),
+							onClick: () => editElement(el.id, id),
+							icon: Icon,
+							draggable: true
+						};
+					})
+			};
+		});
 
 	const onDocumentDrag: (sourceItem: TreeDataItem, targetItem: TreeDataItem) => void = (source, target) => {
 		console.log("onDocumentDrag", source, target);
@@ -116,16 +129,14 @@ export function SceneTreeView() {
 	};
 
 	const onSelectChange: (item: TreeDataItem | undefined) => void = (item) => {
-		const payload = item
-			? "children" in item
-				? { capsuleId: Number(item?.id) }
-				: { elementId: Number(item?.id) }
-			: null;
-		console.log("onSelectChange", item, payload);
+		let payload = null;
+		if (item) {
+			if ("capsuleId" in item) payload = { capsuleId: Number(item.capsuleId) };
+			if ("elementId" in item) payload = { capsuleId: Number(item.elementId) };
+		}
+		console.log("onSelectChange", selected, item, payload);
 		if (payload) send({ type: "commit", payload });
 	};
-
-	if (!capsules || !Object.keys(capsules).length) return null;
 
 	return (
 		<TreeView

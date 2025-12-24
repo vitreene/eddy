@@ -52,6 +52,7 @@ export const AnyNull = runtime.AnyNull
 
 export const ModelName = {
   Scene: 'Scene',
+  SceneCapsule: 'SceneCapsule',
   SceneMedia: 'SceneMedia',
   Capsule: 'Capsule',
   CapsuleElement: 'CapsuleElement',
@@ -78,11 +79,21 @@ export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof
 export const SceneScalarFieldEnum = {
   id: 'id',
   title: 'title',
+  capsuleId: 'capsuleId',
   decorId: 'decorId',
   themeId: 'themeId'
 } as const
 
 export type SceneScalarFieldEnum = (typeof SceneScalarFieldEnum)[keyof typeof SceneScalarFieldEnum]
+
+
+export const SceneCapsuleScalarFieldEnum = {
+  id: 'id',
+  sceneId: 'sceneId',
+  capsuleId: 'capsuleId'
+} as const
+
+export type SceneCapsuleScalarFieldEnum = (typeof SceneCapsuleScalarFieldEnum)[keyof typeof SceneCapsuleScalarFieldEnum]
 
 
 export const SceneMediaScalarFieldEnum = {
@@ -100,7 +111,6 @@ export type SceneMediaScalarFieldEnum = (typeof SceneMediaScalarFieldEnum)[keyof
 export const CapsuleScalarFieldEnum = {
   id: 'id',
   type: 'type',
-  sceneId: 'sceneId',
   decorId: 'decorId'
 } as const
 
@@ -124,7 +134,8 @@ export const MediaScalarFieldEnum = {
   referenceId: 'referenceId',
   path: 'path',
   content: 'content',
-  lang: 'lang'
+  lang: 'lang',
+  capsuleId: 'capsuleId'
 } as const
 
 export type MediaScalarFieldEnum = (typeof MediaScalarFieldEnum)[keyof typeof MediaScalarFieldEnum]

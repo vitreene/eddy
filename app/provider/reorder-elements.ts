@@ -21,7 +21,7 @@ export const fetchReorder = fromPromise(async ({ input }) => {
 		}
 	}
 });
-export function reorderElements(context: SceneComp, payload: TreeMoveEvent) {
+export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeMoveEvent) {
 	const { sourceId, targetId, sourceType, targetType } = payload;
 
 	if (targetType === "element") {

@@ -9,6 +9,7 @@
  * 🟢 You can import this file directly.
  */
 export type * from './models/Scene.js'
+export type * from './models/SceneCapsule.js'
 export type * from './models/SceneMedia.js'
 export type * from './models/Capsule.js'
 export type * from './models/CapsuleElement.js'

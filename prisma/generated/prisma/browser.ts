@@ -23,6 +23,11 @@ export * from './enums.js';
  */
 export type Scene = Prisma.SceneModel
 /**
+ * Model SceneCapsule
+ * 
+ */
+export type SceneCapsule = Prisma.SceneCapsuleModel
+/**
  * Model SceneMedia
  * 
  */

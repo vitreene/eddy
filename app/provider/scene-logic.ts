@@ -7,6 +7,7 @@ import type { Decor } from "@prisma/client";
 
 export interface ActiveState {
 	[key: string]: number | string | boolean | null;
+	main: number | null;
 	capsuleId: number | null;
 	elementId: number | null;
 	mediaId: number | null;
@@ -15,7 +16,8 @@ export interface ActiveState {
 	eventTouched: boolean;
 	decorTouched: boolean;
 }
-const active: ActiveState = {
+export const active: ActiveState = {
+	main: null,
 	capsuleId: null,
 	elementId: null,
 	mediaId: null,
@@ -34,6 +36,7 @@ export interface TreeMoveEvent {
 
 export const sceneLogic = setup({
 	types: {
+		// context: {} as Omit<SceneComp, "main"> & { active: ActiveState },
 		context: {} as SceneComp & { active: ActiveState },
 		input: {} as SceneComp,
 		events: {} as
@@ -62,6 +65,7 @@ export const sceneLogic = setup({
 			const eventTouched = params.includes("eventTouched");
 
 			if (elementId && eventTouched) {
+				//FIXME elementId dans json, media:mediaId
 				fetch(`api/media/${elementId}`, {
 					method: "POST",
 					headers: {
@@ -101,8 +105,8 @@ export const sceneLogic = setup({
 	}
 }).createMachine({
 	id: "scene",
-	// Initialise le contexte avec input
-	context: ({ input }: { input: SceneComp }) => ({ ...input, active }),
+
+	context: ({ input }: { input: SceneComp }) => ({ input, active }),
 	initial: "start",
 
 	states: {
@@ -126,7 +130,6 @@ export const sceneLogic = setup({
 							actions: [
 								//@ts-ignore
 								assign(({ context, event }) => {
-									console.log("SET", event.payload);
 									return {
 										...context,
 										active: {
@@ -151,8 +154,6 @@ export const sceneLogic = setup({
 									}
 									if (context.active.eventTouched) diffs.push("eventTouched");
 									if (context.active.decorTouched) diffs.push("decorTouched");
-
-									console.log("COMMIT", diffs);
 
 									return diffs;
 								}

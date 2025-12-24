@@ -73,6 +73,7 @@ export interface SceneMedia {
 export interface SceneComp {
 	id: number;
 	title: string;
+	main: number | null;
 	events: {
 		[id: number]: Record<string, MediaEvent>;
 	};
@@ -112,8 +113,9 @@ interface DbCapsule extends Capsule {
 }
 interface DbSceneComp extends Scene {
 	capsules: Array<DbCapsule>;
+
 	sceneMedias: Array<SceneMedia>;
-	medias: Array<Media>;
+
 	decor?: Decor | null;
 	theme?: Theme | null;
 }
@@ -141,23 +143,7 @@ main()
 export async function getScene(sceneId: number): Promise<SceneComp> {
 	const sceneDB = await prisma.scene.findUnique({
 		where: { id: sceneId },
-		include: {
-			medias: true,
-			capsules: {
-				include: {
-					elements: {
-						include: {
-							media: true,
-							events: true,
-							decor: true
-						}
-					},
-					decor: true
-				}
-			},
-			decor: true,
-			theme: true
-		}
+		include: { medias: true }
 	});
 
 	const sceneMedias = [
@@ -166,9 +152,32 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 			events: JSON.parse(m.events)
 		}))
 	];
-	const capsules = sceneDB?.capsules || [];
-	const medias = await getMedias(sceneId);
-	const scene = { ...sceneDB!, capsules, sceneMedias, medias };
+
+	const capsules = (
+		await prisma.sceneCapsule.findMany({
+			where: { sceneId },
+			select: {
+				capsule: {
+					include: {
+						elements: {
+							include: {
+								media: true,
+								decor: true,
+								events: true
+							}
+						},
+						decor: true
+					}
+				}
+			}
+		})
+	)
+		.map((sc) => sc.capsule)
+		.filter(Boolean) as Array<DbCapsule>;
+
+	// const medias = await getMedias(sceneId);
+	// const scene = { ...sceneDB!, capsules, sceneMedias, medias: medias ?? [] };
+	const scene = { ...sceneDB!, capsules, sceneMedias };
 
 	return flattenScene(scene);
 }
@@ -177,6 +186,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 	const flatScene: SceneComp = {
 		id: scene.id,
 		title: scene.title,
+		main: scene.capsuleId,
 		events: {},
 		sceneMedias: {},
 		capsules: {},
@@ -194,13 +204,6 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 	if (scene.sceneMedias) {
 		scene.sceneMedias.forEach((sceneMedia) => {
 			flatScene.sceneMedias[sceneMedia.id] = sceneMedia;
-		});
-	}
-
-	// Medias
-	if (scene.medias) {
-		scene.medias.forEach((media) => {
-			flatScene.medias[media.id] = media;
 		});
 	}
 
@@ -237,6 +240,9 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 					const evs = Object.fromEntries(events.map((e) => [e.action, e]));
 					flatScene.events[element.id] = evs;
 				}
+				if (media) {
+					flatScene.medias[media.id] = media;
+				}
 			});
 		});
 	}
@@ -247,21 +253,52 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 // MEDIAS
 
 export async function getMedias(sceneId: number) {
-	return await prisma.media.findMany({
-		where: {
-			capsuleElement: {
-				every: {
-					capsule: {
-						sceneId
+	/* 
+	- prendre toutes les capsules e la scene
+- chercher les elements
+- chercher lesmedias 
+
+	*/
+	const capsule = await prisma.capsule.findFirst({
+		where: { scene: { id: sceneId } },
+		select: {
+			elements: {
+				select: {
+					media: {
+						select: {
+							capsuleElement: {
+								include: {
+									media: true
+								}
+							}
+						}
 					}
 				}
 			}
 		}
 	});
+	const medias = capsule?.elements.flatMap((el) => el.media.capsuleElement.map((ce) => ce.media)) ?? [];
+	return medias;
 }
+
 // CAPSULE
 export async function getCapsules(sceneId: number) {
-	return await prisma.capsule.findMany({ where: { sceneId } });
+	const capsule = await prisma.capsule.findFirst({
+		where: { scene: { id: sceneId } },
+		select: {
+			elements: {
+				select: {
+					media: {
+						include: {
+							capsule: true
+						}
+					}
+				}
+			}
+		}
+	});
+	const capsules = capsule?.elements.map((el) => el.media.capsule);
+	return capsules;
 }
 export async function getCapsule(capsuleId: number) {
 	return await prisma.capsule.findUnique({ where: { id: capsuleId } });

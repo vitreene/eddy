@@ -32,9 +32,8 @@ function MediaInfos({ element }: { element: ElementComp }) {
 			<MediaPanel id={element.mediaId} />
 			<div>
 				<p className="mb-2">Transitions</p>
-				{Object.values(events).map((event) => (
-					<MediaEventTransition key={event.action} event={event} />
-				))}
+				{events &&
+					Object.values(events).map((event) => <MediaEventTransition key={event.action} event={event} />)}
 			</div>
 		</div>
 	);
@@ -43,7 +42,6 @@ function MediaInfos({ element }: { element: ElementComp }) {
 // action == marker
 function MediaEventTransition({ event }: { event: MediaEvent }) {
 	const sceneLogic = SceneLogicContext.useActorRef();
-	console.log(event);
 
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
 		sceneLogic.send({ type: "events-update", payload: { action: event.action, ref: e.currentTarget.value } });

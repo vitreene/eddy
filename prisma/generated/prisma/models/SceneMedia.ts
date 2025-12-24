@@ -259,7 +259,6 @@ export type SceneMediaOrderByWithRelationInput = {
 
 export type SceneMediaWhereUniqueInput = Prisma.AtLeast<{
   id?: number
-  decorId?: number
   AND?: Prisma.SceneMediaWhereInput | Prisma.SceneMediaWhereInput[]
   OR?: Prisma.SceneMediaWhereInput[]
   NOT?: Prisma.SceneMediaWhereInput | Prisma.SceneMediaWhereInput[]
@@ -267,10 +266,11 @@ export type SceneMediaWhereUniqueInput = Prisma.AtLeast<{
   events?: Prisma.StringFilter<"SceneMedia"> | string
   mediaId?: Prisma.IntFilter<"SceneMedia"> | number
   sceneId?: Prisma.IntFilter<"SceneMedia"> | number
+  decorId?: Prisma.IntNullableFilter<"SceneMedia"> | number | null
   media?: Prisma.XOR<Prisma.MediaScalarRelationFilter, Prisma.MediaWhereInput>
   scene?: Prisma.XOR<Prisma.SceneScalarRelationFilter, Prisma.SceneWhereInput>
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
-}, "id" | "decorId">
+}, "id">
 
 export type SceneMediaOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
