@@ -23,9 +23,6 @@ export function EditCapsule() {
 				type: "capsule-update",
 				payload: { decor: { ...decor, style: newStyle } }
 			});
-
-			console.log("onStyleChange");
-
 			// Marquer que le decor a été modifié pour déclencher la persistance ultérieure
 			sceneLogic.send({ type: "active-set", payload: { decorTouched: true } });
 		},

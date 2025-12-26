@@ -2,7 +2,7 @@ import cx from "classnames";
 import { useCallback, useRef } from "react";
 
 import { INTRO, OUTRO } from "@/lib/constants";
-import { SceneLogicContext } from "@/provider/scene-logic";
+import { getElementFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 
@@ -14,11 +14,17 @@ const SLIDER_END = "slider-end";
 export function Rubber() {
 	const slider = useRef<string>("");
 	const abort = useRef(new AbortController());
-	const active = SceneLogicContext.useSelector((state) => state.context.active);
 
-	const events = SceneLogicContext.useSelector((state) =>
-		active && active.elementId ? state.context.events[active.elementId] : null
-	);
+	const events = SceneLogicContext.useSelector((state) => {
+		if (state.context.active.elementId) return state.context.events[state.context.active.elementId];
+		if (state.context.active.capsuleId) {
+			const element = getElementFromCapsule(state.context.active.capsuleId, state.context);
+			return element ? state.context.events[element.id] : null;
+		}
+
+		return null;
+	});
+
 	const sceneMedias = SceneLogicContext.useSelector((state) => state.context.sceneMedias[state.context.id]);
 	const sceneLogic = SceneLogicContext.useActorRef();
 

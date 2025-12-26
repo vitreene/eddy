@@ -36,7 +36,6 @@ export interface TreeMoveEvent {
 
 export const sceneLogic = setup({
 	types: {
-		// context: {} as Omit<SceneComp, "main"> & { active: ActiveState },
 		context: {} as SceneComp & { active: ActiveState },
 		input: {} as SceneComp,
 		events: {} as
@@ -53,6 +52,7 @@ export const sceneLogic = setup({
 	actions: {
 		fetchers: ({ context }, params: string[]) => {
 			if (!params.length) return;
+			console.log({ params });
 
 			// events changes (per element)
 			const elementId = context.active.elementId;
@@ -64,16 +64,19 @@ export const sceneLogic = setup({
 			const decorTouched = params.includes("decorTouched");
 			const eventTouched = params.includes("eventTouched");
 
-			if (elementId && eventTouched) {
-				//FIXME elementId dans json, media:mediaId
-				fetch(`api/media/${elementId}`, {
-					method: "POST",
-					headers: {
-						Accept: "application/json",
-						"Content-Type": "application/json"
-					},
-					body: JSON.stringify(context.events[elementId])
-				});
+			if (eventTouched) {
+				const id = capsuleId ? getElementFromCapsule(capsuleId, context)!.id : elementId;
+				console.log("fetchers", id, context.events[id!]);
+
+				if (id)
+					fetch(`api/media/${id}`, {
+						method: "POST",
+						headers: {
+							Accept: "application/json",
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify(context.events[id])
+					});
 			}
 
 			if (elementIdChanged && elementId && decorTouched) {
@@ -106,7 +109,7 @@ export const sceneLogic = setup({
 }).createMachine({
 	id: "scene",
 
-	context: ({ input }: { input: SceneComp }) => ({ input, active }),
+	context: ({ input }) => ({ ...input, active }),
 	initial: "start",
 
 	states: {
@@ -128,7 +131,6 @@ export const sceneLogic = setup({
 					on: {
 						"active-set": {
 							actions: [
-								//@ts-ignore
 								assign(({ context, event }) => {
 									return {
 										...context,
@@ -148,6 +150,8 @@ export const sceneLogic = setup({
 								type: "fetchers",
 
 								params: ({ context, event }) => {
+									console.log("commit", context.active, event.payload);
+									// manque le traitement : passser de capsule à element et vice-versa
 									const diffs: string[] = [];
 									for (const id in event.payload) {
 										if (context.active[id] !== event.payload[id]) diffs.push(id);
@@ -163,7 +167,7 @@ export const sceneLogic = setup({
 				},
 				reset: {
 					target: "active",
-					actions: assign(({ context }) => {
+					entry: assign(({ context }) => {
 						return {
 							...context,
 							active: {
@@ -268,7 +272,9 @@ export const sceneLogic = setup({
 					on: {
 						"events-update": {
 							actions: assign(({ context, event }) => {
-								const elementId = context.active.elementId;
+								const elementId =
+									context.active.elementId ?? getElementFromCapsule(context.active.capsuleId, context)?.id;
+
 								if (!elementId) return context;
 								const action = event.payload.action;
 								if (!action) return context;
@@ -277,8 +283,8 @@ export const sceneLogic = setup({
 									events: {
 										...context.events,
 										[elementId]: {
-											...context.events[elementId],
-											[action]: { ...context.events[elementId][action], ...event.payload }
+											...(context.events[elementId] ?? {}),
+											[action]: { ...context.events[elementId]?.[action], ...event.payload }
 										}
 									},
 									active: {
@@ -341,34 +347,28 @@ export const sceneLogic = setup({
 
 export const SceneLogicContext = createActorContext(sceneLogic);
 
-/* async ({ context, event }) => {
-									const { sourceId, sourceType } = event.payload;
-									if (sourceType == "element") {
-										const element = context.elements[sourceId];
-										// Signaler pour réajustement global des orders
-										console.warn("⚠️ Réajustement nécessaire : les ordres sont identiques après déplacement");
-										const orders = await fetch(`api/capsule/${element.capsuleId}/reorder`);
-										console.log("orders====>", orders);
-										return {
-											...context,
-											active: {
-												...context.active,
-												reorder: orders
-											}
-										};
-									}
-								}, */
+export function getElementFromCapsule(
+	capsuleId: number | null | undefined,
+	context: SceneComp & {
+		active: ActiveState;
+	}
+) {
+	if (!capsuleId) return null;
+	const media = Object.values(context.medias).find((m) => m.type == "capsule" && m.capsuleId == capsuleId);
+	const element = media ? Object.values(context.elements).find((e) => e.mediaId == media.id) : null;
+	return element;
+}
 
 /* 
-								TODO 
-								- move capsule dans une autre capsule
-		- reorder element d'une capsule si les order sont identiques
-		
-		
-		sinon, 
-		- faire le chutier
-		- l'éditeur d'élément
+comme capsule est traité comme un element, la différence ne se justifie plus 
+- pour le décor$
+- pour les events 
 
-		et voir le rendu ! 
+cela modifie entierement le schéma 
+la capsule est un media spécifique 
+- qui contient une liste d'items
+- qui à une grille
 
-								*/
+les decors et events sont traités par item
+
+*/

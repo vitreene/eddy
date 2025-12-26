@@ -41,8 +41,6 @@ export function SceneTreeView() {
 
 	if (!main || !capsules || !Object.keys(capsules).length) return null;
 
-	console.log(medias);
-
 	const tree: TreeDataItem[] = capsules[main].elementIds
 		.map((id) => elements[id])
 		.sort((a, b) => (a.order > b.order ? 1 : -1))
@@ -66,7 +64,6 @@ export function SceneTreeView() {
 					.sort((a, b) => (a.order > b.order ? 1 : -1))
 					.map((el) => {
 						const media = medias[el.mediaId];
-						console.log(media);
 
 						let Icon;
 						let name: string;
@@ -91,7 +88,7 @@ export function SceneTreeView() {
 						return {
 							id,
 							name,
-							elementId: c.id,
+							elementId: el.id,
 
 							media: medias[el.mediaId],
 							className: cx("text-left hover:bg-amber-100", {
@@ -132,7 +129,7 @@ export function SceneTreeView() {
 		let payload = null;
 		if (item) {
 			if ("capsuleId" in item) payload = { capsuleId: Number(item.capsuleId) };
-			if ("elementId" in item) payload = { capsuleId: Number(item.elementId) };
+			if ("elementId" in item) payload = { elementId: Number(item.elementId) };
 		}
 		console.log("onSelectChange", selected, item, payload);
 		if (payload) send({ type: "commit", payload });

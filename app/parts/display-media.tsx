@@ -2,11 +2,12 @@ import cx from "classnames";
 
 import type { Media } from "@prisma/client";
 
-const SIZES = {
-	icon: { w: 40, h: 32 },
-	sm: { w: 100, h: 80 },
-	lg: { w: 250, h: 160 }
+const SIZECSS = {
+	icon: "w-10  h-8",
+	sm: "w-24 h-20",
+	lg: "w-64 h-40"
 };
+
 export function Media({
 	attr,
 	size,
@@ -14,7 +15,7 @@ export function Media({
 	className = ""
 }: {
 	attr: Media;
-	size: keyof typeof SIZES;
+	size: keyof typeof SIZECSS;
 	selected?: boolean;
 	className?: string;
 }) {
@@ -22,17 +23,23 @@ export function Media({
 		case "img":
 			return (
 				<img
-					className={cx(className, "object-contain", {
+					className={cx(className, SIZECSS[size], "object-contain", {
 						"border border-red-400": selected
 					})}
 					src={attr.path!}
-					width={SIZES[size].w}
-					height={SIZES[size].h}
 					draggable={false}
 				/>
 			);
 		case "text":
 			return <p>{attr.content}</p>;
+		case "capsule":
+			return (
+				<div
+					className={cx(className, SIZECSS[size], "bg-blue-100 object-contain", {
+						"border border-red-400": selected
+					})}
+				/>
+			);
 
 		default:
 			break;

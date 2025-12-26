@@ -5,16 +5,31 @@ import type { ElementComp, MediaEvent } from "@/api/db";
 
 import { INTRO } from "@/lib/constants";
 import * as transitions from "@/player/presets/transitions";
-import { SceneLogicContext } from "@/provider/scene-logic";
+import { getElementFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";
 import { MediaPanel } from "./event-panel";
 
+const defaultTransition = "fondu";
+
 export function EditEvent() {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
-	const element = SceneLogicContext.useSelector(
-		(state) => active && active.elementId && state.context.elements[active.elementId]
-	);
+	// const element = SceneLogicContext.useSelector((state) => {
+	// 	if (active) {
+	// 		if (active.elementId) return state.context.elements[active.elementId];
+	// 		if (active.capsuleId) {
+	// 			const media = Object.values(state.context.medias).find((m) => m.capsuleId == active.capsuleId);
+	// 			return media ? Object.values(state.context.elements).find((e) => e.mediaId == media.id) : null;
+	// 		}
+	// 	}
+	// });
+	const element = SceneLogicContext.useSelector((state) => {
+		if (state.context.active.elementId) return state.context.elements[state.context.active.elementId];
+		if (state.context.active.capsuleId)
+			return getElementFromCapsule(state.context.active.capsuleId, state.context);
+
+		return null;
+	});
 
 	if (!element) return null;
 	return (
@@ -27,10 +42,12 @@ export function EditEvent() {
 
 function MediaInfos({ element }: { element: ElementComp }) {
 	const events = SceneLogicContext.useSelector((state) => state.context.events[element.id]);
+	console.log("MediaInfos", events);
+
 	return (
 		<div className="media-infos flex gap-4">
 			<MediaPanel id={element.mediaId} />
-			<div>
+			<div className="w-40">
 				<p className="mb-2">Transitions</p>
 				{events &&
 					Object.values(events).map((event) => <MediaEventTransition key={event.action} event={event} />)}
@@ -57,7 +74,7 @@ function MediaEventTransition({ event }: { event: MediaEvent }) {
 						event.action === INTRO ? "fill-green-300 stroke-green-500" : "fill-red-300 stroke-red-500"
 					)}
 				/>
-				<SelectAction value={event.ref ?? "--"} onChange={onChangeAction} />
+				<SelectAction value={event.ref ?? defaultTransition} onChange={onChangeAction} />
 			</div>
 		</div>
 	);
