@@ -27,7 +27,7 @@ export async function loader({ params }: Route.LoaderArgs) {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-	console.log("loaderData SceneComp", loaderData);
+	// console.log("loaderData SceneComp", loaderData);
 
 	const logic = React.useMemo(
 		() =>

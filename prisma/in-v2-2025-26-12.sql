@@ -15,12 +15,12 @@ CREATE TABLE IF NOT EXISTS "event" (
     CONSTRAINT "event_item_id_fkey" FOREIGN KEY ("item_id") REFERENCES "item" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "event_decor_id_fkey" FOREIGN KEY ("decor_id") REFERENCES "decor" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
-INSERT INTO event VALUES(1,'3-053-parler','outro','fondu zoom in',0,2,NULL,NULL);
-INSERT INTO event VALUES(2,'3-004-vu','intro','balayage haut',0,1,NULL,NULL);
-INSERT INTO event VALUES(3,'3-009-risques','outro','balayage bas',0,1,NULL,NULL);
-INSERT INTO event VALUES(4,'3-050-Nous','intro','fondu zoom out',0,2,NULL,NULL);
-INSERT INTO event VALUES(5,'3-006-lectricit','intro','fondu zoom in',NULL,3,NULL,NULL);
-INSERT INTO event VALUES(6,'3-023-est','outro','fondu',NULL,3,NULL,NULL);
+INSERT INTO event VALUES(1,'3-053-parler','outro','fondu zoom in',0,NULL,2,NULL);
+INSERT INTO event VALUES(2,'3-004-vu','intro','balayage haut',0,NULL,1,NULL);
+INSERT INTO event VALUES(3,'3-009-risques','outro','balayage bas',0,NULL,1,NULL);
+INSERT INTO event VALUES(4,'3-050-Nous','intro','fondu zoom out',0,NULL,2,NULL);
+INSERT INTO event VALUES(5,'3-006-lectricit','intro','fondu zoom in',NULL,NULL,3,NULL);
+INSERT INTO event VALUES(6,'3-023-est','outro','fondu',NULL,NULL,3,NULL);
 
 
 CREATE TABLE IF NOT EXISTS "scene_content" (

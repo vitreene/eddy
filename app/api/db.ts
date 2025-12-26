@@ -184,6 +184,8 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 
 	const scene = { ...sceneDB!, capsules, scenecontents };
 
+	console.log("capsules", capsules);
+
 	return flattenScene(scene);
 }
 
