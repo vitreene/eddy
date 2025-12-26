@@ -6,6 +6,7 @@ import { gridWHClassName, ResizableGridFrame, type GridSize } from "@/components
 
 import type { EditableStyle } from "@/components/style-editor/types";
 import { DEFAULT_STYLE } from "@/lib/constants";
+import type { Decor } from "@/api/db";
 
 export function EditCapsule() {
 	const sceneLogic = SceneLogicContext.useActorRef();
@@ -21,7 +22,7 @@ export function EditCapsule() {
 			// Enregistrer le style dans le contexte (decor) de la capsule
 			sceneLogic.send({
 				type: "capsule-update",
-				payload: { decor: { ...decor, style: newStyle } }
+				payload: { decor: { ...decor, style: newStyle } as Decor }
 			});
 			// Marquer que le decor a été modifié pour déclencher la persistance ultérieure
 			sceneLogic.send({ type: "active-set", payload: { decorTouched: true } });
@@ -50,7 +51,7 @@ export function EditCapsule() {
 					key={capsule?.id}
 					className="inline-block border border-stone-300 p-1"
 					name="type"
-					defaultValue={capsule?.type}
+					defaultValue={capsule?.name}
 				/>
 			</form>
 			<ResizableGridFrame onChange={onChangeGrid} />

@@ -1,7 +1,7 @@
 import cx from "classnames";
 import { CircleSmallIcon } from "lucide-react";
 
-import type { ElementComp, MediaEvent } from "@/api/db";
+import type { ItemComp, ContentEvent } from "@/api/db";
 
 import { INTRO } from "@/lib/constants";
 import * as transitions from "@/player/presets/transitions";
@@ -24,7 +24,7 @@ export function EditEvent() {
 	// 	}
 	// });
 	const element = SceneLogicContext.useSelector((state) => {
-		if (state.context.active.elementId) return state.context.elements[state.context.active.elementId];
+		if (state.context.active.itemId) return state.context.items[state.context.active.itemId];
 		if (state.context.active.capsuleId)
 			return getElementFromCapsule(state.context.active.capsuleId, state.context);
 
@@ -40,13 +40,13 @@ export function EditEvent() {
 	);
 }
 
-function MediaInfos({ element }: { element: ElementComp }) {
+function MediaInfos({ element }: { element: ItemComp }) {
 	const events = SceneLogicContext.useSelector((state) => state.context.events[element.id]);
 	console.log("MediaInfos", events);
 
 	return (
 		<div className="media-infos flex gap-4">
-			<MediaPanel id={element.mediaId} />
+			<MediaPanel id={element.contentId} />
 			<div className="w-40">
 				<p className="mb-2">Transitions</p>
 				{events &&
@@ -57,7 +57,7 @@ function MediaInfos({ element }: { element: ElementComp }) {
 }
 
 // action == marker
-function MediaEventTransition({ event }: { event: MediaEvent }) {
+function MediaEventTransition({ event }: { event: ContentEvent }) {
 	const sceneLogic = SceneLogicContext.useActorRef();
 
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {

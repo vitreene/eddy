@@ -1,4 +1,4 @@
-import type { DbSceneComp, ElementComp, SceneMedia, TextTime } from "@/api/db";
+import type { DbSceneComp, ItemComp, SceneContent, TextTime } from "@/api/db";
 import type { Event as MediaEvent } from "@prisma/client";
 
 import { P } from "../types";
@@ -64,7 +64,7 @@ function createEvent(
 	return mEvent ? [Math.round(mEvent.start * 10) * 100, { name: `${prefix}_${elementEvent.action}` }] : [];
 }
 
-function createBackgroundImage(element: ElementComp): PersoImgDef {
+function createBackgroundImage(element: ItemComp): PersoImgDef {
 	const actions: Record<string, Action> = {};
 
 	for (const e of element.events) {
@@ -137,7 +137,7 @@ const list = {
 	}
 } as const;
 
-function createVideoPerso(media: SceneMedia): PersoMediaDef {
+function createVideoPerso(media: SceneContent): PersoMediaDef {
 	return {
 		type: P.VIDEO,
 		initial: {

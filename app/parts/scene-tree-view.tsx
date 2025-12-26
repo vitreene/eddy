@@ -1,11 +1,12 @@
 import cx from "classnames";
 import { BoxIcon } from "lucide-react";
-import type { Media as CapsuleMedia } from "@prisma/client";
+
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { TreeView, type TreeDataItem } from "@/components/ui/tree-view";
 
 import { Media } from "./display-media";
 import { useState } from "react";
+import type { Content } from "@/api/db";
 
 const EMPTY = "–";
 const SEP = "__";
@@ -13,11 +14,13 @@ export function SceneTreeView() {
 	const main = SceneLogicContext.useSelector((state) => state.context.main);
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
 	const capsules = SceneLogicContext.useSelector((state) => state.context.capsules);
-	const elements = SceneLogicContext.useSelector((state) => state.context.elements);
-	const medias: { [key: number]: CapsuleMedia } = SceneLogicContext.useSelector(
+	const items = SceneLogicContext.useSelector((state) => state.context.items);
+	const contents: { [key: number]: Content } = SceneLogicContext.useSelector(
 		(state) =>
-			elements &&
-			Object.fromEntries(Object.values(elements).map((el) => [[el.mediaId], state.context.medias[el.mediaId]]))
+			items &&
+			Object.fromEntries(
+				Object.values(items).map((el) => [[el.contentId], state.context.contents[el.contentId]])
+			)
 	);
 
 	const { send } = SceneLogicContext.useActorRef();
@@ -35,24 +38,26 @@ export function SceneTreeView() {
 	};
 
 	const editElement = (elementId: number, item: string) => {
-		send({ type: "active-set", payload: { elementId } });
+		send({ type: "active-set", payload: { itemId: elementId } });
 		setSelected(item);
 	};
 
 	if (!main || !capsules || !Object.keys(capsules).length) return null;
 
-	const tree: TreeDataItem[] = capsules[main].elementIds
-		.map((id) => elements[id])
+	const tree: TreeDataItem[] = capsules[main].itemIds
+		.map((id) => items[id])
 		.sort((a, b) => (a.order > b.order ? 1 : -1))
-		.map((element) => capsules[medias[element.mediaId].capsuleId])
+		.filter((item) => item.contentId && contents[item.contentId].capsuleId)
+
+		.map((item) => capsules[contents[item.contentId].capsuleId!])
 		.map((c) => {
-			const els = c.elementIds.map((el) => elements[el]);
+			const els = c.itemIds.map((el) => items[el]);
 			const id = `capsule${SEP}${c.id}`;
 
 			return {
 				id,
 				capsuleId: c.id,
-				name: c.type,
+				name: c.name,
 				droppable: true,
 				draggable: true,
 				className: cx("uppercase text-left hover:bg-amber-100", {
@@ -63,20 +68,20 @@ export function SceneTreeView() {
 				children: els
 					.sort((a, b) => (a.order > b.order ? 1 : -1))
 					.map((el) => {
-						const media = medias[el.mediaId];
+						const media = contents[el.contentId];
 
 						let Icon;
 						let name: string;
 						switch (media?.type) {
 							case "img":
 								Icon = ({ className: _ }: { className: string }) => (
-									<Media size="icon" attr={medias[el.mediaId]} className="mr-2" />
+									<Media size="icon" attr={contents[el.contentId]} className="mr-2" />
 								);
 								name = String(el.id);
 								break;
 							case "text":
 								Icon = BoxIcon;
-								name = media.content || EMPTY;
+								name = media.inner || EMPTY;
 								break;
 							default:
 								Icon = null;
@@ -90,7 +95,7 @@ export function SceneTreeView() {
 							name,
 							elementId: el.id,
 
-							media: medias[el.mediaId],
+							media: contents[el.contentId],
 							className: cx("text-left hover:bg-amber-100", {
 								"bg-amber-200 hover:bg-amber-300": id == selected
 							}),

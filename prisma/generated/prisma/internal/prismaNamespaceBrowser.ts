@@ -53,13 +53,13 @@ export const AnyNull = runtime.AnyNull
 export const ModelName = {
   Scene: 'Scene',
   SceneCapsule: 'SceneCapsule',
-  SceneMedia: 'SceneMedia',
+  SceneContent: 'SceneContent',
   Capsule: 'Capsule',
-  CapsuleElement: 'CapsuleElement',
-  Media: 'Media',
+  Item: 'Item',
+  Content: 'Content',
   Event: 'Event',
   Decor: 'Decor',
-  ElementTarget: 'ElementTarget',
+  ItemTarget: 'ItemTarget',
   Theme: 'Theme'
 } as const
 
@@ -96,49 +96,49 @@ export const SceneCapsuleScalarFieldEnum = {
 export type SceneCapsuleScalarFieldEnum = (typeof SceneCapsuleScalarFieldEnum)[keyof typeof SceneCapsuleScalarFieldEnum]
 
 
-export const SceneMediaScalarFieldEnum = {
+export const SceneContentScalarFieldEnum = {
   id: 'id',
   order: 'order',
   events: 'events',
-  mediaId: 'mediaId',
+  contentId: 'contentId',
   sceneId: 'sceneId',
   decorId: 'decorId'
 } as const
 
-export type SceneMediaScalarFieldEnum = (typeof SceneMediaScalarFieldEnum)[keyof typeof SceneMediaScalarFieldEnum]
+export type SceneContentScalarFieldEnum = (typeof SceneContentScalarFieldEnum)[keyof typeof SceneContentScalarFieldEnum]
 
 
 export const CapsuleScalarFieldEnum = {
   id: 'id',
+  name: 'name',
   type: 'type',
-  decorId: 'decorId'
+  grid: 'grid'
 } as const
 
 export type CapsuleScalarFieldEnum = (typeof CapsuleScalarFieldEnum)[keyof typeof CapsuleScalarFieldEnum]
 
 
-export const CapsuleElementScalarFieldEnum = {
+export const ItemScalarFieldEnum = {
   id: 'id',
   order: 'order',
-  mediaId: 'mediaId',
+  contentId: 'contentId',
   capsuleId: 'capsuleId',
   decorId: 'decorId'
 } as const
 
-export type CapsuleElementScalarFieldEnum = (typeof CapsuleElementScalarFieldEnum)[keyof typeof CapsuleElementScalarFieldEnum]
+export type ItemScalarFieldEnum = (typeof ItemScalarFieldEnum)[keyof typeof ItemScalarFieldEnum]
 
 
-export const MediaScalarFieldEnum = {
+export const ContentScalarFieldEnum = {
   id: 'id',
   type: 'type',
-  referenceId: 'referenceId',
   path: 'path',
-  content: 'content',
+  inner: 'inner',
   lang: 'lang',
   capsuleId: 'capsuleId'
 } as const
 
-export type MediaScalarFieldEnum = (typeof MediaScalarFieldEnum)[keyof typeof MediaScalarFieldEnum]
+export type ContentScalarFieldEnum = (typeof ContentScalarFieldEnum)[keyof typeof ContentScalarFieldEnum]
 
 
 export const EventScalarFieldEnum = {
@@ -147,8 +147,8 @@ export const EventScalarFieldEnum = {
   action: 'action',
   ref: 'ref',
   duration: 'duration',
-  elementId: 'elementId',
-  capsuleId: 'capsuleId',
+  delay: 'delay',
+  itemId: 'itemId',
   decorId: 'decorId'
 } as const
 
@@ -166,14 +166,14 @@ export const DecorScalarFieldEnum = {
 export type DecorScalarFieldEnum = (typeof DecorScalarFieldEnum)[keyof typeof DecorScalarFieldEnum]
 
 
-export const ElementTargetScalarFieldEnum = {
+export const ItemTargetScalarFieldEnum = {
   id: 'id',
   order: 'order',
   targetId: 'targetId',
-  elementId: 'elementId'
+  itemId: 'itemId'
 } as const
 
-export type ElementTargetScalarFieldEnum = (typeof ElementTargetScalarFieldEnum)[keyof typeof ElementTargetScalarFieldEnum]
+export type ItemTargetScalarFieldEnum = (typeof ItemTargetScalarFieldEnum)[keyof typeof ItemTargetScalarFieldEnum]
 
 
 export const ThemeScalarFieldEnum = {

@@ -16,7 +16,7 @@ export function Rubber() {
 	const abort = useRef(new AbortController());
 
 	const events = SceneLogicContext.useSelector((state) => {
-		if (state.context.active.elementId) return state.context.events[state.context.active.elementId];
+		if (state.context.active.itemId) return state.context.events[state.context.active.itemId];
 		if (state.context.active.capsuleId) {
 			const element = getElementFromCapsule(state.context.active.capsuleId, state.context);
 			return element ? state.context.events[element.id] : null;
@@ -25,11 +25,13 @@ export function Rubber() {
 		return null;
 	});
 
-	const sceneMedias = SceneLogicContext.useSelector((state) => state.context.sceneMedias[state.context.id]);
+	const sceneContents = SceneLogicContext.useSelector(
+		(state) => state.context.sceneContents[state.context.id]
+	);
 	const sceneLogic = SceneLogicContext.useActorRef();
 
 	// TODO mieux définir cues
-	const cues = sceneMedias.events;
+	const cues = sceneContents.events;
 
 	const selecteds = events ? selectCues(cues, events[INTRO]?.name, events[OUTRO]?.name) : [];
 	const start = selecteds[0];

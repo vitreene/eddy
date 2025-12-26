@@ -208,7 +208,7 @@ export type ThemeWhereInput = {
   name?: Prisma.StringNullableFilter<"Theme"> | string | null
   custom?: Prisma.StringNullableFilter<"Theme"> | string | null
   generated?: Prisma.StringNullableFilter<"Theme"> | string | null
-  scene?: Prisma.SceneListRelationFilter
+  scenes?: Prisma.SceneListRelationFilter
 }
 
 export type ThemeOrderByWithRelationInput = {
@@ -216,7 +216,7 @@ export type ThemeOrderByWithRelationInput = {
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   custom?: Prisma.SortOrderInput | Prisma.SortOrder
   generated?: Prisma.SortOrderInput | Prisma.SortOrder
-  scene?: Prisma.SceneOrderByRelationAggregateInput
+  scenes?: Prisma.SceneOrderByRelationAggregateInput
 }
 
 export type ThemeWhereUniqueInput = Prisma.AtLeast<{
@@ -227,7 +227,7 @@ export type ThemeWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringNullableFilter<"Theme"> | string | null
   custom?: Prisma.StringNullableFilter<"Theme"> | string | null
   generated?: Prisma.StringNullableFilter<"Theme"> | string | null
-  scene?: Prisma.SceneListRelationFilter
+  scenes?: Prisma.SceneListRelationFilter
 }, "id">
 
 export type ThemeOrderByWithAggregationInput = {
@@ -256,7 +256,7 @@ export type ThemeCreateInput = {
   name?: string | null
   custom?: string | null
   generated?: string | null
-  scene?: Prisma.SceneCreateNestedManyWithoutThemeInput
+  scenes?: Prisma.SceneCreateNestedManyWithoutThemeInput
 }
 
 export type ThemeUncheckedCreateInput = {
@@ -264,14 +264,14 @@ export type ThemeUncheckedCreateInput = {
   name?: string | null
   custom?: string | null
   generated?: string | null
-  scene?: Prisma.SceneUncheckedCreateNestedManyWithoutThemeInput
+  scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutThemeInput
 }
 
 export type ThemeUpdateInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  scene?: Prisma.SceneUpdateManyWithoutThemeNestedInput
+  scenes?: Prisma.SceneUpdateManyWithoutThemeNestedInput
 }
 
 export type ThemeUncheckedUpdateInput = {
@@ -279,7 +279,7 @@ export type ThemeUncheckedUpdateInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  scene?: Prisma.SceneUncheckedUpdateManyWithoutThemeNestedInput
+  scenes?: Prisma.SceneUncheckedUpdateManyWithoutThemeNestedInput
 }
 
 export type ThemeCreateManyInput = {
@@ -336,58 +336,58 @@ export type ThemeSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
 }
 
-export type ThemeCreateNestedOneWithoutSceneInput = {
-  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
-  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput
+export type ThemeCreateNestedOneWithoutScenesInput = {
+  create?: Prisma.XOR<Prisma.ThemeCreateWithoutScenesInput, Prisma.ThemeUncheckedCreateWithoutScenesInput>
+  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutScenesInput
   connect?: Prisma.ThemeWhereUniqueInput
 }
 
-export type ThemeUpdateOneWithoutSceneNestedInput = {
-  create?: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
-  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutSceneInput
-  upsert?: Prisma.ThemeUpsertWithoutSceneInput
+export type ThemeUpdateOneWithoutScenesNestedInput = {
+  create?: Prisma.XOR<Prisma.ThemeCreateWithoutScenesInput, Prisma.ThemeUncheckedCreateWithoutScenesInput>
+  connectOrCreate?: Prisma.ThemeCreateOrConnectWithoutScenesInput
+  upsert?: Prisma.ThemeUpsertWithoutScenesInput
   disconnect?: Prisma.ThemeWhereInput | boolean
   delete?: Prisma.ThemeWhereInput | boolean
   connect?: Prisma.ThemeWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ThemeUpdateToOneWithWhereWithoutSceneInput, Prisma.ThemeUpdateWithoutSceneInput>, Prisma.ThemeUncheckedUpdateWithoutSceneInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.ThemeUpdateToOneWithWhereWithoutScenesInput, Prisma.ThemeUpdateWithoutScenesInput>, Prisma.ThemeUncheckedUpdateWithoutScenesInput>
 }
 
-export type ThemeCreateWithoutSceneInput = {
+export type ThemeCreateWithoutScenesInput = {
   name?: string | null
   custom?: string | null
   generated?: string | null
 }
 
-export type ThemeUncheckedCreateWithoutSceneInput = {
+export type ThemeUncheckedCreateWithoutScenesInput = {
   id?: number
   name?: string | null
   custom?: string | null
   generated?: string | null
 }
 
-export type ThemeCreateOrConnectWithoutSceneInput = {
+export type ThemeCreateOrConnectWithoutScenesInput = {
   where: Prisma.ThemeWhereUniqueInput
-  create: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
+  create: Prisma.XOR<Prisma.ThemeCreateWithoutScenesInput, Prisma.ThemeUncheckedCreateWithoutScenesInput>
 }
 
-export type ThemeUpsertWithoutSceneInput = {
-  update: Prisma.XOR<Prisma.ThemeUpdateWithoutSceneInput, Prisma.ThemeUncheckedUpdateWithoutSceneInput>
-  create: Prisma.XOR<Prisma.ThemeCreateWithoutSceneInput, Prisma.ThemeUncheckedCreateWithoutSceneInput>
+export type ThemeUpsertWithoutScenesInput = {
+  update: Prisma.XOR<Prisma.ThemeUpdateWithoutScenesInput, Prisma.ThemeUncheckedUpdateWithoutScenesInput>
+  create: Prisma.XOR<Prisma.ThemeCreateWithoutScenesInput, Prisma.ThemeUncheckedCreateWithoutScenesInput>
   where?: Prisma.ThemeWhereInput
 }
 
-export type ThemeUpdateToOneWithWhereWithoutSceneInput = {
+export type ThemeUpdateToOneWithWhereWithoutScenesInput = {
   where?: Prisma.ThemeWhereInput
-  data: Prisma.XOR<Prisma.ThemeUpdateWithoutSceneInput, Prisma.ThemeUncheckedUpdateWithoutSceneInput>
+  data: Prisma.XOR<Prisma.ThemeUpdateWithoutScenesInput, Prisma.ThemeUncheckedUpdateWithoutScenesInput>
 }
 
-export type ThemeUpdateWithoutSceneInput = {
+export type ThemeUpdateWithoutScenesInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   generated?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
-export type ThemeUncheckedUpdateWithoutSceneInput = {
+export type ThemeUncheckedUpdateWithoutScenesInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   custom?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -400,11 +400,11 @@ export type ThemeUncheckedUpdateWithoutSceneInput = {
  */
 
 export type ThemeCountOutputType = {
-  scene: number
+  scenes: number
 }
 
 export type ThemeCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  scene?: boolean | ThemeCountOutputTypeCountSceneArgs
+  scenes?: boolean | ThemeCountOutputTypeCountScenesArgs
 }
 
 /**
@@ -420,7 +420,7 @@ export type ThemeCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extens
 /**
  * ThemeCountOutputType without action
  */
-export type ThemeCountOutputTypeCountSceneArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type ThemeCountOutputTypeCountScenesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   where?: Prisma.SceneWhereInput
 }
 
@@ -430,7 +430,7 @@ export type ThemeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   name?: boolean
   custom?: boolean
   generated?: boolean
-  scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
+  scenes?: boolean | Prisma.Theme$scenesArgs<ExtArgs>
   _count?: boolean | Prisma.ThemeCountOutputTypeDefaultArgs<ExtArgs>
 }, ExtArgs["result"]["theme"]>
 
@@ -457,7 +457,7 @@ export type ThemeSelectScalar = {
 
 export type ThemeOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "custom" | "generated", ExtArgs["result"]["theme"]>
 export type ThemeInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  scene?: boolean | Prisma.Theme$sceneArgs<ExtArgs>
+  scenes?: boolean | Prisma.Theme$scenesArgs<ExtArgs>
   _count?: boolean | Prisma.ThemeCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type ThemeIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {}
@@ -466,7 +466,7 @@ export type ThemeIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
 export type $ThemePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Theme"
   objects: {
-    scene: Prisma.$ScenePayload<ExtArgs>[]
+    scenes: Prisma.$ScenePayload<ExtArgs>[]
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
@@ -867,7 +867,7 @@ readonly fields: ThemeFieldRefs;
  */
 export interface Prisma__ThemeClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  scene<T extends Prisma.Theme$sceneArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Theme$sceneArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScenePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  scenes<T extends Prisma.Theme$scenesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Theme$scenesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScenePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
    * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -1287,9 +1287,9 @@ export type ThemeDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Theme.scene
+ * Theme.scenes
  */
-export type Theme$sceneArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Theme$scenesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
    * Select specific fields to fetch from the Scene
    */

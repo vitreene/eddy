@@ -32,16 +32,16 @@ export type AggregateEvent = {
 export type EventAvgAggregateOutputType = {
   id: number | null
   duration: number | null
-  elementId: number | null
-  capsuleId: number | null
+  delay: number | null
+  itemId: number | null
   decorId: number | null
 }
 
 export type EventSumAggregateOutputType = {
   id: number | null
   duration: number | null
-  elementId: number | null
-  capsuleId: number | null
+  delay: number | null
+  itemId: number | null
   decorId: number | null
 }
 
@@ -51,8 +51,8 @@ export type EventMinAggregateOutputType = {
   action: string | null
   ref: string | null
   duration: number | null
-  elementId: number | null
-  capsuleId: number | null
+  delay: number | null
+  itemId: number | null
   decorId: number | null
 }
 
@@ -62,8 +62,8 @@ export type EventMaxAggregateOutputType = {
   action: string | null
   ref: string | null
   duration: number | null
-  elementId: number | null
-  capsuleId: number | null
+  delay: number | null
+  itemId: number | null
   decorId: number | null
 }
 
@@ -73,8 +73,8 @@ export type EventCountAggregateOutputType = {
   action: number
   ref: number
   duration: number
-  elementId: number
-  capsuleId: number
+  delay: number
+  itemId: number
   decorId: number
   _all: number
 }
@@ -83,16 +83,16 @@ export type EventCountAggregateOutputType = {
 export type EventAvgAggregateInputType = {
   id?: true
   duration?: true
-  elementId?: true
-  capsuleId?: true
+  delay?: true
+  itemId?: true
   decorId?: true
 }
 
 export type EventSumAggregateInputType = {
   id?: true
   duration?: true
-  elementId?: true
-  capsuleId?: true
+  delay?: true
+  itemId?: true
   decorId?: true
 }
 
@@ -102,8 +102,8 @@ export type EventMinAggregateInputType = {
   action?: true
   ref?: true
   duration?: true
-  elementId?: true
-  capsuleId?: true
+  delay?: true
+  itemId?: true
   decorId?: true
 }
 
@@ -113,8 +113,8 @@ export type EventMaxAggregateInputType = {
   action?: true
   ref?: true
   duration?: true
-  elementId?: true
-  capsuleId?: true
+  delay?: true
+  itemId?: true
   decorId?: true
 }
 
@@ -124,8 +124,8 @@ export type EventCountAggregateInputType = {
   action?: true
   ref?: true
   duration?: true
-  elementId?: true
-  capsuleId?: true
+  delay?: true
+  itemId?: true
   decorId?: true
   _all?: true
 }
@@ -222,8 +222,8 @@ export type EventGroupByOutputType = {
   action: string
   ref: string
   duration: number | null
-  elementId: number | null
-  capsuleId: number | null
+  delay: number | null
+  itemId: number | null
   decorId: number | null
   _count: EventCountAggregateOutputType | null
   _avg: EventAvgAggregateOutputType | null
@@ -256,11 +256,10 @@ export type EventWhereInput = {
   action?: Prisma.StringFilter<"Event"> | string
   ref?: Prisma.StringFilter<"Event"> | string
   duration?: Prisma.IntNullableFilter<"Event"> | number | null
-  elementId?: Prisma.IntNullableFilter<"Event"> | number | null
-  capsuleId?: Prisma.IntNullableFilter<"Event"> | number | null
+  delay?: Prisma.IntNullableFilter<"Event"> | number | null
+  itemId?: Prisma.IntNullableFilter<"Event"> | number | null
   decorId?: Prisma.IntNullableFilter<"Event"> | number | null
-  element?: Prisma.XOR<Prisma.CapsuleElementNullableScalarRelationFilter, Prisma.CapsuleElementWhereInput> | null
-  capsules?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
+  item?: Prisma.XOR<Prisma.ItemNullableScalarRelationFilter, Prisma.ItemWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
 }
 
@@ -270,11 +269,10 @@ export type EventOrderByWithRelationInput = {
   action?: Prisma.SortOrder
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
-  elementId?: Prisma.SortOrderInput | Prisma.SortOrder
-  capsuleId?: Prisma.SortOrderInput | Prisma.SortOrder
+  delay?: Prisma.SortOrderInput | Prisma.SortOrder
+  itemId?: Prisma.SortOrderInput | Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
-  element?: Prisma.CapsuleElementOrderByWithRelationInput
-  capsules?: Prisma.CapsuleOrderByWithRelationInput
+  item?: Prisma.ItemOrderByWithRelationInput
   decor?: Prisma.DecorOrderByWithRelationInput
 }
 
@@ -288,10 +286,9 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
   action?: Prisma.StringFilter<"Event"> | string
   ref?: Prisma.StringFilter<"Event"> | string
   duration?: Prisma.IntNullableFilter<"Event"> | number | null
-  elementId?: Prisma.IntNullableFilter<"Event"> | number | null
-  capsuleId?: Prisma.IntNullableFilter<"Event"> | number | null
-  element?: Prisma.XOR<Prisma.CapsuleElementNullableScalarRelationFilter, Prisma.CapsuleElementWhereInput> | null
-  capsules?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
+  delay?: Prisma.IntNullableFilter<"Event"> | number | null
+  itemId?: Prisma.IntNullableFilter<"Event"> | number | null
+  item?: Prisma.XOR<Prisma.ItemNullableScalarRelationFilter, Prisma.ItemWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
 }, "id" | "decorId">
 
@@ -301,8 +298,8 @@ export type EventOrderByWithAggregationInput = {
   action?: Prisma.SortOrder
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
-  elementId?: Prisma.SortOrderInput | Prisma.SortOrder
-  capsuleId?: Prisma.SortOrderInput | Prisma.SortOrder
+  delay?: Prisma.SortOrderInput | Prisma.SortOrder
+  itemId?: Prisma.SortOrderInput | Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.EventCountOrderByAggregateInput
   _avg?: Prisma.EventAvgOrderByAggregateInput
@@ -320,8 +317,8 @@ export type EventScalarWhereWithAggregatesInput = {
   action?: Prisma.StringWithAggregatesFilter<"Event"> | string
   ref?: Prisma.StringWithAggregatesFilter<"Event"> | string
   duration?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
-  elementId?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
-  capsuleId?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
+  delay?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
+  itemId?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
   decorId?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
 }
 
@@ -330,9 +327,9 @@ export type EventCreateInput = {
   action: string
   ref: string
   duration?: number | null
-  element?: Prisma.CapsuleElementCreateNestedOneWithoutEventsInput
-  capsules?: Prisma.CapsuleCreateNestedOneWithoutEventsInput
-  decor?: Prisma.DecorCreateNestedOneWithoutEventInput
+  delay?: number | null
+  item?: Prisma.ItemCreateNestedOneWithoutEventsInput
+  decor?: Prisma.DecorCreateNestedOneWithoutEventsInput
 }
 
 export type EventUncheckedCreateInput = {
@@ -341,8 +338,8 @@ export type EventUncheckedCreateInput = {
   action: string
   ref: string
   duration?: number | null
-  elementId?: number | null
-  capsuleId?: number | null
+  delay?: number | null
+  itemId?: number | null
   decorId?: number | null
 }
 
@@ -351,9 +348,9 @@ export type EventUpdateInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  element?: Prisma.CapsuleElementUpdateOneWithoutEventsNestedInput
-  capsules?: Prisma.CapsuleUpdateOneWithoutEventsNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutEventNestedInput
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  item?: Prisma.ItemUpdateOneWithoutEventsNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutEventsNestedInput
 }
 
 export type EventUncheckedUpdateInput = {
@@ -362,8 +359,8 @@ export type EventUncheckedUpdateInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  elementId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -373,8 +370,8 @@ export type EventCreateManyInput = {
   action: string
   ref: string
   duration?: number | null
-  elementId?: number | null
-  capsuleId?: number | null
+  delay?: number | null
+  itemId?: number | null
   decorId?: number | null
 }
 
@@ -383,6 +380,7 @@ export type EventUpdateManyMutationInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type EventUncheckedUpdateManyInput = {
@@ -391,8 +389,8 @@ export type EventUncheckedUpdateManyInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  elementId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -412,16 +410,16 @@ export type EventCountOrderByAggregateInput = {
   action?: Prisma.SortOrder
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrder
-  elementId?: Prisma.SortOrder
-  capsuleId?: Prisma.SortOrder
+  delay?: Prisma.SortOrder
+  itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
 
 export type EventAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   duration?: Prisma.SortOrder
-  elementId?: Prisma.SortOrder
-  capsuleId?: Prisma.SortOrder
+  delay?: Prisma.SortOrder
+  itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
 
@@ -431,8 +429,8 @@ export type EventMaxOrderByAggregateInput = {
   action?: Prisma.SortOrder
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrder
-  elementId?: Prisma.SortOrder
-  capsuleId?: Prisma.SortOrder
+  delay?: Prisma.SortOrder
+  itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
 
@@ -442,100 +440,58 @@ export type EventMinOrderByAggregateInput = {
   action?: Prisma.SortOrder
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrder
-  elementId?: Prisma.SortOrder
-  capsuleId?: Prisma.SortOrder
+  delay?: Prisma.SortOrder
+  itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
 
 export type EventSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   duration?: Prisma.SortOrder
-  elementId?: Prisma.SortOrder
-  capsuleId?: Prisma.SortOrder
+  delay?: Prisma.SortOrder
+  itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
 
-export type EventCreateNestedManyWithoutCapsulesInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutCapsulesInput, Prisma.EventUncheckedCreateWithoutCapsulesInput> | Prisma.EventCreateWithoutCapsulesInput[] | Prisma.EventUncheckedCreateWithoutCapsulesInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutCapsulesInput | Prisma.EventCreateOrConnectWithoutCapsulesInput[]
-  createMany?: Prisma.EventCreateManyCapsulesInputEnvelope
+export type EventCreateNestedManyWithoutItemInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutItemInput, Prisma.EventUncheckedCreateWithoutItemInput> | Prisma.EventCreateWithoutItemInput[] | Prisma.EventUncheckedCreateWithoutItemInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutItemInput | Prisma.EventCreateOrConnectWithoutItemInput[]
+  createMany?: Prisma.EventCreateManyItemInputEnvelope
   connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
 }
 
-export type EventUncheckedCreateNestedManyWithoutCapsulesInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutCapsulesInput, Prisma.EventUncheckedCreateWithoutCapsulesInput> | Prisma.EventCreateWithoutCapsulesInput[] | Prisma.EventUncheckedCreateWithoutCapsulesInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutCapsulesInput | Prisma.EventCreateOrConnectWithoutCapsulesInput[]
-  createMany?: Prisma.EventCreateManyCapsulesInputEnvelope
+export type EventUncheckedCreateNestedManyWithoutItemInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutItemInput, Prisma.EventUncheckedCreateWithoutItemInput> | Prisma.EventCreateWithoutItemInput[] | Prisma.EventUncheckedCreateWithoutItemInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutItemInput | Prisma.EventCreateOrConnectWithoutItemInput[]
+  createMany?: Prisma.EventCreateManyItemInputEnvelope
   connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
 }
 
-export type EventUpdateManyWithoutCapsulesNestedInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutCapsulesInput, Prisma.EventUncheckedCreateWithoutCapsulesInput> | Prisma.EventCreateWithoutCapsulesInput[] | Prisma.EventUncheckedCreateWithoutCapsulesInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutCapsulesInput | Prisma.EventCreateOrConnectWithoutCapsulesInput[]
-  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutCapsulesInput | Prisma.EventUpsertWithWhereUniqueWithoutCapsulesInput[]
-  createMany?: Prisma.EventCreateManyCapsulesInputEnvelope
+export type EventUpdateManyWithoutItemNestedInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutItemInput, Prisma.EventUncheckedCreateWithoutItemInput> | Prisma.EventCreateWithoutItemInput[] | Prisma.EventUncheckedCreateWithoutItemInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutItemInput | Prisma.EventCreateOrConnectWithoutItemInput[]
+  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutItemInput | Prisma.EventUpsertWithWhereUniqueWithoutItemInput[]
+  createMany?: Prisma.EventCreateManyItemInputEnvelope
   set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
   disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
   delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
   connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  update?: Prisma.EventUpdateWithWhereUniqueWithoutCapsulesInput | Prisma.EventUpdateWithWhereUniqueWithoutCapsulesInput[]
-  updateMany?: Prisma.EventUpdateManyWithWhereWithoutCapsulesInput | Prisma.EventUpdateManyWithWhereWithoutCapsulesInput[]
+  update?: Prisma.EventUpdateWithWhereUniqueWithoutItemInput | Prisma.EventUpdateWithWhereUniqueWithoutItemInput[]
+  updateMany?: Prisma.EventUpdateManyWithWhereWithoutItemInput | Prisma.EventUpdateManyWithWhereWithoutItemInput[]
   deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
 }
 
-export type EventUncheckedUpdateManyWithoutCapsulesNestedInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutCapsulesInput, Prisma.EventUncheckedCreateWithoutCapsulesInput> | Prisma.EventCreateWithoutCapsulesInput[] | Prisma.EventUncheckedCreateWithoutCapsulesInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutCapsulesInput | Prisma.EventCreateOrConnectWithoutCapsulesInput[]
-  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutCapsulesInput | Prisma.EventUpsertWithWhereUniqueWithoutCapsulesInput[]
-  createMany?: Prisma.EventCreateManyCapsulesInputEnvelope
+export type EventUncheckedUpdateManyWithoutItemNestedInput = {
+  create?: Prisma.XOR<Prisma.EventCreateWithoutItemInput, Prisma.EventUncheckedCreateWithoutItemInput> | Prisma.EventCreateWithoutItemInput[] | Prisma.EventUncheckedCreateWithoutItemInput[]
+  connectOrCreate?: Prisma.EventCreateOrConnectWithoutItemInput | Prisma.EventCreateOrConnectWithoutItemInput[]
+  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutItemInput | Prisma.EventUpsertWithWhereUniqueWithoutItemInput[]
+  createMany?: Prisma.EventCreateManyItemInputEnvelope
   set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
   disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
   delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
   connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  update?: Prisma.EventUpdateWithWhereUniqueWithoutCapsulesInput | Prisma.EventUpdateWithWhereUniqueWithoutCapsulesInput[]
-  updateMany?: Prisma.EventUpdateManyWithWhereWithoutCapsulesInput | Prisma.EventUpdateManyWithWhereWithoutCapsulesInput[]
-  deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
-}
-
-export type EventCreateNestedManyWithoutElementInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutElementInput, Prisma.EventUncheckedCreateWithoutElementInput> | Prisma.EventCreateWithoutElementInput[] | Prisma.EventUncheckedCreateWithoutElementInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutElementInput | Prisma.EventCreateOrConnectWithoutElementInput[]
-  createMany?: Prisma.EventCreateManyElementInputEnvelope
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-}
-
-export type EventUncheckedCreateNestedManyWithoutElementInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutElementInput, Prisma.EventUncheckedCreateWithoutElementInput> | Prisma.EventCreateWithoutElementInput[] | Prisma.EventUncheckedCreateWithoutElementInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutElementInput | Prisma.EventCreateOrConnectWithoutElementInput[]
-  createMany?: Prisma.EventCreateManyElementInputEnvelope
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-}
-
-export type EventUpdateManyWithoutElementNestedInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutElementInput, Prisma.EventUncheckedCreateWithoutElementInput> | Prisma.EventCreateWithoutElementInput[] | Prisma.EventUncheckedCreateWithoutElementInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutElementInput | Prisma.EventCreateOrConnectWithoutElementInput[]
-  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutElementInput | Prisma.EventUpsertWithWhereUniqueWithoutElementInput[]
-  createMany?: Prisma.EventCreateManyElementInputEnvelope
-  set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  update?: Prisma.EventUpdateWithWhereUniqueWithoutElementInput | Prisma.EventUpdateWithWhereUniqueWithoutElementInput[]
-  updateMany?: Prisma.EventUpdateManyWithWhereWithoutElementInput | Prisma.EventUpdateManyWithWhereWithoutElementInput[]
-  deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
-}
-
-export type EventUncheckedUpdateManyWithoutElementNestedInput = {
-  create?: Prisma.XOR<Prisma.EventCreateWithoutElementInput, Prisma.EventUncheckedCreateWithoutElementInput> | Prisma.EventCreateWithoutElementInput[] | Prisma.EventUncheckedCreateWithoutElementInput[]
-  connectOrCreate?: Prisma.EventCreateOrConnectWithoutElementInput | Prisma.EventCreateOrConnectWithoutElementInput[]
-  upsert?: Prisma.EventUpsertWithWhereUniqueWithoutElementInput | Prisma.EventUpsertWithWhereUniqueWithoutElementInput[]
-  createMany?: Prisma.EventCreateManyElementInputEnvelope
-  set?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  disconnect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  delete?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  connect?: Prisma.EventWhereUniqueInput | Prisma.EventWhereUniqueInput[]
-  update?: Prisma.EventUpdateWithWhereUniqueWithoutElementInput | Prisma.EventUpdateWithWhereUniqueWithoutElementInput[]
-  updateMany?: Prisma.EventUpdateManyWithWhereWithoutElementInput | Prisma.EventUpdateManyWithWhereWithoutElementInput[]
+  update?: Prisma.EventUpdateWithWhereUniqueWithoutItemInput | Prisma.EventUpdateWithWhereUniqueWithoutItemInput[]
+  updateMany?: Prisma.EventUpdateManyWithWhereWithoutItemInput | Prisma.EventUpdateManyWithWhereWithoutItemInput[]
   deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
 }
 
@@ -581,48 +537,48 @@ export type EventUncheckedUpdateManyWithoutDecorNestedInput = {
   deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
 }
 
-export type EventCreateWithoutCapsulesInput = {
+export type EventCreateWithoutItemInput = {
   name: string
   action: string
   ref: string
   duration?: number | null
-  element?: Prisma.CapsuleElementCreateNestedOneWithoutEventsInput
-  decor?: Prisma.DecorCreateNestedOneWithoutEventInput
+  delay?: number | null
+  decor?: Prisma.DecorCreateNestedOneWithoutEventsInput
 }
 
-export type EventUncheckedCreateWithoutCapsulesInput = {
+export type EventUncheckedCreateWithoutItemInput = {
   id?: number
   name: string
   action: string
   ref: string
   duration?: number | null
-  elementId?: number | null
+  delay?: number | null
   decorId?: number | null
 }
 
-export type EventCreateOrConnectWithoutCapsulesInput = {
+export type EventCreateOrConnectWithoutItemInput = {
   where: Prisma.EventWhereUniqueInput
-  create: Prisma.XOR<Prisma.EventCreateWithoutCapsulesInput, Prisma.EventUncheckedCreateWithoutCapsulesInput>
+  create: Prisma.XOR<Prisma.EventCreateWithoutItemInput, Prisma.EventUncheckedCreateWithoutItemInput>
 }
 
-export type EventCreateManyCapsulesInputEnvelope = {
-  data: Prisma.EventCreateManyCapsulesInput | Prisma.EventCreateManyCapsulesInput[]
+export type EventCreateManyItemInputEnvelope = {
+  data: Prisma.EventCreateManyItemInput | Prisma.EventCreateManyItemInput[]
 }
 
-export type EventUpsertWithWhereUniqueWithoutCapsulesInput = {
+export type EventUpsertWithWhereUniqueWithoutItemInput = {
   where: Prisma.EventWhereUniqueInput
-  update: Prisma.XOR<Prisma.EventUpdateWithoutCapsulesInput, Prisma.EventUncheckedUpdateWithoutCapsulesInput>
-  create: Prisma.XOR<Prisma.EventCreateWithoutCapsulesInput, Prisma.EventUncheckedCreateWithoutCapsulesInput>
+  update: Prisma.XOR<Prisma.EventUpdateWithoutItemInput, Prisma.EventUncheckedUpdateWithoutItemInput>
+  create: Prisma.XOR<Prisma.EventCreateWithoutItemInput, Prisma.EventUncheckedCreateWithoutItemInput>
 }
 
-export type EventUpdateWithWhereUniqueWithoutCapsulesInput = {
+export type EventUpdateWithWhereUniqueWithoutItemInput = {
   where: Prisma.EventWhereUniqueInput
-  data: Prisma.XOR<Prisma.EventUpdateWithoutCapsulesInput, Prisma.EventUncheckedUpdateWithoutCapsulesInput>
+  data: Prisma.XOR<Prisma.EventUpdateWithoutItemInput, Prisma.EventUncheckedUpdateWithoutItemInput>
 }
 
-export type EventUpdateManyWithWhereWithoutCapsulesInput = {
+export type EventUpdateManyWithWhereWithoutItemInput = {
   where: Prisma.EventScalarWhereInput
-  data: Prisma.XOR<Prisma.EventUpdateManyMutationInput, Prisma.EventUncheckedUpdateManyWithoutCapsulesInput>
+  data: Prisma.XOR<Prisma.EventUpdateManyMutationInput, Prisma.EventUncheckedUpdateManyWithoutItemInput>
 }
 
 export type EventScalarWhereInput = {
@@ -634,53 +590,9 @@ export type EventScalarWhereInput = {
   action?: Prisma.StringFilter<"Event"> | string
   ref?: Prisma.StringFilter<"Event"> | string
   duration?: Prisma.IntNullableFilter<"Event"> | number | null
-  elementId?: Prisma.IntNullableFilter<"Event"> | number | null
-  capsuleId?: Prisma.IntNullableFilter<"Event"> | number | null
+  delay?: Prisma.IntNullableFilter<"Event"> | number | null
+  itemId?: Prisma.IntNullableFilter<"Event"> | number | null
   decorId?: Prisma.IntNullableFilter<"Event"> | number | null
-}
-
-export type EventCreateWithoutElementInput = {
-  name: string
-  action: string
-  ref: string
-  duration?: number | null
-  capsules?: Prisma.CapsuleCreateNestedOneWithoutEventsInput
-  decor?: Prisma.DecorCreateNestedOneWithoutEventInput
-}
-
-export type EventUncheckedCreateWithoutElementInput = {
-  id?: number
-  name: string
-  action: string
-  ref: string
-  duration?: number | null
-  capsuleId?: number | null
-  decorId?: number | null
-}
-
-export type EventCreateOrConnectWithoutElementInput = {
-  where: Prisma.EventWhereUniqueInput
-  create: Prisma.XOR<Prisma.EventCreateWithoutElementInput, Prisma.EventUncheckedCreateWithoutElementInput>
-}
-
-export type EventCreateManyElementInputEnvelope = {
-  data: Prisma.EventCreateManyElementInput | Prisma.EventCreateManyElementInput[]
-}
-
-export type EventUpsertWithWhereUniqueWithoutElementInput = {
-  where: Prisma.EventWhereUniqueInput
-  update: Prisma.XOR<Prisma.EventUpdateWithoutElementInput, Prisma.EventUncheckedUpdateWithoutElementInput>
-  create: Prisma.XOR<Prisma.EventCreateWithoutElementInput, Prisma.EventUncheckedCreateWithoutElementInput>
-}
-
-export type EventUpdateWithWhereUniqueWithoutElementInput = {
-  where: Prisma.EventWhereUniqueInput
-  data: Prisma.XOR<Prisma.EventUpdateWithoutElementInput, Prisma.EventUncheckedUpdateWithoutElementInput>
-}
-
-export type EventUpdateManyWithWhereWithoutElementInput = {
-  where: Prisma.EventScalarWhereInput
-  data: Prisma.XOR<Prisma.EventUpdateManyMutationInput, Prisma.EventUncheckedUpdateManyWithoutElementInput>
 }
 
 export type EventCreateWithoutDecorInput = {
@@ -688,8 +600,8 @@ export type EventCreateWithoutDecorInput = {
   action: string
   ref: string
   duration?: number | null
-  element?: Prisma.CapsuleElementCreateNestedOneWithoutEventsInput
-  capsules?: Prisma.CapsuleCreateNestedOneWithoutEventsInput
+  delay?: number | null
+  item?: Prisma.ItemCreateNestedOneWithoutEventsInput
 }
 
 export type EventUncheckedCreateWithoutDecorInput = {
@@ -698,8 +610,8 @@ export type EventUncheckedCreateWithoutDecorInput = {
   action: string
   ref: string
   duration?: number | null
-  elementId?: number | null
-  capsuleId?: number | null
+  delay?: number | null
+  itemId?: number | null
 }
 
 export type EventCreateOrConnectWithoutDecorInput = {
@@ -727,81 +639,42 @@ export type EventUpdateManyWithWhereWithoutDecorInput = {
   data: Prisma.XOR<Prisma.EventUpdateManyMutationInput, Prisma.EventUncheckedUpdateManyWithoutDecorInput>
 }
 
-export type EventCreateManyCapsulesInput = {
+export type EventCreateManyItemInput = {
   id?: number
   name: string
   action: string
   ref: string
   duration?: number | null
-  elementId?: number | null
+  delay?: number | null
   decorId?: number | null
 }
 
-export type EventUpdateWithoutCapsulesInput = {
+export type EventUpdateWithoutItemInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  element?: Prisma.CapsuleElementUpdateOneWithoutEventsNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutEventNestedInput
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  decor?: Prisma.DecorUpdateOneWithoutEventsNestedInput
 }
 
-export type EventUncheckedUpdateWithoutCapsulesInput = {
+export type EventUncheckedUpdateWithoutItemInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  elementId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
-export type EventUncheckedUpdateManyWithoutCapsulesInput = {
+export type EventUncheckedUpdateManyWithoutItemInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   name?: Prisma.StringFieldUpdateOperationsInput | string
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  elementId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-}
-
-export type EventCreateManyElementInput = {
-  id?: number
-  name: string
-  action: string
-  ref: string
-  duration?: number | null
-  capsuleId?: number | null
-  decorId?: number | null
-}
-
-export type EventUpdateWithoutElementInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  capsules?: Prisma.CapsuleUpdateOneWithoutEventsNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutEventNestedInput
-}
-
-export type EventUncheckedUpdateWithoutElementInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-}
-
-export type EventUncheckedUpdateManyWithoutElementInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
-  action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -811,8 +684,8 @@ export type EventCreateManyDecorInput = {
   action: string
   ref: string
   duration?: number | null
-  elementId?: number | null
-  capsuleId?: number | null
+  delay?: number | null
+  itemId?: number | null
 }
 
 export type EventUpdateWithoutDecorInput = {
@@ -820,8 +693,8 @@ export type EventUpdateWithoutDecorInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  element?: Prisma.CapsuleElementUpdateOneWithoutEventsNestedInput
-  capsules?: Prisma.CapsuleUpdateOneWithoutEventsNestedInput
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  item?: Prisma.ItemUpdateOneWithoutEventsNestedInput
 }
 
 export type EventUncheckedUpdateWithoutDecorInput = {
@@ -830,8 +703,8 @@ export type EventUncheckedUpdateWithoutDecorInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  elementId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type EventUncheckedUpdateManyWithoutDecorInput = {
@@ -840,8 +713,8 @@ export type EventUncheckedUpdateManyWithoutDecorInput = {
   action?: Prisma.StringFieldUpdateOperationsInput | string
   ref?: Prisma.StringFieldUpdateOperationsInput | string
   duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  elementId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -852,11 +725,10 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   action?: boolean
   ref?: boolean
   duration?: boolean
-  elementId?: boolean
-  capsuleId?: boolean
+  delay?: boolean
+  itemId?: boolean
   decorId?: boolean
-  element?: boolean | Prisma.Event$elementArgs<ExtArgs>
-  capsules?: boolean | Prisma.Event$capsulesArgs<ExtArgs>
+  item?: boolean | Prisma.Event$itemArgs<ExtArgs>
   decor?: boolean | Prisma.Event$decorArgs<ExtArgs>
 }, ExtArgs["result"]["event"]>
 
@@ -866,11 +738,10 @@ export type EventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   action?: boolean
   ref?: boolean
   duration?: boolean
-  elementId?: boolean
-  capsuleId?: boolean
+  delay?: boolean
+  itemId?: boolean
   decorId?: boolean
-  element?: boolean | Prisma.Event$elementArgs<ExtArgs>
-  capsules?: boolean | Prisma.Event$capsulesArgs<ExtArgs>
+  item?: boolean | Prisma.Event$itemArgs<ExtArgs>
   decor?: boolean | Prisma.Event$decorArgs<ExtArgs>
 }, ExtArgs["result"]["event"]>
 
@@ -880,11 +751,10 @@ export type EventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   action?: boolean
   ref?: boolean
   duration?: boolean
-  elementId?: boolean
-  capsuleId?: boolean
+  delay?: boolean
+  itemId?: boolean
   decorId?: boolean
-  element?: boolean | Prisma.Event$elementArgs<ExtArgs>
-  capsules?: boolean | Prisma.Event$capsulesArgs<ExtArgs>
+  item?: boolean | Prisma.Event$itemArgs<ExtArgs>
   decor?: boolean | Prisma.Event$decorArgs<ExtArgs>
 }, ExtArgs["result"]["event"]>
 
@@ -894,33 +764,29 @@ export type EventSelectScalar = {
   action?: boolean
   ref?: boolean
   duration?: boolean
-  elementId?: boolean
-  capsuleId?: boolean
+  delay?: boolean
+  itemId?: boolean
   decorId?: boolean
 }
 
-export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "action" | "ref" | "duration" | "elementId" | "capsuleId" | "decorId", ExtArgs["result"]["event"]>
+export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "action" | "ref" | "duration" | "delay" | "itemId" | "decorId", ExtArgs["result"]["event"]>
 export type EventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  element?: boolean | Prisma.Event$elementArgs<ExtArgs>
-  capsules?: boolean | Prisma.Event$capsulesArgs<ExtArgs>
+  item?: boolean | Prisma.Event$itemArgs<ExtArgs>
   decor?: boolean | Prisma.Event$decorArgs<ExtArgs>
 }
 export type EventIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  element?: boolean | Prisma.Event$elementArgs<ExtArgs>
-  capsules?: boolean | Prisma.Event$capsulesArgs<ExtArgs>
+  item?: boolean | Prisma.Event$itemArgs<ExtArgs>
   decor?: boolean | Prisma.Event$decorArgs<ExtArgs>
 }
 export type EventIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  element?: boolean | Prisma.Event$elementArgs<ExtArgs>
-  capsules?: boolean | Prisma.Event$capsulesArgs<ExtArgs>
+  item?: boolean | Prisma.Event$itemArgs<ExtArgs>
   decor?: boolean | Prisma.Event$decorArgs<ExtArgs>
 }
 
 export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Event"
   objects: {
-    element: Prisma.$CapsuleElementPayload<ExtArgs> | null
-    capsules: Prisma.$CapsulePayload<ExtArgs> | null
+    item: Prisma.$ItemPayload<ExtArgs> | null
     decor: Prisma.$DecorPayload<ExtArgs> | null
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
@@ -929,8 +795,8 @@ export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     action: string
     ref: string
     duration: number | null
-    elementId: number | null
-    capsuleId: number | null
+    delay: number | null
+    itemId: number | null
     decorId: number | null
   }, ExtArgs["result"]["event"]>
   composites: {}
@@ -1326,8 +1192,7 @@ readonly fields: EventFieldRefs;
  */
 export interface Prisma__EventClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  element<T extends Prisma.Event$elementArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$elementArgs<ExtArgs>>): Prisma.Prisma__CapsuleElementClient<runtime.Types.Result.GetResult<Prisma.$CapsuleElementPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
-  capsules<T extends Prisma.Event$capsulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$capsulesArgs<ExtArgs>>): Prisma.Prisma__CapsuleClient<runtime.Types.Result.GetResult<Prisma.$CapsulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  item<T extends Prisma.Event$itemArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$itemArgs<ExtArgs>>): Prisma.Prisma__ItemClient<runtime.Types.Result.GetResult<Prisma.$ItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   decor<T extends Prisma.Event$decorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Event$decorArgs<ExtArgs>>): Prisma.Prisma__DecorClient<runtime.Types.Result.GetResult<Prisma.$DecorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   /**
    * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -1363,8 +1228,8 @@ export interface EventFieldRefs {
   readonly action: Prisma.FieldRef<"Event", 'String'>
   readonly ref: Prisma.FieldRef<"Event", 'String'>
   readonly duration: Prisma.FieldRef<"Event", 'Int'>
-  readonly elementId: Prisma.FieldRef<"Event", 'Int'>
-  readonly capsuleId: Prisma.FieldRef<"Event", 'Int'>
+  readonly delay: Prisma.FieldRef<"Event", 'Int'>
+  readonly itemId: Prisma.FieldRef<"Event", 'Int'>
   readonly decorId: Prisma.FieldRef<"Event", 'Int'>
 }
     
@@ -1760,41 +1625,22 @@ export type EventDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Event.element
+ * Event.item
  */
-export type Event$elementArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Event$itemArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the CapsuleElement
+   * Select specific fields to fetch from the Item
    */
-  select?: Prisma.CapsuleElementSelect<ExtArgs> | null
+  select?: Prisma.ItemSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the CapsuleElement
+   * Omit specific fields from the Item
    */
-  omit?: Prisma.CapsuleElementOmit<ExtArgs> | null
+  omit?: Prisma.ItemOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.CapsuleElementInclude<ExtArgs> | null
-  where?: Prisma.CapsuleElementWhereInput
-}
-
-/**
- * Event.capsules
- */
-export type Event$capsulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the Capsule
-   */
-  select?: Prisma.CapsuleSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the Capsule
-   */
-  omit?: Prisma.CapsuleOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.CapsuleInclude<ExtArgs> | null
-  where?: Prisma.CapsuleWhereInput
+  include?: Prisma.ItemInclude<ExtArgs> | null
+  where?: Prisma.ItemWhereInput
 }
 
 /**

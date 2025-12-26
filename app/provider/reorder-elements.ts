@@ -1,4 +1,4 @@
-import type { SceneComp, ElementComp } from "@/api/db";
+import type { SceneComp, ItemComp } from "@/api/db";
 import { type ActiveState, type TreeMoveEvent } from "./scene-logic";
 import { fromPromise } from "xstate";
 
@@ -9,8 +9,8 @@ export const fetchReorder = fromPromise(async ({ input }) => {
 		event: { type: "tree-move-item"; payload: TreeMoveEvent };
 	};
 	if (event.type == "tree-move-item") {
-		const element = context.elements[event.payload.sourceId];
-		const elements = Object.values(context.elements).filter((el) => el.capsuleId == element.capsuleId);
+		const element = context.items[event.payload.sourceId];
+		const elements = Object.values(context.items).filter((el) => el.capsuleId == element.capsuleId);
 		const canReorder = new Set(elements.map((el) => el.order)).size != elements.length;
 		if (canReorder) {
 			console.warn("⚠️ Réajustement nécessaire : les ordres sont identiques après déplacement");
@@ -26,17 +26,15 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 
 	if (targetType === "element") {
 		if (sourceType === "element") {
-			const element = context.elements[sourceId];
-			const target = context.elements[targetId];
+			const element = context.items[sourceId];
+			const target = context.items[targetId];
 
 			const capsule = context.capsules[target.capsuleId];
 			const sourceCapsule = context.capsules[element.capsuleId];
 
 			// Récupérer les éléments de la capsule cible triés par order
-			const capsuleElementIds = capsule.elementIds.filter((id) => id !== sourceId);
-			const sortedElements = capsuleElementIds
-				.map((id) => context.elements[id])
-				.sort((a, b) => a.order - b.order);
+			const capsuleElementIds = capsule.itemIds.filter((id) => id !== sourceId);
+			const sortedElements = capsuleElementIds.map((id) => context.items[id]).sort((a, b) => a.order - b.order);
 
 			// Trouver la position du target
 			const targetIndex = sortedElements.findIndex((el) => el.id === targetId);
@@ -60,8 +58,8 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 
 			// Mettre à jour les références des capsules si changement
 			if (element.capsuleId !== sourceCapsule.id) {
-				sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id !== sourceId);
-				capsule.elementIds.push(sourceId);
+				sourceCapsule.itemIds = sourceCapsule.itemIds.filter((id) => id !== sourceId);
+				capsule.itemIds.push(sourceId);
 			}
 
 			return {
@@ -71,7 +69,7 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 					[capsule.id]: capsule
 				},
 				elements: {
-					...context.elements,
+					...context.items,
 					[sourceId]: element
 				},
 				moved: element
@@ -80,20 +78,20 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 	}
 
 	if (targetType === "capsule") {
-		const element = context.elements[sourceId];
+		const element = context.items[sourceId];
 		const capsule = context.capsules[targetId];
 		const sourceCapsule = context.capsules[element.capsuleId];
 
 		const nextElement = findElementWithSmallestOrder(
-			Object.values(context.elements).filter((el) => el.capsuleId == targetId)
+			Object.values(context.items).filter((el) => el.capsuleId == targetId)
 		);
 		const newOrder = calculateNewOrder(0, nextElement?.order);
 		// Placer en premier dans la capsule
 		element.order = newOrder;
 		element.capsuleId = capsule.id;
 
-		sourceCapsule.elementIds = sourceCapsule.elementIds.filter((id) => id !== sourceId);
-		capsule.elementIds.push(sourceId);
+		sourceCapsule.itemIds = sourceCapsule.itemIds.filter((id) => id !== sourceId);
+		capsule.itemIds.push(sourceId);
 
 		return {
 			capsules: {
@@ -102,7 +100,7 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 				[targetId]: capsule
 			},
 			elements: {
-				...context.elements,
+				...context.items,
 				[sourceId]: element
 			},
 			moved: element
@@ -111,10 +109,10 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 
 	return {
 		capsules: context.capsules,
-		elements: context.elements
+		elements: context.items
 	};
 }
-export function updateOrder(element: ElementComp) {
+export function updateOrder(element: ItemComp) {
 	const formData = new FormData();
 	formData.set("order", String(element.order));
 	formData.set("capsuleId", String(element.capsuleId));

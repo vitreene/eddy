@@ -10,7 +10,7 @@ import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 import { EditCapsule } from "~/parts/capsule-edit";
 import { getScene, type SceneComp } from "~/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";
-import { EditElement } from "@/parts/element-edit";
+import { EditItem } from "@/parts/item-edit";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 
@@ -78,7 +78,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 			</section>
 			<section className="base-layout layout-infos">
 				<EditCapsule />
-				<EditElement />
+				<EditItem />
 			</section>
 			<section className="base-layout layout-edit">
 				<EditEvent />

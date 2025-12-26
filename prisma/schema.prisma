@@ -10,8 +10,8 @@ datasource db {
 model Scene {
   id            Int            @id @default(autoincrement())
   title         String         @default("Scène")
-  medias        SceneMedia[]
   sceneCapsules SceneCapsule[]
+  sceneContents SceneContent[]
 
   capsuleId Int?     @unique @map("capsule_id")
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])
@@ -37,13 +37,13 @@ model SceneCapsule {
   @@map("scene_capsule")
 }
 
-model SceneMedia {
+model SceneContent {
   id     Int    @id @default(autoincrement())
   order  Int
   events String // JSON
 
-  mediaId Int   @map("media_id")
-  media   Media @relation(fields: [mediaId], references: [id])
+  contentId Int     @map("content_id")
+  content   Content @relation(fields: [contentId], references: [id])
 
   sceneId Int   @map("scene_id")
   scene   Scene @relation(fields: [sceneId], references: [id])
@@ -51,66 +51,65 @@ model SceneMedia {
   decorId Int?   @map("decor_id") // basé sur  // name
   decor   Decor? @relation(fields: [decorId], references: [id])
 
-  @@map("scene_media")
+  @@map("scene_content")
 }
 
 model Capsule {
-  id             Int              @id @default(autoincrement())
-  type           String
-  events         Event[]
-  media          Media?
-  scene          Scene?
-  elements       CapsuleElement[]
-  sceneCapsules  SceneCapsule[]
-  elementTargets ElementTarget[]
+  id   Int     @id @default(autoincrement())
+  name String
+  type String?
+  grid String?
 
-  decorId Int?
-  decor   Decor? @relation(fields: [decorId], references: [id])
+  items         Item[]
+  sceneCapsules SceneCapsule[]
+  itemTargets   ItemTarget[]
+
+  scene    Scene?
+  contents Content[]
 
   @@map("capsule")
 }
 
-model CapsuleElement {
-  id     Int     @id @default(autoincrement())
-  order  Int
-  events Event[]
+model Item {
+  id          Int          @id @default(autoincrement())
+  order       Int
+  events      Event[]
+  itemTargets ItemTarget[]
 
-  mediaId Int   @map("media_id")
-  media   Media @relation(fields: [mediaId], references: [id])
+  contentId Int     @map("content_id")
+  content   Content @relation(fields: [contentId], references: [id])
 
   capsuleId Int      @map("capsule_id")
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])
 
-  decorId        Int?            @unique @map("decor_id") // basé sur  // name
-  decor          Decor?          @relation(fields: [decorId], references: [id])
-  elementTargets ElementTarget[]
+  decorId Int?   @unique @map("decor_id") // basé sur  // name
+  decor   Decor? @relation(fields: [decorId], references: [id])
 
-  @@map("capsule_element")
+  @@map("item")
 }
 
 // enum TypeMedia {
 //   img
-//   txt
+//   text
 //   son
 //   video
 //   capsule
 // }
 
-model Media {
-  id          Int     @id @default(autoincrement())
-  type        String
-  referenceId Int?
-  path        String?
-  content     String?
-  lang        String?
+model Content {
+  id    Int     @id @default(autoincrement())
+  type  String
+  path  String?
+  inner String?
+  lang  String?
 
-  capsuleId Int?     @unique @map("capsule_id")
+  capsuleId Int?     @map("capsule_id")
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])
 
-  sceneMedia     SceneMedia[]
-  capsuleElement CapsuleElement[]
+  items         Item[]
+  sceneContents SceneContent[]
 
-  @@map("media")
+  @@map("content")
 }
 
 /**
@@ -124,12 +123,10 @@ model Event {
   action   String
   ref      String // référence nommée dans une config, sans décor 
   duration Int?
+  delay    Int?
 
-  elementId Int?            @map("element_id")
-  element   CapsuleElement? @relation(fields: [elementId], references: [id])
-
-  capsuleId Int?     @map("capsule_id")
-  capsules  Capsule? @relation(fields: [capsuleId], references: [id])
+  itemId Int?  @map("item_id")
+  item   Item? @relation(fields: [itemId], references: [id])
 
   decorId Int?   @unique @map("decor_id") // basé sur  // name
   decor   Decor? @relation(fields: [decorId], references: [id])
@@ -144,27 +141,28 @@ model Decor {
   className String?
 
   basedUpon Int?    @map("based_upon") // ref decor id  // name
-  base      Decor?  @relation("BasedUpon", fields: [basedUpon], references: [id])
-  bases     Decor[] @relation("BasedUpon")
+  base      Decor?  @relation("basedUpon", fields: [basedUpon], references: [id])
+  bases     Decor[] @relation("basedUpon")
 
-  scene          Scene[]
-  sceneMedia     SceneMedia[]
-  event          Event[]
-  capsule        Capsule[]
-  capsuleElement CapsuleElement[]
+  scenes        Scene[]
+  sceneContents SceneContent[]
+  events        Event[]
+  items         Item[]
 
   @@map("decor")
 }
 
-model ElementTarget {
-  id        Int            @id @default(autoincrement())
-  order     Int? // ordre d'insertion dans la capsule ; n° du slot
-  targetId  Int            @map("target_id") // capsuleId
-  capsule   Capsule        @relation(fields: [targetId], references: [id])
-  elementId Int            @map("element_id")
-  element   CapsuleElement @relation(fields: [elementId], references: [id])
+model ItemTarget {
+  id    Int  @id @default(autoincrement())
+  order Int? // ordre d'insertion dans la capsule ; n° du slot
 
-  @@map("element_target")
+  targetId Int     @map("target_id") // capsuleId
+  capsule  Capsule @relation(fields: [targetId], references: [id])
+
+  itemId Int  @map("item_id")
+  item   Item @relation(fields: [itemId], references: [id])
+
+  @@map("item_target")
 }
 
 model Theme {
@@ -173,7 +171,7 @@ model Theme {
   custom    String?
   generated String?
 
-  scene Scene[]
+  scenes Scene[]
 
   @@map("theme")
 }

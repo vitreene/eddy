@@ -3,44 +3,51 @@ import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 import type {
 	Capsule,
-	CapsuleElement,
-	Media,
+	Item,
+	Content,
 	Scene,
-	Event as MediaEvent,
-	Theme
+	Event as ContentEvent,
+	Theme,
+	Decor as DecorDB
 } from "prisma/generated/prisma/client";
-import type { Decor } from "@prisma/client";
+import type { EditableStyle } from "@/components/style-editor/types";
 
-export type { Media, Event as MediaEvent } from "prisma/generated/prisma/client";
+export type { Content, ContentEvent };
 
-export interface MediaComp {
+export interface Decor extends Omit<DecorDB, "style"> {
+	style: Record<string, string | number | undefined> | EditableStyle;
+}
+
+export interface ContentComp {
 	order: number;
 	events: string;
-	media: Media;
+	content: Content;
 }
 
 /* 
- type CapsuleElement = {
+  type Item = {
     id: number;
     capsuleId: number;
+    decorId: number | null;
     order: number;
-    mediaId: number;
+    contentId: number;
 }
 	 */
-export interface ElementComp extends CapsuleElement {
-	mediaId: number;
+export interface ItemComp extends Item {
+	contentId: number;
 	eventIds: number[];
 }
 
 /* 
-type Capsule = {
+ type Capsule = {
+    name: string;
     id: number;
-    type: string;
-    sceneId: number;
+    type: string | null;
+    grid: string | null;
 }
 	 */
 export interface CapsuleComp extends Capsule {
-	elementIds: number[];
+	itemIds: number[];
 }
 
 export interface TextTime {
@@ -52,22 +59,12 @@ export interface TextTime {
 	ref?: string;
 }
 
-// export interface SceneMedia {
-//     id: number;
-//     order: number;
-//     mediaId: number;
-//     events: any;
-//     path: string | null;
-//     content: string | null;
-//     type: string;
-//     lang: string | null;
-// }
-
-export interface SceneMedia {
+export interface SceneContent {
 	id: number;
-	mediaId: number;
+	contentId: number;
 	order: number;
 	events: Array<TextTime>;
+	// events: string;
 }
 
 export interface SceneComp {
@@ -75,25 +72,25 @@ export interface SceneComp {
 	title: string;
 	main: number | null;
 	events: {
-		[id: number]: Record<string, MediaEvent>;
+		[id: number]: Record<string, ContentEvent>;
 	};
-	sceneMedias: {
-		[id: number]: SceneMedia;
+	sceneContents: {
+		[id: number]: SceneContent;
 	};
 	capsules: {
 		[id: number]: CapsuleComp;
 	};
-	elements: {
-		[id: number]: ElementComp;
+	items: {
+		[id: number]: ItemComp;
 	};
-	medias: {
-		[id: number]: Media;
+	contents: {
+		[id: number]: Content;
 	};
 	decors: {
 		capsules: {
 			[id: number]: Decor;
 		};
-		elements: {
+		items: {
 			[id: number]: Decor;
 		};
 	};
@@ -102,21 +99,32 @@ export interface SceneComp {
 }
 
 interface DbCapsule extends Capsule {
-	elements: Array<
-		CapsuleElement & {
-			media: Media;
-			events: Array<MediaEvent>;
-			decor?: Decor | null;
+	items: Array<
+		Item & {
+			content: Content;
+			events: Array<ContentEvent>;
+			decor?: DecorDB | null;
 		}
 	>;
-	decor?: Decor | null;
+	decor?: DecorDB | null;
 }
+
+/* 
+type Scene = {
+    id: number;
+    decorId: number | null;
+    capsuleId: number | null;
+    themeId: number | null;
+    title: string;
+}
+ */
+
 interface DbSceneComp extends Scene {
 	capsules: Array<DbCapsule>;
 
-	sceneMedias: Array<SceneMedia>;
+	sceneContents: Array<Omit<SceneContent, "events"> & { events: string }>;
 
-	decor?: Decor | null;
+	decor?: DecorDB | null;
 	theme?: Theme | null;
 }
 
@@ -143,11 +151,11 @@ main()
 export async function getScene(sceneId: number): Promise<SceneComp> {
 	const sceneDB = await prisma.scene.findUnique({
 		where: { id: sceneId },
-		include: { medias: true }
+		include: { sceneContents: true }
 	});
 
-	const sceneMedias = [
-		...sceneDB!.medias.map((m) => ({
+	const scenecontents = [
+		...sceneDB!.sceneContents.map((m) => ({
 			...m,
 			events: JSON.parse(m.events)
 		}))
@@ -159,14 +167,13 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 			select: {
 				capsule: {
 					include: {
-						elements: {
+						items: {
 							include: {
-								media: true,
+								content: true,
 								decor: true,
 								events: true
 							}
-						},
-						decor: true
+						}
 					}
 				}
 			}
@@ -175,9 +182,7 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 		.map((sc) => sc.capsule)
 		.filter(Boolean) as Array<DbCapsule>;
 
-	// const medias = await getMedias(sceneId);
-	// const scene = { ...sceneDB!, capsules, sceneMedias, medias: medias ?? [] };
-	const scene = { ...sceneDB!, capsules, sceneMedias };
+	const scene = { ...sceneDB!, capsules, scenecontents };
 
 	return flattenScene(scene);
 }
@@ -188,60 +193,53 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 		title: scene.title,
 		main: scene.capsuleId,
 		events: {},
-		sceneMedias: {},
+		sceneContents: {},
 		capsules: {},
-		elements: {},
-		medias: {},
+		items: {},
+		contents: {},
 		decors: {
 			capsules: {},
-			elements: {}
+			items: {}
 		},
-		decor: scene.decor ?? undefined,
+		decor: scene.decor ? { ...scene.decor, style: JSON.parse(scene.decor.style ?? "{}") } : undefined,
 		theme: scene.theme ?? undefined
 	};
 
-	// Scene medias
-	if (scene.sceneMedias) {
-		scene.sceneMedias.forEach((sceneMedia) => {
-			flatScene.sceneMedias[sceneMedia.id] = sceneMedia;
+	// Scene contents
+	if (scene.sceneContents) {
+		scene.sceneContents.forEach(({ events, ...sceneContent }) => {
+			flatScene.sceneContents[sceneContent.id] = { ...sceneContent, events: JSON.parse(events) };
 		});
 	}
 
-	// Capsules and elements
+	// Capsules and items
 	if (scene.capsules) {
-		scene.capsules.forEach(({ elements, decor, ...capsule }) => {
-			const elementIds: number[] = elements.map((element) => element.id);
+		scene.capsules.forEach(({ items: items, ...capsule }) => {
+			const itemIds: number[] = items.map((item) => item.id);
 
-			flatScene.capsules[capsule.id] = {
-				...capsule,
-				elementIds
-			};
+			flatScene.capsules[capsule.id] = { ...capsule, itemIds };
 
 			// Store decor in flat structure
-			if (decor) {
-				const { style, ...d } = decor;
-				flatScene.decors.capsules[capsule.id] = { ...d, style: JSON.parse(style) };
-			}
 
-			elements.forEach(({ media, events, decor, ...element }) => {
-				flatScene.elements[element.id] = {
-					...element,
-					mediaId: media.id,
+			items.forEach(({ content, events, decor, ...item }) => {
+				flatScene.items[item.id] = {
+					...item,
+					contentId: content.id,
 					eventIds: events.map((event) => event.id)
 				};
 
 				// Store decor in flat structure
 				if (decor) {
 					const { style, ...d } = decor;
-					flatScene.decors.elements[element.id] = { ...d, style: JSON.parse(style) };
+					flatScene.decors.items[item.id] = { ...d, style: JSON.parse(style ?? "{}") };
 				}
 
 				if (events.length > 0) {
 					const evs = Object.fromEntries(events.map((e) => [e.action, e]));
-					flatScene.events[element.id] = evs;
+					flatScene.events[item.id] = evs;
 				}
-				if (media) {
-					flatScene.medias[media.id] = media;
+				if (content) {
+					flatScene.contents[content.id] = content;
 				}
 			});
 		});
@@ -250,25 +248,25 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 	return flatScene;
 }
 
-// MEDIAS
+// contentS
 
-export async function getMedias(sceneId: number) {
+export async function getcontents(sceneId: number) {
 	/* 
 	- prendre toutes les capsules e la scene
-- chercher les elements
-- chercher lesmedias 
+- chercher les items
+- chercher lescontents 
 
 	*/
 	const capsule = await prisma.capsule.findFirst({
 		where: { scene: { id: sceneId } },
 		select: {
-			elements: {
+			items: {
 				select: {
-					media: {
+					content: {
 						select: {
-							capsuleElement: {
+							items: {
 								include: {
-									media: true
+									content: true
 								}
 							}
 						}
@@ -277,8 +275,8 @@ export async function getMedias(sceneId: number) {
 			}
 		}
 	});
-	const medias = capsule?.elements.flatMap((el) => el.media.capsuleElement.map((ce) => ce.media)) ?? [];
-	return medias;
+	const contents = capsule?.items.flatMap((el) => el.content.items.map((i) => i.content)) ?? [];
+	return contents;
 }
 
 // CAPSULE
@@ -286,9 +284,9 @@ export async function getCapsules(sceneId: number) {
 	const capsule = await prisma.capsule.findFirst({
 		where: { scene: { id: sceneId } },
 		select: {
-			elements: {
+			items: {
 				select: {
-					media: {
+					content: {
 						include: {
 							capsule: true
 						}
@@ -297,17 +295,17 @@ export async function getCapsules(sceneId: number) {
 			}
 		}
 	});
-	const capsules = capsule?.elements.map((el) => el.media.capsule);
+	const capsules = capsule?.items.map((el) => el.content.capsule);
 	return capsules;
 }
 export async function getCapsule(capsuleId: number) {
 	return await prisma.capsule.findUnique({ where: { id: capsuleId } });
 }
 
-export async function createCapsule({ sceneId, type }: { sceneId: number; type: string }) {
+export async function createCapsule({ sceneId, name }: { sceneId: number; name: string }) {
 	const newCapsule = await prisma.capsule.create({
 		data: {
-			type,
+			name,
 			scene: {
 				connect: { id: sceneId }
 			}
@@ -331,15 +329,15 @@ const STEP = 1000;
 
 export async function reorderCapsule(id: number) {
 	return await prisma.$transaction(async (tx) => {
-		const elements = await tx.capsuleElement.findMany({
+		const items = await tx.item.findMany({
 			where: { capsuleId: id },
 			select: { id: true },
 			orderBy: { order: "asc" }
 		});
 		return Promise.all(
-			elements.flatMap(({ id: elementId }, index) =>
-				tx.capsuleElement.updateManyAndReturn({
-					where: { id: elementId },
+			items.flatMap(({ id: itemId }, index) =>
+				tx.item.updateManyAndReturn({
+					where: { id: itemId },
 					data: { order: index * STEP + STEP },
 					select: { id: true, order: true }
 				})
@@ -348,44 +346,44 @@ export async function reorderCapsule(id: number) {
 	});
 }
 
-// ELEMENTS
+// itemS
 
-export async function updateElement({ id, ...update }: Partial<CapsuleElement>) {
-	return await prisma.capsuleElement.update({
+export async function updateitem({ id, ...update }: Partial<Item>) {
+	return await prisma.item.update({
 		where: { id },
 		data: update
 	});
 }
-export async function addElementToCapsule(data: { order: number; capsuleId: number }) {
+export async function additemToCapsule(data: { order: number; capsuleId: number }) {
 	prisma.$transaction(async (tx) => {});
-	// return await prisma.capsuleElement.create({data});
+	// return await prisma.item.create({data});
 }
 
 //	ref: string  -> transition, details...
 //	name: string; -> label time
 //	action: string; -> name  intro, outro..
 
-export async function addEventToMedia({
+export async function addEventTocontent({
 	id,
 	name,
 	action,
 	ref,
 	duration,
-	elementId
+	itemId
 }: {
 	id: number | undefined;
 	name: string;
 	action: string;
 	ref: string;
 	duration?: number;
-	elementId: number;
+	itemId: number;
 }) {
 	const data = {
 		name,
 		action,
 		duration,
 		ref,
-		element: { connect: { id: elementId } }
+		item: { connect: { id: itemId } }
 	};
 	if (id) {
 		return prisma.event.update({ where: { id }, data });
@@ -394,21 +392,24 @@ export async function addEventToMedia({
 	}
 }
 
-export async function removeEventFromMedia(id: number) {
+export async function removeEventFromcontent(id: number) {
 	return await prisma.event.delete({
 		where: { id }
 	});
 }
 
 // DECOR
-export async function createDecor(data: Partial<Decor>) {
+export async function createDecor({ style, ...d }: Partial<Decor>) {
+	const data = { ...d, style: JSON.stringify(style) };
 	return await prisma.decor.create({ data });
 }
 
-export async function updateDecor({ id, ...update }: Partial<Decor>) {
+export async function updateDecor({ id, style, ...d }: Partial<Decor>) {
+	const data = { ...d, style: JSON.stringify(style) };
+
 	return await prisma.decor.update({
 		where: { id: id as number },
-		data: update
+		data
 	});
 }
 
@@ -416,9 +417,10 @@ export async function getDecorById(id: number) {
 	return await prisma.decor.findUnique({ where: { id } });
 }
 
-export async function getDecorByCapsuleId(capsuleId: number) {
-	return await prisma.capsule.findUnique({ where: { id: capsuleId } }).decor();
-}
-export async function getDecorByElementId(elementId: number) {
-	return await prisma.capsuleElement.findUnique({ where: { id: elementId } }).decor();
+// export async function getDecorByCapsuleId(capsuleId: number) {
+// 	return await prisma.capsule.findUnique({ where: { id: capsuleId } }).decor();
+// }
+
+export async function getDecorByItemId(itemId: number) {
+	return await prisma.item.findUnique({ where: { id: itemId } }).decor();
 }

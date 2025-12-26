@@ -50,25 +50,25 @@ export type Scene = Prisma.SceneModel
  */
 export type SceneCapsule = Prisma.SceneCapsuleModel
 /**
- * Model SceneMedia
+ * Model SceneContent
  * 
  */
-export type SceneMedia = Prisma.SceneMediaModel
+export type SceneContent = Prisma.SceneContentModel
 /**
  * Model Capsule
  * 
  */
 export type Capsule = Prisma.CapsuleModel
 /**
- * Model CapsuleElement
+ * Model Item
  * 
  */
-export type CapsuleElement = Prisma.CapsuleElementModel
+export type Item = Prisma.ItemModel
 /**
- * Model Media
+ * Model Content
  * 
  */
-export type Media = Prisma.MediaModel
+export type Content = Prisma.ContentModel
 /**
  * Model Event
  * *
@@ -83,10 +83,10 @@ export type Event = Prisma.EventModel
  */
 export type Decor = Prisma.DecorModel
 /**
- * Model ElementTarget
+ * Model ItemTarget
  * 
  */
-export type ElementTarget = Prisma.ElementTargetModel
+export type ItemTarget = Prisma.ItemTargetModel
 /**
  * Model Theme
  * 

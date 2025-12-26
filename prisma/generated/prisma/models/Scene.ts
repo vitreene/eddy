@@ -228,8 +228,8 @@ export type SceneWhereInput = {
   capsuleId?: Prisma.IntNullableFilter<"Scene"> | number | null
   decorId?: Prisma.IntNullableFilter<"Scene"> | number | null
   themeId?: Prisma.IntNullableFilter<"Scene"> | number | null
-  medias?: Prisma.SceneMediaListRelationFilter
   sceneCapsules?: Prisma.SceneCapsuleListRelationFilter
+  sceneContents?: Prisma.SceneContentListRelationFilter
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
   theme?: Prisma.XOR<Prisma.ThemeNullableScalarRelationFilter, Prisma.ThemeWhereInput> | null
@@ -241,8 +241,8 @@ export type SceneOrderByWithRelationInput = {
   capsuleId?: Prisma.SortOrderInput | Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
   themeId?: Prisma.SortOrderInput | Prisma.SortOrder
-  medias?: Prisma.SceneMediaOrderByRelationAggregateInput
   sceneCapsules?: Prisma.SceneCapsuleOrderByRelationAggregateInput
+  sceneContents?: Prisma.SceneContentOrderByRelationAggregateInput
   capsule?: Prisma.CapsuleOrderByWithRelationInput
   decor?: Prisma.DecorOrderByWithRelationInput
   theme?: Prisma.ThemeOrderByWithRelationInput
@@ -257,8 +257,8 @@ export type SceneWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.SceneWhereInput[]
   NOT?: Prisma.SceneWhereInput | Prisma.SceneWhereInput[]
   title?: Prisma.StringFilter<"Scene"> | string
-  medias?: Prisma.SceneMediaListRelationFilter
   sceneCapsules?: Prisma.SceneCapsuleListRelationFilter
+  sceneContents?: Prisma.SceneContentListRelationFilter
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
   theme?: Prisma.XOR<Prisma.ThemeNullableScalarRelationFilter, Prisma.ThemeWhereInput> | null
@@ -290,11 +290,11 @@ export type SceneScalarWhereWithAggregatesInput = {
 
 export type SceneCreateInput = {
   title?: string
-  medias?: Prisma.SceneMediaCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutSceneInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutSceneInput
-  decor?: Prisma.DecorCreateNestedOneWithoutSceneInput
-  theme?: Prisma.ThemeCreateNestedOneWithoutSceneInput
+  decor?: Prisma.DecorCreateNestedOneWithoutScenesInput
+  theme?: Prisma.ThemeCreateNestedOneWithoutScenesInput
 }
 
 export type SceneUncheckedCreateInput = {
@@ -303,17 +303,17 @@ export type SceneUncheckedCreateInput = {
   capsuleId?: number | null
   decorId?: number | null
   themeId?: number | null
-  medias?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutSceneInput
 }
 
 export type SceneUpdateInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
-  medias?: Prisma.SceneMediaUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUpdateManyWithoutSceneNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutSceneNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutSceneNestedInput
-  theme?: Prisma.ThemeUpdateOneWithoutSceneNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutScenesNestedInput
+  theme?: Prisma.ThemeUpdateOneWithoutScenesNestedInput
 }
 
 export type SceneUncheckedUpdateInput = {
@@ -322,8 +322,8 @@ export type SceneUncheckedUpdateInput = {
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   themeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  medias?: Prisma.SceneMediaUncheckedUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutSceneNestedInput
 }
 
 export type SceneCreateManyInput = {
@@ -438,18 +438,18 @@ export type SceneUpdateOneRequiredWithoutSceneCapsulesNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.SceneUpdateToOneWithWhereWithoutSceneCapsulesInput, Prisma.SceneUpdateWithoutSceneCapsulesInput>, Prisma.SceneUncheckedUpdateWithoutSceneCapsulesInput>
 }
 
-export type SceneCreateNestedOneWithoutMediasInput = {
-  create?: Prisma.XOR<Prisma.SceneCreateWithoutMediasInput, Prisma.SceneUncheckedCreateWithoutMediasInput>
-  connectOrCreate?: Prisma.SceneCreateOrConnectWithoutMediasInput
+export type SceneCreateNestedOneWithoutSceneContentsInput = {
+  create?: Prisma.XOR<Prisma.SceneCreateWithoutSceneContentsInput, Prisma.SceneUncheckedCreateWithoutSceneContentsInput>
+  connectOrCreate?: Prisma.SceneCreateOrConnectWithoutSceneContentsInput
   connect?: Prisma.SceneWhereUniqueInput
 }
 
-export type SceneUpdateOneRequiredWithoutMediasNestedInput = {
-  create?: Prisma.XOR<Prisma.SceneCreateWithoutMediasInput, Prisma.SceneUncheckedCreateWithoutMediasInput>
-  connectOrCreate?: Prisma.SceneCreateOrConnectWithoutMediasInput
-  upsert?: Prisma.SceneUpsertWithoutMediasInput
+export type SceneUpdateOneRequiredWithoutSceneContentsNestedInput = {
+  create?: Prisma.XOR<Prisma.SceneCreateWithoutSceneContentsInput, Prisma.SceneUncheckedCreateWithoutSceneContentsInput>
+  connectOrCreate?: Prisma.SceneCreateOrConnectWithoutSceneContentsInput
+  upsert?: Prisma.SceneUpsertWithoutSceneContentsInput
   connect?: Prisma.SceneWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.SceneUpdateToOneWithWhereWithoutMediasInput, Prisma.SceneUpdateWithoutMediasInput>, Prisma.SceneUncheckedUpdateWithoutMediasInput>
+  update?: Prisma.XOR<Prisma.XOR<Prisma.SceneUpdateToOneWithWhereWithoutSceneContentsInput, Prisma.SceneUpdateWithoutSceneContentsInput>, Prisma.SceneUncheckedUpdateWithoutSceneContentsInput>
 }
 
 export type SceneCreateNestedOneWithoutCapsuleInput = {
@@ -570,10 +570,10 @@ export type SceneUncheckedUpdateManyWithoutThemeNestedInput = {
 
 export type SceneCreateWithoutSceneCapsulesInput = {
   title?: string
-  medias?: Prisma.SceneMediaCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutSceneInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutSceneInput
-  decor?: Prisma.DecorCreateNestedOneWithoutSceneInput
-  theme?: Prisma.ThemeCreateNestedOneWithoutSceneInput
+  decor?: Prisma.DecorCreateNestedOneWithoutScenesInput
+  theme?: Prisma.ThemeCreateNestedOneWithoutScenesInput
 }
 
 export type SceneUncheckedCreateWithoutSceneCapsulesInput = {
@@ -582,7 +582,7 @@ export type SceneUncheckedCreateWithoutSceneCapsulesInput = {
   capsuleId?: number | null
   decorId?: number | null
   themeId?: number | null
-  medias?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutSceneInput
 }
 
 export type SceneCreateOrConnectWithoutSceneCapsulesInput = {
@@ -603,10 +603,10 @@ export type SceneUpdateToOneWithWhereWithoutSceneCapsulesInput = {
 
 export type SceneUpdateWithoutSceneCapsulesInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
-  medias?: Prisma.SceneMediaUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUpdateManyWithoutSceneNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutSceneNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutSceneNestedInput
-  theme?: Prisma.ThemeUpdateOneWithoutSceneNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutScenesNestedInput
+  theme?: Prisma.ThemeUpdateOneWithoutScenesNestedInput
 }
 
 export type SceneUncheckedUpdateWithoutSceneCapsulesInput = {
@@ -615,18 +615,18 @@ export type SceneUncheckedUpdateWithoutSceneCapsulesInput = {
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   themeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  medias?: Prisma.SceneMediaUncheckedUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutSceneNestedInput
 }
 
-export type SceneCreateWithoutMediasInput = {
+export type SceneCreateWithoutSceneContentsInput = {
   title?: string
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutSceneInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutSceneInput
-  decor?: Prisma.DecorCreateNestedOneWithoutSceneInput
-  theme?: Prisma.ThemeCreateNestedOneWithoutSceneInput
+  decor?: Prisma.DecorCreateNestedOneWithoutScenesInput
+  theme?: Prisma.ThemeCreateNestedOneWithoutScenesInput
 }
 
-export type SceneUncheckedCreateWithoutMediasInput = {
+export type SceneUncheckedCreateWithoutSceneContentsInput = {
   id?: number
   title?: string
   capsuleId?: number | null
@@ -635,31 +635,31 @@ export type SceneUncheckedCreateWithoutMediasInput = {
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutSceneInput
 }
 
-export type SceneCreateOrConnectWithoutMediasInput = {
+export type SceneCreateOrConnectWithoutSceneContentsInput = {
   where: Prisma.SceneWhereUniqueInput
-  create: Prisma.XOR<Prisma.SceneCreateWithoutMediasInput, Prisma.SceneUncheckedCreateWithoutMediasInput>
+  create: Prisma.XOR<Prisma.SceneCreateWithoutSceneContentsInput, Prisma.SceneUncheckedCreateWithoutSceneContentsInput>
 }
 
-export type SceneUpsertWithoutMediasInput = {
-  update: Prisma.XOR<Prisma.SceneUpdateWithoutMediasInput, Prisma.SceneUncheckedUpdateWithoutMediasInput>
-  create: Prisma.XOR<Prisma.SceneCreateWithoutMediasInput, Prisma.SceneUncheckedCreateWithoutMediasInput>
+export type SceneUpsertWithoutSceneContentsInput = {
+  update: Prisma.XOR<Prisma.SceneUpdateWithoutSceneContentsInput, Prisma.SceneUncheckedUpdateWithoutSceneContentsInput>
+  create: Prisma.XOR<Prisma.SceneCreateWithoutSceneContentsInput, Prisma.SceneUncheckedCreateWithoutSceneContentsInput>
   where?: Prisma.SceneWhereInput
 }
 
-export type SceneUpdateToOneWithWhereWithoutMediasInput = {
+export type SceneUpdateToOneWithWhereWithoutSceneContentsInput = {
   where?: Prisma.SceneWhereInput
-  data: Prisma.XOR<Prisma.SceneUpdateWithoutMediasInput, Prisma.SceneUncheckedUpdateWithoutMediasInput>
+  data: Prisma.XOR<Prisma.SceneUpdateWithoutSceneContentsInput, Prisma.SceneUncheckedUpdateWithoutSceneContentsInput>
 }
 
-export type SceneUpdateWithoutMediasInput = {
+export type SceneUpdateWithoutSceneContentsInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutSceneNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutSceneNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutSceneNestedInput
-  theme?: Prisma.ThemeUpdateOneWithoutSceneNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutScenesNestedInput
+  theme?: Prisma.ThemeUpdateOneWithoutScenesNestedInput
 }
 
-export type SceneUncheckedUpdateWithoutMediasInput = {
+export type SceneUncheckedUpdateWithoutSceneContentsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   title?: Prisma.StringFieldUpdateOperationsInput | string
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -670,10 +670,10 @@ export type SceneUncheckedUpdateWithoutMediasInput = {
 
 export type SceneCreateWithoutCapsuleInput = {
   title?: string
-  medias?: Prisma.SceneMediaCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutSceneInput
-  decor?: Prisma.DecorCreateNestedOneWithoutSceneInput
-  theme?: Prisma.ThemeCreateNestedOneWithoutSceneInput
+  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutSceneInput
+  decor?: Prisma.DecorCreateNestedOneWithoutScenesInput
+  theme?: Prisma.ThemeCreateNestedOneWithoutScenesInput
 }
 
 export type SceneUncheckedCreateWithoutCapsuleInput = {
@@ -681,8 +681,8 @@ export type SceneUncheckedCreateWithoutCapsuleInput = {
   title?: string
   decorId?: number | null
   themeId?: number | null
-  medias?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutSceneInput
 }
 
 export type SceneCreateOrConnectWithoutCapsuleInput = {
@@ -703,10 +703,10 @@ export type SceneUpdateToOneWithWhereWithoutCapsuleInput = {
 
 export type SceneUpdateWithoutCapsuleInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
-  medias?: Prisma.SceneMediaUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutSceneNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutSceneNestedInput
-  theme?: Prisma.ThemeUpdateOneWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUpdateManyWithoutSceneNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutScenesNestedInput
+  theme?: Prisma.ThemeUpdateOneWithoutScenesNestedInput
 }
 
 export type SceneUncheckedUpdateWithoutCapsuleInput = {
@@ -714,16 +714,16 @@ export type SceneUncheckedUpdateWithoutCapsuleInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   themeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  medias?: Prisma.SceneMediaUncheckedUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutSceneNestedInput
 }
 
 export type SceneCreateWithoutDecorInput = {
   title?: string
-  medias?: Prisma.SceneMediaCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutSceneInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutSceneInput
-  theme?: Prisma.ThemeCreateNestedOneWithoutSceneInput
+  theme?: Prisma.ThemeCreateNestedOneWithoutScenesInput
 }
 
 export type SceneUncheckedCreateWithoutDecorInput = {
@@ -731,8 +731,8 @@ export type SceneUncheckedCreateWithoutDecorInput = {
   title?: string
   capsuleId?: number | null
   themeId?: number | null
-  medias?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutSceneInput
 }
 
 export type SceneCreateOrConnectWithoutDecorInput = {
@@ -773,10 +773,10 @@ export type SceneScalarWhereInput = {
 
 export type SceneCreateWithoutThemeInput = {
   title?: string
-  medias?: Prisma.SceneMediaCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutSceneInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutSceneInput
-  decor?: Prisma.DecorCreateNestedOneWithoutSceneInput
+  decor?: Prisma.DecorCreateNestedOneWithoutScenesInput
 }
 
 export type SceneUncheckedCreateWithoutThemeInput = {
@@ -784,8 +784,8 @@ export type SceneUncheckedCreateWithoutThemeInput = {
   title?: string
   capsuleId?: number | null
   decorId?: number | null
-  medias?: Prisma.SceneMediaUncheckedCreateNestedManyWithoutSceneInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutSceneInput
+  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutSceneInput
 }
 
 export type SceneCreateOrConnectWithoutThemeInput = {
@@ -822,10 +822,10 @@ export type SceneCreateManyDecorInput = {
 
 export type SceneUpdateWithoutDecorInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
-  medias?: Prisma.SceneMediaUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUpdateManyWithoutSceneNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutSceneNestedInput
-  theme?: Prisma.ThemeUpdateOneWithoutSceneNestedInput
+  theme?: Prisma.ThemeUpdateOneWithoutScenesNestedInput
 }
 
 export type SceneUncheckedUpdateWithoutDecorInput = {
@@ -833,8 +833,8 @@ export type SceneUncheckedUpdateWithoutDecorInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   themeId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  medias?: Prisma.SceneMediaUncheckedUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutSceneNestedInput
 }
 
 export type SceneUncheckedUpdateManyWithoutDecorInput = {
@@ -853,10 +853,10 @@ export type SceneCreateManyThemeInput = {
 
 export type SceneUpdateWithoutThemeInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
-  medias?: Prisma.SceneMediaUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUpdateManyWithoutSceneNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutSceneNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutSceneNestedInput
+  decor?: Prisma.DecorUpdateOneWithoutScenesNestedInput
 }
 
 export type SceneUncheckedUpdateWithoutThemeInput = {
@@ -864,8 +864,8 @@ export type SceneUncheckedUpdateWithoutThemeInput = {
   title?: Prisma.StringFieldUpdateOperationsInput | string
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  medias?: Prisma.SceneMediaUncheckedUpdateManyWithoutSceneNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutSceneNestedInput
+  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutSceneNestedInput
 }
 
 export type SceneUncheckedUpdateManyWithoutThemeInput = {
@@ -881,13 +881,13 @@ export type SceneUncheckedUpdateManyWithoutThemeInput = {
  */
 
 export type SceneCountOutputType = {
-  medias: number
   sceneCapsules: number
+  sceneContents: number
 }
 
 export type SceneCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  medias?: boolean | SceneCountOutputTypeCountMediasArgs
   sceneCapsules?: boolean | SceneCountOutputTypeCountSceneCapsulesArgs
+  sceneContents?: boolean | SceneCountOutputTypeCountSceneContentsArgs
 }
 
 /**
@@ -903,15 +903,15 @@ export type SceneCountOutputTypeDefaultArgs<ExtArgs extends runtime.Types.Extens
 /**
  * SceneCountOutputType without action
  */
-export type SceneCountOutputTypeCountMediasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.SceneMediaWhereInput
+export type SceneCountOutputTypeCountSceneCapsulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SceneCapsuleWhereInput
 }
 
 /**
  * SceneCountOutputType without action
  */
-export type SceneCountOutputTypeCountSceneCapsulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.SceneCapsuleWhereInput
+export type SceneCountOutputTypeCountSceneContentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  where?: Prisma.SceneContentWhereInput
 }
 
 
@@ -921,8 +921,8 @@ export type SceneSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   capsuleId?: boolean
   decorId?: boolean
   themeId?: boolean
-  medias?: boolean | Prisma.Scene$mediasArgs<ExtArgs>
   sceneCapsules?: boolean | Prisma.Scene$sceneCapsulesArgs<ExtArgs>
+  sceneContents?: boolean | Prisma.Scene$sceneContentsArgs<ExtArgs>
   capsule?: boolean | Prisma.Scene$capsuleArgs<ExtArgs>
   decor?: boolean | Prisma.Scene$decorArgs<ExtArgs>
   theme?: boolean | Prisma.Scene$themeArgs<ExtArgs>
@@ -961,8 +961,8 @@ export type SceneSelectScalar = {
 
 export type SceneOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "title" | "capsuleId" | "decorId" | "themeId", ExtArgs["result"]["scene"]>
 export type SceneInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  medias?: boolean | Prisma.Scene$mediasArgs<ExtArgs>
   sceneCapsules?: boolean | Prisma.Scene$sceneCapsulesArgs<ExtArgs>
+  sceneContents?: boolean | Prisma.Scene$sceneContentsArgs<ExtArgs>
   capsule?: boolean | Prisma.Scene$capsuleArgs<ExtArgs>
   decor?: boolean | Prisma.Scene$decorArgs<ExtArgs>
   theme?: boolean | Prisma.Scene$themeArgs<ExtArgs>
@@ -982,8 +982,8 @@ export type SceneIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extens
 export type $ScenePayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Scene"
   objects: {
-    medias: Prisma.$SceneMediaPayload<ExtArgs>[]
     sceneCapsules: Prisma.$SceneCapsulePayload<ExtArgs>[]
+    sceneContents: Prisma.$SceneContentPayload<ExtArgs>[]
     capsule: Prisma.$CapsulePayload<ExtArgs> | null
     decor: Prisma.$DecorPayload<ExtArgs> | null
     theme: Prisma.$ThemePayload<ExtArgs> | null
@@ -1388,8 +1388,8 @@ readonly fields: SceneFieldRefs;
  */
 export interface Prisma__SceneClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  medias<T extends Prisma.Scene$mediasArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scene$mediasArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SceneMediaPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sceneCapsules<T extends Prisma.Scene$sceneCapsulesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scene$sceneCapsulesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SceneCapsulePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  sceneContents<T extends Prisma.Scene$sceneContentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scene$sceneContentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SceneContentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   capsule<T extends Prisma.Scene$capsuleArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scene$capsuleArgs<ExtArgs>>): Prisma.Prisma__CapsuleClient<runtime.Types.Result.GetResult<Prisma.$CapsulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   decor<T extends Prisma.Scene$decorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scene$decorArgs<ExtArgs>>): Prisma.Prisma__DecorClient<runtime.Types.Result.GetResult<Prisma.$DecorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   theme<T extends Prisma.Scene$themeArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Scene$themeArgs<ExtArgs>>): Prisma.Prisma__ThemeClient<runtime.Types.Result.GetResult<Prisma.$ThemePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -1821,30 +1821,6 @@ export type SceneDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Scene.medias
- */
-export type Scene$mediasArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the SceneMedia
-   */
-  select?: Prisma.SceneMediaSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the SceneMedia
-   */
-  omit?: Prisma.SceneMediaOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.SceneMediaInclude<ExtArgs> | null
-  where?: Prisma.SceneMediaWhereInput
-  orderBy?: Prisma.SceneMediaOrderByWithRelationInput | Prisma.SceneMediaOrderByWithRelationInput[]
-  cursor?: Prisma.SceneMediaWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.SceneMediaScalarFieldEnum | Prisma.SceneMediaScalarFieldEnum[]
-}
-
-/**
  * Scene.sceneCapsules
  */
 export type Scene$sceneCapsulesArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
@@ -1866,6 +1842,30 @@ export type Scene$sceneCapsulesArgs<ExtArgs extends runtime.Types.Extensions.Int
   take?: number
   skip?: number
   distinct?: Prisma.SceneCapsuleScalarFieldEnum | Prisma.SceneCapsuleScalarFieldEnum[]
+}
+
+/**
+ * Scene.sceneContents
+ */
+export type Scene$sceneContentsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the SceneContent
+   */
+  select?: Prisma.SceneContentSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the SceneContent
+   */
+  omit?: Prisma.SceneContentOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.SceneContentInclude<ExtArgs> | null
+  where?: Prisma.SceneContentWhereInput
+  orderBy?: Prisma.SceneContentOrderByWithRelationInput | Prisma.SceneContentOrderByWithRelationInput[]
+  cursor?: Prisma.SceneContentWhereUniqueInput
+  take?: number
+  skip?: number
+  distinct?: Prisma.SceneContentScalarFieldEnum | Prisma.SceneContentScalarFieldEnum[]
 }
 
 /**

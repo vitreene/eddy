@@ -1,16 +1,16 @@
 import { setup, assign, type UnknownActorLogic } from "xstate";
 import { createActorContext } from "@xstate/react";
 
-import type { CapsuleComp, MediaEvent, SceneComp } from "@/api/db";
 import { fetchReorder, reorderElements, updateOrder } from "./reorder-elements";
-import type { Decor } from "@prisma/client";
+
+import type { Decor, CapsuleComp, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 
 export interface ActiveState {
 	[key: string]: number | string | boolean | null;
 	main: number | null;
 	capsuleId: number | null;
-	elementId: number | null;
-	mediaId: number | null;
+	itemId: number | null;
+	contentId: number | null;
 	cue: string | null;
 	action: string | null;
 	eventTouched: boolean;
@@ -19,8 +19,8 @@ export interface ActiveState {
 export const active: ActiveState = {
 	main: null,
 	capsuleId: null,
-	elementId: null,
-	mediaId: null,
+	itemId: null,
+	contentId: null,
 	cue: null,
 	action: null,
 	eventTouched: false,
@@ -42,9 +42,9 @@ export const sceneLogic = setup({
 			| { type: "active-set"; payload: Partial<ActiveState> }
 			| { type: "commit"; payload: Partial<ActiveState> }
 			| { type: "reset" }
-			| { type: "element-update"; payload: Partial<CapsuleComp & Decor> }
-			| { type: "capsule-update"; payload: Partial<CapsuleComp & Decor> }
-			| { type: "events-update"; payload: Partial<MediaEvent> }
+			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
+			| { type: "capsule-update"; payload: Partial<CapsuleComp & { decor: Decor }> }
+			| { type: "events-update"; payload: Partial<ContentEvent> }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
 			| { type: "tree-after-move"; payload: TreeMoveEvent }
 			| { type: "reorder.capsule"; payload: TreeMoveEvent }
@@ -55,7 +55,7 @@ export const sceneLogic = setup({
 			console.log({ params });
 
 			// events changes (per element)
-			const elementId = context.active.elementId;
+			const elementId = context.active.itemId;
 			const capsuleId = context.active.capsuleId;
 			// decor changes — envoyer à la base quand on quitte l'édition d'une capsule ET decorTouched est vrai
 			const capsuleIdChanged = params.includes("capsuleId");
@@ -80,7 +80,7 @@ export const sceneLogic = setup({
 			}
 
 			if (elementIdChanged && elementId && decorTouched) {
-				const decor = context.decors?.elements?.[elementId];
+				const decor = context.decors?.items?.[elementId];
 				if (decor) {
 					fetch(`api/decor`, {
 						method: "POST",
@@ -138,7 +138,7 @@ export const sceneLogic = setup({
 											...context.active,
 											...event.payload,
 											...("elementId" in event.payload && { capsuleId: null }),
-											...("capsuleId" in event.payload && { elementId: null })
+											...("capsuleId" in event.payload && { itemId: null })
 										}
 									};
 								})
@@ -185,32 +185,18 @@ export const sceneLogic = setup({
 							actions: [
 								assign(({ context, event }) => {
 									const capsuleId = context.active.capsuleId!;
-									const { decor: newDecor, ...payload } = event.payload;
+									// const { decor: newDecor, ...payload } = event.payload;
 									const newCapsule = {
 										...context.capsules[capsuleId],
-										...payload
+										...event.payload
 									};
-									const decors = {
-										...(context.decors || { capsules: {}, elements: {} }),
-										capsules: {
-											...(context.decors?.capsules || {}),
-											...(newDecor
-												? {
-														[capsuleId]: {
-															...context.decors?.capsules?.[capsuleId],
-															...newDecor
-														}
-													}
-												: {})
-										}
-									};
+
 									return {
 										...context,
 										capsules: {
 											...context.capsules,
 											[capsuleId]: newCapsule
-										},
-										decors
+										}
 									};
 								}),
 								({ context, event }) => {
@@ -232,22 +218,22 @@ export const sceneLogic = setup({
 				},
 				element: {
 					on: {
-						"element-update": {
+						"item-update": {
 							actions: assign(({ context, event }) => {
-								const elementId = context.active.elementId!;
+								const itemId = context.active.itemId!;
 								const { decor: newDecor, ...payload } = event.payload;
 								const newElement = {
-									...context.elements[elementId],
+									...context.items[itemId],
 									...payload
 								};
 								const decors = {
-									...(context.decors || { capsules: {}, elements: {} }),
+									...(context.decors || { capsules: {}, items: {} }),
 									elements: {
-										...(context.decors?.elements || {}),
+										...(context.decors?.items || {}),
 										...(newDecor
 											? {
-													[elementId]: {
-														...context.decors?.elements?.[elementId],
+													[itemId]: {
+														...context.decors?.items?.[itemId],
 														...newDecor
 													}
 												}
@@ -256,9 +242,9 @@ export const sceneLogic = setup({
 								};
 								return {
 									...context,
-									elements: {
-										...context.elements,
-										[elementId]: newElement
+									items: {
+										...context.items,
+										[itemId]: newElement
 									},
 									decors
 								};
@@ -273,7 +259,7 @@ export const sceneLogic = setup({
 						"events-update": {
 							actions: assign(({ context, event }) => {
 								const elementId =
-									context.active.elementId ?? getElementFromCapsule(context.active.capsuleId, context)?.id;
+									context.active.itemId ?? getElementFromCapsule(context.active.capsuleId, context)?.id;
 
 								if (!elementId) return context;
 								const action = event.payload.action;
@@ -310,7 +296,7 @@ export const sceneLogic = setup({
 										assign(({ context, event }) => {
 											const { capsules, elements, moved } = reorderElements(context, event.payload);
 											if (moved) updateOrder(moved);
-											return { ...context, capsules, elements };
+											return { ...context, capsules, items: elements };
 										})
 									]
 								}
@@ -328,11 +314,11 @@ export const sceneLogic = setup({
 										if (event.output == "no-reorder") return context;
 										const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
 										const elements = reorders.map((r) => ({
-											[r.id]: { ...context.elements[r.id], order: r.order }
+											[r.id]: { ...context.items[r.id], order: r.order }
 										}));
 										return {
 											...context,
-											elements: Object.assign({}, context.elements, ...elements)
+											items: Object.assign({}, context.items, ...elements)
 										};
 									})
 								}
@@ -354,8 +340,8 @@ export function getElementFromCapsule(
 	}
 ) {
 	if (!capsuleId) return null;
-	const media = Object.values(context.medias).find((m) => m.type == "capsule" && m.capsuleId == capsuleId);
-	const element = media ? Object.values(context.elements).find((e) => e.mediaId == media.id) : null;
+	const media = Object.values(context.contents).find((m) => m.type == "capsule" && m.capsuleId == capsuleId);
+	const element = media ? Object.values(context.items).find((e) => e.contentId == media.id) : null;
 	return element;
 }
 

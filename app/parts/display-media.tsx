@@ -1,6 +1,5 @@
+import type { Content } from "@/api/db";
 import cx from "classnames";
-
-import type { Media } from "@prisma/client";
 
 const SIZECSS = {
 	icon: "w-10  h-8",
@@ -14,7 +13,7 @@ export function Media({
 	selected = false,
 	className = ""
 }: {
-	attr: Media;
+	attr: Content;
 	size: keyof typeof SIZECSS;
 	selected?: boolean;
 	className?: string;
@@ -31,7 +30,7 @@ export function Media({
 				/>
 			);
 		case "text":
-			return <p>{attr.content}</p>;
+			return <p>{attr.inner}</p>;
 		case "capsule":
 			return (
 				<div
