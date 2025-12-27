@@ -5,7 +5,7 @@ import type { ItemComp, ContentEvent } from "@/api/db";
 
 import { INTRO } from "@/lib/constants";
 import * as transitions from "@/player/presets/transitions";
-import { getElementFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
+import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";
 import { MediaPanel } from "./event-panel";
@@ -13,40 +13,27 @@ import { MediaPanel } from "./event-panel";
 const defaultTransition = "fondu";
 
 export function EditEvent() {
-	const active = SceneLogicContext.useSelector((state) => state.context.active);
-	// const element = SceneLogicContext.useSelector((state) => {
-	// 	if (active) {
-	// 		if (active.elementId) return state.context.elements[active.elementId];
-	// 		if (active.capsuleId) {
-	// 			const media = Object.values(state.context.medias).find((m) => m.capsuleId == active.capsuleId);
-	// 			return media ? Object.values(state.context.elements).find((e) => e.mediaId == media.id) : null;
-	// 		}
-	// 	}
-	// });
-	const element = SceneLogicContext.useSelector((state) => {
+	const item = SceneLogicContext.useSelector((state) => {
 		if (state.context.active.itemId) return state.context.items[state.context.active.itemId];
-		if (state.context.active.capsuleId)
-			return getElementFromCapsule(state.context.active.capsuleId, state.context);
-
 		return null;
 	});
 
-	if (!element) return null;
+	if (!item) return null;
 	return (
 		<section className="flex gap-4">
-			<MediaInfos key={element.id} element={element} />
+			<ContentInfos key={item.id} item={item} />
 			<Rubber />
 		</section>
 	);
 }
 
-function MediaInfos({ element }: { element: ItemComp }) {
-	const events = SceneLogicContext.useSelector((state) => state.context.events[element.id]);
-	console.log("MediaInfos", events);
+function ContentInfos({ item }: { item: ItemComp }) {
+	const events = SceneLogicContext.useSelector((state) => state.context.events[item.id]);
+	// console.log("MediaInfos", events);
 
 	return (
 		<div className="media-infos flex gap-4">
-			<MediaPanel id={element.contentId} />
+			<MediaPanel id={item.contentId} />
 			<div className="w-40">
 				<p className="mb-2">Transitions</p>
 				{events &&

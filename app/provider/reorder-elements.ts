@@ -2,7 +2,7 @@ import type { SceneComp, ItemComp } from "@/api/db";
 import { type ActiveState, type TreeMoveEvent } from "./scene-logic";
 import { fromPromise } from "xstate";
 
-export const fetchReorder = fromPromise(async ({ input }) => {
+export const capsuleReorder = fromPromise(async ({ input }) => {
 	console.log("reorder-capsule");
 	const { context, event } = input as {
 		context: SceneComp & { active: ActiveState };

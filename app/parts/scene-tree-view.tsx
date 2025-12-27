@@ -1,7 +1,7 @@
 import cx from "classnames";
 import { BoxIcon } from "lucide-react";
 
-import { SceneLogicContext } from "@/provider/scene-logic";
+import { getItemFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
 import { TreeView, type TreeDataItem } from "@/components/ui/tree-view";
 
 import { Media } from "./display-media";
@@ -12,8 +12,15 @@ const EMPTY = "–";
 const SEP = "__";
 export function SceneTreeView() {
 	const main = SceneLogicContext.useSelector((state) => state.context.main);
-	const active = SceneLogicContext.useSelector((state) => state.context.active);
-	const capsules = SceneLogicContext.useSelector((state) => state.context.capsules);
+	const capsules = SceneLogicContext.useSelector((state) => {
+		if (!state.context.capsules) return null;
+		return Object.fromEntries(
+			Object.values(state.context.capsules).map((c) => {
+				const item = getItemFromCapsule(c.id, state.context);
+				return [c.id, { ...c, itemId: item?.id }];
+			})
+		);
+	});
 	const items = SceneLogicContext.useSelector((state) => state.context.items);
 	const contents: { [key: number]: Content } = SceneLogicContext.useSelector(
 		(state) =>
@@ -27,44 +34,29 @@ export function SceneTreeView() {
 
 	const [selected, setSelected] = useState<string>("");
 
-	const editCapsule = (capsuleId: number, item: string) => {
-		if (active.capsuleId !== capsuleId) {
-			send({
-				type: "active-set",
-				payload: { capsuleId }
-			});
-			setSelected(item);
-		}
-	};
-
-	const editElement = (elementId: number, item: string) => {
-		send({ type: "active-set", payload: { itemId: elementId } });
-		setSelected(item);
-	};
-
 	if (!main || !capsules || !Object.keys(capsules).length) return null;
 
 	const tree: TreeDataItem[] = capsules[main].itemIds
 		.map((id) => items[id])
 		.sort((a, b) => (a.order > b.order ? 1 : -1))
 		.filter((item) => item.contentId && contents[item.contentId].capsuleId)
-
 		.map((item) => capsules[contents[item.contentId].capsuleId!])
 		.map((c) => {
 			const els = c.itemIds.map((el) => items[el]);
 			const id = `capsule${SEP}${c.id}`;
+			console.log(c);
 
 			return {
 				id,
 				capsuleId: c.id,
 				name: c.name,
+				itemId: c.itemId,
 				droppable: true,
 				draggable: true,
 				className: cx("uppercase text-left hover:bg-amber-100", {
 					"bg-amber-200 hover:bg-amber-300": id == selected
 				}),
 
-				onClick: () => editCapsule(c.id, id),
 				children: els
 					.sort((a, b) => (a.order > b.order ? 1 : -1))
 					.map((el) => {
@@ -93,13 +85,12 @@ export function SceneTreeView() {
 						return {
 							id,
 							name,
-							elementId: el.id,
-
-							media: contents[el.contentId],
+							itemId: el.id,
+							content: contents[el.contentId],
 							className: cx("text-left hover:bg-amber-100", {
 								"bg-amber-200 hover:bg-amber-300": id == selected
 							}),
-							onClick: () => editElement(el.id, id),
+
 							icon: Icon,
 							draggable: true
 						};
@@ -131,13 +122,12 @@ export function SceneTreeView() {
 	};
 
 	const onSelectChange: (item: TreeDataItem | undefined) => void = (item) => {
-		let payload = null;
 		if (item) {
-			if ("capsuleId" in item) payload = { capsuleId: Number(item.capsuleId) };
-			if ("elementId" in item) payload = { elementId: Number(item.elementId) };
+			setSelected(item.id);
+			const payload = { itemId: Number(item.itemId) };
+			send({ type: "commit", payload });
+			send({ type: "active-set", payload });
 		}
-		console.log("onSelectChange", selected, item, payload);
-		if (payload) send({ type: "commit", payload });
 	};
 
 	return (

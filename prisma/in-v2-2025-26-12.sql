@@ -67,12 +67,12 @@ CREATE TABLE IF NOT EXISTS "item" (
     CONSTRAINT "item_capsule_id_fkey" FOREIGN KEY ("capsule_id") REFERENCES "capsule" ("id") ON DELETE RESTRICT ON UPDATE CASCADE,
     CONSTRAINT "item_decor_id_fkey" FOREIGN KEY ("decor_id") REFERENCES "decor" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
-INSERT INTO item VALUES(1,2500,1,2,NULL);
+INSERT INTO item VALUES(1,2500,1,2,1);
 INSERT INTO item VALUES(2,5000,2,2,4);
-INSERT INTO item VALUES(3,2000,2,3,NULL);
-INSERT INTO item VALUES(4,3000,4,3,NULL);
-INSERT INTO item VALUES(5,2000,5,1,NULL);
-INSERT INTO item VALUES(6,1000,6,1,NULL);
+INSERT INTO item VALUES(3,2000,2,3,3);
+INSERT INTO item VALUES(4,3000,4,3,2);
+INSERT INTO item VALUES(5,2000,5,1,5);
+INSERT INTO item VALUES(6,1000,6,1,6);
 
 
 CREATE TABLE IF NOT EXISTS "decor" (
@@ -87,6 +87,8 @@ INSERT INTO decor VALUES(1,NULL,'{"fontFamily":"Inter","fontSize":"24px","color"
 INSERT INTO decor VALUES(2,NULL,'{"fontFamily":"Inter","fontSize":"29px","color":"#DD1111","fontStyle":"italic","backgroundColor":"#FF0000"}',NULL,NULL);
 INSERT INTO decor VALUES(3,NULL,'{"fontFamily":"Inter","fontSize":"29px","color":"#DD1111","fontStyle":"italic","backgroundColor":"#10E499","fontWeight":"normal"}',NULL,NULL);
 INSERT INTO decor VALUES(4,NULL,'{"fontFamily":"Inter","fontSize":"16px","color":"#222222","backgroundColor":"#DD11AA"}',NULL,NULL);
+INSERT INTO decor VALUES(5,NULL,'{"fontFamily":"Inter","fontSize":"16px","color":"#222222","backgroundColor":"#DD11AA"}',NULL,NULL);
+INSERT INTO decor VALUES(6,NULL,'{"fontFamily":"Inter","fontSize":"16px","color":"#222222","backgroundColor":"#DD11AA"}',NULL,NULL);
 
 
 CREATE TABLE IF NOT EXISTS "capsule" (

@@ -1,7 +1,7 @@
-import { setup, assign, type UnknownActorLogic } from "xstate";
+import { setup, assign, fromPromise, type UnknownActorLogic } from "xstate";
 import { createActorContext } from "@xstate/react";
 
-import { fetchReorder, reorderElements, updateOrder } from "./reorder-elements";
+import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
 
 import type { Decor, CapsuleComp, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 
@@ -41,70 +41,62 @@ export const sceneLogic = setup({
 		events: {} as
 			| { type: "active-set"; payload: Partial<ActiveState> }
 			| { type: "commit"; payload: Partial<ActiveState> }
-			| { type: "reset" }
+			| { type: "reset-active" }
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
-			| { type: "capsule-update"; payload: Partial<CapsuleComp & { decor: Decor }> }
+			| { type: "capsule-update"; payload: Pick<CapsuleComp, "id" | "name"> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
 			| { type: "tree-after-move"; payload: TreeMoveEvent }
 			| { type: "reorder.capsule"; payload: TreeMoveEvent }
 	},
 	actions: {
-		fetchers: ({ context }, params: string[]) => {
+		reset: assign(({ context }) => {
+			return {
+				...context,
+				active: {
+					...context.active,
+					eventTouched: false,
+					decorTouched: false
+				}
+			};
+		}),
+		fetchers: async ({ context }, params: string[]) => {
 			if (!params.length) return;
-			console.log({ params });
-
-			// events changes (per element)
-			const elementId = context.active.itemId;
-			const capsuleId = context.active.capsuleId;
+			const itemId = context.active.itemId;
 			// decor changes — envoyer à la base quand on quitte l'édition d'une capsule ET decorTouched est vrai
-			const capsuleIdChanged = params.includes("capsuleId");
-			const elementIdChanged = params.includes("elementId");
 
 			const decorTouched = params.includes("decorTouched");
 			const eventTouched = params.includes("eventTouched");
 
 			if (eventTouched) {
-				const id = capsuleId ? getElementFromCapsule(capsuleId, context)!.id : elementId;
-				console.log("fetchers", id, context.events[id!]);
-
-				if (id)
-					fetch(`api/media/${id}`, {
+				if (itemId)
+					fetch(`api/media/${itemId}`, {
 						method: "POST",
 						headers: {
 							Accept: "application/json",
 							"Content-Type": "application/json"
 						},
-						body: JSON.stringify(context.events[id])
+						body: JSON.stringify(context.events[itemId])
 					});
 			}
 
-			if (elementIdChanged && elementId && decorTouched) {
-				const decor = context.decors?.items?.[elementId];
+			if (itemId && decorTouched && context.items[itemId].decorId) {
+				const decor = context.decors?.[context.items[itemId].decorId];
 				if (decor) {
+					const { id: decorId, ...rest } = decor;
 					fetch(`api/decor`, {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ elementId, ...decor })
-					});
-				}
-			}
-
-			if (capsuleIdChanged && capsuleId && decorTouched) {
-				const decor = context.decors?.capsules?.[capsuleId];
-				if (decor) {
-					fetch(`api/decor`, {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ capsuleId, ...decor })
+						body: JSON.stringify({ itemId, decorId, ...rest })
 					});
 				}
 			}
 		}
 	},
+
 	actors: {
 		initContext: {} as UnknownActorLogic,
-		fetchReorder
+		capsuleReorder
 	}
 }).createMachine({
 	id: "scene",
@@ -130,65 +122,56 @@ export const sceneLogic = setup({
 				active: {
 					on: {
 						"active-set": {
+							target: "#scene.edit",
 							actions: [
 								assign(({ context, event }) => {
+									console.log("active-set", event.payload);
+
 									return {
 										...context,
 										active: {
 											...context.active,
-											...event.payload,
-											...("elementId" in event.payload && { capsuleId: null }),
-											...("capsuleId" in event.payload && { itemId: null })
+											...event.payload
 										}
 									};
 								})
 							]
 						},
 						commit: {
-							target: "reset",
-							actions: {
-								type: "fetchers",
+							actions: [
+								{
+									type: "fetchers",
+									params: ({ context, event }) => {
+										console.log("commit", context.active, event.payload);
 
-								params: ({ context, event }) => {
-									console.log("commit", context.active, event.payload);
-									// manque le traitement : passser de capsule à element et vice-versa
-									const diffs: string[] = [];
-									for (const id in event.payload) {
-										if (context.active[id] !== event.payload[id]) diffs.push(id);
+										const diffs: string[] = [];
+										for (const id in event.payload) {
+											if (context.active[id] !== event.payload[id]) diffs.push(id);
+										}
+										if (context.active.eventTouched) diffs.push("eventTouched");
+										if (context.active.decorTouched) diffs.push("decorTouched");
+
+										return diffs;
 									}
-									if (context.active.eventTouched) diffs.push("eventTouched");
-									if (context.active.decorTouched) diffs.push("decorTouched");
-
-									return diffs;
-								}
-							}
+								},
+								{ type: "reset" }
+							]
 						}
 					}
-				},
-				reset: {
-					target: "active",
-					entry: assign(({ context }) => {
-						return {
-							...context,
-							active: {
-								...context.active,
-								eventTouched: false,
-								decorTouched: false
-							}
-						};
-					})
 				},
 
 				capsule: {
 					on: {
 						"capsule-update": {
+							target: "#scene.edit",
 							actions: [
 								assign(({ context, event }) => {
-									const capsuleId = context.active.capsuleId!;
-									// const { decor: newDecor, ...payload } = event.payload;
+									console.log("--->capsule-update");
+									const { id: capsuleId, ...payload } = event.payload;
+
 									const newCapsule = {
 										...context.capsules[capsuleId],
-										...event.payload
+										...payload
 									};
 
 									return {
@@ -199,67 +182,60 @@ export const sceneLogic = setup({
 										}
 									};
 								}),
-								({ context, event }) => {
+								({ event }) => {
 									// a passer en commit
-									const payload: any = event.payload as any;
-									if (payload && payload.decor) return;
+									const { id: capsuleId, ...payload } = event.payload;
+
 									const formData = new FormData();
 									Object.entries(payload).forEach(([k, v]: [string, unknown]) => formData.set(k, v as any));
-									const active = context.active;
-									fetch(`api/capsule/${active.capsuleId}`, {
+
+									fetch(`api/capsule/${capsuleId}`, {
 										method: "POST",
 										body: formData
 									});
 								}
-							],
-							target: "#scene.edit"
+							]
 						}
 					}
 				},
-				element: {
+				item: {
 					on: {
 						"item-update": {
+							target: "#scene.edit",
 							actions: assign(({ context, event }) => {
+								const { decor, ...payload } = event.payload;
+								if (!decor) return context;
+								const decorId = decor.id;
 								const itemId = context.active.itemId!;
-								const { decor: newDecor, ...payload } = event.payload;
-								const newElement = {
+								const newItem = {
 									...context.items[itemId],
 									...payload
 								};
-								const decors = {
-									...(context.decors || { capsules: {}, items: {} }),
-									elements: {
-										...(context.decors?.items || {}),
-										...(newDecor
-											? {
-													[itemId]: {
-														...context.decors?.items?.[itemId],
-														...newDecor
-													}
-												}
-											: {})
-									}
-								};
+
 								return {
 									...context,
 									items: {
 										...context.items,
-										[itemId]: newElement
+										[itemId]: newItem
 									},
-									decors
+									decors: {
+										...context.decors,
+										[decorId]: {
+											...context.decors?.[decorId],
+											...decor
+										}
+									}
 								};
-							}),
-
-							target: "#scene.edit"
+							})
 						}
 					}
 				},
+
 				media: {
 					on: {
 						"events-update": {
 							actions: assign(({ context, event }) => {
-								const elementId =
-									context.active.itemId ?? getElementFromCapsule(context.active.capsuleId, context)?.id;
+								const elementId = context.active.itemId ?? getItemFromCapsule(context.active.capsuleId, context)?.id;
 
 								if (!elementId) return context;
 								const action = event.payload.action;
@@ -307,7 +283,7 @@ export const sceneLogic = setup({
 								id: "tree-capsule-reorder",
 								reenter: true,
 								input: ({ context, event }) => ({ context, event }),
-								src: "fetchReorder",
+								src: "capsuleReorder",
 								onDone: {
 									target: "#scene.edit",
 									actions: assign(({ context, event }) => {
@@ -333,16 +309,16 @@ export const sceneLogic = setup({
 
 export const SceneLogicContext = createActorContext(sceneLogic);
 
-export function getElementFromCapsule(
+export function getItemFromCapsule(
 	capsuleId: number | null | undefined,
 	context: SceneComp & {
 		active: ActiveState;
 	}
 ) {
 	if (!capsuleId) return null;
-	const media = Object.values(context.contents).find((m) => m.type == "capsule" && m.capsuleId == capsuleId);
-	const element = media ? Object.values(context.items).find((e) => e.contentId == media.id) : null;
-	return element;
+	const content = Object.values(context.contents).find((m) => m.type == "capsule" && m.capsuleId == capsuleId);
+	const item = content ? Object.values(context.items).find((e) => e.contentId == content.id) : null;
+	return item;
 }
 
 /* 

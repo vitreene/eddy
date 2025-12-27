@@ -87,13 +87,9 @@ export interface SceneComp {
 		[id: number]: Content;
 	};
 	decors: {
-		capsules: {
-			[id: number]: Decor;
-		};
-		items: {
-			[id: number]: Decor;
-		};
+		[id: number]: Decor;
 	};
+
 	decor?: Decor;
 	theme?: Theme;
 }
@@ -184,8 +180,6 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 
 	const scene = { ...sceneDB!, capsules, scenecontents };
 
-	console.log("capsules", capsules);
-
 	return flattenScene(scene);
 }
 
@@ -199,10 +193,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 		capsules: {},
 		items: {},
 		contents: {},
-		decors: {
-			capsules: {},
-			items: {}
-		},
+		decors: {},
 		decor: scene.decor ? { ...scene.decor, style: JSON.parse(scene.decor.style ?? "{}") } : undefined,
 		theme: scene.theme ?? undefined
 	};
@@ -233,7 +224,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 				// Store decor in flat structure
 				if (decor) {
 					const { style, ...d } = decor;
-					flatScene.decors.items[item.id] = { ...d, style: JSON.parse(style ?? "{}") };
+					flatScene.decors[decor.id] = { ...d, style: JSON.parse(style ?? "{}") };
 				}
 
 				if (events.length > 0) {

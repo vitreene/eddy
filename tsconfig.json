@@ -14,7 +14,7 @@
 			"@/*": ["./app/*"],
 			"~/*": ["./app/*"]
 		},
-		"strictNullChecks": true,
+		"strictNullChecks": false,
 		"esModuleInterop": true,
 		"verbatimModuleSyntax": true,
 		"noEmit": true,

@@ -7,7 +7,6 @@ import type { Route } from "./+types/home";
 import { EditEvent } from "@/parts/event-edit";
 import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 
-import { EditCapsule } from "~/parts/capsule-edit";
 import { getScene, type SceneComp } from "~/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";
 import { EditItem } from "@/parts/item-edit";
@@ -77,7 +76,6 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 				{/* <PlayerRunner scene={scene} /> */}
 			</section>
 			<section className="base-layout layout-infos">
-				<EditCapsule />
 				<EditItem />
 			</section>
 			<section className="base-layout layout-edit">
@@ -86,18 +84,3 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 		</main>
 	);
 });
-
-/* 
-erreur de conception :
-- ne pas définir capsule comme un objet, sinon on duplique toute la logique de capsuleElement. 
-idéalement : renommer capsuleElement 
-capsuleElement -> capsuleItem ? 
-
-cela implique que scene va désigner une capsule-maitre qui va contenir toutes les autres capsules, 
-ce qui va permettre de les ordonner et leur attribuer un décor.
--> capsule n'a plus besoin de la relation decor. 
-
-dans scene, ajouter initial : id de la capsule-maitre
-dans ce cas, pas besoin de relation "capsules"  assuré par capsuleItems
-->si créer une table de liaison
-*/
