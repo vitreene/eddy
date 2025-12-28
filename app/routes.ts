@@ -10,6 +10,7 @@ export default [
 		route("capsule/:id/*", "./api/capsule.ts"),
 		route("decor", "./api/decor.ts"),
 		route("item/:id", "./api/item.ts"),
-		route("media/:id", "./api/media.ts")
+		route("content/:id", "./api/content.ts"),
+		route("theme/:id", "./api/theme.ts")
 	])
 ] satisfies RouteConfig;

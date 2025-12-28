@@ -1,5 +1,5 @@
 import type { SceneComp, ItemComp } from "@/api/db";
-import { type ActiveState, type TreeMoveEvent, type TreeMoveEvent2 } from "./scene-logic";
+import { type ActiveState, type TreeMoveEvent } from "./scene-logic";
 import { fromPromise } from "xstate";
 
 export const capsuleReorder = fromPromise(async ({ input }) => {
@@ -21,7 +21,7 @@ export const capsuleReorder = fromPromise(async ({ input }) => {
 		}
 	}
 });
-export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeMoveEvent2) {
+export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeMoveEvent) {
 	const { sourceId, targetId } = payload;
 
 	const item = context.items[sourceId];
@@ -177,12 +177,12 @@ export function updateOrder(item: ItemComp) {
 		body: formData
 	});
 }
-
+/* 
 function findElementWithSmallestOrder<T extends { order: number }>(item: T[]): T | undefined {
 	if (item.length == 0) return { order: 0 } as T;
 	return item.reduce((min, current) => (current.order < min?.order ? current : min));
 }
-
+ */
 export const STEP = 1000;
 export const calculateNewOrder = (
 	targetOrder: number,

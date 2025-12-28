@@ -1,8 +1,9 @@
+import { GRID_DEFAULT_PREFIX } from "@/lib/constants";
 import cx from "classnames";
 import { Grid2x2 } from "lucide-react";
 import { useId, useState, useRef, useMemo } from "react";
 
-export type GridSize = { x: number; y: number };
+export type GridSize = { w: number; h: number };
 
 export type ResizableGridFrameProps = {
 	stepPx?: number; // défaut: 16
@@ -10,9 +11,10 @@ export type ResizableGridFrameProps = {
 	paddingPx?: number; // défaut: 4
 	minCells?: number; // >= 1
 	maxCells?: number; // défaut: 16 (limite x/y)
-	defaultCells?: GridSize; // défaut: {x:3,y:3}
 	canvasWidth?: number;
 	canvasHeight?: number;
+	w?: number;
+	h?: number;
 	onChange?: (size: GridSize) => void;
 };
 
@@ -22,9 +24,10 @@ export function ResizableGridFrame({
 	paddingPx = 4,
 	minCells = 1,
 	maxCells = 16,
-	defaultCells = { x: 3, y: 3 },
 	canvasWidth = 250,
 	canvasHeight = 120,
+	w = 3,
+	h = 3,
 	onChange
 }: ResizableGridFrameProps) {
 	const patternId = useId();
@@ -32,8 +35,8 @@ export function ResizableGridFrame({
 	const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 	const [cells, setCells] = useState<GridSize>(() => ({
-		x: clamp(Math.floor(defaultCells.x), minCells, maxCells),
-		y: clamp(Math.floor(defaultCells.y), minCells, maxCells)
+		w: clamp(Math.floor(w), minCells, maxCells),
+		h: clamp(Math.floor(h), minCells, maxCells)
 	}));
 
 	const maxFromCanvas = useMemo(
@@ -49,12 +52,12 @@ export function ResizableGridFrame({
 
 	const framePx = useMemo(
 		() => ({
-			w: paddingPx * 2 + cells.x * stepPx,
-			h: paddingPx * 2 + cells.y * stepPx,
-			innerW: cells.x * stepPx,
-			innerH: cells.y * stepPx
+			w: paddingPx * 2 + cells.w * stepPx,
+			h: paddingPx * 2 + cells.h * stepPx,
+			innerW: cells.w * stepPx,
+			innerH: cells.h * stepPx
 		}),
-		[cells.x, cells.y, stepPx, paddingPx]
+		[cells.w, cells.h, stepPx, paddingPx]
 	);
 
 	// motif “carré + gap” : on dessine un carré de taille (step-gap) dans un pas step
@@ -75,8 +78,8 @@ export function ResizableGridFrame({
 		resizeRef.current = {
 			startClientX: e.clientX,
 			startClientY: e.clientY,
-			startX: cells.x,
-			startY: cells.y,
+			startX: cells.w,
+			startY: cells.h,
 			resizing: true
 		};
 	};
@@ -91,8 +94,8 @@ export function ResizableGridFrame({
 		const nextX = clamp(s.startX + Math.round(dx / stepPx), minCells, maxX);
 		const nextY = clamp(s.startY + Math.round(dy / stepPx), minCells, maxY);
 
-		if (nextX === cells.x && nextY === cells.y) return;
-		setCells({ x: nextX, y: nextY });
+		if (nextX === cells.w && nextY === cells.h) return;
+		setCells({ w: nextX, h: nextY });
 	};
 
 	const onHandlePointerUp = () => {
@@ -115,11 +118,11 @@ export function ResizableGridFrame({
 	return (
 		<div ref={ref} className="grid-size-info relative" onClick={onDisplayGrid}>
 			<div className="flex cursor-pointer items-center gap-2 text-xs">
+				<Grid2x2 className="w-4" />
 				<span>Grille</span>
 				<span className="text-sm font-semibold">
-					<span>{cells.x}</span> × <span>{cells.y}</span>
+					<span>{cells.w}</span> × <span>{cells.h}</span>
 				</span>
-				<Grid2x2 className="w-4" />
 			</div>
 			<div
 				className={cx("absolute border border-gray-500 bg-white", isGridVisible ? "grid" : "hidden")}
@@ -172,10 +175,10 @@ export function gridWHClassName(
 	size: GridSize,
 	opts?: { prefix?: string }
 ): { className: string; cssText: string } {
-	const prefix = opts?.prefix ?? "g";
-	const styles = gridStyleFromXY(size.x, size.y);
+	const prefix = opts?.prefix ?? GRID_DEFAULT_PREFIX;
+	const styles = gridStyleFromXY(size.w, size.h);
 	const signature = cssObjectToClass(styles);
-	const hash = `grid-w${size.x}-h${size.y}`;
+	const hash = `grid-w${size.w}-h${size.h}`;
 
 	const className = `${prefix}-${hash}`;
 	const cssText = `.${className}{${signature}}`;

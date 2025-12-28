@@ -3,40 +3,38 @@ import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
 
+import { GRID_DEFAULT_PREFIX } from "@/lib/constants";
+
 import type { Decor, CapsuleComp, ContentEvent, SceneComp, ItemComp } from "@/api/db";
+import type { Theme } from "prisma/generated/prisma/client";
+import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
 
 export interface ActiveState {
 	[key: string]: number | string | boolean | null;
 	main: number | null;
-	capsuleId: number | null;
+
 	itemId: number | null;
 	contentId: number | null;
 	cue: string | null;
 	action: string | null;
 	eventTouched: boolean;
 	decorTouched: boolean;
+	themeTouched: boolean;
 }
 export const active: ActiveState = {
 	main: null,
-	capsuleId: null,
+
 	itemId: null,
 	contentId: null,
 	cue: null,
 	action: null,
 	eventTouched: false,
-	decorTouched: false
+	decorTouched: false,
+	themeTouched: false
 };
 
 export interface TreeMoveEvent {
 	sourceId: number;
-	sourceType: "element" | "capsule";
-	targetId: number;
-	targetType: "element" | "capsule";
-}
-
-export interface TreeMoveEvent2 {
-	sourceId: number;
-
 	targetId: number;
 }
 
@@ -49,11 +47,12 @@ export const sceneLogic = setup({
 			| { type: "commit"; payload: Partial<ActiveState> }
 			| { type: "reset-active" }
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
-			| { type: "capsule-update"; payload: Pick<CapsuleComp, "id" | "name"> }
+			| { type: "capsule-update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
-			| { type: "tree-move-item"; payload: TreeMoveEvent2 }
+			| { type: "tree-move-item"; payload: TreeMoveEvent }
 			| { type: "tree-after-move"; payload: TreeMoveEvent }
 			| { type: "reorder.capsule"; payload: TreeMoveEvent }
+			| { type: "theme-update"; payload: Partial<Theme> }
 	},
 	actions: {
 		reset: assign(({ context }) => {
@@ -62,31 +61,48 @@ export const sceneLogic = setup({
 				active: {
 					...context.active,
 					eventTouched: false,
-					decorTouched: false
+					decorTouched: false,
+					themeTouched: false
 				}
 			};
 		}),
-		fetchers: async ({ context }, params: string[]) => {
+		commitFetch: async ({ context }, params: string[]) => {
 			if (!params.length) return;
 			const itemId = context.active.itemId;
-			// decor changes — envoyer à la base quand on quitte l'édition d'une capsule ET decorTouched est vrai
 
 			const decorTouched = params.includes("decorTouched");
 			const eventTouched = params.includes("eventTouched");
+			const themeTouched = params.includes("eventTouched");
 
-			if (eventTouched) {
-				if (itemId)
-					fetch(`api/media/${itemId}`, {
+			if (eventTouched && itemId) {
+				fetch(`api/content/${itemId}`, {
+					method: "POST",
+					headers: {
+						Accept: "application/json",
+						"Content-Type": "application/json"
+					},
+					body: JSON.stringify(context.events[itemId])
+				});
+			}
+			if (themeTouched && itemId) {
+				// chercher dans l'item la classe grid et n'ajouter que celle-la
+				const itemClassName = context.decors[context.items[itemId].decorId].className;
+				const gridClassName = itemClassName.split(" ").filter((cl) => cl.startsWith(GRID_DEFAULT_PREFIX))[0];
+
+				if (gridClassName) {
+					const generated = findCssClassRule(gridClassName, context.theme.generated);
+					fetch(`api/theme/${context.theme.id}`, {
 						method: "POST",
 						headers: {
 							Accept: "application/json",
 							"Content-Type": "application/json"
 						},
-						body: JSON.stringify(context.events[itemId])
+						body: JSON.stringify({ generated })
 					});
+				}
 			}
 
-			if (itemId && decorTouched && context.items[itemId].decorId) {
+			if (decorTouched && itemId && context.items[itemId].decorId) {
 				const decor = context.decors?.[context.items[itemId].decorId];
 				if (decor) {
 					const { id: decorId, ...rest } = decor;
@@ -123,7 +139,6 @@ export const sceneLogic = setup({
 		edit: {
 			type: "parallel",
 			initial: "active",
-
 			states: {
 				active: {
 					on: {
@@ -146,7 +161,7 @@ export const sceneLogic = setup({
 						commit: {
 							actions: [
 								{
-									type: "fetchers",
+									type: "commitFetch",
 									params: ({ context, event }) => {
 										console.log("commit", context.active, event.payload);
 
@@ -172,7 +187,6 @@ export const sceneLogic = setup({
 							target: "#scene.edit",
 							actions: [
 								assign(({ context, event }) => {
-									console.log("--->capsule-update");
 									const { id: capsuleId, ...payload } = event.payload;
 
 									const newCapsule = {
@@ -204,6 +218,7 @@ export const sceneLogic = setup({
 						}
 					}
 				},
+
 				item: {
 					on: {
 						"item-update": {
@@ -230,6 +245,11 @@ export const sceneLogic = setup({
 											...context.decors?.[decorId],
 											...decor
 										}
+									},
+
+									active: {
+										...context.active,
+										eventTouched: true
 									}
 								};
 							})
@@ -237,22 +257,22 @@ export const sceneLogic = setup({
 					}
 				},
 
-				media: {
+				content: {
 					on: {
 						"events-update": {
 							actions: assign(({ context, event }) => {
-								const elementId = context.active.itemId ?? getItemFromCapsule(context.active.capsuleId, context)?.id;
+								const itemId = context.active.itemId;
 
-								if (!elementId) return context;
+								if (!itemId) return context;
 								const action = event.payload.action;
 								if (!action) return context;
 								return {
 									...context,
 									events: {
 										...context.events,
-										[elementId]: {
-											...(context.events[elementId] ?? {}),
-											[action]: { ...context.events[elementId]?.[action], ...event.payload }
+										[itemId]: {
+											...(context.events[itemId] ?? {}),
+											[action]: { ...context.events[itemId]?.[action], ...event.payload }
 										}
 									},
 									active: {
@@ -264,24 +284,28 @@ export const sceneLogic = setup({
 						}
 					}
 				},
-
+				theme: {
+					on: {
+						"theme-update": {
+							actions: assign(({ context, event }) => {
+								const custom = mergeCssStrings(context.theme?.custom, event.payload?.custom);
+								const generated = mergeCssStrings(context.theme?.generated, event.payload?.generated);
+								const theme = {
+									...context.theme,
+									...event.payload,
+									custom,
+									generated
+								};
+								return { ...context, theme };
+							})
+						}
+					}
+				},
 				tree: {
 					initial: "idle",
-
 					states: {
 						idle: {
 							on: {
-								// "tree-move-item": {
-								// 	target: "tree-after-move",
-
-								// 	actions: [
-								// 		assign(({ context, event }) => {
-								// 			const { capsules, items, moved } = reorderElements(context, event.payload);
-								// 			if (moved) updateOrder(moved);
-								// 			return { ...context, capsules, items };
-								// 		})
-								// 	]
-								// },
 								"tree-move-item": {
 									target: "tree-after-move",
 
@@ -339,17 +363,3 @@ export function getItemFromCapsule(
 	const item = content ? Object.values(context.items).find((e) => e.contentId == content.id) : null;
 	return item;
 }
-
-/* 
-comme capsule est traité comme un element, la différence ne se justifie plus 
-- pour le décor$
-- pour les events 
-
-cela modifie entierement le schéma 
-la capsule est un media spécifique 
-- qui contient une liste d'items
-- qui à une grille
-
-les decors et events sont traités par item
-
-*/

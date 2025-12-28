@@ -8,7 +8,7 @@ import * as transitions from "@/player/presets/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";
-import { MediaPanel } from "./event-panel";
+import { ContentPanel } from "./event-panel";
 
 const defaultTransition = "fondu";
 
@@ -33,7 +33,7 @@ function ContentInfos({ item }: { item: ItemComp }) {
 
 	return (
 		<div className="media-infos flex gap-4">
-			<MediaPanel id={item.contentId} />
+			<ContentPanel id={item.contentId} />
 			<div className="w-40">
 				<p className="mb-2">Transitions</p>
 				{events &&

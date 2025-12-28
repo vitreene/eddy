@@ -1,11 +1,15 @@
+import cx from "classnames";
 import { useCallback } from "react";
+
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { CompactStyleEditor } from "@/components/style-editor/compact-style-editor";
-import { gridWHClassName, ResizableGridFrame, type GridSize } from "@/components/draw-grid";
+import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
 
-import type { EditableStyle } from "@/components/style-editor/types";
 import { DEFAULT_STYLE } from "@/lib/constants";
+
 import type { CapsuleComp, Decor } from "@/api/db";
+import type { GridSize } from "@/components/draw-grid";
+import type { EditableStyle } from "@/components/style-editor/types";
 
 export function EditItem() {
 	const { send } = SceneLogicContext.useActorRef();
@@ -28,7 +32,6 @@ export function EditItem() {
 
 	const onStyleChange = useCallback(
 		(newStyle: EditableStyle) => {
-			send({ type: "active-set", payload: { decorTouched: true } });
 			send({ type: "item-update", payload: { decor: { ...decor, style: newStyle } as Decor } });
 		},
 		[send, decor]
@@ -62,13 +65,21 @@ function CapsuleEdit({
 		e.preventDefault();
 		const formData = new FormData(e.currentTarget);
 		const name = formData.get("name") as string;
-		send({ type: "capsule-update", payload: { name, id: capsule.id } });
+		send({ type: "capsule-update", payload: { id: capsule.id, name } });
 	};
 
 	const onChangeGrid = (size: GridSize) => {
 		const gridClassName = gridWHClassName(size);
 		console.log(gridClassName);
+
+		send({
+			type: "capsule-update",
+			payload: { id: capsule.id, grid: gridClassName.className }
+		});
+		send({ type: "theme-update", payload: { generated: gridClassName.cssText } });
 	};
+
+	const gridValues = getValuesFromGridName(capsule.grid);
 	return (
 		<>
 			<form onBlur={onSubmit} className="mb-2">
@@ -81,9 +92,17 @@ function CapsuleEdit({
 					defaultValue={capsule?.name}
 				/>
 			</form>
-			<ResizableGridFrame onChange={onChangeGrid} />
+			<ResizableGridFrame key={capsule.id} w={gridValues.w} h={gridValues.h} onChange={onChangeGrid} />
 
 			<CompactStyleEditor value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE} onChange={onChange} />
 		</>
 	);
+}
+
+const DEFAULT_GRID_VALUE = { w: 3, h: 1 };
+function getValuesFromGridName(grid: string = "") {
+	if (!grid) return DEFAULT_GRID_VALUE;
+	const values = /-w(\d*)-h(\d*)/.exec(grid);
+	if (!values) return DEFAULT_GRID_VALUE;
+	return { w: Number(values[1]), h: Number(values[2]) };
 }

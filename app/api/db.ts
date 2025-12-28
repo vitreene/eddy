@@ -147,7 +147,7 @@ main()
 export async function getScene(sceneId: number): Promise<SceneComp> {
 	const sceneDB = await prisma.scene.findUnique({
 		where: { id: sceneId },
-		include: { sceneContents: true }
+		include: { sceneContents: true, theme: true }
 	});
 
 	const scenecontents = [
@@ -356,7 +356,7 @@ export async function additemToCapsule(data: { order: number; capsuleId: number 
 //	name: string; -> label time
 //	action: string; -> name  intro, outro..
 
-export async function addEventTocontent({
+export async function addEventToContent({
 	id,
 	name,
 	action,
@@ -416,4 +416,13 @@ export async function getDecorById(id: number) {
 
 export async function getDecorByItemId(itemId: number) {
 	return await prisma.item.findUnique({ where: { id: itemId } }).decor();
+}
+
+// THEME
+
+export async function updateTheme(themeId: number, update: Partial<Theme>) {
+	const theme = await prisma.theme.findUnique({ where: { id: themeId } });
+	const custom = (theme.custom || "") + (update.custom || "");
+	const generated = (theme.generated || "") + (update.generated || "");
+	return await prisma.theme.update({ where: { id: themeId }, data: { ...update, custom, generated } });
 }
