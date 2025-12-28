@@ -34,6 +34,12 @@ export interface TreeMoveEvent {
 	targetType: "element" | "capsule";
 }
 
+export interface TreeMoveEvent2 {
+	sourceId: number;
+
+	targetId: number;
+}
+
 export const sceneLogic = setup({
 	types: {
 		context: {} as SceneComp & { active: ActiveState },
@@ -45,7 +51,7 @@ export const sceneLogic = setup({
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
 			| { type: "capsule-update"; payload: Pick<CapsuleComp, "id" | "name"> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
-			| { type: "tree-move-item"; payload: TreeMoveEvent }
+			| { type: "tree-move-item"; payload: TreeMoveEvent2 }
 			| { type: "tree-after-move"; payload: TreeMoveEvent }
 			| { type: "reorder.capsule"; payload: TreeMoveEvent }
 	},
@@ -265,6 +271,17 @@ export const sceneLogic = setup({
 					states: {
 						idle: {
 							on: {
+								// "tree-move-item": {
+								// 	target: "tree-after-move",
+
+								// 	actions: [
+								// 		assign(({ context, event }) => {
+								// 			const { capsules, items, moved } = reorderElements(context, event.payload);
+								// 			if (moved) updateOrder(moved);
+								// 			return { ...context, capsules, items };
+								// 		})
+								// 	]
+								// },
 								"tree-move-item": {
 									target: "tree-after-move",
 
@@ -287,14 +304,16 @@ export const sceneLogic = setup({
 								onDone: {
 									target: "#scene.edit",
 									actions: assign(({ context, event }) => {
+										console.log("tree-capsule-reorder", event);
+
 										if (event.output == "no-reorder") return context;
 										const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
-										const elements = reorders.map((r) => ({
+										const items = reorders.map((r) => ({
 											[r.id]: { ...context.items[r.id], order: r.order }
 										}));
 										return {
 											...context,
-											items: Object.assign({}, context.items, ...elements)
+											items: Object.assign({}, context.items, ...items)
 										};
 									})
 								}

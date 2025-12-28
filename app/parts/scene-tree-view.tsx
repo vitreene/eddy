@@ -36,89 +36,87 @@ export function SceneTreeView() {
 
 	if (!main || !capsules || !Object.keys(capsules).length) return null;
 
+	// Fonction récursive pour rendre une capsule et son contenu
+	const renderCapsuleNode = (capsuleId: number): TreeDataItem => {
+		const c = capsules[capsuleId];
+		const id = `capsule${SEP}${c.id}`;
+		const els = c.itemIds.map((el) => items[el]);
+
+		return {
+			id,
+			name: c.name,
+			itemId: c.itemId,
+			droppable: true,
+			draggable: true,
+			className: cx("uppercase text-left hover:bg-amber-100", {
+				"bg-amber-200 hover:bg-amber-300": id == selected
+			}),
+
+			children: els
+				.sort((a, b) => (a.order > b.order ? 1 : -1))
+				.map((el) => {
+					const content = contents[el.contentId];
+					const childCapsuleId = content?.capsuleId;
+
+					// Si l'item contient une capsule, le rendre récursivement
+					if (childCapsuleId) {
+						return renderCapsuleNode(childCapsuleId);
+					}
+
+					// Sinon, afficher l'item comme un élément simple
+					let Icon;
+					let name: string;
+					switch (content?.type) {
+						case "img":
+							Icon = ({ className: _ }: { className: string }) => (
+								<Media size="icon" attr={contents[el.contentId]} className="mr-2" />
+							);
+							name = String(el.id);
+							break;
+						case "text":
+							Icon = BoxIcon;
+							name = content.inner || EMPTY;
+							break;
+						default:
+							Icon = null;
+							name = EMPTY;
+							break;
+					}
+
+					const id = el.id == -1 ? `capsule${SEP}${el.capsuleId}` : `element${SEP}${el.id}`;
+					return {
+						id,
+						name,
+						itemId: el.id,
+						content: contents[el.contentId],
+						className: cx("text-left hover:bg-amber-100", {
+							"bg-amber-200 hover:bg-amber-300": id == selected
+						}),
+
+						icon: Icon,
+						draggable: true
+					};
+				})
+		};
+	};
+
 	const tree: TreeDataItem[] = capsules[main].itemIds
 		.map((id) => items[id])
 		.sort((a, b) => (a.order > b.order ? 1 : -1))
 		.filter((item) => item.contentId && contents[item.contentId].capsuleId)
 		.map((item) => capsules[contents[item.contentId].capsuleId!])
-		.map((c) => {
-			const els = c.itemIds.map((el) => items[el]);
-			const id = `capsule${SEP}${c.id}`;
-			console.log(c);
+		.map((c) => renderCapsuleNode(c.id));
 
-			return {
-				id,
-				capsuleId: c.id,
-				name: c.name,
-				itemId: c.itemId,
-				droppable: true,
-				draggable: true,
-				className: cx("uppercase text-left hover:bg-amber-100", {
-					"bg-amber-200 hover:bg-amber-300": id == selected
-				}),
-
-				children: els
-					.sort((a, b) => (a.order > b.order ? 1 : -1))
-					.map((el) => {
-						const media = contents[el.contentId];
-
-						let Icon;
-						let name: string;
-						switch (media?.type) {
-							case "img":
-								Icon = ({ className: _ }: { className: string }) => (
-									<Media size="icon" attr={contents[el.contentId]} className="mr-2" />
-								);
-								name = String(el.id);
-								break;
-							case "text":
-								Icon = BoxIcon;
-								name = media.inner || EMPTY;
-								break;
-							default:
-								Icon = null;
-								name = EMPTY;
-								break;
-						}
-
-						const id = el.id == -1 ? `capsule${SEP}${el.capsuleId}` : `element${SEP}${el.id}`;
-						return {
-							id,
-							name,
-							itemId: el.id,
-							content: contents[el.contentId],
-							className: cx("text-left hover:bg-amber-100", {
-								"bg-amber-200 hover:bg-amber-300": id == selected
-							}),
-
-							icon: Icon,
-							draggable: true
-						};
-					})
-			};
-		});
-
-	const onDocumentDrag: (sourceItem: TreeDataItem, targetItem: TreeDataItem) => void = (source, target) => {
-		console.log("onDocumentDrag", source, target);
-		const [sourceType, sourceId] = source.id.split(SEP) as ["capsule" | "element", string];
-		const [targetType, targetId] = target.id.split(SEP) as ["capsule" | "element", string];
+	const onDocumentDrag = (source: TreeDataItem, target: TreeDataItem) => {
+		console.log({ source, target });
 
 		send({
 			type: "tree-move-item",
 			payload: {
-				sourceId: Number(sourceId),
-				targetId: Number(targetId),
-				sourceType,
-				targetType
+				sourceId: Number(source.itemId),
+				targetId: Number(target.itemId)
 			}
 		});
-
-		/* 
-    si target est un element => get capsule + order -> reorder
-    si target est une capsule => get capsule + order = 1 -> reorder
-    */
-		// remove capsule from element
-		// add id element to capsule
 	};
 
 	const onSelectChange: (item: TreeDataItem | undefined) => void = (item) => {
@@ -131,13 +129,7 @@ export function SceneTreeView() {
 	};
 
 	return (
-		<TreeView
-			data={tree}
-			onDocumentDrag={onDocumentDrag}
-			expandAll={true}
-			onSelectChange={onSelectChange}
-			initialSelectedItemId={"2"}
-		/>
+		<TreeView data={tree} onDocumentDrag={onDocumentDrag} expandAll={true} onSelectChange={onSelectChange} />
 	);
 }
 
@@ -177,9 +169,3 @@ const initial = [
 		draggable: true
 	}
 ];
-
-/* TODO
-- element -> lien vers edition
-- capsule lien vers events
-
-*/

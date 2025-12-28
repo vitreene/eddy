@@ -1,6 +1,6 @@
 import type { Route } from "../+types/root";
 
-import { createDecor, updateDecor, getDecorByItemId, updateitem, type Decor } from "./db";
+import { createDecor, updateDecor, getDecorByItemId, updateItem, type Decor } from "./db";
 
 export async function action({ request }: Route.ActionArgs) {
 	const contentType = request.headers.get("content-type") || "";
@@ -27,7 +27,7 @@ export async function action({ request }: Route.ActionArgs) {
 				// Créer un nouveau decor pour la capsule
 				const created = await createDecor(decorData);
 				// Lier le decor à la capsule
-				await updateitem({ id: Number(itemId), decorId: created.id });
+				await updateItem({ id: Number(itemId), decorId: created.id });
 
 				return { ok: true, decorId: created.id };
 			}

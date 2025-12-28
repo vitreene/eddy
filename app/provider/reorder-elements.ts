@@ -1,5 +1,5 @@
 import type { SceneComp, ItemComp } from "@/api/db";
-import { type ActiveState, type TreeMoveEvent } from "./scene-logic";
+import { type ActiveState, type TreeMoveEvent, type TreeMoveEvent2 } from "./scene-logic";
 import { fromPromise } from "xstate";
 
 export const capsuleReorder = fromPromise(async ({ input }) => {
@@ -21,6 +21,61 @@ export const capsuleReorder = fromPromise(async ({ input }) => {
 		}
 	}
 });
+export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeMoveEvent2) {
+	const { sourceId, targetId } = payload;
+
+	const item = context.items[sourceId];
+	const target = context.items[targetId];
+
+	const capsule = context.capsules[target.capsuleId];
+	const sourceCapsule = context.capsules[item.capsuleId];
+
+	// Récupérer les éléments de la capsule cible triés par order
+	const sortedItems = capsule.itemIds
+		.filter((id) => id !== sourceId)
+		.map((id) => context.items[id])
+		.sort((a, b) => a.order - b.order);
+
+	// Trouver la position du target
+	const targetIndex = sortedItems.findIndex((el) => el.id === targetId);
+
+	// Déterminer la nouvelle valeur order
+	let newOrder: number;
+	if (targetIndex === -1) {
+		// Target non trouvé, placer à la fin
+		const lastItem = sortedItems[sortedItems.length - 1];
+		newOrder = calculateNewOrder(lastItem?.order ?? STEP);
+	} else {
+		// Placer après target
+		const nextItem = sortedItems[targetIndex + 1];
+		const targetOrder = sortedItems[targetIndex].order;
+		newOrder = calculateNewOrder(targetOrder, nextItem?.order);
+	}
+
+	// Mettre à jour uniquement l'élément déplacé
+	item.order = newOrder;
+	item.capsuleId = target.capsuleId;
+
+	// Mettre à jour les références des capsules si changement
+	if (item.capsuleId !== sourceCapsule.id) {
+		sourceCapsule.itemIds = sourceCapsule.itemIds.filter((id) => id !== sourceId);
+		capsule.itemIds.push(sourceId);
+	}
+
+	return {
+		capsules: {
+			...context.capsules,
+			[sourceCapsule.id]: sourceCapsule,
+			[capsule.id]: capsule
+		},
+		items: {
+			...context.items,
+			[sourceId]: item
+		},
+		moved: item
+	};
+}
+/* 
 export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeMoveEvent) {
 	const { sourceId, targetId, sourceType, targetType } = payload;
 
@@ -111,7 +166,7 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 		capsules: context.capsules,
 		items: context.items
 	};
-}
+} */
 export function updateOrder(item: ItemComp) {
 	const formData = new FormData();
 	formData.set("order", String(item.order));
