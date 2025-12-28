@@ -9,7 +9,7 @@ export default [
 	...prefix("api", [
 		route("capsule/:id/*", "./api/capsule.ts"),
 		route("decor", "./api/decor.ts"),
-		route("element/:id", "./api/element.ts"),
+		route("item/:id", "./api/item.ts"),
 		route("media/:id", "./api/media.ts")
 	])
 ] satisfies RouteConfig;

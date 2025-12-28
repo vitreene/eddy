@@ -26,38 +26,38 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 
 	if (targetType === "element") {
 		if (sourceType === "element") {
-			const element = context.items[sourceId];
+			const item = context.items[sourceId];
 			const target = context.items[targetId];
 
 			const capsule = context.capsules[target.capsuleId];
-			const sourceCapsule = context.capsules[element.capsuleId];
+			const sourceCapsule = context.capsules[item.capsuleId];
 
 			// Récupérer les éléments de la capsule cible triés par order
-			const capsuleElementIds = capsule.itemIds.filter((id) => id !== sourceId);
-			const sortedElements = capsuleElementIds.map((id) => context.items[id]).sort((a, b) => a.order - b.order);
+			const capsuleItemsIds = capsule.itemIds.filter((id) => id !== sourceId);
+			const sortedItems = capsuleItemsIds.map((id) => context.items[id]).sort((a, b) => a.order - b.order);
 
 			// Trouver la position du target
-			const targetIndex = sortedElements.findIndex((el) => el.id === targetId);
+			const targetIndex = sortedItems.findIndex((el) => el.id === targetId);
 
 			// Déterminer la nouvelle valeur order
 			let newOrder: number;
 			if (targetIndex === -1) {
 				// Target non trouvé, placer à la fin
-				const lastElement = sortedElements[sortedElements.length - 1];
-				newOrder = calculateNewOrder(lastElement?.order ?? STEP);
+				const lastItem = sortedItems[sortedItems.length - 1];
+				newOrder = calculateNewOrder(lastItem?.order ?? STEP);
 			} else {
 				// Placer après target
-				const nextElement = sortedElements[targetIndex + 1];
-				const targetOrder = sortedElements[targetIndex].order;
-				newOrder = calculateNewOrder(targetOrder, nextElement?.order);
+				const nextItem = sortedItems[targetIndex + 1];
+				const targetOrder = sortedItems[targetIndex].order;
+				newOrder = calculateNewOrder(targetOrder, nextItem?.order);
 			}
 
 			// Mettre à jour uniquement l'élément déplacé
-			element.order = newOrder;
-			element.capsuleId = target.capsuleId;
+			item.order = newOrder;
+			item.capsuleId = target.capsuleId;
 
 			// Mettre à jour les références des capsules si changement
-			if (element.capsuleId !== sourceCapsule.id) {
+			if (item.capsuleId !== sourceCapsule.id) {
 				sourceCapsule.itemIds = sourceCapsule.itemIds.filter((id) => id !== sourceId);
 				capsule.itemIds.push(sourceId);
 			}
@@ -68,27 +68,27 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 					[sourceCapsule.id]: sourceCapsule,
 					[capsule.id]: capsule
 				},
-				elements: {
+				items: {
 					...context.items,
-					[sourceId]: element
+					[sourceId]: item
 				},
-				moved: element
+				moved: item
 			};
 		}
 	}
 
 	if (targetType === "capsule") {
-		const element = context.items[sourceId];
+		const item = context.items[sourceId];
 		const capsule = context.capsules[targetId];
-		const sourceCapsule = context.capsules[element.capsuleId];
+		const sourceCapsule = context.capsules[item.capsuleId];
 
-		const nextElement = findElementWithSmallestOrder(
+		const nextItem = findElementWithSmallestOrder(
 			Object.values(context.items).filter((el) => el.capsuleId == targetId)
 		);
-		const newOrder = calculateNewOrder(0, nextElement?.order);
+		const newOrder = calculateNewOrder(0, nextItem?.order);
 		// Placer en premier dans la capsule
-		element.order = newOrder;
-		element.capsuleId = capsule.id;
+		item.order = newOrder;
+		item.capsuleId = capsule.id;
 
 		sourceCapsule.itemIds = sourceCapsule.itemIds.filter((id) => id !== sourceId);
 		capsule.itemIds.push(sourceId);
@@ -99,45 +99,45 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 				[sourceCapsule.id]: sourceCapsule,
 				[targetId]: capsule
 			},
-			elements: {
+			items: {
 				...context.items,
-				[sourceId]: element
+				[sourceId]: item
 			},
-			moved: element
+			moved: item
 		};
 	}
 
 	return {
 		capsules: context.capsules,
-		elements: context.items
+		items: context.items
 	};
 }
-export function updateOrder(element: ItemComp) {
+export function updateOrder(item: ItemComp) {
 	const formData = new FormData();
-	formData.set("order", String(element.order));
-	formData.set("capsuleId", String(element.capsuleId));
+	formData.set("order", String(item.order));
+	formData.set("capsuleId", String(item.capsuleId));
 
-	fetch(`api/element/${element.id}`, {
+	fetch(`api/item/${item.id}`, {
 		method: "PUT",
 		body: formData
 	});
 }
 
-function findElementWithSmallestOrder<T extends { order: number }>(elements: T[]): T | undefined {
-	if (elements.length == 0) return { order: 0 } as T;
-	return elements.reduce((min, current) => (current.order < min?.order ? current : min));
+function findElementWithSmallestOrder<T extends { order: number }>(item: T[]): T | undefined {
+	if (item.length == 0) return { order: 0 } as T;
+	return item.reduce((min, current) => (current.order < min?.order ? current : min));
 }
 
 export const STEP = 1000;
 export const calculateNewOrder = (
 	targetOrder: number,
-	nextElementOrder?: number,
+	nextItemOrder?: number,
 	step: number = STEP
 ): number => {
-	if (nextElementOrder === undefined) {
+	if (nextItemOrder === undefined) {
 		// Pas de suivant : order = target.order + step
 		return targetOrder + step;
 	}
 	// Avec suivant : order = floor(target.order + (next.order - target.order) / 2)
-	return Math.floor(targetOrder + (nextElementOrder - targetOrder) / 2);
+	return Math.floor(targetOrder + (nextItemOrder - targetOrder) / 2);
 };

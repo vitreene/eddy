@@ -1,4 +1,4 @@
-import { setup, assign, fromPromise, type UnknownActorLogic } from "xstate";
+import { setup, assign, type UnknownActorLogic } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
@@ -270,9 +270,9 @@ export const sceneLogic = setup({
 
 									actions: [
 										assign(({ context, event }) => {
-											const { capsules, elements, moved } = reorderElements(context, event.payload);
+											const { capsules, items, moved } = reorderElements(context, event.payload);
 											if (moved) updateOrder(moved);
-											return { ...context, capsules, items: elements };
+											return { ...context, capsules, items };
 										})
 									]
 								}

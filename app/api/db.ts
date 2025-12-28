@@ -339,9 +339,9 @@ export async function reorderCapsule(id: number) {
 	});
 }
 
-// itemS
+// ITEMS
 
-export async function updateitem({ id, ...update }: Partial<Item>) {
+export async function updateItem({ id, ...update }: Partial<Item>) {
 	return await prisma.item.update({
 		where: { id },
 		data: update
