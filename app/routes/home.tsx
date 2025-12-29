@@ -10,6 +10,7 @@ import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 import { getScene, type SceneComp } from "~/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";
 import { EditItem } from "@/parts/item-edit";
+import { EditableStylePanel, type EditableStyle } from "@/components/style-editor-3";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 
@@ -77,6 +78,12 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 			</section>
 			<section className="base-layout layout-infos">
 				<EditItem />
+				{/* <EditableStylePanel
+					value={{}}
+					onChange={function (style: EditableStyle): void {
+						console.log({ style });
+					}}
+				/> */}
 			</section>
 			<section className="base-layout layout-edit">
 				<EditEvent />
