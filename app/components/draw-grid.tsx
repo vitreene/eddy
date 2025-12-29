@@ -18,6 +18,8 @@ export type ResizableGridFrameProps = {
 	onChange?: (size: GridSize) => void;
 };
 
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
 export function ResizableGridFrame({
 	stepPx = 16,
 	gapPx = 4,
@@ -32,12 +34,16 @@ export function ResizableGridFrame({
 }: ResizableGridFrameProps) {
 	const patternId = useId();
 
-	const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
 	const [cells, setCells] = useState<GridSize>(() => ({
 		w: clamp(Math.floor(w), minCells, maxCells),
 		h: clamp(Math.floor(h), minCells, maxCells)
 	}));
+
+	// cache pour la fonction outsideClick
+	const wh = useRef<{ w: number; h: number }>({
+		w: clamp(Math.floor(w), minCells, maxCells),
+		h: clamp(Math.floor(h), minCells, maxCells)
+	});
 
 	const maxFromCanvas = useMemo(
 		() => ({
@@ -96,6 +102,7 @@ export function ResizableGridFrame({
 
 		if (nextX === cells.w && nextY === cells.h) return;
 		setCells({ w: nextX, h: nextY });
+		wh.current = { w: nextX, h: nextY };
 	};
 
 	const onHandlePointerUp = () => {
@@ -109,12 +116,14 @@ export function ResizableGridFrame({
 	const onDisplayGrid = (e: React.MouseEvent<HTMLElement>) => {
 		function outsideClick() {
 			setGridVisible(false);
-			onChange?.(cells);
+
+			onChange?.(wh.current);
 			document.body.removeEventListener("click", outsideClick);
 		}
 		document.body.addEventListener("click", outsideClick);
 		setGridVisible(true);
 	};
+
 	return (
 		<div ref={ref} className="grid-size-info relative" onClick={onDisplayGrid}>
 			<div className="flex cursor-pointer items-center gap-2 text-xs">
@@ -180,8 +189,8 @@ export function gridWHClassName(
 	const signature = cssObjectToClass(styles);
 	const hash = `grid-w${size.w}-h${size.h}`;
 
-	const className = `${prefix}-${hash}`;
-	const cssText = `.${className}{${signature}}`;
+	const className = `.${prefix}-${hash}`;
+	const cssText = `${className}{${signature}}`;
 	return { className, cssText };
 }
 

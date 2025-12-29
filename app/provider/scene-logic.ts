@@ -3,8 +3,6 @@ import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
 
-import { GRID_DEFAULT_PREFIX } from "@/lib/constants";
-
 import type { Decor, CapsuleComp, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
@@ -62,19 +60,24 @@ export const sceneLogic = setup({
 					...context.active,
 					eventTouched: false,
 					decorTouched: false,
-					themeTouched: false
+					themeTouched: false,
+					capsuleTouched: false
 				}
 			};
 		}),
 		commitFetch: async ({ context }, params: string[]) => {
 			if (!params.length) return;
 			const itemId = context.active.itemId;
+			console.log({ itemId }, params);
+
+			if (!itemId) return false;
 
 			const decorTouched = params.includes("decorTouched");
 			const eventTouched = params.includes("eventTouched");
-			const themeTouched = params.includes("eventTouched");
+			const themeTouched = params.includes("themeTouched");
+			const capsuleTouched = params.includes("capsuleTouched");
 
-			if (eventTouched && itemId) {
+			if (eventTouched) {
 				fetch(`api/content/${itemId}`, {
 					method: "POST",
 					headers: {
@@ -84,25 +87,8 @@ export const sceneLogic = setup({
 					body: JSON.stringify(context.events[itemId])
 				});
 			}
-			if (themeTouched && itemId) {
-				// chercher dans l'item la classe grid et n'ajouter que celle-la
-				const itemClassName = context.decors[context.items[itemId].decorId].className;
-				const gridClassName = itemClassName.split(" ").filter((cl) => cl.startsWith(GRID_DEFAULT_PREFIX))[0];
 
-				if (gridClassName) {
-					const generated = findCssClassRule(gridClassName, context.theme.generated);
-					fetch(`api/theme/${context.theme.id}`, {
-						method: "POST",
-						headers: {
-							Accept: "application/json",
-							"Content-Type": "application/json"
-						},
-						body: JSON.stringify({ generated })
-					});
-				}
-			}
-
-			if (decorTouched && itemId && context.items[itemId].decorId) {
+			if (decorTouched && context.items[itemId].decorId) {
 				const decor = context.decors?.[context.items[itemId].decorId];
 				if (decor) {
 					const { id: decorId, ...rest } = decor;
@@ -110,6 +96,45 @@ export const sceneLogic = setup({
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ itemId, decorId, ...rest })
+					});
+				}
+			}
+
+			if (capsuleTouched) {
+				const contentId = context.items[itemId].contentId;
+				const { id, ...capsule } = context.capsules[context.contents[contentId].capsuleId];
+
+				delete capsule.itemIds;
+
+				const formData = new FormData();
+				Object.entries(capsule).forEach(([k, v]: [string, unknown]) => formData.set(k, v as any));
+
+				console.log("POST capsule-update", capsule);
+
+				fetch(`api/capsule/${id}`, {
+					method: "POST",
+					body: formData
+				});
+			}
+
+			if (themeTouched) {
+				const contentId = context.items[itemId].contentId;
+				const capsule = context.capsules[context.contents[contentId].capsuleId];
+
+				const gridClassName = capsule.grid;
+				console.log("themeTouched", { gridClassName, theme: context.theme.generated });
+
+				if (gridClassName) {
+					const generated = findCssClassRule(context.theme.generated, gridClassName);
+					console.log("generated", generated);
+
+					fetch(`api/theme/${context.theme.id}`, {
+						method: "POST",
+						headers: {
+							Accept: "application/json",
+							"Content-Type": "application/json"
+						},
+						body: JSON.stringify({ generated })
 					});
 				}
 			}
@@ -171,6 +196,8 @@ export const sceneLogic = setup({
 										}
 										if (context.active.eventTouched) diffs.push("eventTouched");
 										if (context.active.decorTouched) diffs.push("decorTouched");
+										if (context.active.themeTouched) diffs.push("themeTouched");
+										if (context.active.capsuleTouched) diffs.push("capsuleTouched");
 
 										return diffs;
 									}
@@ -189,31 +216,23 @@ export const sceneLogic = setup({
 								assign(({ context, event }) => {
 									const { id: capsuleId, ...payload } = event.payload;
 
-									const newCapsule = {
-										...context.capsules[capsuleId],
-										...payload
-									};
-
-									return {
-										...context,
-										capsules: {
-											...context.capsules,
-											[capsuleId]: newCapsule
+									const capsules = {
+										...context.capsules,
+										[capsuleId]: {
+											...context.capsules[capsuleId],
+											...payload
 										}
 									};
-								}),
-								({ event }) => {
-									// a passer en commit
-									const { id: capsuleId, ...payload } = event.payload;
 
-									const formData = new FormData();
-									Object.entries(payload).forEach(([k, v]: [string, unknown]) => formData.set(k, v as any));
+									const active = {
+										...context.active,
+										capsuleTouched: true,
+										...("grid" in payload && { themeTouched: true })
+									};
+									console.log("capsule-update", active);
 
-									fetch(`api/capsule/${capsuleId}`, {
-										method: "POST",
-										body: formData
-									});
-								}
+									return { ...context, capsules, active };
+								})
 							]
 						}
 					}
@@ -288,15 +307,24 @@ export const sceneLogic = setup({
 					on: {
 						"theme-update": {
 							actions: assign(({ context, event }) => {
+								console.log("theme-update");
+
 								const custom = mergeCssStrings(context.theme?.custom, event.payload?.custom);
 								const generated = mergeCssStrings(context.theme?.generated, event.payload?.generated);
+
 								const theme = {
 									...context.theme,
 									...event.payload,
 									custom,
 									generated
 								};
-								return { ...context, theme };
+
+								const active = {
+									...context.active,
+									themeTouched: true
+								};
+
+								return { ...context, theme, active };
 							})
 						}
 					}

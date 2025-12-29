@@ -1,6 +1,7 @@
-import type { Capsule } from "@prisma/client";
-import type { Route } from "../+types/root";
 import { getCapsule, reorderCapsule, updateCapsule } from "./db";
+
+import type { Route } from "../+types/root";
+import type { Capsule } from "prisma/generated/prisma/client";
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const { "*": splat, id } = params;
@@ -14,9 +15,8 @@ export async function loader({ params }: Route.LoaderArgs) {
 
 export async function action({ params, request }: Route.ActionArgs) {
 	const formData = await request.formData();
-	const data: Partial<Capsule> = Object.fromEntries(formData);
-	data.id = Number(params.id);
-	updateCapsule(data);
+	const data: Partial<Omit<Capsule, "id" | "itemsId">> = Object.fromEntries(formData);
+	updateCapsule(Number(params.id), data);
 	return { ok: true };
 }
 //

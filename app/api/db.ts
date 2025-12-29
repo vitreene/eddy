@@ -307,8 +307,8 @@ export async function createCapsule({ sceneId, name }: { sceneId: number; name: 
 	return newCapsule;
 }
 
-export function updateCapsule({ id, ...update }: Partial<Capsule>) {
-	return prisma.capsule.update({
+export async function updateCapsule(id: number, update: Partial<Omit<Capsule, "id">>) {
+	return await prisma.capsule.update({
 		where: { id },
 		data: update
 	});

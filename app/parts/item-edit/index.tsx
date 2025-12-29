@@ -70,7 +70,7 @@ function CapsuleEdit({
 
 	const onChangeGrid = (size: GridSize) => {
 		const gridClassName = gridWHClassName(size);
-		console.log(gridClassName);
+		console.log(size, gridClassName);
 
 		send({
 			type: "capsule-update",
