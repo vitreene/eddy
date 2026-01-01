@@ -18,18 +18,20 @@ créer la scene
 
 import * as transitions from "@/player/presets/transitions";
 
-import type { SceneComp, CapsuleComp, TextTime } from "@/api/db";
+import type { SceneComp, CapsuleComp } from "@/api/db";
 import { P } from "../types";
-import { SEP } from "@/lib/constants";
-import type { PlayerProps } from "..";
-import { ROOT, SCENE_ID } from "../constants";
+import { SCENE_ID } from "../constants";
+import { SEP, DEFAULT_DURATION } from "@/lib/constants";
 
-// const TR = Object.fromEntries(Object.entries(transitions).map((v, k) => ({k: v})));
+import type { PlayerProps } from "..";
+
 const TR = Object.fromEntries(Object.entries(transitions).map(([k, { name: _, ...v }]) => [k, v]));
-console.log({ TR });
+// console.log({ TR });
 
 export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string } {
 	const events = mapEvents(snapshot);
+	console.log("->events", events);
+
 	const styles = createStyle(snapshot);
 	let $capsules;
 	if (snapshot.capsules) {
@@ -69,23 +71,31 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 
 		const parentId = `capsule${SEP}${item.capsuleId}`;
 
-		console.log(content, item, id, parentId);
+		// console.log(content, item, id, parentId);
 
-		const actions: Record<string | number, any> = { [id]: true };
+		const actions: Record<string | number, any> = {};
 
-		item.eventIds.forEach((eId) => {
-			for (const name in snapshot.events[eId]) {
-				const ev = snapshot.events[eId][name];
-				console.log(snapshot.events[eId], ev);
-				if (name == "intro") {
-					actions[ev.name] = { ...TR[ev.ref], move: parentId };
-				} else actions[ev.name] = TR[ev.ref];
-			}
-		});
+		for (const action in snapshot.events[content.id]) {
+			const ev = snapshot.events[content.id][action];
+			const actionStyle = getActionStyle(TR[ev.ref].style);
+			const actionName = `${ev.name}-${ev.action}`;
+			if (action == "intro") {
+				actions[actionName] = { style: actionStyle, move: parentId };
+			} else actions[actionName] = TR[ev.ref].style;
+		}
 
+		const move =
+			!snapshot.events[content.id] || Object.keys(snapshot.events[content.id]).length == 0
+				? parentId
+				: undefined;
+
+		// console.log("ACTIONS", item.eventIds, actions);
+
+		actions[id] = true;
 		return {
 			type: P.LIST,
 			initial: {
+				...(move && { move }),
 				tag: "div",
 				id,
 				className: `${capsule.grid || ""} ${decor.className || ""}`.trim(),
@@ -116,10 +126,21 @@ function mapEvents(snapshot: SceneComp) {
 	const cues: Array<any> = (sceneContent && sceneContent.events) || [];
 
 	// snapshot.events structure: { "1": { intro: {...}, outro: {...} }, ... }
-	for (const groupId in snapshot.events) {
-		const group = snapshot.events[groupId];
-		for (const key in group) {
-			const ev = group[key];
+
+	/* 
+	for (const action in snapshot.events[content.id]) {
+			const ev = snapshot.events[content.id][action];
+			const actionStyle = getActionStyle(TR[ev.ref].style);
+			if (action == "intro") {
+				actions[ev.name] = { style: actionStyle, move: parentId };
+			} else actions[ev.name] = TR[ev.ref].style;
+		}
+
+	*/
+	for (const actions in snapshot.events) {
+		const action = snapshot.events[actions];
+		for (const key in action) {
+			const ev = action[key];
 			if (!ev || !ev.name) continue;
 
 			const cue = cues.find((c) => c.name == ev.name);
@@ -129,9 +150,11 @@ function mapEvents(snapshot: SceneComp) {
 			const timeMs = Math.round(timeSec * 1000);
 
 			const item = {
-				name: ev.name,
+				name: `${ev.name}-${ev.action}`,
 				startAt: timeMs
 			};
+
+			console.log({ ev, cue, timeSec, timeMs });
 
 			if (map.has(timeMs)) {
 				const existing = map.get(timeMs);
@@ -147,6 +170,13 @@ function mapEvents(snapshot: SceneComp) {
 	}
 
 	return map;
+}
+
+type ActionStyle = Record<string, { from: number | string; to: number | string; duration?: number }>;
+function getActionStyle(style: ActionStyle) {
+	const actionStyle = {} as ActionStyle;
+	for (const key in style) actionStyle[key] = { ...style[key], duration: DEFAULT_DURATION };
+	return actionStyle;
 }
 
 /* 

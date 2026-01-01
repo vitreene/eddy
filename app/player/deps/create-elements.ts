@@ -6,7 +6,7 @@ import { SCENE_ID, ROOT } from "../constants";
 import type { Player } from "../player";
 import type { Perso, Initial, PersoMediaDef } from "../types";
 
-export function createElements(this: Player) {
+export function createElements(this: Player): void {
 	if (!document) return null;
 	if (!this.render) return null;
 	this.$elements.set(SCENE_ID, this.render);
@@ -18,6 +18,7 @@ export function createElements(this: Player) {
 
 	// initial insert in DOM
 	this.persos.forEach(({ initial }) => {
+		//FIXME DEPRECIE à retirer
 		if ("id" in initial && initial.id == ROOT) {
 			this.render.appendChild(this.$elements.get(initial.id)!);
 		}
@@ -45,7 +46,7 @@ function createNode(perso: Perso) {
 		}
 		if (k == "id") $el.id = initial.id;
 		if (k == "style") {
-			utils.set($el, initial.style!);
+			utils.set($el, { ...initial.style! });
 		}
 		if (k == "className")
 			if (typeof initial.className == "string") {

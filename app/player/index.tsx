@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Player } from "~/player/player";
 import { preload } from "~/player/preload";
-import { SCENE_ID } from "~/player/constants";
+import { ROOT_SCENE_CLASSNAME, SCENE_ID } from "~/player/constants";
 import type { PersoDef, MapEvent } from "./types";
 import type { Subscribed } from "./deps/pubsub";
 
@@ -38,9 +38,11 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 		}
 	}, [scene]);
 
+	const styles = `${scene.styles} ${ROOT_SCENE_CLASSNAME}`;
+
 	return (
 		<>
-			{scene.styles && <style>{scene.styles}</style>}
+			<style>{styles}</style>
 			<div className="flex-1" ref={sceneRef} id={SCENE_ID} />
 			<Telco telco={telco!} />
 		</>

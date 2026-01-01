@@ -1,81 +1,106 @@
-const DEFAULT_DURATION = 500;
-
 export const fade = {
-	name: 'fondu',
-	from: {
-		opacity: 0,
-	},
-	to: {
-		opacity: 1,
-	},
+	name: "fondu",
+	style: {
+		opacity: { from: 0, to: 1 }
+	}
+
+	// from: {
+	// 	opacity: 0,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// },
 };
 
 export const swipeLeft = {
-	name: 'balayage gauche',
-	from: {
-		opacity: 0,
-		x: -250,
-	},
-	to: {
-		opacity: 1,
-		x: 0,
-	},
+	name: "balayage gauche",
+	style: {
+		opacity: { from: 0, to: 1 },
+		x: { from: -250, to: 0 }
+	}
+	// from: {
+	// 	opacity: 0,
+	// 	x: -250,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// 	x: 0,
+	// },
 };
 
 export const swipeRight = {
-	name: 'balayage droit',
-	from: {
-		opacity: 0,
-		x: 250,
-	},
-	to: {
-		opacity: 1,
-		x: 0,
-	},
+	name: "balayage droit",
+	style: {
+		opacity: { from: 0, to: 1 },
+		x: { from: 250, to: 0 }
+	}
+	// from: {
+	// 	opacity: 0,
+	// 	x: 250,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// 	x: 0,
+	// },
 };
 export const swipeTop = {
-	name: 'balayage haut',
-	from: {
-		opacity: 0,
-		y: 250,
-	},
-	to: {
-		opacity: 1,
-		x: 0,
-	},
+	name: "balayage haut",
+	style: {
+		opacity: { from: 0, to: 1 },
+		y: { from: -250, to: 0 }
+	}
+	// from: {
+	// 	opacity: 0,
+	// 	y: 250,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// 	x: 0,
+	// },
 };
 export const swipeDown = {
-	name: 'balayage bas',
-	from: {
-		opacity: 0,
-		y: 250,
-	},
-	to: {
-		opacity: 1,
-		x: 0,
-	},
+	name: "balayage bas",
+	style: {
+		opacity: { from: 0, to: 1 },
+		y: { from: 250, to: 0 }
+	}
+	// from: {
+	// 	opacity: 0,
+	// 	y: 250,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// 	x: 0,
+	// },
 };
 
 export const fadeScaleIn = {
-	name: 'fondu zoom in',
-
-	from: {
-		opacity: 0,
-		scale: 0.2,
-	},
-	to: {
-		opacity: 1,
-		scale: 1,
-	},
+	name: "fondu zoom in",
+	style: {
+		opacity: { from: 0, to: 1 },
+		scale: { from: 0.2, to: 0 }
+	}
+	// from: {
+	// 	opacity: 0,
+	// 	scale: 0.2,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// 	scale: 1,
+	// },
 };
 export const fadeScaleOut = {
-	name: 'fondu zoom out',
-	from: {
-		opacity: 0,
-		scale: 2.5,
-	},
-	to: {
-		opacity: 1,
-		scale: 1,
-	},
+	name: "fondu zoom out",
+	style: {
+		opacity: { from: 0, to: 1 },
+		scale: { from: 2.5, to: 0 }
+	}
+	// from: {
+	// 	opacity: 0,
+	// 	scale: 2.5,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// 	scale: 1,
+	// },
 };
