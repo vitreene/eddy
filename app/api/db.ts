@@ -147,7 +147,7 @@ main()
 export async function getScene(sceneId: number): Promise<SceneComp> {
 	const sceneDB = await prisma.scene.findUnique({
 		where: { id: sceneId },
-		include: { sceneContents: true, theme: true }
+		include: { sceneContents: true, decor: true, theme: true }
 	});
 
 	const scenecontents = [

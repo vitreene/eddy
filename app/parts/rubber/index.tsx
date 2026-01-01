@@ -2,7 +2,7 @@ import cx from "classnames";
 import { useCallback, useRef } from "react";
 
 import { INTRO, OUTRO } from "@/lib/constants";
-import { getItemFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
+import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 
@@ -17,10 +17,6 @@ export function Rubber() {
 
 	const events = SceneLogicContext.useSelector((state) => {
 		if (state.context.active.itemId) return state.context.events[state.context.active.itemId];
-		if (state.context.active.capsuleId) {
-			const element = getItemFromCapsule(state.context.active.capsuleId, state.context);
-			return element ? state.context.events[element.id] : null;
-		}
 
 		return null;
 	});

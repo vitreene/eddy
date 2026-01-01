@@ -189,8 +189,8 @@ export function gridWHClassName(
 	const signature = cssObjectToClass(styles);
 	const hash = `grid-w${size.w}-h${size.h}`;
 
-	const className = `.${prefix}-${hash}`;
-	const cssText = `${className}{${signature}}`;
+	const className = `${prefix}-${hash}`;
+	const cssText = `.${className}{${signature}}`;
 	return { className, cssText };
 }
 

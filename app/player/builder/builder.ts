@@ -1,0 +1,777 @@
+/* 
+
+reprender l'arborescence: 
+créer la scene
+- creer les styles
+- crer les elements sceneContents
+
+- créer les capsules
+    - associer grid, decor
+    - créer actions
+
+- créer les items autres que capsules
+    - associer decor
+    - créer actions
+
+- créer les eventTime
+*/
+
+import * as transitions from "@/player/presets/transitions";
+
+import type { SceneComp, CapsuleComp, TextTime } from "@/api/db";
+import { P } from "../types";
+import { SEP } from "@/lib/constants";
+import type { PlayerProps } from "..";
+import { ROOT, SCENE_ID } from "../constants";
+
+// const TR = Object.fromEntries(Object.entries(transitions).map((v, k) => ({k: v})));
+const TR = Object.fromEntries(Object.entries(transitions).map(([k, { name: _, ...v }]) => [k, v]));
+console.log({ TR });
+
+export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string } {
+	const events = mapEvents(snapshot);
+	const styles = createStyle(snapshot);
+	let $capsules;
+	if (snapshot.capsules) {
+		$capsules = Object.values(snapshot.capsules).map((c) => createCapsule(c, snapshot));
+		console.log($capsules);
+	}
+	return { persos: $capsules, events, styles };
+}
+
+function createStyle(snapshot: SceneComp) {
+	return `${snapshot.theme?.generated} ${snapshot.theme?.custom}`.trim();
+}
+
+function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
+	const id = `capsule${SEP}${capsule.id}`;
+
+	if (capsule.id == snapshot.main) {
+		const className = `${capsule.grid || ""} ${snapshot.decor?.className || ""}`.trim();
+		const style = snapshot.decor?.style;
+
+		return {
+			type: P.LIST,
+			initial: {
+				move: SCENE_ID,
+				tag: "div",
+				id,
+				...(className && { className }),
+				...(style && { style })
+			},
+			actions: { [id]: true }
+		};
+	} else {
+		const content = Object.values(snapshot.contents).find((c) => c.capsuleId == capsule.id);
+		const item = Object.values(snapshot.items).find((it) => content.id == it.contentId);
+
+		const decor = snapshot.decors[item.decorId];
+
+		const parentId = `capsule${SEP}${item.capsuleId}`;
+
+		console.log(content, item, id, parentId);
+
+		const actions: Record<string | number, any> = { [id]: true };
+
+		item.eventIds.forEach((eId) => {
+			for (const name in snapshot.events[eId]) {
+				const ev = snapshot.events[eId][name];
+				console.log(snapshot.events[eId], ev);
+				if (name == "intro") {
+					actions[ev.name] = { ...TR[ev.ref], move: parentId };
+				} else actions[ev.name] = TR[ev.ref];
+			}
+		});
+
+		return {
+			type: P.LIST,
+			initial: {
+				tag: "div",
+				id,
+				className: `${capsule.grid || ""} ${decor.className || ""}`.trim(),
+				style: decor.style
+			},
+			actions
+		};
+	}
+}
+
+/* 
+export type MapEvent = Map<number, Eventime | Eventime[]>;
+
+export interface Eventime {
+	name: string;
+	startAt: number;
+	data?: any;
+	duration?: number;
+	events?: Eventime[];
+}
+*/
+function mapEvents(snapshot: SceneComp) {
+	// renvoie les events utilisés dans la scene sous la forme Map<number, Eventime|Eventime[]>
+	const map = new Map<number, any>();
+	if (!snapshot || !snapshot.events || !snapshot.sceneContents) return map;
+
+	const sceneContent = snapshot.sceneContents[snapshot.id];
+	const cues: Array<any> = (sceneContent && sceneContent.events) || [];
+
+	// snapshot.events structure: { "1": { intro: {...}, outro: {...} }, ... }
+	for (const groupId in snapshot.events) {
+		const group = snapshot.events[groupId];
+		for (const key in group) {
+			const ev = group[key];
+			if (!ev || !ev.name) continue;
+
+			const cue = cues.find((c) => c.name == ev.name);
+			if (!cue) continue;
+
+			const timeSec = ev.action == "outro" ? cue.end : cue.start;
+			const timeMs = Math.round(timeSec * 1000);
+
+			const item = {
+				name: ev.name,
+				startAt: timeMs
+			};
+
+			if (map.has(timeMs)) {
+				const existing = map.get(timeMs);
+				if (Array.isArray(existing)) {
+					existing.push(item);
+				} else {
+					map.set(timeMs, [existing, item]);
+				}
+			} else {
+				map.set(timeMs, item);
+			}
+		}
+	}
+
+	return map;
+}
+
+/* 
+const context: SceneComp = {
+	id: 1,
+	title: "Scène 1",
+	main: 1,
+	events: {
+		"1": {
+			intro: {
+				id: 2,
+				name: "3-004-vu",
+				action: "intro",
+				ref: "balayage haut",
+				duration: 0,
+				delay: null,
+				itemId: 1,
+				decorId: null
+			},
+			outro: {
+				id: 3,
+				name: "3-009-risques",
+				action: "outro",
+				ref: "balayage bas",
+				duration: 0,
+				delay: null,
+				itemId: 1,
+				decorId: null
+			}
+		},
+		"2": {
+			outro: {
+				id: 1,
+				name: "3-053-parler",
+				action: "outro",
+				ref: "fondu zoom in",
+				duration: 0,
+				delay: null,
+				itemId: 2,
+				decorId: null
+			},
+			intro: {
+				id: 4,
+				name: "3-050-Nous",
+				action: "intro",
+				ref: "fondu zoom out",
+				duration: 0,
+				delay: null,
+				itemId: 2,
+				decorId: null
+			}
+		},
+		"3": {
+			intro: {
+				id: 5,
+				name: "3-006-lectricit",
+				action: "intro",
+				ref: "fondu zoom in",
+				duration: null,
+				delay: null,
+				itemId: 3,
+				decorId: null
+			},
+			outro: {
+				id: 6,
+				name: "3-023-est",
+				action: "outro",
+				ref: "fondu",
+				duration: null,
+				delay: null,
+				itemId: 3,
+				decorId: null
+			}
+		},
+		"6": {
+			intro: {
+				id: 7,
+				name: "3-023-est",
+				action: "intro",
+				ref: "fondu",
+				duration: null,
+				delay: null,
+				itemId: 6,
+				decorId: null
+			},
+			outro: {
+				id: 8,
+				name: "3-050-Nous",
+				action: "outro",
+				ref: "fondu",
+				duration: null,
+				delay: null,
+				itemId: 6,
+				decorId: null
+			}
+		}
+	},
+	sceneContents: {
+		"1": {
+			id: 1,
+			order: 1,
+			contentId: 3,
+			sceneId: 1,
+			decorId: null,
+			events: [
+				{
+					text: " Vous",
+					start: 0,
+					end: 0.26,
+					name: "3-000-Vous"
+				},
+				{
+					text: " l",
+					start: 0.26,
+					end: 0.38,
+					name: "3-001-l"
+				},
+				{
+					text: "'avez",
+					start: 0.38,
+					end: 0.5,
+					name: "3-002-avez"
+				},
+				{
+					text: " donc",
+					start: 0.5,
+					end: 0.66,
+					name: "3-003-donc"
+				},
+				{
+					text: " vu",
+					start: 0.66,
+					end: 0.92,
+					name: "3-004-vu"
+				},
+				{
+					text: " l",
+					start: 0.92,
+					end: 1.32,
+					name: "3-005-l"
+				},
+				{
+					text: "'électricité",
+					start: 1.32,
+					end: 1.78,
+					name: "3-006-lectricit"
+				},
+				{
+					text: " présente",
+					start: 1.78,
+					end: 2.24,
+					name: "3-007-prsente"
+				},
+				{
+					text: " des",
+					start: 2.24,
+					end: 2.42,
+					name: "3-008-des"
+				},
+				{
+					text: " risques.",
+					start: 2.42,
+					end: 3.22,
+					name: "3-009-risques"
+				},
+				{
+					text: " Si",
+					start: 3.4,
+					end: 3.56,
+					name: "3-010-Si"
+				},
+				{
+					text: " nous",
+					start: 3.56,
+					end: 3.72,
+					name: "3-011-nous"
+				},
+				{
+					text: " connaissons",
+					start: 3.72,
+					end: 4.16,
+					name: "3-012-connaissons"
+				},
+				{
+					text: " ces",
+					start: 4.16,
+					end: 4.38,
+					name: "3-013-ces"
+				},
+				{
+					text: " risques,",
+					start: 4.38,
+					end: 4.96,
+					name: "3-014-risques"
+				},
+				{
+					text: " nous",
+					start: 4.96,
+					end: 5.04,
+					name: "3-015-nous"
+				},
+				{
+					text: " pouvons",
+					start: 5.04,
+					end: 5.32,
+					name: "3-016-pouvons"
+				},
+				{
+					text: " les",
+					start: 5.32,
+					end: 5.44,
+					name: "3-017-les"
+				},
+				{
+					text: " prévenir.",
+					start: 5.44,
+					end: 6.16,
+					name: "3-018-prvenir"
+				},
+				{
+					text: " C",
+					start: 6.46,
+					end: 6.58,
+					name: "3-019-C"
+				},
+				{
+					text: "'est",
+					start: 6.58,
+					end: 6.62,
+					name: "3-020-est"
+				},
+				{
+					text: " pourquoi",
+					start: 6.62,
+					end: 6.86,
+					name: "3-021-pourquoi"
+				},
+				{
+					text: " il",
+					start: 6.86,
+					end: 7.02,
+					name: "3-022-il"
+				},
+				{
+					text: " est",
+					start: 7.02,
+					end: 7.12,
+					name: "3-023-est"
+				},
+				{
+					text: " essentiel",
+					start: 7.12,
+					end: 7.62,
+					name: "3-024-essentiel"
+				},
+				{
+					text: " d",
+					start: 7.62,
+					end: 7.82,
+					name: "3-025-d"
+				},
+				{
+					text: "'évaluer",
+					start: 7.82,
+					end: 8.1,
+					name: "3-026-valuer"
+				},
+				{
+					text: " le",
+					start: 8.1,
+					end: 8.24,
+					name: "3-027-le"
+				},
+				{
+					text: " risque",
+					start: 8.24,
+					end: 8.52,
+					name: "3-028-risque"
+				},
+				{
+					text: " électrique",
+					start: 8.52,
+					end: 8.92,
+					name: "3-029-lectrique"
+				},
+				{
+					text: " dans",
+					start: 8.92,
+					end: 9.12,
+					name: "3-030-dans"
+				},
+				{
+					text: " le",
+					start: 9.12,
+					end: 9.24,
+					name: "3-031-le"
+				},
+				{
+					text: " travail",
+					start: 9.24,
+					end: 9.54,
+					name: "3-032-travail"
+				},
+				{
+					text: " que",
+					start: 9.54,
+					end: 9.78,
+					name: "3-033-que"
+				},
+				{
+					text: " vous",
+					start: 9.78,
+					end: 9.92,
+					name: "3-034-vous"
+				},
+				{
+					text: " effectuez.",
+					start: 9.92,
+					end: 10.84,
+					name: "3-035-effectuez"
+				},
+				{
+					text: " Cette",
+					start: 11.18,
+					end: 11.44,
+					name: "3-036-Cette"
+				},
+				{
+					text: " évaluation",
+					start: 11.44,
+					end: 11.82,
+					name: "3-037-valuation"
+				},
+				{
+					text: " des",
+					start: 11.82,
+					end: 12.1,
+					name: "3-038-des"
+				},
+				{
+					text: " risques",
+					start: 12.1,
+					end: 12.38,
+					name: "3-039-risques"
+				},
+				{
+					text: " en",
+					start: 12.38,
+					end: 12.5,
+					name: "3-040-en"
+				},
+				{
+					text: " général",
+					start: 12.5,
+					end: 12.88,
+					name: "3-041-gnral"
+				},
+				{
+					text: " est",
+					start: 12.88,
+					end: 13.24,
+					name: "3-042-est"
+				},
+				{
+					text: " du",
+					start: 13.24,
+					end: 13.38,
+					name: "3-043-du"
+				},
+				{
+					text: " risque",
+					start: 13.38,
+					end: 13.66,
+					name: "3-044-risque"
+				},
+				{
+					text: " électrique",
+					start: 13.66,
+					end: 14.04,
+					name: "3-045-lectrique"
+				},
+				{
+					text: " en",
+					start: 14.04,
+					end: 14.24,
+					name: "3-046-en"
+				},
+				{
+					text: " particulier",
+					start: 14.24,
+					end: 14.7,
+					name: "3-047-particulier"
+				},
+				{
+					text: " et",
+					start: 14.7,
+					end: 15.2,
+					name: "3-048-et"
+				},
+				{
+					text: " obligatoire.",
+					start: 15.2,
+					end: 16.32,
+					name: "3-049-obligatoire"
+				},
+				{
+					text: " Nous",
+					start: 16.6,
+					end: 16.68,
+					name: "3-050-Nous"
+				},
+				{
+					text: " allons",
+					start: 16.68,
+					end: 16.9,
+					name: "3-051-allons"
+				},
+				{
+					text: " en",
+					start: 16.9,
+					end: 17.1,
+					name: "3-052-en"
+				},
+				{
+					text: " parler.",
+					start: 17.1,
+					end: 21.42,
+					name: "3-053-parler"
+				}
+			]
+		}
+	},
+	capsules: {
+		"1": {
+			id: 1,
+			name: "__MAIN__",
+			type: null,
+			grid: null,
+			itemIds: [5, 6]
+		},
+		"2": {
+			id: 2,
+			name: "listing",
+			type: "null",
+			grid: ".ed-grid-w6-h2",
+			itemIds: [1, 2]
+		},
+		"3": {
+			id: 3,
+			name: "background",
+			type: "null",
+			grid: ".ed-grid-w7-h2",
+			itemIds: [3, 4]
+		}
+	},
+	items: {
+		"1": {
+			id: 1,
+			order: 5250,
+			contentId: 1,
+			capsuleId: 2,
+			decorId: 1,
+			eventIds: [2, 3]
+		},
+		"2": {
+			id: 2,
+			order: 4250,
+			contentId: 2,
+			capsuleId: 2,
+			decorId: 4,
+			eventIds: [1, 4]
+		},
+		"3": {
+			id: 3,
+			order: 3250,
+			contentId: 2,
+			capsuleId: 3,
+			decorId: 3,
+			eventIds: [5, 6]
+		},
+		"4": {
+			id: 4,
+			order: 3000,
+			contentId: 4,
+			capsuleId: 3,
+			decorId: 5,
+			eventIds: []
+		},
+		"5": {
+			id: 5,
+			order: 2000,
+			contentId: 5,
+			capsuleId: 1,
+			decorId: 2,
+			eventIds: []
+		},
+		"6": {
+			id: 6,
+			order: 1000,
+			contentId: 6,
+			capsuleId: 1,
+			decorId: 6,
+			eventIds: [7, 8]
+		}
+	},
+	contents: {
+		"1": {
+			id: 1,
+			type: "img",
+			path: "assets/28970388742_2f75d527d6_z.jpg",
+			inner: null,
+			lang: null,
+			capsuleId: null
+		},
+		"2": {
+			id: 2,
+			type: "img",
+			path: "assets/28999069391_5893263112_z.jpg",
+			inner: null,
+			lang: null,
+			capsuleId: null
+		},
+		"4": {
+			id: 4,
+			type: "text",
+			path: null,
+			inner: "je suis content",
+			lang: "fr",
+			capsuleId: null
+		},
+		"5": {
+			id: 5,
+			type: "capsule",
+			path: null,
+			inner: null,
+			lang: null,
+			capsuleId: 2
+		},
+		"6": {
+			id: 6,
+			type: "capsule",
+			path: null,
+			inner: null,
+			lang: null,
+			capsuleId: 3
+		}
+	},
+	decors: {
+		"1": {
+			id: 1,
+			name: null,
+			className: null,
+			basedUpon: null,
+			style: {
+				fontFamily: "Inter",
+				fontSize: "24px",
+				color: "#F40505",
+				fontWeight: "bold"
+			}
+		},
+		"2": {
+			id: 2,
+			name: null,
+			className: null,
+			basedUpon: null,
+			style: {
+				fontFamily: "Inter",
+				fontSize: "29px",
+				color: "#DD1111",
+				fontStyle: "italic",
+				backgroundColor: "#FF0000"
+			}
+		},
+		"3": {
+			id: 3,
+			name: null,
+			className: null,
+			basedUpon: null,
+			style: {
+				fontFamily: "Inter",
+				fontSize: "29px",
+				color: "#DD1111",
+				fontStyle: "italic",
+				backgroundColor: "#10E499",
+				fontWeight: "normal"
+			}
+		},
+		"4": {
+			id: 4,
+			name: null,
+			className: null,
+			basedUpon: null,
+			style: {
+				fontFamily: "Inter",
+				fontSize: "16px",
+				color: "#222222",
+				backgroundColor: "#DD11AA"
+			}
+		},
+		"5": {
+			id: 5,
+			name: null,
+			className: null,
+			basedUpon: null,
+			style: {}
+		},
+		"6": {
+			id: 6,
+			name: null,
+			className: null,
+			basedUpon: null,
+			style: {
+				fontSize: "40px",
+				color: "#0873E6",
+				fontWeight: "bold"
+			}
+		}
+	},
+	theme: {
+		id: 0,
+		name: null,
+		custom: "",
+		generated:
+			".ed-grid-w5-h2{display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}.ed-grid-w6-h2{display:grid;grid-template-columns:repeat(6, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}.ed-grid-w10-h1{display:grid;grid-template-columns:repeat(10, minmax(0, 1fr));grid-template-rows:repeat(1, minmax(0, 1fr))}.ed-grid-w4-h2{display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}.ed-grid-w7-h2{display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}"
+	}
+};
+
+*/

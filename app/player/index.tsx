@@ -13,6 +13,7 @@ import type { Subscribed } from "./deps/pubsub";
 export interface PlayerProps {
 	persos: Array<PersoDef>;
 	events: MapEvent;
+	styles?: string;
 }
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
@@ -21,12 +22,14 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 	const [telco, setTelco] = useState<TelcoProps>();
 
 	useEffect(() => {
+		const { persos, events } = scene;
+
 		if (scene && typeof window !== "undefined") {
 			if (animeScene.current) animeScene.current.revert();
 			console.log("useEffect");
-			preload(scene.persos).then((p) => {
+			preload(persos).then((p) => {
 				const render: HTMLElement | null = sceneRef.current;
-				const player = new Player({ render, persos: p, eventtimes: scene.events });
+				const player = new Player({ render, persos: p, eventtimes: events });
 				setTelco(player.telco());
 
 				animeScene.current = player.timeLine;
@@ -37,6 +40,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 
 	return (
 		<>
+			{scene.styles && <style>{scene.styles}</style>}
 			<div className="flex-1" ref={sceneRef} id={SCENE_ID} />
 			<Telco telco={telco!} />
 		</>
@@ -91,15 +95,7 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={replay}>
 				<RotateCcwIcon />
 			</button>
-			<input
-				type="range"
-				min="0"
-				max="100"
-				step="1"
-				value={progress}
-				onChange={mouseMove}
-				className="flex-1"
-			/>
+			<input type="range" min="0" max="100" step="1" value={progress} onChange={mouseMove} className="flex-1" />
 			<output>{progress}&nbsp;%</output>
 		</div>
 	);

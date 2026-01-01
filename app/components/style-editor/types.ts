@@ -1,4 +1,5 @@
 export interface EditableStyle {
+	[k: string]: any;
 	/* TYPO */
 	fontFamily?: string;
 	fontWeight?: "normal" | "bold" | string;

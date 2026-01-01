@@ -107,7 +107,7 @@ export const sceneLogic = setup({
 				delete capsule.itemIds;
 
 				const formData = new FormData();
-				Object.entries(capsule).forEach(([k, v]: [string, unknown]) => formData.set(k, v as any));
+				Object.entries(capsule).forEach(([k, v]: [string, unknown]) => formData.set(k, (v || "") as any));
 
 				console.log("POST capsule-update", capsule);
 

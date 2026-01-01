@@ -64,6 +64,7 @@ export class Player {
 		this.onUpdateTM();
 		const onUpdate = onUpdateTimeLine.bind(this)();
 		this.updatesTM.subscribe(onUpdate);
+		console.log(this);
 	}
 
 	private onUpdateTM() {
@@ -75,6 +76,8 @@ export class Player {
 	private createScene!: () => void;
 
 	telco = () => {
+		console.log(this.timeLine);
+
 		return {
 			seek: this.seek,
 			pause: this.pause,

@@ -1,15 +1,15 @@
 import cx from "classnames";
+import { useState } from "react";
 import { BoxIcon } from "lucide-react";
 
-import { getItemFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
+import { SEP, EMPTY } from "@/lib/constants";
 import { TreeView, type TreeDataItem } from "@/components/ui/tree-view";
+import { getItemFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
 
 import { Media } from "./display-media";
-import { useState } from "react";
+
 import type { Content } from "@/api/db";
 
-const EMPTY = "–";
-const SEP = "__";
 export function SceneTreeView() {
 	const main = SceneLogicContext.useSelector((state) => state.context.main);
 	const capsules = SceneLogicContext.useSelector((state) => {

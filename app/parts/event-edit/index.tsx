@@ -4,7 +4,7 @@ import { CircleSmallIcon } from "lucide-react";
 import type { ItemComp, ContentEvent } from "@/api/db";
 
 import { INTRO } from "@/lib/constants";
-import * as transitions from "@/player/presets/transitions";
+import * as TR from "@/player/presets/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";
@@ -77,8 +77,8 @@ function SelectAction({
 	return (
 		<select name={"ref"} onChange={onChange} defaultValue={value}>
 			<option value={""}>––</option>
-			{Object.entries(transitions).map(([k, t]) => (
-				<option key={k} value={t.name}>
+			{Object.entries(TR).map(([k, t]) => (
+				<option key={k} value={k}>
 					{t.name}
 				</option>
 			))}

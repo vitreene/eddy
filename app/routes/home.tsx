@@ -1,18 +1,19 @@
 import { fromPromise } from "xstate";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import type { Route } from "./+types/home";
 
-// import { PlayerRunner } from "~/player";
-// import { buildPlay } from "~/player/builder/build-play";
+import { PlayerRunner, type PlayerProps } from "~/player";
+
 import { EditEvent } from "@/parts/event-edit";
 import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 
 import { getScene, type SceneComp } from "~/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";
 import { EditItem } from "@/parts/item-edit";
-import { EditableStylePanel, type EditableStyle } from "@/components/style-editor-3";
+import { buildScene } from "@/player/builder/builder";
+// import { DemoTransformEditor } from "@/components/position-editor/exemple";
 
-// import * as scene02 from "../demos/scenes/scene-02";
+import * as scene02 from "../demos/scenes/scene-02";
 
 export function meta() {
 	return [{ title: "Eddy" }, { name: "description", content: "l'éditeur de séquences" }];
@@ -49,6 +50,12 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 }
 
 const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
+	const [scene, setScene] = useState<PlayerProps & { styles?: string }>({
+		persos: scene02.persos,
+		events: scene02.eventtimes,
+		styles: ""
+	});
+
 	//TODO data doit etre recalculé a chaque modif -> dans player
 	// player si modif ne rejoue pas, se place à l'endroit de la modif et se met en pause
 
@@ -57,7 +64,15 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 	const actorRef = SceneLogicContext.useActorRef();
 	useEffect(() => {
 		actorRef.subscribe((snapshot) => {
-			console.log("snapshot", snapshot);
+			console.log("snapshot", snapshot.context);
+
+			const { active, ...state } = snapshot.context;
+			if (Object.keys(state).length) {
+				const sc = buildScene(state);
+				console.log(sc);
+
+				setScene(sc);
+			}
 		});
 
 		console.log(actorRef);
@@ -74,16 +89,11 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 			</section>
 
 			<section className="base-layout layout-player flex flex-col">
-				{/* <PlayerRunner scene={scene} /> */}
+				<PlayerRunner scene={scene} />
+				{/* <DemoTransformEditor /> */}
 			</section>
 			<section className="base-layout layout-infos">
 				<EditItem />
-				{/* <EditableStylePanel
-					value={{}}
-					onChange={function (style: EditableStyle): void {
-						console.log({ style });
-					}}
-				/> */}
 			</section>
 			<section className="base-layout layout-edit">
 				<EditEvent />

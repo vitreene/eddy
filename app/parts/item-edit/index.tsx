@@ -1,4 +1,3 @@
-import cx from "classnames";
 import { useCallback } from "react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -70,7 +69,6 @@ function CapsuleEdit({
 
 	const onChangeGrid = (size: GridSize) => {
 		const gridClassName = gridWHClassName(size);
-		console.log(size, gridClassName);
 
 		send({
 			type: "capsule-update",
