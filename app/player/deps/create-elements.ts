@@ -25,6 +25,7 @@ export function createElements(this: Player): void {
 
 		if ("move" in initial && typeof initial.move == "string") {
 			const $parent = this.$elements.get(initial.move);
+			console.log($parent, initial.id, this.$elements.get(initial.id));
 
 			$parent!.appendChild(this.$elements.get(initial.id)!);
 		}

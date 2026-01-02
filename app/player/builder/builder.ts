@@ -18,12 +18,14 @@ créer la scene
 
 import * as transitions from "@/player/presets/transitions";
 
-import type { SceneComp, CapsuleComp } from "@/api/db";
+import type { SceneComp, CapsuleComp, ItemComp } from "@/api/db";
 import { P } from "../types";
 import { SCENE_ID } from "../constants";
 import { SEP, DEFAULT_DURATION } from "@/lib/constants";
 
 import type { PlayerProps } from "..";
+
+const DEFAUT_PATH_IMAGE = "";
 
 const TR = Object.fromEntries(Object.entries(transitions).map(([k, { name: _, ...v }]) => [k, v]));
 // console.log({ TR });
@@ -33,18 +35,28 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 	console.log("->events", events);
 
 	const styles = createStyle(snapshot);
+
 	let $capsules;
 	if (snapshot.capsules) {
 		$capsules = Object.values(snapshot.capsules).map((c) => createCapsule(c, snapshot));
-		console.log($capsules);
 	}
-	return { persos: $capsules, events, styles };
+	let $items;
+	if (snapshot.items) {
+		$items = Object.values(snapshot.items)
+			.map((it) => createItems(it, snapshot))
+			.filter(Boolean);
+		console.log($items);
+	}
+
+	return { persos: [...$capsules, ...$items], events, styles };
 }
 
+//STYLES
 function createStyle(snapshot: SceneComp) {
 	return `${snapshot.theme?.generated} ${snapshot.theme?.custom}`.trim();
 }
 
+//CAPSULES
 function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 	const id = `capsule${SEP}${capsule.id}`;
 
@@ -68,11 +80,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 		const item = Object.values(snapshot.items).find((it) => content.id == it.contentId);
 
 		const decor = snapshot.decors[item.decorId];
-
 		const parentId = `capsule${SEP}${item.capsuleId}`;
-
-		// console.log(content, item, id, parentId);
-
 		const actions: Record<string | number, any> = {};
 
 		for (const action in snapshot.events[content.id]) {
@@ -88,10 +96,8 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 			!snapshot.events[content.id] || Object.keys(snapshot.events[content.id]).length == 0
 				? parentId
 				: undefined;
-
-		// console.log("ACTIONS", item.eventIds, actions);
-
 		actions[id] = true;
+
 		return {
 			type: P.LIST,
 			initial: {
@@ -106,6 +112,83 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 	}
 }
 
+//ITEMS
+
+const itemType = {
+	img: P.IMG,
+	text: P.TEXT,
+	sound: P.SOUND,
+	video: P.VIDEO
+} as const;
+const itemTag = {
+	img: "img",
+	text: "p",
+	sound: "audio",
+	video: "video"
+} as const;
+
+function createItems(item: ItemComp, snapshot: SceneComp) {
+	const content = snapshot.contents[item.contentId];
+	if (content.type == "capsule") return null;
+	const decor = snapshot.decors[item.decorId];
+	const parentId = `capsule${SEP}${item.capsuleId}`;
+	const id = `item${SEP}${item.id}`;
+
+	const actions: Record<string | number, any> = {};
+
+	for (const action in snapshot.events[content.id]) {
+		const ev = snapshot.events[content.id][action];
+		const actionStyle = getActionStyle(TR[ev.ref].style);
+		const actionName = `${ev.name}-${ev.action}`;
+		if (action == "intro") {
+			actions[actionName] = { style: actionStyle, move: parentId };
+		} else actions[actionName] = TR[ev.ref].style;
+	}
+
+	const move =
+		!snapshot.events[content.id] || Object.keys(snapshot.events[content.id]).length == 0 ? parentId : undefined;
+	actions[id] = true;
+	const tag = itemTag[content.type as keyof typeof itemTag];
+	const initial = {
+		id,
+		tag,
+		...(move && { move }),
+		className: (decor.className || "").trim(),
+		style: decor.style
+	};
+
+	const type = itemType[content.type as keyof typeof itemType];
+
+	switch (type) {
+		case P.SOUND:
+		case P.VIDEO:
+		case P.IMG:
+			return {
+				type,
+				initial: {
+					...initial,
+					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
+				},
+				actions
+			};
+		case P.TEXT:
+			return {
+				type,
+				initial: {
+					...initial,
+					content: content.inner
+				},
+				actions
+			};
+
+		default:
+			return {
+				type,
+				initial,
+				actions
+			};
+	}
+}
 /* 
 export type MapEvent = Map<number, Eventime | Eventime[]>;
 
@@ -117,6 +200,8 @@ export interface Eventime {
 	events?: Eventime[];
 }
 */
+
+//EVENTS
 function mapEvents(snapshot: SceneComp) {
 	// renvoie les events utilisés dans la scene sous la forme Map<number, Eventime|Eventime[]>
 	const map = new Map<number, any>();
@@ -125,18 +210,6 @@ function mapEvents(snapshot: SceneComp) {
 	const sceneContent = snapshot.sceneContents[snapshot.id];
 	const cues: Array<any> = (sceneContent && sceneContent.events) || [];
 
-	// snapshot.events structure: { "1": { intro: {...}, outro: {...} }, ... }
-
-	/* 
-	for (const action in snapshot.events[content.id]) {
-			const ev = snapshot.events[content.id][action];
-			const actionStyle = getActionStyle(TR[ev.ref].style);
-			if (action == "intro") {
-				actions[ev.name] = { style: actionStyle, move: parentId };
-			} else actions[ev.name] = TR[ev.ref].style;
-		}
-
-	*/
 	for (const actions in snapshot.events) {
 		const action = snapshot.events[actions];
 		for (const key in action) {
@@ -153,8 +226,6 @@ function mapEvents(snapshot: SceneComp) {
 				name: `${ev.name}-${ev.action}`,
 				startAt: timeMs
 			};
-
-			console.log({ ev, cue, timeSec, timeMs });
 
 			if (map.has(timeMs)) {
 				const existing = map.get(timeMs);
