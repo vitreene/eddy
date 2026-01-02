@@ -1,4 +1,4 @@
-import { createTimeline, Timeline } from "animejs";
+import { createTimeline, Timeline, Timer } from "animejs";
 
 import { PubSub, type Subscribed } from "./deps/pubsub";
 import { initMedias } from "./deps/init-medias";
@@ -18,6 +18,8 @@ const tmDefaults = {
 };
 
 export class Player {
+	static _instance: Player | null = null;
+
 	timeLine!: Timeline;
 	eventtimes!: MapEvent;
 	render!: HTMLElement;
@@ -26,16 +28,18 @@ export class Player {
 	persos = new Map<ID, Perso>();
 	persoChanges = new Map<ID, Record<number, Change>>();
 	updatesTM = new PubSub<Timeline>();
-	static _instance: Player | null = null;
+	onEnd: (tm: Timer) => void = () => {};
 
 	constructor({
 		render,
 		persos,
-		eventtimes
+		eventtimes,
+		onEnd
 	}: {
 		render: HTMLElement | null;
 		persos: Map<ID, Perso>;
 		eventtimes: MapEvent;
+		onEnd?: (tm: Timer) => void;
 	}) {
 		if (!render) throw new Error("Le player ne peut etre rendu.");
 		if (Player._instance) {
@@ -45,7 +49,7 @@ export class Player {
 		this.render = render;
 		this.persos = persos;
 		this.eventtimes = eventtimes;
-
+		if (typeof onEnd === "function") this.onEnd = onEnd;
 		this.createElements = createElements.bind(this);
 		this.initMedias = initMedias.bind(this);
 		this.setStaticChanges = setStaticChanges.bind(this);
@@ -76,8 +80,6 @@ export class Player {
 	private createScene!: () => void;
 
 	telco = () => {
-		console.log(this.timeLine);
-
 		return {
 			seek: this.seek,
 			pause: this.pause,

@@ -33,8 +33,9 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 
 		this.persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
-			const $el = this.$elements.get(id);
 			if (!change) return;
+
+			const $el = this.$elements.get(id);
 
 			// update transition
 			if (change && transitions.has(change)) {
@@ -47,6 +48,7 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 			// update sets :
 			if (currentTime >= (change!.next ?? Infinity) || currentTime <= (change.curr! ?? 0)) {
 				const nextChange = setNextChange(change, changes);
+
 				if (nextChange == null) return;
 
 				persoPositions.set(id, nextChange);
@@ -59,7 +61,15 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 				if (change.snapshot) {
 					setters.set(id, utils.set($el, change.snapshot));
 				}
+
+				console.log(
+					nextChange.change?.move,
+					transitions.has(nextChange),
+					nextChange.change?.move && !transitions.has(nextChange)
+				);
+
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
+					console.log("->perso->", this.persos.get(id));
 					nextChange.snapshot = {
 						x: utils.get($el, "x"),
 						y: utils.get($el, "y"),

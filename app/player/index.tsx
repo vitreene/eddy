@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Timeline } from "animejs";
+import { Timeline, Timer } from "animejs";
 import { Play, Pause, RotateCcwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
@@ -16,6 +16,8 @@ export interface PlayerProps {
 	styles?: string;
 }
 
+const onEnd = (t: Timer) => console.log("PLAYER the end", t.duration, t);
+
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
 	const animeScene = useRef<Timeline>(null);
 	const sceneRef = useRef<HTMLDivElement>(null);
@@ -29,7 +31,8 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 			console.log("useEffect");
 			preload(persos).then((p) => {
 				const render: HTMLElement | null = sceneRef.current;
-				const player = new Player({ render, persos: p, eventtimes: events });
+				const player = new Player({ render, persos: p, eventtimes: events, onEnd });
+
 				setTelco(player.telco());
 
 				animeScene.current = player.timeLine;

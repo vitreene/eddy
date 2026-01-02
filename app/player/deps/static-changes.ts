@@ -88,11 +88,14 @@ suivant, à deplcer après test.
 				}
 			}
 		});
+		const positonsSorted = [...positions].sort((a, b) => (a < b ? -1 : 1));
 
-		[...positions].sort().forEach((position, index, positions) => {
+		console.log("positions", positions, [...positions], positonsSorted, actionChanges);
+
+		positonsSorted.forEach((position, index, positonsSorted) => {
 			changes[position] = {} as Change;
-			const prev = positions[index - 1] ?? null;
-			const next = positions[index + 1] ?? null;
+			const prev = positonsSorted[index - 1] ?? null;
+			const next = positonsSorted[index + 1] ?? null;
 			changes[position].curr = position;
 			changes[position].prev = prev;
 			changes[position].next = next;
@@ -112,6 +115,7 @@ suivant, à deplcer après test.
 				};
 			}
 		});
+		console.log("changes", changes);
 
 		this.persoChanges.set(id, changes);
 	});

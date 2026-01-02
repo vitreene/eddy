@@ -1,7 +1,21 @@
-export const fade = {
-	name: "fondu",
+export const fadeIn = {
+	name: "fondu entrée",
 	style: {
 		opacity: { from: 0, to: 1 }
+	}
+
+	// from: {
+	// 	opacity: 0,
+	// },
+	// to: {
+	// 	opacity: 1,
+	// },
+};
+
+export const fadeOut = {
+	name: "fondu sortie",
+	style: {
+		opacity: { from: 1, to: 0 }
 	}
 
 	// from: {

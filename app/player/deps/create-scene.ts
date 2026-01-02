@@ -10,8 +10,10 @@ export function createScene(this: Player): void {
 	if (!document) return null;
 	if (!this.render) return null;
 	const timeEvents = new Map<string, number[]>();
+	let positionMax = 0;
 
 	this.eventtimes.forEach((event, position) => {
+		if (positionMax < position) positionMax = position;
 		if (!Array.isArray(event)) {
 			const eventName = event.name;
 			const positions = timeEvents.get(eventName) || [];
@@ -58,4 +60,6 @@ export function createScene(this: Player): void {
 			}
 		}
 	});
+	// trigger on end timeline
+	this.timeLine.call(this.onEnd, positionMax);
 }
