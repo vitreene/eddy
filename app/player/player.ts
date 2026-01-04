@@ -12,8 +12,8 @@ import type { ID, MapEvent, MediaStatus, Perso } from "./types";
 
 const tmDefaults = {
 	autoplay: true,
-	loop: 1,
-	alternate: true,
+	// loop: 1,
+	// alternate: true,
 	onLoop: () => console.log("///////LOOP")
 };
 

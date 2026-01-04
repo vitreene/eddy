@@ -90,7 +90,7 @@ suivant, à deplcer après test.
 		});
 		const positonsSorted = [...positions].sort((a, b) => (a < b ? -1 : 1));
 
-		console.log("positions", positions, [...positions], positonsSorted, actionChanges);
+		// console.log("positions", positions, [...positions], positonsSorted, actionChanges);
 
 		positonsSorted.forEach((position, index, positonsSorted) => {
 			changes[position] = {} as Change;
@@ -115,7 +115,7 @@ suivant, à deplcer après test.
 				};
 			}
 		});
-		console.log("changes", changes);
+		// console.log("changes", changes);
 
 		this.persoChanges.set(id, changes);
 	});

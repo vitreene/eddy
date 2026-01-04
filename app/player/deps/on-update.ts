@@ -62,14 +62,14 @@ export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
 					setters.set(id, utils.set($el, change.snapshot));
 				}
 
-				console.log(
-					nextChange.change?.move,
-					transitions.has(nextChange),
-					nextChange.change?.move && !transitions.has(nextChange)
-				);
+				// console.log(
+				// 	nextChange.change?.move,
+				// 	transitions.has(nextChange),
+				// 	nextChange.change?.move && !transitions.has(nextChange)
+				// );
 
 				if (nextChange.change?.move && !transitions.has(nextChange)) {
-					console.log("->perso->", this.persos.get(id));
+					// console.log("->perso->", this.persos.get(id));
 					nextChange.snapshot = {
 						x: utils.get($el, "x"),
 						y: utils.get($el, "y"),

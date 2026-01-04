@@ -105,7 +105,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 				tag: "div",
 				id,
 				className: `${capsule.grid || ""} ${decor.className || ""}`.trim(),
-				style: decor.style
+				style: { isolation: "isolate", ...decor.style }
 			},
 			actions
 		};

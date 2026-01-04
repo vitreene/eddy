@@ -64,10 +64,13 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: SceneComp }) {
 	const actorRef = SceneLogicContext.useActorRef();
 	useEffect(() => {
 		actorRef.subscribe((snapshot) => {
-			console.log("snapshot", snapshot.context);
+			console.log("snapshot", snapshot.status, snapshot.context);
 
 			const { active, ...state } = snapshot.context;
-			if (Object.keys(state).length) {
+
+			if (
+				Object.keys(state).length /* && (active.decorTouched || active.eventTouched || active.themeTouched) */
+			) {
 				const sc = buildScene(state);
 				console.log(sc);
 
