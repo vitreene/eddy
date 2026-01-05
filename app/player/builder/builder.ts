@@ -53,7 +53,7 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 
 //STYLES
 function createStyle(snapshot: SceneComp) {
-	return `${snapshot.theme?.generated} ${snapshot.theme?.custom}`.trim();
+	return `${snapshot.theme?.generated || ""} ${snapshot.theme?.custom || ""}`.trim();
 }
 
 //CAPSULES
@@ -153,8 +153,8 @@ function createItems(item: ItemComp, snapshot: SceneComp) {
 		id,
 		tag,
 		...(move && { move }),
-		className: (decor.className || "").trim(),
-		style: decor.style
+		className: (decor?.className || "").trim(),
+		style: decor?.style
 	};
 
 	const type = itemType[content.type as keyof typeof itemType];

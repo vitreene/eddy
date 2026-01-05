@@ -16,13 +16,12 @@ export function Rubber() {
 	const abort = useRef(new AbortController());
 
 	const events = SceneLogicContext.useSelector((state) => {
-		if (state.context.active.itemId) return state.context.events[state.context.active.itemId];
-
+		if (state.context.active.itemId) return state.context?.events[state.context.active.itemId] || null;
 		return null;
 	});
 
-	const sceneContents = SceneLogicContext.useSelector(
-		(state) => state.context.sceneContents[state.context.id]
+	const sceneContents = SceneLogicContext.useSelector((state) =>
+		Object.values(state.context.sceneContents).find((sc) => sc.sceneId == state.context.id)
 	);
 	const sceneLogic = SceneLogicContext.useActorRef();
 

@@ -1,6 +1,6 @@
 import type { Route } from "./+types/home";
 
-import { getScenes } from "~/api/db";
+import { getScenes } from "@/api/db";
 
 import { Menu } from "@/parts/menu";
 

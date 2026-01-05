@@ -62,9 +62,9 @@ export interface TextTime {
 export interface SceneContent {
 	id: number;
 	contentId: number;
+	sceneId: number;
 	order: number;
 	events: Array<TextTime>;
-	// events: string;
 }
 
 export interface SceneComp {

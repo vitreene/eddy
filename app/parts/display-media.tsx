@@ -25,7 +25,7 @@ export function Media({
 					className={cx(className, SIZECSS[size], "object-contain", {
 						"border border-red-400": selected
 					})}
-					src={attr.path!}
+					src={`/${attr.path!}`}
 					draggable={false}
 				/>
 			);

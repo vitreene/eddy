@@ -1,4 +1,4 @@
-import { setup, assign, type UnknownActorLogic } from "xstate";
+import { setup, assign, type UnknownActorLogic, fromPromise } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
@@ -31,19 +31,38 @@ export const active: ActiveState = {
 	themeTouched: false
 };
 
+const emptyScene: SceneComp = {
+	id: null,
+	title: "",
+	main: null,
+	events: {},
+	sceneContents: {},
+	capsules: {},
+	items: {},
+	contents: {},
+	decors: {}
+};
 export interface TreeMoveEvent {
 	sourceId: number;
 	targetId: number;
 }
+
+// const initContext = fromPromise(async (input) => {
+// 	console.log("--->fromPromise", input);
+
+// 	return Promise.resolve(input || {});
+// });
 
 export const sceneLogic = setup({
 	types: {
 		context: {} as SceneComp & { active: ActiveState },
 		input: {} as SceneComp,
 		events: {} as
+			| { type: "init"; payload: SceneComp }
 			| { type: "active-set"; payload: Partial<ActiveState> }
 			| { type: "commit"; payload: Partial<ActiveState> }
 			| { type: "reset-active" }
+			| { type: "end-edit" }
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
 			| { type: "capsule-update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
@@ -78,7 +97,7 @@ export const sceneLogic = setup({
 			const capsuleTouched = params.includes("capsuleTouched");
 
 			if (eventTouched) {
-				fetch(`api/content/${itemId}`, {
+				fetch(`/api/content/${itemId}`, {
 					method: "POST",
 					headers: {
 						Accept: "application/json",
@@ -92,7 +111,7 @@ export const sceneLogic = setup({
 				const decor = context.decors?.[context.items[itemId].decorId];
 				if (decor) {
 					const { id: decorId, ...rest } = decor;
-					fetch(`api/decor`, {
+					fetch(`/api/decor`, {
 						method: "POST",
 						headers: { "Content-Type": "application/json" },
 						body: JSON.stringify({ itemId, decorId, ...rest })
@@ -111,7 +130,7 @@ export const sceneLogic = setup({
 
 				console.log("POST capsule-update", capsule);
 
-				fetch(`api/capsule/${id}`, {
+				fetch(`/api/capsule/${id}`, {
 					method: "POST",
 					body: formData
 				});
@@ -128,7 +147,7 @@ export const sceneLogic = setup({
 					const generated = findCssClassRule(context.theme.generated, gridClassName);
 					console.log("generated", generated);
 
-					fetch(`api/theme/${context.theme.id}`, {
+					fetch(`/api/theme/${context.theme.id}`, {
 						method: "POST",
 						headers: {
 							Accept: "application/json",
@@ -142,29 +161,53 @@ export const sceneLogic = setup({
 	},
 
 	actors: {
-		initContext: {} as UnknownActorLogic,
+		// initContext: {} as UnknownActorLogic,
 		capsuleReorder
 	}
 }).createMachine({
 	id: "scene",
+	context: { ...emptyScene, active },
 
-	context: ({ input }) => ({ ...input, active }),
+	// context: ({ input }) => ({ ...input, active }),
 	initial: "start",
 
 	states: {
 		start: {
+			on: {
+				init: {
+					actions: assign(({ event }) => {
+						console.log("START", event);
+
+						return { active, ...event.payload };
+					}),
+					target: "#scene.edit"
+				}
+			}
+		},
+
+		/* start: {
 			invoke: {
 				src: "initContext",
+				input: ({ event }: { event: { payload: SceneComp } }) => {
+					console.log("initContext", event);
+
+					return event.payload;
+				},
 				onDone: {
 					target: "edit",
 					actions: assign(({ event }) => event.output)
 				}
 			}
-		},
+		}, */
 		edit: {
 			type: "parallel",
 			initial: "active",
 			states: {
+				"end-edit": {
+					actions: () => console.log("end-edit"),
+
+					target: "#scene.start"
+				},
 				active: {
 					on: {
 						"active-set": {

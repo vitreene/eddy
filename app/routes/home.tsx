@@ -7,7 +7,7 @@ import { PlayerRunner, type PlayerProps } from "~/player";
 import { EditEvent } from "@/parts/event-edit";
 import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
 
-import { getScene, getScenes, type SceneRef } from "~/api/db";
+import { getScene, getScenes, type SceneComp, type SceneRef } from "@/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";
 import { EditItem } from "@/parts/item-edit";
 import { buildScene } from "@/player/builder/builder";
@@ -26,29 +26,22 @@ export async function loader({ params }: Route.LoaderArgs) {
 	return { scene, scenes };
 }
 
-export default function Home({ loaderData }: Route.ComponentProps) {
-	console.log("loaderData SceneComp", loaderData);
+interface HomeProps {
+	scene: SceneComp;
+	scenes: Array<SceneRef>;
+}
 
-	const logic = React.useMemo(() => {
-		return sceneLogic.provide({
-			actors: {
-				initContext: fromPromise(async () => {
-					return Promise.resolve(loaderData.scene || {});
-				})
-			}
-		});
-	}, [loaderData]);
+export default function Home({ loaderData }: Route.ComponentProps) {
+	console.log("**** HOME : loaderData ", loaderData);
 
 	return (
-		<SceneLogicContext.Provider logic={logic}>
-			<AppLayout data={{ scenes: loaderData.scenes }} />
+		<SceneLogicContext.Provider>
+			<AppLayout data={loaderData} />
 		</SceneLogicContext.Provider>
 	);
 }
 
-const AppLayout = React.memo(function AppLayout({ data }: { data: { scenes: Array<SceneRef> } }) {
-	console.log("DATA", data);
-
+const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	const [scene, setScene] = useState<PlayerProps & { styles?: string }>({
 		persos: scene02.persos,
 		events: scene02.eventtimes,
@@ -66,9 +59,11 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: { scenes: Arra
 				setScene(sc);
 			}
 		});
-
-		console.log(actorRef);
 	}, [actorRef]);
+
+	useEffect(() => {
+		actorRef.send({ type: "init", payload: data.scene });
+	}, [actorRef, data.scene]);
 
 	return (
 		<main className="app-layout">
@@ -78,7 +73,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: { scenes: Arra
 			<section className="base-layout layout-chutier">
 				<p className="border-primary-500 border-b-2">Chutier</p>
 			</section>
-			<section className="base-layout layout-capsules">
+			<section className="base-layout layout-capsules w-60">
 				<SceneTreeView />
 			</section>
 

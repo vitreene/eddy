@@ -24,7 +24,9 @@ export function Fichier({ scenes }: { scenes: Array<SceneRef> }) {
 						{scenes &&
 							scenes.map((sc) => (
 								<NavigationMenuLink key={sc.id} className="whitespace-nowrap" asChild>
-									<Link to={`/scene/${sc.id}`}>{sc.title}</Link>
+									<Link reloadDocument to={`/scene/${sc.id}`}>
+										{sc.title}
+									</Link>
 								</NavigationMenuLink>
 							))}
 					</NavigationMenuContent>

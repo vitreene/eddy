@@ -41,6 +41,7 @@ export function SceneTreeView() {
 		const c = capsules[capsuleId];
 		const id = `capsule${SEP}${c.id}`;
 		const els = c.itemIds.map((el) => items[el]);
+		console.log("ELS", els);
 
 		return {
 			id,
@@ -100,12 +101,7 @@ export function SceneTreeView() {
 		};
 	};
 
-	const tree: TreeDataItem[] = capsules[main].itemIds
-		.map((id) => items[id])
-		.sort((a, b) => (a.order > b.order ? 1 : -1))
-		.filter((item) => item.contentId && contents[item.contentId].capsuleId)
-		.map((item) => capsules[contents[item.contentId].capsuleId!])
-		.map((c) => renderCapsuleNode(c.id));
+	const tree: TreeDataItem = renderCapsuleNode(main);
 
 	const onDocumentDrag = (source: TreeDataItem, target: TreeDataItem) => {
 		console.log({ source, target });
@@ -129,43 +125,11 @@ export function SceneTreeView() {
 	};
 
 	return (
-		<TreeView data={tree} onDocumentDrag={onDocumentDrag} expandAll={true} onSelectChange={onSelectChange} />
+		<TreeView
+			data={tree.children}
+			onDocumentDrag={onDocumentDrag}
+			expandAll={true}
+			onSelectChange={onSelectChange}
+		/>
 	);
 }
-
-const initial = [
-	{
-		id: "1",
-		name: "Item 1",
-		droppable: true,
-
-		children: [
-			{
-				id: "2",
-				name: "Item 1.1",
-				draggable: true,
-				droppable: true,
-				children: [
-					{
-						id: "3",
-						name: "Item 1.1.1"
-					},
-					{
-						id: "4",
-						name: "Item 1.1.2"
-					}
-				]
-			},
-			{
-				id: "5",
-				name: "Item 1.2 (disabled)",
-				disabled: true
-			}
-		]
-	},
-	{
-		id: "6",
-		name: "Item 2 (draggable)",
-		draggable: true
-	}
-];
