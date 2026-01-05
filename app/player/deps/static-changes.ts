@@ -52,11 +52,12 @@ suivant, à deplcer après test.
 		let prevPosition = 0;
 		// let prevAction = '';
 
-		this.eventtimes.forEach((e, position) => {
+		this.eventtimes.forEach((evt, position) => {
 			// si c'est une video, completer les changes avec startAt et offset
 
 			//TODO a traiter la récursivité
-			if (!Array.isArray(e)) {
+
+			(Array.isArray(evt) ? evt : [evt]).map((e) => {
 				const action = actions[e.name];
 				if (action && typeof action !== "boolean") {
 					const { style, ...change } = action;
@@ -86,16 +87,16 @@ suivant, à deplcer après test.
 						change: { ...((actionChanges[position]?.change as object) || {}), ...change }
 					};
 				}
-			}
+			});
 		});
-		const positonsSorted = [...positions].sort((a, b) => (a < b ? -1 : 1));
+		const positionsSorted = [...positions].sort((a, b) => (a < b ? -1 : 1));
 
-		// console.log("positions", positions, [...positions], positonsSorted, actionChanges);
+		// console.log("positions", [...positions], positonsSorted, actionChanges);
 
-		positonsSorted.forEach((position, index, positonsSorted) => {
+		positionsSorted.forEach((position, index, positionsSorted) => {
 			changes[position] = {} as Change;
-			const prev = positonsSorted[index - 1] ?? null;
-			const next = positonsSorted[index + 1] ?? null;
+			const prev = positionsSorted[index - 1] ?? null;
+			const next = positionsSorted[index + 1] ?? null;
 			changes[position].curr = position;
 			changes[position].prev = prev;
 			changes[position].next = next;
@@ -115,7 +116,7 @@ suivant, à deplcer après test.
 				};
 			}
 		});
-		// console.log("changes", changes);
+		console.log("changes", changes);
 
 		this.persoChanges.set(id, changes);
 	});

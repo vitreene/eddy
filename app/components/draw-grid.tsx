@@ -201,7 +201,8 @@ function gridStyleFromXY(x: number, y: number): React.CSSProperties {
 	return {
 		display: "grid",
 		gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
-		gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`
+		gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
+		isolation: "isolate"
 	};
 }
 

@@ -169,6 +169,11 @@ body {
 
 .layout-player {
 	grid-area: player;
+	display: grid;
+	grid-template-rows: auto 3rem;
+}
+.layout-player > div {
+	overflow: hidden;
 }
 
 .layout-infos {

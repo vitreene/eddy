@@ -13,8 +13,6 @@ import {
 import { Link } from "react-router";
 
 export function Fichier({ scenes }: { scenes: Array<SceneRef> }) {
-	console.log(scenes);
-
 	return (
 		<NavigationMenu>
 			<NavigationMenuList>

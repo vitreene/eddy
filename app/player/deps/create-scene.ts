@@ -15,13 +15,15 @@ export function createScene(this: Player): void {
 
 	this.eventtimes.forEach((event, position) => {
 		if (positionMax < position) positionMax = position;
-		if (!Array.isArray(event)) {
+		(Array.isArray(event) ? event : [event]).map((event) => {
 			const eventName = event.name;
 			const positions = timeEvents.get(eventName) || [];
 			positions.push(position);
 			timeEvents.set(eventName, positions);
-		}
+		});
 	});
+
+	console.log("timeEvents", timeEvents);
 
 	this.persos.forEach((perso) => {
 		if (!perso.initial.id) return;
@@ -32,6 +34,8 @@ export function createScene(this: Player): void {
 		for (const [actionName, action] of Object.entries(perso.actions)) {
 			if (typeof action == "boolean") continue;
 			const positions = timeEvents.get(actionName);
+			console.log("ADD", $el, action.style!, actionName, positions);
+
 			if (positions && "style" in action) {
 				positions.forEach((position) => {
 					this.timeLine.add($el, action.style!, position);

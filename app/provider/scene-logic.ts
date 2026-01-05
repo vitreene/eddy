@@ -1,4 +1,4 @@
-import { setup, assign, type UnknownActorLogic, fromPromise } from "xstate";
+import { setup, assign } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
@@ -6,6 +6,7 @@ import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements
 import type { Decor, CapsuleComp, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
+import { INTRO } from "@/lib/constants";
 
 export interface ActiveState {
 	[key: string]: number | string | boolean | null;
@@ -13,7 +14,7 @@ export interface ActiveState {
 
 	itemId: number | null;
 	contentId: number | null;
-	cue: string | null;
+	cue: number | null;
 	action: string | null;
 	eventTouched: boolean;
 	decorTouched: boolean;
@@ -46,12 +47,6 @@ export interface TreeMoveEvent {
 	sourceId: number;
 	targetId: number;
 }
-
-// const initContext = fromPromise(async (input) => {
-// 	console.log("--->fromPromise", input);
-
-// 	return Promise.resolve(input || {});
-// });
 
 export const sceneLogic = setup({
 	types: {
@@ -160,15 +155,11 @@ export const sceneLogic = setup({
 		}
 	},
 
-	actors: {
-		// initContext: {} as UnknownActorLogic,
-		capsuleReorder
-	}
+	actors: { capsuleReorder }
 }).createMachine({
 	id: "scene",
 	context: { ...emptyScene, active },
 
-	// context: ({ input }) => ({ ...input, active }),
 	initial: "start",
 
 	states: {
@@ -176,8 +167,6 @@ export const sceneLogic = setup({
 			on: {
 				init: {
 					actions: assign(({ event }) => {
-						console.log("START", event);
-
 						return { active, ...event.payload };
 					}),
 					target: "#scene.edit"
@@ -185,20 +174,6 @@ export const sceneLogic = setup({
 			}
 		},
 
-		/* start: {
-			invoke: {
-				src: "initContext",
-				input: ({ event }: { event: { payload: SceneComp } }) => {
-					console.log("initContext", event);
-
-					return event.payload;
-				},
-				onDone: {
-					target: "edit",
-					actions: assign(({ event }) => event.output)
-				}
-			}
-		}, */
 		edit: {
 			type: "parallel",
 			initial: "active",
@@ -215,11 +190,21 @@ export const sceneLogic = setup({
 							actions: [
 								assign(({ context, event }) => {
 									console.log("active-set", event.payload);
+									let cue = null;
+									if ("itemId" in event.payload) {
+										const name = context.events[event.payload.itemId]?.[INTRO]?.name;
+										cue = name
+											? Object.values(context.sceneContents)
+													.flatMap((sc) => sc.events)
+													.find((ev) => ev.name == name)
+											: null;
+									}
 
 									return {
 										...context,
 										active: {
 											...context.active,
+											cue: cue?.start || null,
 											...event.payload
 										}
 									};

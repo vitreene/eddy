@@ -41,7 +41,6 @@ export function SceneTreeView() {
 		const c = capsules[capsuleId];
 		const id = `capsule${SEP}${c.id}`;
 		const els = c.itemIds.map((el) => items[el]);
-		console.log("ELS", els);
 
 		return {
 			id,

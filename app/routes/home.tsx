@@ -77,7 +77,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 				<SceneTreeView />
 			</section>
 
-			<section className="base-layout layout-player flex flex-col">
+			<section className="base-layout layout-player">
 				<PlayerRunner scene={scene} />
 				{/* <DemoTransformEditor /> */}
 			</section>

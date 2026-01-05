@@ -9,6 +9,7 @@ import { preload } from "~/player/preload";
 import { ROOT_SCENE_CLASSNAME, SCENE_ID } from "~/player/constants";
 import type { PersoDef, MapEvent } from "./types";
 import type { Subscribed } from "./deps/pubsub";
+import { SceneLogicContext } from "@/provider/scene-logic";
 
 export interface PlayerProps {
 	persos: Array<PersoDef>;
@@ -19,6 +20,8 @@ export interface PlayerProps {
 const onEnd = (t: Timer) => console.log("PLAYER the end", t.duration, t);
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
+	const active = SceneLogicContext.useSelector((state) => state.context.active);
+
 	const animeScene = useRef<Timeline>(null);
 	const sceneRef = useRef<HTMLDivElement>(null);
 	const [telco, setTelco] = useState<TelcoProps>();
@@ -28,7 +31,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 
 		if (scene && typeof window !== "undefined") {
 			if (animeScene.current) animeScene.current.revert();
-			console.log("useEffect");
+
 			preload(persos).then((p) => {
 				const render: HTMLElement | null = sceneRef.current;
 				const player = new Player({ render, persos: p, eventtimes: events, onEnd });
@@ -36,17 +39,17 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 				setTelco(player.telco());
 
 				animeScene.current = player.timeLine;
-				animeScene.current.play();
+				active.cue !== null ? animeScene.current.seek(active.cue * 1000).pause() : animeScene.current.play();
 			});
 		}
-	}, [scene]);
+	}, [active.cue, scene]);
 
 	const styles = `${scene.styles} ${ROOT_SCENE_CLASSNAME}`;
 
 	return (
 		<>
 			<style>{styles}</style>
-			<div className="flex-1" ref={sceneRef} id={SCENE_ID} />
+			<div className="aspect-video flex-1" ref={sceneRef} id={SCENE_ID} />
 			<Telco telco={telco!} />
 		</>
 	);
