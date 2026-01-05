@@ -124,8 +124,6 @@ interface DbSceneComp extends Scene {
 	theme?: Theme | null;
 }
 
-// SCENE
-
 const adapter = new PrismaBetterSqlite3({
 	url: process.env.DATABASE_URL || "file:./prisma/dev.db"
 });
@@ -143,6 +141,17 @@ main()
 		await prisma.$disconnect();
 		process.exit(1);
 	});
+
+// SCENE
+
+export async function createScene(title: string) {
+	return await prisma.scene.create({ data: { title } });
+}
+
+export type SceneRef = Pick<Scene, "id" | "title">;
+export async function getScenes(): Promise<Array<SceneRef>> {
+	return await prisma.scene.findMany({ select: { id: true, title: true } });
+}
 
 export async function getScene(sceneId: number): Promise<SceneComp> {
 	const sceneDB = await prisma.scene.findUnique({
