@@ -42,6 +42,7 @@ export class Player {
 		onEnd?: (tm: Timer) => void;
 	}) {
 		if (!render) throw new Error("Le player ne peut etre rendu.");
+
 		if (Player._instance) {
 			return Player._instance;
 		}
@@ -86,6 +87,7 @@ export class Player {
 			play: this.play,
 			replay: this.replay,
 			duration: this.timeLine.duration,
+			paused: this.timeLine.paused,
 			susbscribe: (up: Subscribed<Timeline>) => this.updatesTM.subscribe(up)
 		};
 	};

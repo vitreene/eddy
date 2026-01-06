@@ -170,11 +170,12 @@ body {
 .layout-player {
 	grid-area: player;
 	display: grid;
-	grid-template-rows: auto 3rem;
+	/* grid-template-rows: auto 3rem; */
 }
-.layout-player > div {
+
+/* .layout-player > div {
 	overflow: hidden;
-}
+} */
 
 .layout-infos {
 	grid-area: infos;
@@ -227,4 +228,29 @@ body {
 }
 .color-3 {
 	background-color: hsl(0, 100%, 70%);
+}
+
+#container-scene {
+	display: grid;
+	grid-area: 1 / 1;
+}
+
+#container-scene > div {
+	display: grid;
+	grid-area: 1 / 1;
+	position: relative;
+	border: thin white solid;
+
+	place-content: center;
+	overflow: hidden;
+}
+
+#container-scene > div > * {
+	grid-area: 1 / 1;
+	width: 100%;
+	/* opacity: 0; */
+}
+
+#capsule__4 {
+	background-color: burlywood;
 }

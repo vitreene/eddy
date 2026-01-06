@@ -4,7 +4,7 @@ import type { RouteConfig } from "@react-router/dev/routes";
 export default [
 	index("routes/new.tsx"),
 	route("scene/:id", "routes/home.tsx"),
-	route("player", "./routes/player.tsx"),
+	// route("player", "./routes/player.tsx"),
 	//APIS
 	...prefix("api", [
 		route("scene", "./api/scene.ts"),

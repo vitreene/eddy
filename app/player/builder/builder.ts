@@ -86,9 +86,9 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 			const ev = events[action];
 			const actionStyle = getActionStyle(TR[ev.ref].style);
 			const actionName = `${ev.name}-${ev.action}`;
-			if (action == "intro") {
+			if (action == INTRO) {
 				actions[actionName] = { style: actionStyle, move: parentId };
-			} else actions[actionName] = TR[ev.ref].style;
+			} else actions[actionName] = actionStyle;
 		}
 
 		const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
@@ -139,7 +139,7 @@ function createItems(item: ItemComp, snapshot: SceneComp) {
 		const actionName = `${ev.name}-${ev.action}`;
 		if (action == INTRO) {
 			actions[actionName] = { style: actionStyle, move: parentId };
-		} else actions[actionName] = { style: TR[ev.ref].style };
+		} else actions[actionName] = { style: actionStyle };
 	}
 
 	const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
@@ -241,7 +241,7 @@ function mapEvents(snapshot: SceneComp) {
 	return map;
 }
 
-type ActionStyle = Record<string, { from: number | string; to: number | string; duration?: number }>;
+type ActionStyle = Record<string, { from?: number | string; to: number | string; duration?: number }>;
 function getActionStyle(style: ActionStyle) {
 	const actionStyle = {} as ActionStyle;
 	for (const key in style) actionStyle[key] = { ...style[key], duration: DEFAULT_DURATION };

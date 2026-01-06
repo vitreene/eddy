@@ -13,7 +13,7 @@ import { EditItem } from "@/parts/item-edit";
 import { buildScene } from "@/player/builder/builder";
 // import { DemoTransformEditor } from "@/components/position-editor/exemple";
 
-import * as scene02 from "../demos/scenes/scene-02";
+// import * as scene02 from "../demos/scenes/scene-02";
 import { Menu } from "@/parts/menu";
 
 export function meta() {
@@ -43,8 +43,8 @@ export default function Home({ loaderData }: Route.ComponentProps) {
 
 const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	const [scene, setScene] = useState<PlayerProps & { styles?: string }>({
-		persos: scene02.persos,
-		events: scene02.eventtimes,
+		persos: [],
+		events: new Map(),
 		styles: ""
 	});
 
@@ -55,7 +55,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 			const { active, ...state } = snapshot.context;
 			if (Object.keys(state).length) {
 				const sc = buildScene(state);
-				console.log(sc);
+
 				setScene(sc);
 			}
 		});
@@ -64,7 +64,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	useEffect(() => {
 		actorRef.send({ type: "init", payload: data.scene });
 	}, [actorRef, data.scene]);
-
+	console.log("SCENE", scene);
 	return (
 		<main className="app-layout">
 			<section className="base-layout layout-menu">

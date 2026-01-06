@@ -33,13 +33,18 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 			if (animeScene.current) animeScene.current.revert();
 
 			preload(persos).then((p) => {
-				const render: HTMLElement | null = sceneRef.current;
-				const player = new Player({ render, persos: p, eventtimes: events, onEnd });
+				if (p.size) {
+					const render: HTMLElement | null = sceneRef.current;
+					const player = new Player({ render, persos: p, eventtimes: events, onEnd });
 
-				setTelco(player.telco());
+					setTelco(player.telco());
 
-				animeScene.current = player.timeLine;
-				active.cue !== null ? animeScene.current.seek(active.cue * 1000).pause() : animeScene.current.play();
+					animeScene.current = player.timeLine;
+					// animeScene.current.pause();
+					console.log("active.cue", active.cue);
+
+					active.cue !== null ? animeScene.current.seek(active.cue * 1000).pause() : animeScene.current.play();
+				}
 			});
 		}
 	}, [active.cue, scene]);
@@ -61,12 +66,13 @@ interface TelcoProps {
 	play: () => Timeline;
 	replay: () => Timeline;
 	duration: number;
+	paused: boolean;
 	susbscribe: (up: Subscribed<Timeline>) => () => void;
 }
 
 function Telco({ telco }: { telco?: TelcoProps }) {
 	const [progress, setProgress] = useState<number>();
-	const [toggle, setToggle] = useState<boolean>(false);
+	const [toggle, setToggle] = useState<boolean>(telco?.paused ?? true);
 
 	function mouseMove(e: React.ChangeEvent<HTMLInputElement>): void {
 		const value = Number(e.currentTarget.value);
