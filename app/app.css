@@ -233,6 +233,7 @@ body {
 #container-scene {
 	display: grid;
 	grid-area: 1 / 1;
+	overflow: hidden;
 }
 
 #container-scene > div {

@@ -6,7 +6,7 @@ import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements
 import type { Decor, CapsuleComp, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
-import { INTRO } from "@/lib/constants";
+import { DEFAULT_DURATION, INTRO } from "@/lib/constants";
 
 export interface ActiveState {
 	[key: string]: number | string | boolean | null;
@@ -204,7 +204,8 @@ export const sceneLogic = setup({
 										...context,
 										active: {
 											...context.active,
-											cue: cue?.start || null,
+											// fin de la transition
+											cue: cue?.start + DEFAULT_DURATION / 1000 || null,
 											...event.payload
 										}
 									};
