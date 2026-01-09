@@ -66,26 +66,21 @@ suivant, à deplcer après test.
 						change.media.changeAt = change.media.changeAt ?? position;
 
 						offset = change.media.offset ?? offset;
-						if (
-							// prevAction != change.media.action &&
-							change.media.action == "play"
-						) {
+						if (change.media.action == "play") {
 							prevPosition = position;
 						}
-						if (
-							// prevAction != change.media.action &&
-							change.media.action == "pause"
-						) {
+						if (change.media.action == "pause") {
 							offset = offset + (position - prevPosition);
 						}
 
 						change.media.offset = offset;
 					}
 
-					positions.add(position);
-					actionChanges[position] = {
-						change: { ...((actionChanges[position]?.change as object) || {}), ...change }
-					};
+					const newChange = { ...((actionChanges[position]?.change as object) || {}), ...change };
+					if (Object.keys(newChange).length) {
+						positions.add(position);
+						actionChanges[position] = { change: newChange };
+					}
 				}
 			});
 		});

@@ -135,6 +135,31 @@ export class Player {
 }
 
 /* 
+les static changes n'ont lieu que lors d'une lecture en continu 
+certains change ne sont pas encore reversibles, comme move
+-> il faut les activer pour un seek, et l'algo doit etre toujours reversible 
+
+-> deplacer la logique hors de l'update, update comme seek doivent acceder aux changes.
+-> pour seek, peut-etre cumuler les changes en un seul et l'appliquer en une fois ? 
+-> ca pourrait etre valable systématiquement, il n'y a pas necessairement de pénalité 
+-> 
+exemple : seek à 2000
+persochanges à 0, 500 et 3000,
+ne retenir que 0 et 500,
+fusionner les changes 
+(normalement  0 contient initial)
+lister les attributs du node
+virer ce qui n'est pas dans change
+mettre à jour ce qui est dans change
+move: 
+- si pas de move trouvé, le node n'est pas affiché, le retirer 
+
+pour la lecture à l'envers, la lecture des nodes est différente
+- traverser les changes depuis la fin juqu'à trouver le premier node qui est devant la tete de lecture 
+- si on trouve move = false ou undefined retirer le node
+*/
+
+/* 
 comment faire si j'alterne des play et pause pour un media durant la lecture ?
 en lecture normale, pas de souci particulier
 mais : comment maintenir l'état quand on seek ? 

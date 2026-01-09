@@ -1,11 +1,10 @@
-import { fromPromise } from "xstate";
 import React, { useEffect, useState } from "react";
 import type { Route } from "./+types/home";
 
 import { PlayerRunner, type PlayerProps } from "~/player";
 
 import { EditEvent } from "@/parts/event-edit";
-import { sceneLogic, SceneLogicContext } from "@/provider/scene-logic";
+import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { getScene, getScenes, type SceneComp, type SceneRef } from "@/api/db";
 import { SceneTreeView } from "@/parts/scene-tree-view";

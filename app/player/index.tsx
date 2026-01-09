@@ -43,7 +43,12 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 					// animeScene.current.pause();
 					console.log("active.cue", active.cue);
 
-					active.cue !== null ? animeScene.current.seek(active.cue * 1000).pause() : animeScene.current.play();
+					active.cue !== null
+						? animeScene.current
+								.play()
+								.seek(active.cue * 1000)
+								.pause()
+						: animeScene.current.play();
 				}
 			});
 		}
