@@ -55,8 +55,8 @@ export const swipeRightOut = {
 		x: { to: 250 }
 	}
 };
-export const swipeTop = {
-	name: "balayage haut",
+export const swipeTopIn = {
+	name: "entrée balayage haut",
 	style: {
 		opacity: { from: 0, to: 1 },
 		y: { from: -250, to: 0 }
@@ -70,8 +70,15 @@ export const swipeTop = {
 	// 	x: 0,
 	// },
 };
-export const swipeDown = {
-	name: "balayage bas",
+export const swipeTopOut = {
+	name: "sortie balayage haut",
+	style: {
+		opacity: { to: 0 },
+		y: { to: -250 }
+	}
+};
+export const swipeDownIn = {
+	name: "entrée balayage bas",
 	style: {
 		opacity: { from: 0, to: 1 },
 		y: { from: 250, to: 0 }
@@ -84,6 +91,13 @@ export const swipeDown = {
 	// 	opacity: 1,
 	// 	x: 0,
 	// },
+};
+export const swipeDownOut = {
+	name: "sortie balayage bas",
+	style: {
+		opacity: { to: 0 },
+		y: { to: 250 }
+	}
 };
 
 export const fadeScaleIn = {

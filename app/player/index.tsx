@@ -1,15 +1,16 @@
 "use client";
 import React from "react";
 import { Timeline, Timer } from "animejs";
-import { Play, Pause, RotateCcwIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { Play, Pause, RotateCcwIcon } from "lucide-react";
 
-import { Player } from "~/player/player";
-import { preload } from "~/player/preload";
-import { ROOT_SCENE_CLASSNAME, SCENE_ID } from "~/player/constants";
-import type { PersoDef, MapEvent } from "./types";
-import type { Subscribed } from "./deps/pubsub";
 import { SceneLogicContext } from "@/provider/scene-logic";
+
+import { preload } from "~/player/preload";
+import { Player, type TelcoProps } from "~/player/player";
+import { ROOT_SCENE_CLASSNAME, SCENE_ID } from "~/player/constants";
+
+import type { PersoDef, MapEvent } from "./types";
 
 export interface PlayerProps {
 	persos: Array<PersoDef>;
@@ -21,62 +22,39 @@ const onEnd = (t: Timer) => console.log("PLAYER the end", t.duration, t);
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
-
-	const animeScene = useRef<Timeline>(null);
 	const sceneRef = useRef<HTMLDivElement>(null);
-	const [telco, setTelco] = useState<TelcoProps>();
+	const [telco, setTelco] = useState<TelcoProps>(null);
 
 	useEffect(() => {
 		const { persos, events } = scene;
-
 		if (scene && typeof window !== "undefined") {
-			if (animeScene.current) animeScene.current.revert();
-
+			if (telco) telco.revert();
 			preload(persos).then((p) => {
 				if (p.size) {
-					const render: HTMLElement | null = sceneRef.current;
-					const player = new Player({ render, persos: p, eventtimes: events, onEnd });
-
-					setTelco(player.telco());
-
-					animeScene.current = player.timeLine;
-					// animeScene.current.pause();
 					console.log("active.cue", active.cue);
 
-					active.cue !== null
-						? animeScene.current
-								.play()
-								.seek(active.cue * 1000)
-								.pause()
-						: animeScene.current.play();
+					const render: HTMLElement | null = sceneRef.current;
+					const player = new Player({ render, persos: p, eventtimes: events, onEnd });
+					player.telco.seek(active.cue ?? 0 * 1000);
+					setTelco(player.telco);
 				}
 			});
 		}
-	}, [active.cue, scene]);
+	}, [active.cue, scene, telco]);
 
 	const styles = `${scene.styles} ${ROOT_SCENE_CLASSNAME}`;
 
 	return (
 		<>
 			<style>{styles}</style>
-			<div className="aspect-video flex-1" ref={sceneRef} id={SCENE_ID} />
+			<div ref={sceneRef} id={SCENE_ID} className="aspect-video flex-1" />
 			<Telco telco={telco!} />
 		</>
 	);
 });
 
-interface TelcoProps {
-	seek: (time: number) => Timeline;
-	pause: () => Timeline;
-	play: () => Timeline;
-	replay: () => Timeline;
-	duration: number;
-	paused: boolean;
-	susbscribe: (up: Subscribed<Timeline>) => () => void;
-}
-
 function Telco({ telco }: { telco?: TelcoProps }) {
-	const [progress, setProgress] = useState<number>();
+	const [progress, setProgress] = useState<number>(0);
 	const [toggle, setToggle] = useState<boolean>(telco?.paused ?? true);
 
 	function mouseMove(e: React.ChangeEvent<HTMLInputElement>): void {

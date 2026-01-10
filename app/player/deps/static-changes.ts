@@ -1,7 +1,7 @@
 import { P } from "../types";
 
 import type { Player } from "../player";
-import type { Action, ClassNameAction } from "../types";
+import type { Action, ActionAtributes, ClassNameAction } from "../types";
 
 export interface Change {
 	prev: number | null;
@@ -13,12 +13,7 @@ export interface Change {
 		width: number | string;
 		height: number | string;
 	};
-	change: {
-		className?: string;
-		move?: null | boolean | string;
-		content?: any;
-		[key: string]: any;
-	};
+	change: Partial<ActionAtributes>;
 }
 export function setStaticChanges(this: Player) {
 	this.persos.forEach((perso) => {
@@ -111,38 +106,54 @@ suivant, à deplcer après test.
 				};
 			}
 		});
-		console.log("changes", changes);
+		// console.log("changes", changes);
 
 		this.persoChanges.set(id, changes);
 	});
 }
 
-function mixClassNames(oldClassName: string = "", className: string | ClassNameAction) {
-	switch (typeof className) {
-		case "string": {
-			const mix = new Set([
-				...(oldClassName?.length ? oldClassName.split(" ") : []),
-				...(className?.length ? (className as string).split(" ") : [])
-			]);
-			return [...mix].join(" ");
-		}
+/**
+ * Mix two class name inputs:
+ * - If `oldClassName` is a string: start from its classes.
+ * - If `oldClassName` is an action: start from empty and apply it.
+ * Then apply `className`:
+ * - string => union add
+ * - action => add/remove
+ */
+type ClassNameInput = string | ClassNameAction | undefined | null;
+export function mixClassNames(oldClassName: ClassNameInput = "", className: ClassNameInput = ""): string {
+	// 1) Build initial set from oldClassName
+	const result = new Set<string>();
 
-		case "object": {
-			const mix = new Set([...(oldClassName?.length ? oldClassName.split(" ") : [])]);
+	if (typeof oldClassName === "string") {
+		for (const cls of splitClasses(oldClassName)) result.add(cls);
+	} else if (oldClassName && typeof oldClassName === "object") {
+		applyClassNameActions(result, oldClassName);
+	}
 
-			for (const action in className) {
-				switch (action) {
-					case "add":
-						className.add!.split(" ").forEach((cl) => mix.add(cl));
-						break;
-					case "remove":
-						className.remove!.split(" ").forEach((cl) => mix.delete(cl));
-				}
-			}
-			return [...mix].join(" ");
-		}
+	// 2) Apply incoming className
+	if (typeof className === "string") {
+		for (const cls of splitClasses(className)) result.add(cls);
+	} else if (className && typeof className === "object") {
+		applyClassNameActions(result, className);
+	}
 
-		default:
-			return oldClassName;
+	// 3) Return normalized string
+	return Array.from(result).join(" ");
+}
+
+function splitClasses(classname: string): string[] {
+	return classname
+		.split(" ")
+		.map((s) => s.trim())
+		.filter(Boolean);
+}
+
+function applyClassNameActions(set: Set<string>, clsAction: ClassNameAction): void {
+	if (clsAction.add) {
+		for (const cls of splitClasses(clsAction.add)) set.add(cls);
+	}
+	if (clsAction.remove) {
+		for (const cls of splitClasses(clsAction.remove)) set.delete(cls);
 	}
 }

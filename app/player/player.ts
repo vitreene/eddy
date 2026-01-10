@@ -1,24 +1,39 @@
-import { createTimeline, Timeline, Timer } from "animejs";
+import { animate, createTimeline, JSAnimation, Timeline, Timer, utils } from "animejs";
 
 import { PubSub, type Subscribed } from "./deps/pubsub";
 import { initMedias } from "./deps/init-medias";
 import { createScene } from "./deps/create-scene";
-import { onUpdateTimeLine } from "./deps/on-update";
 import { createElements } from "./deps/create-elements";
-import { setStaticChanges } from "./deps/static-changes";
+import { mixClassNames, setStaticChanges } from "./deps/static-changes";
+import { P } from "./types";
+import { getAbsoluteCoords, getTransform } from "./deps/utils";
 
 import type { Change } from "./deps/static-changes";
-import type { ID, MapEvent, MediaStatus, Perso } from "./types";
+import type { ActionAtributes, ID, MapEvent, MediaStatus, Perso } from "./types";
+import { SCENE_ID } from "./constants";
+import { onUpdateTimeLine } from "./deps/on-update";
 
 const tmDefaults = {
-	autoplay: true,
+	// autoplay: true,
 	// loop: 1,
 	// alternate: true,
 	onLoop: () => console.log("///////LOOP")
 };
 
+export interface TelcoProps {
+	seek: (time: number) => Timeline;
+	pause: () => Timeline;
+	play: () => Timeline;
+	replay: () => Timeline;
+	revert: () => Timeline;
+	readonly duration: number;
+	readonly paused: boolean;
+
+	susbscribe: (up: Subscribed<Timeline>) => () => void;
+}
+
 export class Player {
-	static _instance: Player | null = null;
+	private static _instance: Player | null = null;
 
 	timeLine!: Timeline;
 	eventtimes!: MapEvent;
@@ -29,6 +44,8 @@ export class Player {
 	persoChanges = new Map<ID, Record<number, Change>>();
 	updatesTM = new PubSub<Timeline>();
 	onEnd: (tm: Timer) => void = () => {};
+
+	telco: TelcoProps;
 
 	constructor({
 		render,
@@ -69,34 +86,48 @@ export class Player {
 		this.onUpdateTM();
 		const onUpdate = onUpdateTimeLine.bind(this)();
 		this.updatesTM.subscribe(onUpdate);
+
+		this.initTelco();
+
 		console.log(this);
 	}
 
-	private onUpdateTM() {
-		this.timeLine.onUpdate = (self: Timeline) => this.updatesTM.forEach((up) => up(self));
-	}
 	private createElements!: () => void;
 	private initMedias!: () => void;
 	private setStaticChanges!: () => void;
 	private createScene!: () => void;
+	private onUpdateTM() {
+		this.timeLine.onUpdate = (self: Timeline) => this.updatesTM.forEach((up) => up(self));
+	}
 
-	telco = () => {
-		return {
+	private initTelco = () => {
+		console.log("INIT TELCO");
+
+		const duration = () => this.timeLine.duration;
+		const paused = () => this.timeLine.paused;
+		this.telco = {
 			seek: this.seek,
 			pause: this.pause,
 			play: this.play,
 			replay: this.replay,
-			duration: this.timeLine.duration,
-			paused: this.timeLine.paused,
+			revert: this.revert,
+			get duration() {
+				return duration();
+			},
+			get paused() {
+				return paused();
+			},
 			susbscribe: (up: Subscribed<Timeline>) => this.updatesTM.subscribe(up)
 		};
 	};
 
 	private play = () => {
-		this.timeLine.play();
-		this.mediaStatus.forEach((ms) => {
-			ms.node[ms.status]();
-		});
+		if (this.timeLine.paused) {
+			this.timeLine.play();
+			this.mediaStatus.forEach((ms) => {
+				ms.node[ms.status]();
+			});
+		}
 		return this.timeLine;
 	};
 
@@ -113,8 +144,16 @@ export class Player {
 		return this.timeLine;
 	};
 
+	private revert = () => {
+		this.timeLine.revert();
+		return this.timeLine;
+	};
+
 	private seek = (time: number) => {
+		console.log("SEEK", time);
+
 		this.timeLine.pause();
+		this.seekChanges(time);
 		this.timeLine.seek(time);
 		this.seekMedias(time);
 
@@ -132,6 +171,116 @@ export class Player {
 			$node.currentTime = currentime / 1000;
 		});
 	};
+	private seekChanges(time: number) {
+		this.persoChanges.forEach((pcs, id) => {
+			const changes = [];
+
+			for (const [t, pc] of Object.entries(pcs)) {
+				if (Number(t) <= time) changes.push(pc.change);
+				else break;
+			}
+			const change = changes.reduce((a, c) => ({ ...a, ...c }), {});
+			console.log(id, change);
+			this._moveChange(id, change);
+			this.applyMediaChanges(time, id, change);
+		});
+	}
+
+	_applyChanges(id: ID, change: Partial<ActionAtributes>) {
+		const $el = this.$elements.get(id);
+
+		if (change.className) {
+			$el.className = mixClassNames(change.className);
+		}
+		if (change.content) {
+			$el.textContent = change.content;
+		}
+		if (change.attr) {
+			Object.entries(change.attr).forEach(([value, key]) => $el.setAttribute(key, value));
+		}
+	}
+
+	_moveChange(id: ID, change: Partial<ActionAtributes>): JSAnimation | undefined {
+		const $el = this.$elements.get(id);
+		console.log(change.move);
+
+		switch (typeof change.move) {
+			case "undefined": {
+				const parent = $el.parentElement;
+				if (parent && parent.id !== SCENE_ID) parent.removeChild($el);
+				break;
+			}
+			case "string":
+				{
+					const parent = this.$elements.get(change.move);
+					if (parent) parent.appendChild($el);
+				}
+				break;
+			//
+
+			case "boolean": {
+				const old = getAbsoluteCoords($el);
+				this._applyChanges(id, change);
+				const nex = getAbsoluteCoords($el);
+
+				const px = utils.get($el, "x", false);
+				const py = utils.get($el, "y", false);
+
+				const dx = old.x - nex.x;
+				const dy = old.y - nex.y;
+
+				const diff = getTransform($el).translate(-px, -py).invertSelf().transformPoint(new DOMPoint(dx, dy));
+
+				const transition = animate($el, {
+					x: { from: diff.x + px, to: 0 + px },
+					y: { from: diff.y + py, to: 0 + py },
+
+					width: { from: old.width, to: nex.width },
+					height: { from: old.height, to: nex.height },
+					autoplay: false,
+					duration: 1000,
+					composition: "none"
+				}).seek(0);
+
+				return transition;
+			}
+			default:
+				break;
+		}
+	}
+
+	// changes : src, media
+	private applyMediaChanges(time: number, id: ID, change: Partial<ActionAtributes>) {
+		const perso = this.persos.get(id);
+		if (!("media" in perso)) return;
+
+		const $el = this.$elements.get(id);
+		if (change.src) {
+			($el as HTMLAudioElement | HTMLVideoElement | HTMLImageElement).src = change.src;
+		}
+
+		if (perso.type == P.VIDEO && change.media) {
+			const $video = $el as HTMLVideoElement;
+
+			const $media = this.mediaStatus.get(perso.initial.id)!;
+			$media.change = {
+				changeAt: change.media.changeAt,
+				offset: change.media.offset
+			};
+			$media.startAt = time ?? 0;
+
+			if (change.media.action == "play") {
+				$media.status = "play";
+				$video.currentTime = (change.media.offset ?? 0) / 1000;
+				!this.timeLine.paused && $video.play();
+			}
+			if (change.media.action == "pause") {
+				$media.status = "pause";
+
+				$video.pause();
+			}
+		}
+	}
 }
 
 /* 
@@ -154,9 +303,7 @@ mettre à jour ce qui est dans change
 move: 
 - si pas de move trouvé, le node n'est pas affiché, le retirer 
 
-pour la lecture à l'envers, la lecture des nodes est différente
-- traverser les changes depuis la fin juqu'à trouver le premier node qui est devant la tete de lecture 
-- si on trouve move = false ou undefined retirer le node
+
 */
 
 /* 

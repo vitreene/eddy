@@ -8,7 +8,7 @@ export type MapEvent = Map<number, Eventime | Eventime[]>;
 export interface Eventime {
 	name: string;
 	// startAt: number;
-	data?: any;
+	data?: unknown;
 	duration?: number;
 	events?: Eventime[];
 }
@@ -76,7 +76,8 @@ export interface MediaStatus {
 }
 
 export interface Style
-	extends CSS.Properties<string | number>,
+	extends
+		CSS.Properties<string | number>,
 		CSS.PropertiesHyphen<string | number>,
 		Partial<CSSTransformSpecialParam<number>> {}
 
@@ -94,8 +95,8 @@ export interface ClassNameAction {
 	remove?: string;
 }
 
-export interface ActionCat {
-	attr: any;
+export interface ActionAtributes {
+	attr: Record<string, string>;
 	style: AnimationParams;
 	className: string | ClassNameAction;
 	move: boolean | string;
@@ -104,9 +105,9 @@ export interface ActionCat {
 	media: Media;
 }
 
-export type Action = Partial<ActionCat> | boolean;
+export type Action = Partial<ActionAtributes> | boolean;
 
-export interface Initial extends Partial<ActionCat> {
+export interface Initial extends Partial<ActionAtributes> {
 	tag?: string;
 	id: string | number;
 }

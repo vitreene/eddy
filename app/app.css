@@ -239,6 +239,8 @@ body {
 #container-scene > div {
 	display: grid;
 	grid-area: 1 / 1;
+	grid-template-columns: repeat(10, 1fr);
+	grid-template-rows: repeat(10, 1fr);
 	position: relative;
 	border: thin white solid;
 
@@ -246,12 +248,24 @@ body {
 	overflow: hidden;
 }
 
-#container-scene > div > * {
-	grid-area: 1 / 1;
-	width: 100%;
-	/* opacity: 0; */
+.root-scene {
+	position: relative;
+	background-color: burlywood;
 }
 
-#capsule__4 {
-	background-color: burlywood;
+/* 
+permettre à une grille "libre" 
+de fonctionner par défaut en carrousel 
+mais de pouvoir préciser un positionnement libre de ses contenus
+ */
+#capsule__4 > * {
+	/* etendue maximum */
+	grid-area: 1 / 1/-1/ -1;
+	position: absolute;
+	width: 100%;
+}
+
+#capsule__4 #item__7 {
+	/* equivalent x / y / width / height  */
+	grid-area: 1 / 1 / span 1 / span 2;
 }
