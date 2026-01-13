@@ -180,7 +180,7 @@ export class Player {
 				else break;
 			}
 			const change = changes.reduce((a, c) => ({ ...a, ...c }), {});
-			console.log(id, change);
+
 			this._moveChange(id, change);
 			this.applyMediaChanges(time, id, change);
 		});
@@ -202,7 +202,6 @@ export class Player {
 
 	_moveChange(id: ID, change: Partial<ActionAtributes>): JSAnimation | undefined {
 		const $el = this.$elements.get(id);
-		console.log(change.move);
 
 		switch (typeof change.move) {
 			case "undefined": {

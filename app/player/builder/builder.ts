@@ -44,7 +44,6 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 		$items = Object.values(snapshot.items)
 			.map((it) => createItems(it, snapshot))
 			.filter(Boolean);
-		console.log($items);
 	}
 
 	return { persos: [...$capsules, ...$items], events, styles };
@@ -82,17 +81,22 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 		const parentId = `capsule${SEP}${item.capsuleId}`;
 		const actions: Record<string | number, any> = {};
 
-		for (const action in events) {
-			const ev = events[action];
-			const actionStyle = getActionStyle(TR[ev.ref].style);
-			const actionName = `${ev.name}-${ev.action}`;
-			if (action == INTRO) {
-				actions[actionName] = { style: actionStyle, move: parentId };
-			} else actions[actionName] = actionStyle;
+		if (events) {
+			for (const action in events) {
+				const ev = events[action];
+				const actionStyle = getActionStyle(TR[ev.ref].style);
+				const actionName = `${ev.name}-${ev.action}`;
+				if (action == INTRO) {
+					actions[actionName] = { style: actionStyle, move: parentId };
+				} else actions[actionName] = { style: actionStyle };
+			}
+		} else {
+			actions[INTRO] = { style: getActionStyle(TR.DEFAULT_IN.style) };
+			actions[OUTRO] = { style: getActionStyle(TR.DEFAULT_OUT.style) };
 		}
+		actions[id] = true;
 
 		const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
-		actions[id] = true;
 
 		return {
 			type: P.LIST,
@@ -202,11 +206,14 @@ function mapEvents(snapshot: SceneComp) {
 	// renvoie les events utilisés dans la scene sous la forme Map<number, Eventime|Eventime[]>
 	const map = new Map<number, Array<Partial<TextTime> & Pick<TextTime, "name" | "start">>>();
 
+	map.set(0, [{ name: INTRO, start: 0 }]);
+
 	if (!snapshot || !snapshot.events || !snapshot.sceneContents) return map;
 
 	const sceneContents = Object.values(snapshot.sceneContents).find((sc) => sc.sceneId == snapshot.id);
 
 	const cues: Array<TextTime> = (sceneContents && sceneContents.events) || [];
+	let lastCue = 0;
 
 	for (const actions in snapshot.events) {
 		const action = snapshot.events[actions];
@@ -219,6 +226,8 @@ function mapEvents(snapshot: SceneComp) {
 
 			const timeSec = ev.action == OUTRO ? cue.end : cue.start;
 			const timeMs = Math.round(timeSec * 1000);
+
+			if (timeMs > lastCue) lastCue = timeMs;
 
 			const item = {
 				name: `${ev.name}-${ev.action}`,
@@ -237,7 +246,7 @@ function mapEvents(snapshot: SceneComp) {
 			}
 		}
 	}
-
+	map.set(lastCue - DEFAULT_DURATION, [{ name: OUTRO, start: lastCue - DEFAULT_DURATION }]);
 	return map;
 }
 

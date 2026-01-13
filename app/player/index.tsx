@@ -35,7 +35,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 
 					const render: HTMLElement | null = sceneRef.current;
 					const player = new Player({ render, persos: p, eventtimes: events, onEnd });
-					player.telco.seek(active.cue ?? 0 * 1000);
+					player.telco.seek((active.cue ?? 0) * 1000);
 					setTelco(player.telco);
 				}
 			});

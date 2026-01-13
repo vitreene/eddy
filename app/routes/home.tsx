@@ -50,7 +50,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	const actorRef = SceneLogicContext.useActorRef();
 	useEffect(() => {
 		actorRef.subscribe((snapshot) => {
-			console.log("snapshot", snapshot.status, snapshot.context);
+			// console.log("snapshot", snapshot.status, snapshot.context);
 			const { active, ...state } = snapshot.context;
 			if (Object.keys(state).length) {
 				const sc = buildScene(state);
@@ -63,7 +63,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	useEffect(() => {
 		actorRef.send({ type: "init", payload: data.scene });
 	}, [actorRef, data.scene]);
-	console.log("SCENE", scene);
+	// console.log("SCENE", scene);
 	return (
 		<main className="app-layout">
 			<section className="base-layout layout-menu">

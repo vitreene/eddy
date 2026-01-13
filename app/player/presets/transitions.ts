@@ -15,7 +15,7 @@ export const fadeIn = {
 export const fadeOut = {
 	name: "fondu sortie",
 	style: {
-		opacity: { from: 1, to: 0 }
+		opacity: { to: 0 }
 	}
 
 	// from: {
@@ -130,3 +130,6 @@ export const fadeScaleOut = {
 	// 	scale: 1,
 	// },
 };
+
+export const DEFAULT_IN = fadeIn;
+export const DEFAULT_OUT = fadeOut;

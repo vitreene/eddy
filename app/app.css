@@ -238,14 +238,7 @@ body {
 
 #container-scene > div {
 	display: grid;
-	grid-area: 1 / 1;
-	grid-template-columns: repeat(10, 1fr);
-	grid-template-rows: repeat(10, 1fr);
-	position: relative;
-	border: thin white solid;
-
-	place-content: center;
-	overflow: hidden;
+	grid-area: 1 / 1/-1/ -1;
 }
 
 .root-scene {

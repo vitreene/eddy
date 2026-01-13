@@ -17,7 +17,7 @@ export interface Change {
 }
 export function setStaticChanges(this: Player) {
 	this.persos.forEach((perso) => {
-		const { id, style, tag, move, ...initialAction } = perso.initial;
+		const { id, style, tag, ...initialAction } = perso.initial;
 		if (!id) return;
 		/* 
 toutes sortes de transformation préalables des données de départ, 

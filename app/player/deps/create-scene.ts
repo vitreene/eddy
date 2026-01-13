@@ -9,7 +9,7 @@ import type { Action, Media, PersoLottieDef, PersoMediaDef } from "../types";
 export function createScene(this: Player): void {
 	if (!document) return null;
 	if (!this.render) return null;
-	const timeEvents = new Map<string, number[]>();
+	const timeEvents = new Map<string, Set<number>>();
 	let positionMax = 0;
 	console.log("eventtimes", this.eventtimes);
 
@@ -17,8 +17,8 @@ export function createScene(this: Player): void {
 		if (positionMax < position) positionMax = position;
 		(Array.isArray(event) ? event : [event]).map((event) => {
 			const eventName = event.name;
-			const positions = timeEvents.get(eventName) || [];
-			positions.push(position);
+			const positions = timeEvents.get(eventName) || new Set();
+			positions.add(position);
 			timeEvents.set(eventName, positions);
 		});
 	});
@@ -34,7 +34,7 @@ export function createScene(this: Player): void {
 		for (const [actionName, action] of Object.entries(perso.actions)) {
 			if (typeof action == "boolean") continue;
 			const positions = timeEvents.get(actionName);
-			console.log("ADD", $el, action.style!, actionName, positions);
+			console.log("ADD", $el.id, actionName, action.style!, positions);
 
 			if (positions && "style" in action) {
 				positions.forEach((position) => {
