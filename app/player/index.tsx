@@ -28,7 +28,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 	useEffect(() => {
 		const { persos, events } = scene;
 		if (scene && typeof window !== "undefined") {
-			if (telco) telco.revert();
+			// if (telco) telco.revert();
 			preload(persos).then((p) => {
 				if (p.size) {
 					console.log("active.cue", active.cue);
@@ -73,6 +73,8 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 	useEffect(() => {
 		if (!telco) return;
 		const unsusbscribe = telco.susbscribe((self: Timeline) => {
+			console.log("self.currentTime", self.currentTime);
+
 			setProgress(Math.round((self.currentTime / telco.duration) * 100));
 		});
 		return unsusbscribe;
@@ -83,6 +85,7 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 		telco?.replay();
 		setToggle(false);
 	};
+	console.log({ progress });
 
 	return (
 		<div id="telco" className="flex items-center gap-2 border border-stone-500 p-1">

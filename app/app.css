@@ -239,6 +239,7 @@ body {
 #container-scene > div {
 	display: grid;
 	grid-area: 1 / 1/-1/ -1;
+	grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
 
 .root-scene {
@@ -254,8 +255,9 @@ mais de pouvoir préciser un positionnement libre de ses contenus
 #capsule__4 > * {
 	/* etendue maximum */
 	grid-area: 1 / 1/-1/ -1;
-	position: absolute;
-	width: 100%;
+
+	/* position: absolute; */
+	/* width: 100%; */
 }
 
 #capsule__4 #item__7 {

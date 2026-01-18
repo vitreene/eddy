@@ -146,6 +146,7 @@ export class Player {
 
 	private revert = () => {
 		this.timeLine.revert();
+		console.log("REVERT");
 		return this.timeLine;
 	};
 
@@ -154,8 +155,13 @@ export class Player {
 
 		this.timeLine.pause();
 		this.seekChanges(time);
-		this.timeLine.seek(time);
-		this.seekMedias(time);
+		// if (+time > 0) {
+		// 	this.timeLine.seek(+time);
+		// } else {
+		// 	this.revert();
+		// }
+		this.timeLine.seek(+time);
+		this.seekMedias(+time);
 
 		return this.timeLine;
 	};

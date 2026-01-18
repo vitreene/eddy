@@ -118,8 +118,8 @@ export const fadeScaleIn = {
 export const fadeScaleOut = {
 	name: "fondu zoom out",
 	style: {
-		opacity: { from: 0, to: 1 },
-		scale: { from: 2.5, to: 0 }
+		opacity: { to: 0 },
+		scale: { to: 2.5 }
 	}
 	// from: {
 	// 	opacity: 0,
