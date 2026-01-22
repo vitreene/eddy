@@ -50,7 +50,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	const actorRef = SceneLogicContext.useActorRef();
 	useEffect(() => {
 		actorRef.subscribe((snapshot) => {
-			// console.log("snapshot", snapshot.status, snapshot.context);
+			console.log("snapshot", snapshot.status, snapshot.context);
 			const { active, ...state } = snapshot.context;
 			if (Object.keys(state).length) {
 				const sc = buildScene(state);

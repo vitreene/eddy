@@ -264,3 +264,18 @@ mais de pouvoir préciser un positionnement libre de ses contenus
 	/* equivalent x / y / width / height  */
 	grid-area: 1 / 1 / span 1 / span 2;
 }
+
+#item__1,
+#item__2 {
+	grid-area: 1 / 1;
+}
+
+#capsule__2 {
+	grid-area: 1/1;
+}
+#item__4 {
+	grid-area: 1/2;
+}
+#item__3 {
+	grid-area: 2/2;
+}

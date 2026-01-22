@@ -73,8 +73,6 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 	useEffect(() => {
 		if (!telco) return;
 		const unsusbscribe = telco.susbscribe((self: Timeline) => {
-			console.log("self.currentTime", self.currentTime);
-
 			setProgress(Math.round((self.currentTime / telco.duration) * 100));
 		});
 		return unsusbscribe;
@@ -85,7 +83,6 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 		telco?.replay();
 		setToggle(false);
 	};
-	console.log({ progress });
 
 	return (
 		<div id="telco" className="flex items-center gap-2 border border-stone-500 p-1">
