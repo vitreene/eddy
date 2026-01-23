@@ -236,28 +236,21 @@ body {
 	overflow: hidden;
 }
 
+/* 
 #container-scene > div {
 	display: grid;
 	grid-area: 1 / 1/-1/ -1;
 	grid-template: minmax(0, 1fr) / minmax(0, 1fr);
 }
+*/
 
 .root-scene {
 	position: relative;
-	background-color: burlywood;
-}
-
-/* 
-permettre à une grille "libre" 
-de fonctionner par défaut en carrousel 
-mais de pouvoir préciser un positionnement libre de ses contenus
- */
-#capsule__4 > * {
-	/* etendue maximum */
-	grid-area: 1 / 1/-1/ -1;
-
-	/* position: absolute; */
-	/* width: 100%; */
+	background-color: rgb(135, 222, 200);
+	display: grid;
+	grid-area: 1 / -1;
+	min-height: 0;
+	min-width: 0;
 }
 
 #capsule__4 #item__7 {
@@ -267,11 +260,20 @@ mais de pouvoir préciser un positionnement libre de ses contenus
 
 #item__1,
 #item__2 {
-	grid-area: 1 / 1;
+	grid-area: 1 / -1;
+	background-size: cover;
+	object-position: center;
+	background-repeat: no-repeat;
+}
+
+#capsule__3,
+#capsule__2 {
+	overflow: hidden;
 }
 
 #capsule__2 {
 	grid-area: 1/1;
+	overflow: hidden;
 }
 #item__4 {
 	grid-area: 1/2;

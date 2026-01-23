@@ -6,6 +6,8 @@ import { P } from "../types";
 import type { Player } from "../player";
 import type { Action, Media, PersoLottieDef, PersoMediaDef } from "../types";
 
+const exceptions = ["backgroundImage"];
+
 export function createScene(this: Player): void {
 	if (!document) return null;
 	if (!this.render) return null;
@@ -29,8 +31,23 @@ export function createScene(this: Player): void {
 		if (!perso.initial.id) return;
 		const $el = this.$elements.get(perso.initial.id);
 		if (!$el) return;
-		if (perso.initial.style) this.timeLine.add($el, perso.initial.style, 0);
 
+		if (perso.initial.style) {
+			const style: Record<string, any> = {};
+
+			for (const prop in perso.initial.style) {
+				if (exceptions.includes(prop)) {
+					console.log(prop, perso.initial.style[prop]);
+
+					$el.style.setProperty(prop, String(perso.initial.style[prop]));
+				} else style[prop] = perso.initial.style[prop];
+			}
+
+			console.log(perso.initial.id, perso.initial.style);
+			console.log(style, $el);
+
+			this.timeLine.add($el, style, 0);
+		}
 		for (const [actionName, action] of Object.entries(perso.actions)) {
 			if (typeof action == "boolean") continue;
 			const positions = timeEvents.get(actionName);

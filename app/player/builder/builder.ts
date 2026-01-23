@@ -31,7 +31,7 @@ const TR = Object.fromEntries(Object.entries(transitions).map(([k, { name: _, ..
 
 export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string } {
 	const events = mapEvents(snapshot);
-	console.log("->events", events);
+	// console.log("->events", events);
 
 	const styles = createStyle(snapshot);
 
@@ -121,7 +121,7 @@ const itemType = {
 	video: P.VIDEO
 } as const;
 const itemTag = {
-	img: "img",
+	img: "div",
 	text: "p",
 	sound: "audio",
 	video: "video"
@@ -162,11 +162,25 @@ function createItems(item: ItemComp, snapshot: SceneComp) {
 	switch (type) {
 		case P.SOUND:
 		case P.VIDEO:
+			return {
+				type,
+				initial: {
+					...initial,
+					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
+				},
+				actions
+			};
 		case P.IMG:
 			return {
 				type,
 				initial: {
 					...initial,
+					style: {
+						...initial.style,
+						toto: 25,
+						backgroundImage: `url("/${content.path ?? DEFAUT_PATH_IMAGE}")`,
+						backgroundSize: "cover"
+					},
 					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
 				},
 				actions

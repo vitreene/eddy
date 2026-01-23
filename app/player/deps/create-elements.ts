@@ -64,7 +64,8 @@ function createTag({ type, initial }: NodeProps) {
 	switch (type) {
 		case P.SPRITE:
 		case P.IMG:
-			return "img";
+			return "div";
+		// return "img";
 		case P.SOUND:
 		case P.VIDEO:
 			return "video";

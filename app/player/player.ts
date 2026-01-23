@@ -152,6 +152,7 @@ export class Player {
 
 	private seek = (time: number) => {
 		console.log("SEEK", time);
+		console.log("SEEK", this);
 
 		this.timeLine.pause();
 		this.seekChanges(time);

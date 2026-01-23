@@ -3,14 +3,16 @@ import { CircleSmallIcon } from "lucide-react";
 
 import type { ItemComp, ContentEvent } from "@/api/db";
 
-import { INTRO } from "@/lib/constants";
+import { INTRO, OUTRO } from "@/lib/constants";
 import * as TR from "@/player/presets/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";
 import { ContentPanel } from "./event-panel";
 
-const defaultTransition = "fondu";
+const defaultTransition = "fondu entrée";
+
+const actionOrder = [INTRO, OUTRO];
 
 export function EditEvent() {
 	const item = SceneLogicContext.useSelector((state) => {
@@ -37,7 +39,14 @@ function ContentInfos({ item }: { item: ItemComp }) {
 			<div className="w-40">
 				<p className="mb-2">Transitions</p>
 				{events &&
-					Object.values(events).map((event) => <MediaEventTransition key={event.action} event={event} />)}
+					Object.values(events)
+						//a revoir si d'autres events sont ajoutés
+						.toSorted((a, b) => {
+							const aI = actionOrder.findIndex((action) => action == a.action);
+							const bI = actionOrder.findIndex((action) => action == b.action);
+							return aI - bI;
+						})
+						.map((event) => <MediaEventTransition key={event.action} event={event} />)}
 			</div>
 		</div>
 	);
