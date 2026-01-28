@@ -10,10 +10,12 @@
 .bg-image {
 	background-size: cover;
 	background-position: center;
+	background-repeat: no-repeat;
 }
 .bg-sprite {
 	background-size: contain;
 	background-position: center;
+	background-repeat: no-repeat;
 }
 
 /* TESTS */
@@ -26,9 +28,9 @@
 #item__1,
 #item__2 {
 	grid-area: 1 / -1;
-	background-size: cover;
+	/* background-size: cover;
 	object-position: center;
-	background-repeat: no-repeat;
+	background-repeat: no-repeat; */
 }
 
 #capsule__3,

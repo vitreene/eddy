@@ -20,6 +20,9 @@ export interface EditableStyle {
 	display?: "flex" | "block" | "inline-block" | "grid";
 	justifyContent?: "flex-start" | "center" | "flex-end";
 	alignItems?: "flex-start" | "center" | "flex-end";
+
+	/* EXTRA */
+	area?: string;
 }
 
 export type StyleKey = keyof EditableStyle;

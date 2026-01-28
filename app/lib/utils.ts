@@ -130,3 +130,11 @@ const { containerClass, itemClassPrefix, cssText } = generateGridCss(4, 3);
 // item class for index 5 => ".ed-grid-i5{grid-column:1;grid-row:2}"
 // => un seul enfant avec class "ed-grid-i5" se placera en 1ère colonne / 2e rangée.
 */
+
+const DEFAULT_GRID_VALUE = { w: 1, h: 1 };
+export function getValuesFromGridName(grid: string = ""): { w: number; h: number } {
+	if (!grid) return DEFAULT_GRID_VALUE;
+	const values = /-w(\d*)-h(\d*)/.exec(grid);
+	if (!values) return DEFAULT_GRID_VALUE;
+	return { w: Number(values[1]), h: Number(values[2]) };
+}

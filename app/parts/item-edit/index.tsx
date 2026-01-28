@@ -1,15 +1,15 @@
 import { useCallback } from "react";
 
+import { getValuesFromGridName } from "@/lib/utils";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { CompactStyleEditor } from "@/components/style-editor/compact-style-editor";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
 
 import { DEFAULT_STYLE } from "@/lib/constants";
 
-import type { CapsuleComp, Decor } from "@/api/db";
+import type { CapsuleComp, Decor, Content } from "@/api/db";
 import type { GridSize } from "@/components/draw-grid";
 import type { EditableStyle } from "@/components/style-editor/types";
-import { SlotEditor } from "@/components/slot-editor/demo";
 
 export function EditItem() {
 	const { send } = SceneLogicContext.useActorRef();
@@ -18,15 +18,15 @@ export function EditItem() {
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
 	);
 
+	const content: Content = SceneLogicContext.useSelector((state) => state.context.contents[item?.contentId]);
+
 	const decor = SceneLogicContext.useSelector((state) => {
 		if (!item?.decorId) return undefined;
 		return state.context.decors[item.decorId];
 	});
 
 	const capsule = SceneLogicContext.useSelector((state) => {
-		if (!item) return undefined;
-		const content = state.context.contents[item.contentId];
-		if (content.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
+		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
 		return undefined;
 	});
 
@@ -40,21 +40,37 @@ export function EditItem() {
 	if (!item) return null;
 
 	return capsule ? (
-		<CapsuleEdit decor={decor} capsule={capsule} onChange={onStyleChange} />
+		<CapsuleEdit content={content} decor={decor} capsule={capsule} onChange={onStyleChange} />
 	) : (
-		<ContentEdit decor={decor} onChange={onStyleChange} />
+		<ContentEdit content={content} decor={decor} onChange={onStyleChange} />
 	);
 }
 
-function ContentEdit({ decor, onChange }: { decor?: Decor; onChange: (newStyle: EditableStyle) => void }) {
-	return <CompactStyleEditor value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE} onChange={onChange} />;
+function ContentEdit({
+	content,
+	decor,
+	onChange
+}: {
+	content: Content;
+	decor?: Decor;
+	onChange: (newStyle: EditableStyle) => void;
+}) {
+	return (
+		<CompactStyleEditor
+			content={content}
+			value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
+			onChange={onChange}
+		/>
+	);
 }
 
 function CapsuleEdit({
+	content,
 	decor,
 	capsule,
 	onChange
 }: {
+	content: Content;
 	decor?: Decor;
 	capsule: CapsuleComp;
 	onChange: (newStyle: EditableStyle) => void;
@@ -91,18 +107,14 @@ function CapsuleEdit({
 					defaultValue={capsule?.name}
 				/>
 			</form>
-			<SlotEditor />
+
 			<ResizableGridFrame key={capsule.id} w={gridValues.w} h={gridValues.h} onChange={onChangeGrid} />
 
-			<CompactStyleEditor value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE} onChange={onChange} />
+			<CompactStyleEditor
+				content={content}
+				value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
+				onChange={onChange}
+			/>
 		</>
 	);
-}
-
-const DEFAULT_GRID_VALUE = { w: 3, h: 1 };
-function getValuesFromGridName(grid: string = "") {
-	if (!grid) return DEFAULT_GRID_VALUE;
-	const values = /-w(\d*)-h(\d*)/.exec(grid);
-	if (!values) return DEFAULT_GRID_VALUE;
-	return { w: Number(values[1]), h: Number(values[2]) };
 }
