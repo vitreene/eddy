@@ -10,6 +10,8 @@ import { preload } from "~/player/preload";
 import { Player, type TelcoProps } from "~/player/player";
 import { ROOT_SCENE_CLASSNAME, SCENE_ID } from "~/player/constants";
 
+import playerCss from "~/player/player.css?inline";
+
 import type { PersoDef, MapEvent } from "./types";
 
 export interface PlayerProps {
@@ -42,7 +44,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 		}
 	}, [active.cue, scene, telco]);
 
-	const styles = `${scene.styles} ${ROOT_SCENE_CLASSNAME}`;
+	const styles = `@scope{${playerCss} ${scene.styles} ${ROOT_SCENE_CLASSNAME}}`;
 
 	return (
 		<>

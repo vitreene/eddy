@@ -1,19 +1,22 @@
 /* 
 
-reprender l'arborescence: 
-créer la scene
-- creer les styles
-- crer les elements sceneContents
+pour placer correctement un item dans une grille, l'index ne suffit pas :
+par exemple, une capsule peut contenir des elemments qui tour à tour, vont occuper la meme position. 
+aussi , plusieurs éléments transparents peuvent se superposer. 
+créer un systeme sur le meme principe que les grilles ou un item possede une classe qui le positionne au bon endroit.
+pour une grille 2x2, nous aurons les positions  :
+- 1-1, 1-2, 2-1, 2-2
+- avec un prefixe : slot- par exemple
 
-- créer les capsules
-    - associer grid, decor
-    - créer actions
+en cas de re-parent, cette classe n'est plus utile, voire nuisible. 
+pour l'inactiver :
+- soit la supprimer au moment du re-parent,
+- soit la scoper dans la capsule parente pour la rendre inopérante en dehors 
 
-- créer les items autres que capsules
-    - associer decor
-    - créer actions
+De toute fçon, s'il y a un déplacement de slot, il faut remplacer la classe. 
+Donc plutot partir sur une suppression lors d'un "move"
 
-- créer les eventTime
+note, au fur et a mesure des solutions trouvées, plusieurs conflits ptentiels de créqtion de style à résoudre. 
 */
 
 import * as transitions from "@/player/presets/transitions";
@@ -118,13 +121,16 @@ const itemType = {
 	img: P.IMG,
 	text: P.TEXT,
 	sound: P.SOUND,
-	video: P.VIDEO
+	video: P.VIDEO,
+	sprite: P.SPRITE
 } as const;
+
 const itemTag = {
 	img: "div",
 	text: "p",
 	sound: "audio",
-	video: "video"
+	video: "video",
+	sprite: "div"
 } as const;
 
 function createItems(item: ItemComp, snapshot: SceneComp) {
@@ -175,11 +181,24 @@ function createItems(item: ItemComp, snapshot: SceneComp) {
 				type,
 				initial: {
 					...initial,
+					className: `bg-image ${initial.className || ""}`,
 					style: {
 						...initial.style,
-						toto: 25,
-						backgroundImage: `url("/${content.path ?? DEFAUT_PATH_IMAGE}")`,
-						backgroundSize: "cover"
+						backgroundImage: `url("/${content.path ?? DEFAUT_PATH_IMAGE}")`
+					},
+					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
+				},
+				actions
+			};
+		case P.SPRITE:
+			return {
+				type,
+				initial: {
+					...initial,
+					className: `bg-sprite ${initial.className || ""}`,
+					style: {
+						...initial.style,
+						backgroundImage: `url("/${content.path ?? DEFAUT_PATH_IMAGE}")`
 					},
 					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
 				},

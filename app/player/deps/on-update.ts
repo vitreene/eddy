@@ -6,7 +6,7 @@ import type { ID } from "../types";
 import type { Player } from "../player";
 import type { Change } from "./static-changes";
 
-export function onUpdateTimeLine(this: Player): (self: Timeline) => boolean {
+export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean {
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, JSAnimation>();
 	const setters = new Map<ID, JSAnimation>();

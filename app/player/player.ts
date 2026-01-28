@@ -11,7 +11,7 @@ import { getAbsoluteCoords, getTransform } from "./deps/utils";
 import type { Change } from "./deps/static-changes";
 import type { ActionAtributes, ID, MapEvent, MediaStatus, Perso } from "./types";
 import { SCENE_ID } from "./constants";
-import { onUpdateTimeLine } from "./deps/on-update";
+import { onUpdateStaticChanges } from "./deps/on-update";
 
 const tmDefaults = {
 	// autoplay: true,
@@ -72,7 +72,7 @@ export class Player {
 		this.initMedias = initMedias.bind(this);
 		this.setStaticChanges = setStaticChanges.bind(this);
 		this.createScene = createScene.bind(this);
-		this.onUpdateTM = this.onUpdateTM.bind(this);
+		this.onBeforeUpdateTM = this.onBeforeUpdateTM.bind(this);
 
 		this.init();
 	}
@@ -83,9 +83,9 @@ export class Player {
 		this.initMedias();
 		this.setStaticChanges();
 		this.createScene();
-		this.onUpdateTM();
-		const onUpdate = onUpdateTimeLine.bind(this)();
-		this.updatesTM.subscribe(onUpdate);
+		this.onBeforeUpdateTM();
+		const updateStaticChanges = onUpdateStaticChanges.bind(this)();
+		this.updatesTM.subscribe(updateStaticChanges);
 
 		this.initTelco();
 
@@ -96,8 +96,8 @@ export class Player {
 	private initMedias!: () => void;
 	private setStaticChanges!: () => void;
 	private createScene!: () => void;
-	private onUpdateTM() {
-		this.timeLine.onUpdate = (self: Timeline) => this.updatesTM.forEach((up) => up(self));
+	private onBeforeUpdateTM() {
+		this.timeLine.onBeforeUpdate = (self: Timeline) => this.updatesTM.forEach((up) => up(self));
 	}
 
 	private initTelco = () => {
@@ -152,15 +152,9 @@ export class Player {
 
 	private seek = (time: number) => {
 		console.log("SEEK", time);
-		console.log("SEEK", this);
-
 		this.timeLine.pause();
 		this.seekChanges(time);
-		// if (+time > 0) {
-		// 	this.timeLine.seek(+time);
-		// } else {
-		// 	this.revert();
-		// }
+
 		this.timeLine.seek(+time);
 		this.seekMedias(+time);
 

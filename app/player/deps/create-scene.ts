@@ -6,6 +6,7 @@ import { P } from "../types";
 import type { Player } from "../player";
 import type { Action, Media, PersoLottieDef, PersoMediaDef } from "../types";
 
+// propriétés exclues des animations
 const exceptions = ["backgroundImage"];
 
 export function createScene(this: Player): void {
@@ -37,14 +38,14 @@ export function createScene(this: Player): void {
 
 			for (const prop in perso.initial.style) {
 				if (exceptions.includes(prop)) {
-					console.log(prop, perso.initial.style[prop]);
+					// console.log(prop, perso.initial.style[prop]);
 
 					$el.style.setProperty(prop, String(perso.initial.style[prop]));
 				} else style[prop] = perso.initial.style[prop];
 			}
 
-			console.log(perso.initial.id, perso.initial.style);
-			console.log(style, $el);
+			// console.log(perso.initial.id, perso.initial.style);
+			// console.log(style, $el);
 
 			this.timeLine.add($el, style, 0);
 		}

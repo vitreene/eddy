@@ -9,6 +9,7 @@ import { DEFAULT_STYLE } from "@/lib/constants";
 import type { CapsuleComp, Decor } from "@/api/db";
 import type { GridSize } from "@/components/draw-grid";
 import type { EditableStyle } from "@/components/style-editor/types";
+import { SlotEditor } from "@/components/slot-editor/demo";
 
 export function EditItem() {
 	const { send } = SceneLogicContext.useActorRef();
@@ -90,6 +91,7 @@ function CapsuleEdit({
 					defaultValue={capsule?.name}
 				/>
 			</form>
+			<SlotEditor />
 			<ResizableGridFrame key={capsule.id} w={gridValues.w} h={gridValues.h} onChange={onChangeGrid} />
 
 			<CompactStyleEditor value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE} onChange={onChange} />
