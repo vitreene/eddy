@@ -186,6 +186,8 @@ export function gridWHClassName(
 ): { className: string; cssText: string } {
 	const prefix = opts?.prefix ?? GRID_DEFAULT_PREFIX;
 	const styles = gridStyleFromXY(size.w, size.h);
+	console.log("gridWHClassName", styles);
+
 	const signature = cssObjectToClass(styles);
 	const hash = `grid-w${size.w}-h${size.h}`;
 
@@ -202,8 +204,9 @@ function gridStyleFromXY(x: number, y: number): React.CSSProperties {
 		display: "grid",
 		...(cols > 1 && { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }),
 		...(rows > 1 && { gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }),
-		isolation: "isolate"
+		isolation: "isolate",
 		// overflow: "hidden"
+		...(cols == 1 && rows == 1 && { "& * ": "grid-area: 1 / -1" })
 	};
 }
 

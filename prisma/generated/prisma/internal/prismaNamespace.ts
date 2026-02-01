@@ -1273,6 +1273,8 @@ export const DecorScalarFieldEnum = {
   name: 'name',
   style: 'style',
   className: 'className',
+  area: 'area',
+  itemTargetId: 'itemTargetId',
   basedUpon: 'basedUpon'
 } as const
 
@@ -1282,8 +1284,7 @@ export type DecorScalarFieldEnum = (typeof DecorScalarFieldEnum)[keyof typeof De
 export const ItemTargetScalarFieldEnum = {
   id: 'id',
   order: 'order',
-  targetId: 'targetId',
-  itemId: 'itemId'
+  targetId: 'targetId'
 } as const
 
 export type ItemTargetScalarFieldEnum = (typeof ItemTargetScalarFieldEnum)[keyof typeof ItemTargetScalarFieldEnum]

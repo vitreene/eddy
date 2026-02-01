@@ -2,7 +2,7 @@ import { useCallback } from "react";
 
 import { getValuesFromGridName } from "@/lib/utils";
 import { SceneLogicContext } from "@/provider/scene-logic";
-import { CompactStyleEditor } from "@/components/style-editor/compact-style-editor";
+import { StyleEditor } from "@/components/style-editor";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
 
 import { DEFAULT_STYLE } from "@/lib/constants";
@@ -31,8 +31,18 @@ export function EditItem() {
 	});
 
 	const onStyleChange = useCallback(
-		(newStyle: EditableStyle) => {
-			send({ type: "item-update", payload: { decor: { ...decor, style: newStyle } as Decor } });
+		({ area, className, ...style }: EditableStyle) => {
+			send({
+				type: "item-update",
+				payload: {
+					decor: {
+						...decor,
+						...(className && { className }),
+						...(area && { area }),
+						...(Object.keys(style).length && { style })
+					} as Decor
+				}
+			});
 		},
 		[send, decor]
 	);
@@ -56,7 +66,7 @@ function ContentEdit({
 	onChange: (newStyle: EditableStyle) => void;
 }) {
 	return (
-		<CompactStyleEditor
+		<StyleEditor
 			content={content}
 			value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
 			onChange={onChange}
@@ -110,7 +120,7 @@ function CapsuleEdit({
 
 			<ResizableGridFrame key={capsule.id} w={gridValues.w} h={gridValues.h} onChange={onChangeGrid} />
 
-			<CompactStyleEditor
+			<StyleEditor
 				content={content}
 				value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
 				onChange={onChange}

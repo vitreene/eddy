@@ -21,12 +21,13 @@ note, au fur et a mesure des solutions trouvées, plusieurs conflits ptentiels d
 
 import * as transitions from "@/player/presets/transitions";
 
-import type { SceneComp, CapsuleComp, ItemComp, TextTime } from "@/api/db";
+import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor } from "@/api/db";
 import { P } from "../types";
 import { SCENE_ID } from "../constants";
 import { SEP, DEFAULT_DURATION, INTRO, OUTRO } from "@/lib/constants";
 
 import type { PlayerProps } from "..";
+import { classNameToCssDefinition } from "@/lib/utils";
 
 const DEFAUT_PATH_IMAGE = "";
 
@@ -54,7 +55,12 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 
 //STYLES
 function createStyle(snapshot: SceneComp) {
-	return `${snapshot.theme?.generated || ""} ${snapshot.theme?.custom || ""}`.trim();
+	const areas = Object.values(snapshot.decors)
+		.filter((decor) => decor.area)
+		.map((decor) => classNameToCssDefinition(decor.area));
+	console.log("createStyle", areas);
+
+	return `${snapshot.theme?.generated || ""} ${snapshot.theme?.custom || ""} ${areas.join()}`.trim();
 }
 
 //CAPSULES
@@ -107,7 +113,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 				...(move && { move }),
 				tag: "div",
 				id,
-				className: `${capsule.grid || ""} ${decor.className || ""}`.trim(),
+				className: `${capsule.grid || ""} ${decor.className || ""} ${decor.area || ""}`.trim(),
 				style: { isolation: "isolate", ...decor.style }
 			},
 			actions
@@ -159,7 +165,7 @@ function createItems(item: ItemComp, snapshot: SceneComp) {
 		id,
 		tag,
 		...(move && { move }),
-		className: (decor?.className || "").trim(),
+		className: `${decor?.className || ""}  ${decor.area || ""}`.trim(),
 		style: decor?.style
 	};
 
@@ -290,6 +296,7 @@ function getActionStyle(style: ActionStyle) {
 	return actionStyle;
 }
 
+function getClassNameFromArea(decor: Decor) {}
 /* 
 const context: SceneComp = {
 	id: 1,

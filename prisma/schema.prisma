@@ -71,10 +71,9 @@ model Capsule {
 }
 
 model Item {
-  id          Int          @id @default(autoincrement())
-  order       Int
-  events      Event[]
-  itemTargets ItemTarget[]
+  id     Int     @id @default(autoincrement())
+  order  Int
+  events Event[]
 
   contentId Int     @map("content_id")
   content   Content @relation(fields: [contentId], references: [id])
@@ -139,10 +138,14 @@ model Decor {
   name      String?
   style     String? // JSON
   className String?
+  area      String?
+
+  itemTargetId Int?        @map("item_target_id")
+  itemTarget   ItemTarget? @relation(fields: [itemTargetId], references: [id])
 
   basedUpon Int?    @map("based_upon") // ref decor id  // name
-  base      Decor?  @relation("basedUpon", fields: [basedUpon], references: [id])
   bases     Decor[] @relation("basedUpon")
+  base      Decor?  @relation("basedUpon", fields: [basedUpon], references: [id])
 
   scenes        Scene[]
   sceneContents SceneContent[]
@@ -153,14 +156,12 @@ model Decor {
 }
 
 model ItemTarget {
-  id    Int  @id @default(autoincrement())
-  order Int? // ordre d'insertion dans la capsule ; n° du slot
+  id     Int     @id @default(autoincrement())
+  order  Int? // ordre d'insertion dans la capsule ; n° du slot
+  decors Decor[]
 
   targetId Int     @map("target_id") // capsuleId
   capsule  Capsule @relation(fields: [targetId], references: [id])
-
-  itemId Int  @map("item_id")
-  item   Item @relation(fields: [itemId], references: [id])
 
   @@map("item_target")
 }

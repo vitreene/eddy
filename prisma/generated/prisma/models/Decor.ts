@@ -28,11 +28,13 @@ export type AggregateDecor = {
 
 export type DecorAvgAggregateOutputType = {
   id: number | null
+  itemTargetId: number | null
   basedUpon: number | null
 }
 
 export type DecorSumAggregateOutputType = {
   id: number | null
+  itemTargetId: number | null
   basedUpon: number | null
 }
 
@@ -41,6 +43,8 @@ export type DecorMinAggregateOutputType = {
   name: string | null
   style: string | null
   className: string | null
+  area: string | null
+  itemTargetId: number | null
   basedUpon: number | null
 }
 
@@ -49,6 +53,8 @@ export type DecorMaxAggregateOutputType = {
   name: string | null
   style: string | null
   className: string | null
+  area: string | null
+  itemTargetId: number | null
   basedUpon: number | null
 }
 
@@ -57,6 +63,8 @@ export type DecorCountAggregateOutputType = {
   name: number
   style: number
   className: number
+  area: number
+  itemTargetId: number
   basedUpon: number
   _all: number
 }
@@ -64,11 +72,13 @@ export type DecorCountAggregateOutputType = {
 
 export type DecorAvgAggregateInputType = {
   id?: true
+  itemTargetId?: true
   basedUpon?: true
 }
 
 export type DecorSumAggregateInputType = {
   id?: true
+  itemTargetId?: true
   basedUpon?: true
 }
 
@@ -77,6 +87,8 @@ export type DecorMinAggregateInputType = {
   name?: true
   style?: true
   className?: true
+  area?: true
+  itemTargetId?: true
   basedUpon?: true
 }
 
@@ -85,6 +97,8 @@ export type DecorMaxAggregateInputType = {
   name?: true
   style?: true
   className?: true
+  area?: true
+  itemTargetId?: true
   basedUpon?: true
 }
 
@@ -93,6 +107,8 @@ export type DecorCountAggregateInputType = {
   name?: true
   style?: true
   className?: true
+  area?: true
+  itemTargetId?: true
   basedUpon?: true
   _all?: true
 }
@@ -188,6 +204,8 @@ export type DecorGroupByOutputType = {
   name: string | null
   style: string | null
   className: string | null
+  area: string | null
+  itemTargetId: number | null
   basedUpon: number | null
   _count: DecorCountAggregateOutputType | null
   _avg: DecorAvgAggregateOutputType | null
@@ -219,9 +237,12 @@ export type DecorWhereInput = {
   name?: Prisma.StringNullableFilter<"Decor"> | string | null
   style?: Prisma.StringNullableFilter<"Decor"> | string | null
   className?: Prisma.StringNullableFilter<"Decor"> | string | null
+  area?: Prisma.StringNullableFilter<"Decor"> | string | null
+  itemTargetId?: Prisma.IntNullableFilter<"Decor"> | number | null
   basedUpon?: Prisma.IntNullableFilter<"Decor"> | number | null
-  base?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
+  itemTarget?: Prisma.XOR<Prisma.ItemTargetNullableScalarRelationFilter, Prisma.ItemTargetWhereInput> | null
   bases?: Prisma.DecorListRelationFilter
+  base?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
   scenes?: Prisma.SceneListRelationFilter
   sceneContents?: Prisma.SceneContentListRelationFilter
   events?: Prisma.EventListRelationFilter
@@ -233,9 +254,12 @@ export type DecorOrderByWithRelationInput = {
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   style?: Prisma.SortOrderInput | Prisma.SortOrder
   className?: Prisma.SortOrderInput | Prisma.SortOrder
+  area?: Prisma.SortOrderInput | Prisma.SortOrder
+  itemTargetId?: Prisma.SortOrderInput | Prisma.SortOrder
   basedUpon?: Prisma.SortOrderInput | Prisma.SortOrder
-  base?: Prisma.DecorOrderByWithRelationInput
+  itemTarget?: Prisma.ItemTargetOrderByWithRelationInput
   bases?: Prisma.DecorOrderByRelationAggregateInput
+  base?: Prisma.DecorOrderByWithRelationInput
   scenes?: Prisma.SceneOrderByRelationAggregateInput
   sceneContents?: Prisma.SceneContentOrderByRelationAggregateInput
   events?: Prisma.EventOrderByRelationAggregateInput
@@ -250,9 +274,12 @@ export type DecorWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringNullableFilter<"Decor"> | string | null
   style?: Prisma.StringNullableFilter<"Decor"> | string | null
   className?: Prisma.StringNullableFilter<"Decor"> | string | null
+  area?: Prisma.StringNullableFilter<"Decor"> | string | null
+  itemTargetId?: Prisma.IntNullableFilter<"Decor"> | number | null
   basedUpon?: Prisma.IntNullableFilter<"Decor"> | number | null
-  base?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
+  itemTarget?: Prisma.XOR<Prisma.ItemTargetNullableScalarRelationFilter, Prisma.ItemTargetWhereInput> | null
   bases?: Prisma.DecorListRelationFilter
+  base?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
   scenes?: Prisma.SceneListRelationFilter
   sceneContents?: Prisma.SceneContentListRelationFilter
   events?: Prisma.EventListRelationFilter
@@ -264,6 +291,8 @@ export type DecorOrderByWithAggregationInput = {
   name?: Prisma.SortOrderInput | Prisma.SortOrder
   style?: Prisma.SortOrderInput | Prisma.SortOrder
   className?: Prisma.SortOrderInput | Prisma.SortOrder
+  area?: Prisma.SortOrderInput | Prisma.SortOrder
+  itemTargetId?: Prisma.SortOrderInput | Prisma.SortOrder
   basedUpon?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.DecorCountOrderByAggregateInput
   _avg?: Prisma.DecorAvgOrderByAggregateInput
@@ -280,6 +309,8 @@ export type DecorScalarWhereWithAggregatesInput = {
   name?: Prisma.StringNullableWithAggregatesFilter<"Decor"> | string | null
   style?: Prisma.StringNullableWithAggregatesFilter<"Decor"> | string | null
   className?: Prisma.StringNullableWithAggregatesFilter<"Decor"> | string | null
+  area?: Prisma.StringNullableWithAggregatesFilter<"Decor"> | string | null
+  itemTargetId?: Prisma.IntNullableWithAggregatesFilter<"Decor"> | number | null
   basedUpon?: Prisma.IntNullableWithAggregatesFilter<"Decor"> | number | null
 }
 
@@ -287,8 +318,10 @@ export type DecorCreateInput = {
   name?: string | null
   style?: string | null
   className?: string | null
-  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
+  area?: string | null
+  itemTarget?: Prisma.ItemTargetCreateNestedOneWithoutDecorsInput
   bases?: Prisma.DecorCreateNestedManyWithoutBaseInput
+  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
   scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
   events?: Prisma.EventCreateNestedManyWithoutDecorInput
@@ -300,6 +333,8 @@ export type DecorUncheckedCreateInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
   basedUpon?: number | null
   bases?: Prisma.DecorUncheckedCreateNestedManyWithoutBaseInput
   scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
@@ -312,8 +347,10 @@ export type DecorUpdateInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTarget?: Prisma.ItemTargetUpdateOneWithoutDecorsNestedInput
   bases?: Prisma.DecorUpdateManyWithoutBaseNestedInput
+  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
   scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
   events?: Prisma.EventUpdateManyWithoutDecorNestedInput
@@ -325,6 +362,8 @@ export type DecorUncheckedUpdateInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   bases?: Prisma.DecorUncheckedUpdateManyWithoutBaseNestedInput
   scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
@@ -338,6 +377,8 @@ export type DecorCreateManyInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
   basedUpon?: number | null
 }
 
@@ -345,6 +386,7 @@ export type DecorUpdateManyMutationInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type DecorUncheckedUpdateManyInput = {
@@ -352,6 +394,8 @@ export type DecorUncheckedUpdateManyInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -375,11 +419,14 @@ export type DecorCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   style?: Prisma.SortOrder
   className?: Prisma.SortOrder
+  area?: Prisma.SortOrder
+  itemTargetId?: Prisma.SortOrder
   basedUpon?: Prisma.SortOrder
 }
 
 export type DecorAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  itemTargetId?: Prisma.SortOrder
   basedUpon?: Prisma.SortOrder
 }
 
@@ -388,6 +435,8 @@ export type DecorMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   style?: Prisma.SortOrder
   className?: Prisma.SortOrder
+  area?: Prisma.SortOrder
+  itemTargetId?: Prisma.SortOrder
   basedUpon?: Prisma.SortOrder
 }
 
@@ -396,11 +445,14 @@ export type DecorMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   style?: Prisma.SortOrder
   className?: Prisma.SortOrder
+  area?: Prisma.SortOrder
+  itemTargetId?: Prisma.SortOrder
   basedUpon?: Prisma.SortOrder
 }
 
 export type DecorSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  itemTargetId?: Prisma.SortOrder
   basedUpon?: Prisma.SortOrder
 }
 
@@ -468,12 +520,6 @@ export type DecorUpdateOneWithoutEventsNestedInput = {
   update?: Prisma.XOR<Prisma.XOR<Prisma.DecorUpdateToOneWithWhereWithoutEventsInput, Prisma.DecorUpdateWithoutEventsInput>, Prisma.DecorUncheckedUpdateWithoutEventsInput>
 }
 
-export type DecorCreateNestedOneWithoutBasesInput = {
-  create?: Prisma.XOR<Prisma.DecorCreateWithoutBasesInput, Prisma.DecorUncheckedCreateWithoutBasesInput>
-  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutBasesInput
-  connect?: Prisma.DecorWhereUniqueInput
-}
-
 export type DecorCreateNestedManyWithoutBaseInput = {
   create?: Prisma.XOR<Prisma.DecorCreateWithoutBaseInput, Prisma.DecorUncheckedCreateWithoutBaseInput> | Prisma.DecorCreateWithoutBaseInput[] | Prisma.DecorUncheckedCreateWithoutBaseInput[]
   connectOrCreate?: Prisma.DecorCreateOrConnectWithoutBaseInput | Prisma.DecorCreateOrConnectWithoutBaseInput[]
@@ -481,21 +527,17 @@ export type DecorCreateNestedManyWithoutBaseInput = {
   connect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
 }
 
+export type DecorCreateNestedOneWithoutBasesInput = {
+  create?: Prisma.XOR<Prisma.DecorCreateWithoutBasesInput, Prisma.DecorUncheckedCreateWithoutBasesInput>
+  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutBasesInput
+  connect?: Prisma.DecorWhereUniqueInput
+}
+
 export type DecorUncheckedCreateNestedManyWithoutBaseInput = {
   create?: Prisma.XOR<Prisma.DecorCreateWithoutBaseInput, Prisma.DecorUncheckedCreateWithoutBaseInput> | Prisma.DecorCreateWithoutBaseInput[] | Prisma.DecorUncheckedCreateWithoutBaseInput[]
   connectOrCreate?: Prisma.DecorCreateOrConnectWithoutBaseInput | Prisma.DecorCreateOrConnectWithoutBaseInput[]
   createMany?: Prisma.DecorCreateManyBaseInputEnvelope
   connect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
-}
-
-export type DecorUpdateOneWithoutBasesNestedInput = {
-  create?: Prisma.XOR<Prisma.DecorCreateWithoutBasesInput, Prisma.DecorUncheckedCreateWithoutBasesInput>
-  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutBasesInput
-  upsert?: Prisma.DecorUpsertWithoutBasesInput
-  disconnect?: Prisma.DecorWhereInput | boolean
-  delete?: Prisma.DecorWhereInput | boolean
-  connect?: Prisma.DecorWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.DecorUpdateToOneWithWhereWithoutBasesInput, Prisma.DecorUpdateWithoutBasesInput>, Prisma.DecorUncheckedUpdateWithoutBasesInput>
 }
 
 export type DecorUpdateManyWithoutBaseNestedInput = {
@@ -512,6 +554,16 @@ export type DecorUpdateManyWithoutBaseNestedInput = {
   deleteMany?: Prisma.DecorScalarWhereInput | Prisma.DecorScalarWhereInput[]
 }
 
+export type DecorUpdateOneWithoutBasesNestedInput = {
+  create?: Prisma.XOR<Prisma.DecorCreateWithoutBasesInput, Prisma.DecorUncheckedCreateWithoutBasesInput>
+  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutBasesInput
+  upsert?: Prisma.DecorUpsertWithoutBasesInput
+  disconnect?: Prisma.DecorWhereInput | boolean
+  delete?: Prisma.DecorWhereInput | boolean
+  connect?: Prisma.DecorWhereUniqueInput
+  update?: Prisma.XOR<Prisma.XOR<Prisma.DecorUpdateToOneWithWhereWithoutBasesInput, Prisma.DecorUpdateWithoutBasesInput>, Prisma.DecorUncheckedUpdateWithoutBasesInput>
+}
+
 export type DecorUncheckedUpdateManyWithoutBaseNestedInput = {
   create?: Prisma.XOR<Prisma.DecorCreateWithoutBaseInput, Prisma.DecorUncheckedCreateWithoutBaseInput> | Prisma.DecorCreateWithoutBaseInput[] | Prisma.DecorUncheckedCreateWithoutBaseInput[]
   connectOrCreate?: Prisma.DecorCreateOrConnectWithoutBaseInput | Prisma.DecorCreateOrConnectWithoutBaseInput[]
@@ -526,12 +578,56 @@ export type DecorUncheckedUpdateManyWithoutBaseNestedInput = {
   deleteMany?: Prisma.DecorScalarWhereInput | Prisma.DecorScalarWhereInput[]
 }
 
+export type DecorCreateNestedManyWithoutItemTargetInput = {
+  create?: Prisma.XOR<Prisma.DecorCreateWithoutItemTargetInput, Prisma.DecorUncheckedCreateWithoutItemTargetInput> | Prisma.DecorCreateWithoutItemTargetInput[] | Prisma.DecorUncheckedCreateWithoutItemTargetInput[]
+  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutItemTargetInput | Prisma.DecorCreateOrConnectWithoutItemTargetInput[]
+  createMany?: Prisma.DecorCreateManyItemTargetInputEnvelope
+  connect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+}
+
+export type DecorUncheckedCreateNestedManyWithoutItemTargetInput = {
+  create?: Prisma.XOR<Prisma.DecorCreateWithoutItemTargetInput, Prisma.DecorUncheckedCreateWithoutItemTargetInput> | Prisma.DecorCreateWithoutItemTargetInput[] | Prisma.DecorUncheckedCreateWithoutItemTargetInput[]
+  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutItemTargetInput | Prisma.DecorCreateOrConnectWithoutItemTargetInput[]
+  createMany?: Prisma.DecorCreateManyItemTargetInputEnvelope
+  connect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+}
+
+export type DecorUpdateManyWithoutItemTargetNestedInput = {
+  create?: Prisma.XOR<Prisma.DecorCreateWithoutItemTargetInput, Prisma.DecorUncheckedCreateWithoutItemTargetInput> | Prisma.DecorCreateWithoutItemTargetInput[] | Prisma.DecorUncheckedCreateWithoutItemTargetInput[]
+  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutItemTargetInput | Prisma.DecorCreateOrConnectWithoutItemTargetInput[]
+  upsert?: Prisma.DecorUpsertWithWhereUniqueWithoutItemTargetInput | Prisma.DecorUpsertWithWhereUniqueWithoutItemTargetInput[]
+  createMany?: Prisma.DecorCreateManyItemTargetInputEnvelope
+  set?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  disconnect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  delete?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  connect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  update?: Prisma.DecorUpdateWithWhereUniqueWithoutItemTargetInput | Prisma.DecorUpdateWithWhereUniqueWithoutItemTargetInput[]
+  updateMany?: Prisma.DecorUpdateManyWithWhereWithoutItemTargetInput | Prisma.DecorUpdateManyWithWhereWithoutItemTargetInput[]
+  deleteMany?: Prisma.DecorScalarWhereInput | Prisma.DecorScalarWhereInput[]
+}
+
+export type DecorUncheckedUpdateManyWithoutItemTargetNestedInput = {
+  create?: Prisma.XOR<Prisma.DecorCreateWithoutItemTargetInput, Prisma.DecorUncheckedCreateWithoutItemTargetInput> | Prisma.DecorCreateWithoutItemTargetInput[] | Prisma.DecorUncheckedCreateWithoutItemTargetInput[]
+  connectOrCreate?: Prisma.DecorCreateOrConnectWithoutItemTargetInput | Prisma.DecorCreateOrConnectWithoutItemTargetInput[]
+  upsert?: Prisma.DecorUpsertWithWhereUniqueWithoutItemTargetInput | Prisma.DecorUpsertWithWhereUniqueWithoutItemTargetInput[]
+  createMany?: Prisma.DecorCreateManyItemTargetInputEnvelope
+  set?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  disconnect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  delete?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  connect?: Prisma.DecorWhereUniqueInput | Prisma.DecorWhereUniqueInput[]
+  update?: Prisma.DecorUpdateWithWhereUniqueWithoutItemTargetInput | Prisma.DecorUpdateWithWhereUniqueWithoutItemTargetInput[]
+  updateMany?: Prisma.DecorUpdateManyWithWhereWithoutItemTargetInput | Prisma.DecorUpdateManyWithWhereWithoutItemTargetInput[]
+  deleteMany?: Prisma.DecorScalarWhereInput | Prisma.DecorScalarWhereInput[]
+}
+
 export type DecorCreateWithoutScenesInput = {
   name?: string | null
   style?: string | null
   className?: string | null
-  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
+  area?: string | null
+  itemTarget?: Prisma.ItemTargetCreateNestedOneWithoutDecorsInput
   bases?: Prisma.DecorCreateNestedManyWithoutBaseInput
+  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
   events?: Prisma.EventCreateNestedManyWithoutDecorInput
   items?: Prisma.ItemCreateNestedManyWithoutDecorInput
@@ -542,6 +638,8 @@ export type DecorUncheckedCreateWithoutScenesInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
   basedUpon?: number | null
   bases?: Prisma.DecorUncheckedCreateNestedManyWithoutBaseInput
   sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutDecorInput
@@ -569,8 +667,10 @@ export type DecorUpdateWithoutScenesInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTarget?: Prisma.ItemTargetUpdateOneWithoutDecorsNestedInput
   bases?: Prisma.DecorUpdateManyWithoutBaseNestedInput
+  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
   events?: Prisma.EventUpdateManyWithoutDecorNestedInput
   items?: Prisma.ItemUpdateManyWithoutDecorNestedInput
@@ -581,6 +681,8 @@ export type DecorUncheckedUpdateWithoutScenesInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   bases?: Prisma.DecorUncheckedUpdateManyWithoutBaseNestedInput
   sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutDecorNestedInput
@@ -592,8 +694,10 @@ export type DecorCreateWithoutSceneContentsInput = {
   name?: string | null
   style?: string | null
   className?: string | null
-  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
+  area?: string | null
+  itemTarget?: Prisma.ItemTargetCreateNestedOneWithoutDecorsInput
   bases?: Prisma.DecorCreateNestedManyWithoutBaseInput
+  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
   scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
   events?: Prisma.EventCreateNestedManyWithoutDecorInput
   items?: Prisma.ItemCreateNestedManyWithoutDecorInput
@@ -604,6 +708,8 @@ export type DecorUncheckedCreateWithoutSceneContentsInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
   basedUpon?: number | null
   bases?: Prisma.DecorUncheckedCreateNestedManyWithoutBaseInput
   scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
@@ -631,8 +737,10 @@ export type DecorUpdateWithoutSceneContentsInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTarget?: Prisma.ItemTargetUpdateOneWithoutDecorsNestedInput
   bases?: Prisma.DecorUpdateManyWithoutBaseNestedInput
+  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
   scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
   events?: Prisma.EventUpdateManyWithoutDecorNestedInput
   items?: Prisma.ItemUpdateManyWithoutDecorNestedInput
@@ -643,6 +751,8 @@ export type DecorUncheckedUpdateWithoutSceneContentsInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   bases?: Prisma.DecorUncheckedUpdateManyWithoutBaseNestedInput
   scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
@@ -654,8 +764,10 @@ export type DecorCreateWithoutItemsInput = {
   name?: string | null
   style?: string | null
   className?: string | null
-  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
+  area?: string | null
+  itemTarget?: Prisma.ItemTargetCreateNestedOneWithoutDecorsInput
   bases?: Prisma.DecorCreateNestedManyWithoutBaseInput
+  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
   scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
   events?: Prisma.EventCreateNestedManyWithoutDecorInput
@@ -666,6 +778,8 @@ export type DecorUncheckedCreateWithoutItemsInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
   basedUpon?: number | null
   bases?: Prisma.DecorUncheckedCreateNestedManyWithoutBaseInput
   scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
@@ -693,8 +807,10 @@ export type DecorUpdateWithoutItemsInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTarget?: Prisma.ItemTargetUpdateOneWithoutDecorsNestedInput
   bases?: Prisma.DecorUpdateManyWithoutBaseNestedInput
+  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
   scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
   events?: Prisma.EventUpdateManyWithoutDecorNestedInput
@@ -705,6 +821,8 @@ export type DecorUncheckedUpdateWithoutItemsInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   bases?: Prisma.DecorUncheckedUpdateManyWithoutBaseNestedInput
   scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
@@ -716,8 +834,10 @@ export type DecorCreateWithoutEventsInput = {
   name?: string | null
   style?: string | null
   className?: string | null
-  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
+  area?: string | null
+  itemTarget?: Prisma.ItemTargetCreateNestedOneWithoutDecorsInput
   bases?: Prisma.DecorCreateNestedManyWithoutBaseInput
+  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
   scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
   items?: Prisma.ItemCreateNestedManyWithoutDecorInput
@@ -728,6 +848,8 @@ export type DecorUncheckedCreateWithoutEventsInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
   basedUpon?: number | null
   bases?: Prisma.DecorUncheckedCreateNestedManyWithoutBaseInput
   scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
@@ -755,8 +877,10 @@ export type DecorUpdateWithoutEventsInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTarget?: Prisma.ItemTargetUpdateOneWithoutDecorsNestedInput
   bases?: Prisma.DecorUpdateManyWithoutBaseNestedInput
+  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
   scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
   items?: Prisma.ItemUpdateManyWithoutDecorNestedInput
@@ -767,6 +891,8 @@ export type DecorUncheckedUpdateWithoutEventsInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   bases?: Prisma.DecorUncheckedUpdateManyWithoutBaseNestedInput
   scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
@@ -774,38 +900,12 @@ export type DecorUncheckedUpdateWithoutEventsInput = {
   items?: Prisma.ItemUncheckedUpdateManyWithoutDecorNestedInput
 }
 
-export type DecorCreateWithoutBasesInput = {
-  name?: string | null
-  style?: string | null
-  className?: string | null
-  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
-  scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
-  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
-  events?: Prisma.EventCreateNestedManyWithoutDecorInput
-  items?: Prisma.ItemCreateNestedManyWithoutDecorInput
-}
-
-export type DecorUncheckedCreateWithoutBasesInput = {
-  id?: number
-  name?: string | null
-  style?: string | null
-  className?: string | null
-  basedUpon?: number | null
-  scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
-  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutDecorInput
-  events?: Prisma.EventUncheckedCreateNestedManyWithoutDecorInput
-  items?: Prisma.ItemUncheckedCreateNestedManyWithoutDecorInput
-}
-
-export type DecorCreateOrConnectWithoutBasesInput = {
-  where: Prisma.DecorWhereUniqueInput
-  create: Prisma.XOR<Prisma.DecorCreateWithoutBasesInput, Prisma.DecorUncheckedCreateWithoutBasesInput>
-}
-
 export type DecorCreateWithoutBaseInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTarget?: Prisma.ItemTargetCreateNestedOneWithoutDecorsInput
   bases?: Prisma.DecorCreateNestedManyWithoutBaseInput
   scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
@@ -818,6 +918,8 @@ export type DecorUncheckedCreateWithoutBaseInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
   bases?: Prisma.DecorUncheckedCreateNestedManyWithoutBaseInput
   scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
   sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutDecorInput
@@ -834,38 +936,36 @@ export type DecorCreateManyBaseInputEnvelope = {
   data: Prisma.DecorCreateManyBaseInput | Prisma.DecorCreateManyBaseInput[]
 }
 
-export type DecorUpsertWithoutBasesInput = {
-  update: Prisma.XOR<Prisma.DecorUpdateWithoutBasesInput, Prisma.DecorUncheckedUpdateWithoutBasesInput>
+export type DecorCreateWithoutBasesInput = {
+  name?: string | null
+  style?: string | null
+  className?: string | null
+  area?: string | null
+  itemTarget?: Prisma.ItemTargetCreateNestedOneWithoutDecorsInput
+  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
+  scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
+  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
+  events?: Prisma.EventCreateNestedManyWithoutDecorInput
+  items?: Prisma.ItemCreateNestedManyWithoutDecorInput
+}
+
+export type DecorUncheckedCreateWithoutBasesInput = {
+  id?: number
+  name?: string | null
+  style?: string | null
+  className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
+  basedUpon?: number | null
+  scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
+  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutDecorInput
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutDecorInput
+  items?: Prisma.ItemUncheckedCreateNestedManyWithoutDecorInput
+}
+
+export type DecorCreateOrConnectWithoutBasesInput = {
+  where: Prisma.DecorWhereUniqueInput
   create: Prisma.XOR<Prisma.DecorCreateWithoutBasesInput, Prisma.DecorUncheckedCreateWithoutBasesInput>
-  where?: Prisma.DecorWhereInput
-}
-
-export type DecorUpdateToOneWithWhereWithoutBasesInput = {
-  where?: Prisma.DecorWhereInput
-  data: Prisma.XOR<Prisma.DecorUpdateWithoutBasesInput, Prisma.DecorUncheckedUpdateWithoutBasesInput>
-}
-
-export type DecorUpdateWithoutBasesInput = {
-  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
-  scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
-  sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
-  events?: Prisma.EventUpdateManyWithoutDecorNestedInput
-  items?: Prisma.ItemUpdateManyWithoutDecorNestedInput
-}
-
-export type DecorUncheckedUpdateWithoutBasesInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
-  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutDecorNestedInput
-  events?: Prisma.EventUncheckedUpdateManyWithoutDecorNestedInput
-  items?: Prisma.ItemUncheckedUpdateManyWithoutDecorNestedInput
 }
 
 export type DecorUpsertWithWhereUniqueWithoutBaseInput = {
@@ -892,7 +992,99 @@ export type DecorScalarWhereInput = {
   name?: Prisma.StringNullableFilter<"Decor"> | string | null
   style?: Prisma.StringNullableFilter<"Decor"> | string | null
   className?: Prisma.StringNullableFilter<"Decor"> | string | null
+  area?: Prisma.StringNullableFilter<"Decor"> | string | null
+  itemTargetId?: Prisma.IntNullableFilter<"Decor"> | number | null
   basedUpon?: Prisma.IntNullableFilter<"Decor"> | number | null
+}
+
+export type DecorUpsertWithoutBasesInput = {
+  update: Prisma.XOR<Prisma.DecorUpdateWithoutBasesInput, Prisma.DecorUncheckedUpdateWithoutBasesInput>
+  create: Prisma.XOR<Prisma.DecorCreateWithoutBasesInput, Prisma.DecorUncheckedCreateWithoutBasesInput>
+  where?: Prisma.DecorWhereInput
+}
+
+export type DecorUpdateToOneWithWhereWithoutBasesInput = {
+  where?: Prisma.DecorWhereInput
+  data: Prisma.XOR<Prisma.DecorUpdateWithoutBasesInput, Prisma.DecorUncheckedUpdateWithoutBasesInput>
+}
+
+export type DecorUpdateWithoutBasesInput = {
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTarget?: Prisma.ItemTargetUpdateOneWithoutDecorsNestedInput
+  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
+  scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
+  sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
+  events?: Prisma.EventUpdateManyWithoutDecorNestedInput
+  items?: Prisma.ItemUpdateManyWithoutDecorNestedInput
+}
+
+export type DecorUncheckedUpdateWithoutBasesInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
+  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutDecorNestedInput
+  events?: Prisma.EventUncheckedUpdateManyWithoutDecorNestedInput
+  items?: Prisma.ItemUncheckedUpdateManyWithoutDecorNestedInput
+}
+
+export type DecorCreateWithoutItemTargetInput = {
+  name?: string | null
+  style?: string | null
+  className?: string | null
+  area?: string | null
+  bases?: Prisma.DecorCreateNestedManyWithoutBaseInput
+  base?: Prisma.DecorCreateNestedOneWithoutBasesInput
+  scenes?: Prisma.SceneCreateNestedManyWithoutDecorInput
+  sceneContents?: Prisma.SceneContentCreateNestedManyWithoutDecorInput
+  events?: Prisma.EventCreateNestedManyWithoutDecorInput
+  items?: Prisma.ItemCreateNestedManyWithoutDecorInput
+}
+
+export type DecorUncheckedCreateWithoutItemTargetInput = {
+  id?: number
+  name?: string | null
+  style?: string | null
+  className?: string | null
+  area?: string | null
+  basedUpon?: number | null
+  bases?: Prisma.DecorUncheckedCreateNestedManyWithoutBaseInput
+  scenes?: Prisma.SceneUncheckedCreateNestedManyWithoutDecorInput
+  sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutDecorInput
+  events?: Prisma.EventUncheckedCreateNestedManyWithoutDecorInput
+  items?: Prisma.ItemUncheckedCreateNestedManyWithoutDecorInput
+}
+
+export type DecorCreateOrConnectWithoutItemTargetInput = {
+  where: Prisma.DecorWhereUniqueInput
+  create: Prisma.XOR<Prisma.DecorCreateWithoutItemTargetInput, Prisma.DecorUncheckedCreateWithoutItemTargetInput>
+}
+
+export type DecorCreateManyItemTargetInputEnvelope = {
+  data: Prisma.DecorCreateManyItemTargetInput | Prisma.DecorCreateManyItemTargetInput[]
+}
+
+export type DecorUpsertWithWhereUniqueWithoutItemTargetInput = {
+  where: Prisma.DecorWhereUniqueInput
+  update: Prisma.XOR<Prisma.DecorUpdateWithoutItemTargetInput, Prisma.DecorUncheckedUpdateWithoutItemTargetInput>
+  create: Prisma.XOR<Prisma.DecorCreateWithoutItemTargetInput, Prisma.DecorUncheckedCreateWithoutItemTargetInput>
+}
+
+export type DecorUpdateWithWhereUniqueWithoutItemTargetInput = {
+  where: Prisma.DecorWhereUniqueInput
+  data: Prisma.XOR<Prisma.DecorUpdateWithoutItemTargetInput, Prisma.DecorUncheckedUpdateWithoutItemTargetInput>
+}
+
+export type DecorUpdateManyWithWhereWithoutItemTargetInput = {
+  where: Prisma.DecorScalarWhereInput
+  data: Prisma.XOR<Prisma.DecorUpdateManyMutationInput, Prisma.DecorUncheckedUpdateManyWithoutItemTargetInput>
 }
 
 export type DecorCreateManyBaseInput = {
@@ -900,12 +1092,16 @@ export type DecorCreateManyBaseInput = {
   name?: string | null
   style?: string | null
   className?: string | null
+  area?: string | null
+  itemTargetId?: number | null
 }
 
 export type DecorUpdateWithoutBaseInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTarget?: Prisma.ItemTargetUpdateOneWithoutDecorsNestedInput
   bases?: Prisma.DecorUpdateManyWithoutBaseNestedInput
   scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
@@ -918,6 +1114,8 @@ export type DecorUncheckedUpdateWithoutBaseInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   bases?: Prisma.DecorUncheckedUpdateManyWithoutBaseNestedInput
   scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
   sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutDecorNestedInput
@@ -930,6 +1128,53 @@ export type DecorUncheckedUpdateManyWithoutBaseInput = {
   name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  itemTargetId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+}
+
+export type DecorCreateManyItemTargetInput = {
+  id?: number
+  name?: string | null
+  style?: string | null
+  className?: string | null
+  area?: string | null
+  basedUpon?: number | null
+}
+
+export type DecorUpdateWithoutItemTargetInput = {
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  bases?: Prisma.DecorUpdateManyWithoutBaseNestedInput
+  base?: Prisma.DecorUpdateOneWithoutBasesNestedInput
+  scenes?: Prisma.SceneUpdateManyWithoutDecorNestedInput
+  sceneContents?: Prisma.SceneContentUpdateManyWithoutDecorNestedInput
+  events?: Prisma.EventUpdateManyWithoutDecorNestedInput
+  items?: Prisma.ItemUpdateManyWithoutDecorNestedInput
+}
+
+export type DecorUncheckedUpdateWithoutItemTargetInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  bases?: Prisma.DecorUncheckedUpdateManyWithoutBaseNestedInput
+  scenes?: Prisma.SceneUncheckedUpdateManyWithoutDecorNestedInput
+  sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutDecorNestedInput
+  events?: Prisma.EventUncheckedUpdateManyWithoutDecorNestedInput
+  items?: Prisma.ItemUncheckedUpdateManyWithoutDecorNestedInput
+}
+
+export type DecorUncheckedUpdateManyWithoutItemTargetInput = {
+  id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  style?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  className?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  area?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  basedUpon?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 
@@ -1004,9 +1249,12 @@ export type DecorSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   name?: boolean
   style?: boolean
   className?: boolean
+  area?: boolean
+  itemTargetId?: boolean
   basedUpon?: boolean
-  base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
+  itemTarget?: boolean | Prisma.Decor$itemTargetArgs<ExtArgs>
   bases?: boolean | Prisma.Decor$basesArgs<ExtArgs>
+  base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
   scenes?: boolean | Prisma.Decor$scenesArgs<ExtArgs>
   sceneContents?: boolean | Prisma.Decor$sceneContentsArgs<ExtArgs>
   events?: boolean | Prisma.Decor$eventsArgs<ExtArgs>
@@ -1019,7 +1267,10 @@ export type DecorSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   style?: boolean
   className?: boolean
+  area?: boolean
+  itemTargetId?: boolean
   basedUpon?: boolean
+  itemTarget?: boolean | Prisma.Decor$itemTargetArgs<ExtArgs>
   base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
 }, ExtArgs["result"]["decor"]>
 
@@ -1028,7 +1279,10 @@ export type DecorSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   name?: boolean
   style?: boolean
   className?: boolean
+  area?: boolean
+  itemTargetId?: boolean
   basedUpon?: boolean
+  itemTarget?: boolean | Prisma.Decor$itemTargetArgs<ExtArgs>
   base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
 }, ExtArgs["result"]["decor"]>
 
@@ -1037,13 +1291,16 @@ export type DecorSelectScalar = {
   name?: boolean
   style?: boolean
   className?: boolean
+  area?: boolean
+  itemTargetId?: boolean
   basedUpon?: boolean
 }
 
-export type DecorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "style" | "className" | "basedUpon", ExtArgs["result"]["decor"]>
+export type DecorOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "style" | "className" | "area" | "itemTargetId" | "basedUpon", ExtArgs["result"]["decor"]>
 export type DecorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
+  itemTarget?: boolean | Prisma.Decor$itemTargetArgs<ExtArgs>
   bases?: boolean | Prisma.Decor$basesArgs<ExtArgs>
+  base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
   scenes?: boolean | Prisma.Decor$scenesArgs<ExtArgs>
   sceneContents?: boolean | Prisma.Decor$sceneContentsArgs<ExtArgs>
   events?: boolean | Prisma.Decor$eventsArgs<ExtArgs>
@@ -1051,17 +1308,20 @@ export type DecorInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   _count?: boolean | Prisma.DecorCountOutputTypeDefaultArgs<ExtArgs>
 }
 export type DecorIncludeCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  itemTarget?: boolean | Prisma.Decor$itemTargetArgs<ExtArgs>
   base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
 }
 export type DecorIncludeUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  itemTarget?: boolean | Prisma.Decor$itemTargetArgs<ExtArgs>
   base?: boolean | Prisma.Decor$baseArgs<ExtArgs>
 }
 
 export type $DecorPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   name: "Decor"
   objects: {
-    base: Prisma.$DecorPayload<ExtArgs> | null
+    itemTarget: Prisma.$ItemTargetPayload<ExtArgs> | null
     bases: Prisma.$DecorPayload<ExtArgs>[]
+    base: Prisma.$DecorPayload<ExtArgs> | null
     scenes: Prisma.$ScenePayload<ExtArgs>[]
     sceneContents: Prisma.$SceneContentPayload<ExtArgs>[]
     events: Prisma.$EventPayload<ExtArgs>[]
@@ -1072,6 +1332,8 @@ export type $DecorPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
     name: string | null
     style: string | null
     className: string | null
+    area: string | null
+    itemTargetId: number | null
     basedUpon: number | null
   }, ExtArgs["result"]["decor"]>
   composites: {}
@@ -1467,8 +1729,9 @@ readonly fields: DecorFieldRefs;
  */
 export interface Prisma__DecorClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
-  base<T extends Prisma.Decor$baseArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Decor$baseArgs<ExtArgs>>): Prisma.Prisma__DecorClient<runtime.Types.Result.GetResult<Prisma.$DecorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+  itemTarget<T extends Prisma.Decor$itemTargetArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Decor$itemTargetArgs<ExtArgs>>): Prisma.Prisma__ItemTargetClient<runtime.Types.Result.GetResult<Prisma.$ItemTargetPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   bases<T extends Prisma.Decor$basesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Decor$basesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$DecorPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+  base<T extends Prisma.Decor$baseArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Decor$baseArgs<ExtArgs>>): Prisma.Prisma__DecorClient<runtime.Types.Result.GetResult<Prisma.$DecorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   scenes<T extends Prisma.Decor$scenesArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Decor$scenesArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ScenePayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   sceneContents<T extends Prisma.Decor$sceneContentsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Decor$sceneContentsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$SceneContentPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   events<T extends Prisma.Decor$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Decor$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
@@ -1506,6 +1769,8 @@ export interface DecorFieldRefs {
   readonly name: Prisma.FieldRef<"Decor", 'String'>
   readonly style: Prisma.FieldRef<"Decor", 'String'>
   readonly className: Prisma.FieldRef<"Decor", 'String'>
+  readonly area: Prisma.FieldRef<"Decor", 'String'>
+  readonly itemTargetId: Prisma.FieldRef<"Decor", 'Int'>
   readonly basedUpon: Prisma.FieldRef<"Decor", 'Int'>
 }
     
@@ -1901,22 +2166,22 @@ export type DecorDeleteManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
 }
 
 /**
- * Decor.base
+ * Decor.itemTarget
  */
-export type Decor$baseArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+export type Decor$itemTargetArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   /**
-   * Select specific fields to fetch from the Decor
+   * Select specific fields to fetch from the ItemTarget
    */
-  select?: Prisma.DecorSelect<ExtArgs> | null
+  select?: Prisma.ItemTargetSelect<ExtArgs> | null
   /**
-   * Omit specific fields from the Decor
+   * Omit specific fields from the ItemTarget
    */
-  omit?: Prisma.DecorOmit<ExtArgs> | null
+  omit?: Prisma.ItemTargetOmit<ExtArgs> | null
   /**
    * Choose, which related nodes to fetch as well
    */
-  include?: Prisma.DecorInclude<ExtArgs> | null
-  where?: Prisma.DecorWhereInput
+  include?: Prisma.ItemTargetInclude<ExtArgs> | null
+  where?: Prisma.ItemTargetWhereInput
 }
 
 /**
@@ -1941,6 +2206,25 @@ export type Decor$basesArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   distinct?: Prisma.DecorScalarFieldEnum | Prisma.DecorScalarFieldEnum[]
+}
+
+/**
+ * Decor.base
+ */
+export type Decor$baseArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
+  /**
+   * Select specific fields to fetch from the Decor
+   */
+  select?: Prisma.DecorSelect<ExtArgs> | null
+  /**
+   * Omit specific fields from the Decor
+   */
+  omit?: Prisma.DecorOmit<ExtArgs> | null
+  /**
+   * Choose, which related nodes to fetch as well
+   */
+  include?: Prisma.DecorInclude<ExtArgs> | null
+  where?: Prisma.DecorWhereInput
 }
 
 /**

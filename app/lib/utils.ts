@@ -138,3 +138,85 @@ export function getValuesFromGridName(grid: string = ""): { w: number; h: number
 	if (!values) return DEFAULT_GRID_VALUE;
 	return { w: Number(values[1]), h: Number(values[2]) };
 }
+
+type ParseAreaOptions = {
+	prefix?: string;
+	rows?: number;
+	cols?: number;
+	indexing?: "1-based" | "0-based";
+};
+
+type GridPlacementStyle = {
+	gridRow?: string;
+	gridColumn?: string;
+};
+
+/**
+ * camelCase -> kebab-case (CSS)
+ */
+function camelCaseToKebabCase(prop: string): string {
+	return prop
+		.replace(/^(Webkit|Moz|ms|O)/, "-$1")
+		.replace(/([a-z0-9])([A-Z])/g, "$1-$2")
+		.toLowerCase();
+}
+
+/**
+ * "cell-r2-c1" -> { gridRow, gridColumn }
+ */
+function areaToGridStyle(area: string, opts: ParseAreaOptions = {}): GridPlacementStyle {
+	const { prefix, rows, cols, indexing = "1-based" } = opts;
+
+	const match = area.match(/^(?<pfx>[a-zA-Z0-9_-]+)-r(?<r>\d+)-c(?<c>\d+)$/);
+	if (!match?.groups) {
+		throw new Error(`Nom de classe invalide : "${area}"`);
+	}
+
+	const { pfx } = match.groups;
+	let r = Number(match.groups.r);
+	let c = Number(match.groups.c);
+
+	if (prefix && pfx !== prefix) {
+		throw new Error(`Préfixe invalide : "${pfx}" (attendu "${prefix}")`);
+	}
+
+	if (indexing === "0-based") {
+		r += 1;
+		c += 1;
+	}
+
+	if (r < 1 || c < 1) {
+		throw new Error(`Indices invalides dans "${area}"`);
+	}
+
+	if (rows && r > rows) {
+		throw new Error(`Row ${r} > rows(${rows})`);
+	}
+
+	if (cols && c > cols) {
+		throw new Error(`Col ${c} > cols(${cols})`);
+	}
+
+	return {
+		gridRow: `${r} / span 1`,
+		gridColumn: `${c} / span 1`
+	};
+}
+
+/**
+ * 🔥 Fonction demandée
+ * "cell-r2-c1" -> ".cell-r2-c1{grid-row:2 / span 1;grid-column:1 / span 1;}"
+ */
+export function classNameToCssDefinition(className: string, opts?: ParseAreaOptions): string {
+	const style = areaToGridStyle(className, opts);
+
+	const cssBody = Object.entries(style)
+		.map(([prop, value]) => `${camelCaseToKebabCase(prop)}:${value}`)
+		.join(";");
+
+	if (!cssBody.length) {
+		throw new Error(`Aucune règle CSS générée pour "${className}"`);
+	}
+
+	return `.${className}{${cssBody};}`;
+}

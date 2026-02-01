@@ -233,7 +233,6 @@ export type ItemWhereInput = {
   capsuleId?: Prisma.IntFilter<"Item"> | number
   decorId?: Prisma.IntNullableFilter<"Item"> | number | null
   events?: Prisma.EventListRelationFilter
-  itemTargets?: Prisma.ItemTargetListRelationFilter
   content?: Prisma.XOR<Prisma.ContentScalarRelationFilter, Prisma.ContentWhereInput>
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
@@ -246,7 +245,6 @@ export type ItemOrderByWithRelationInput = {
   capsuleId?: Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
   events?: Prisma.EventOrderByRelationAggregateInput
-  itemTargets?: Prisma.ItemTargetOrderByRelationAggregateInput
   content?: Prisma.ContentOrderByWithRelationInput
   capsule?: Prisma.CapsuleOrderByWithRelationInput
   decor?: Prisma.DecorOrderByWithRelationInput
@@ -262,7 +260,6 @@ export type ItemWhereUniqueInput = Prisma.AtLeast<{
   contentId?: Prisma.IntFilter<"Item"> | number
   capsuleId?: Prisma.IntFilter<"Item"> | number
   events?: Prisma.EventListRelationFilter
-  itemTargets?: Prisma.ItemTargetListRelationFilter
   content?: Prisma.XOR<Prisma.ContentScalarRelationFilter, Prisma.ContentWhereInput>
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
@@ -295,7 +292,6 @@ export type ItemScalarWhereWithAggregatesInput = {
 export type ItemCreateInput = {
   order: number
   events?: Prisma.EventCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutItemInput
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
   decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
@@ -308,13 +304,11 @@ export type ItemUncheckedCreateInput = {
   capsuleId: number
   decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutItemInput
 }
 
 export type ItemUpdateInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUpdateManyWithoutItemNestedInput
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
@@ -327,7 +321,6 @@ export type ItemUncheckedUpdateInput = {
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutItemNestedInput
 }
 
 export type ItemCreateManyInput = {
@@ -403,11 +396,6 @@ export type ItemSumOrderByAggregateInput = {
 export type ItemNullableScalarRelationFilter = {
   is?: Prisma.ItemWhereInput | null
   isNot?: Prisma.ItemWhereInput | null
-}
-
-export type ItemScalarRelationFilter = {
-  is?: Prisma.ItemWhereInput
-  isNot?: Prisma.ItemWhereInput
 }
 
 export type ItemCreateNestedManyWithoutCapsuleInput = {
@@ -552,24 +540,9 @@ export type ItemUncheckedUpdateManyWithoutDecorNestedInput = {
   deleteMany?: Prisma.ItemScalarWhereInput | Prisma.ItemScalarWhereInput[]
 }
 
-export type ItemCreateNestedOneWithoutItemTargetsInput = {
-  create?: Prisma.XOR<Prisma.ItemCreateWithoutItemTargetsInput, Prisma.ItemUncheckedCreateWithoutItemTargetsInput>
-  connectOrCreate?: Prisma.ItemCreateOrConnectWithoutItemTargetsInput
-  connect?: Prisma.ItemWhereUniqueInput
-}
-
-export type ItemUpdateOneRequiredWithoutItemTargetsNestedInput = {
-  create?: Prisma.XOR<Prisma.ItemCreateWithoutItemTargetsInput, Prisma.ItemUncheckedCreateWithoutItemTargetsInput>
-  connectOrCreate?: Prisma.ItemCreateOrConnectWithoutItemTargetsInput
-  upsert?: Prisma.ItemUpsertWithoutItemTargetsInput
-  connect?: Prisma.ItemWhereUniqueInput
-  update?: Prisma.XOR<Prisma.XOR<Prisma.ItemUpdateToOneWithWhereWithoutItemTargetsInput, Prisma.ItemUpdateWithoutItemTargetsInput>, Prisma.ItemUncheckedUpdateWithoutItemTargetsInput>
-}
-
 export type ItemCreateWithoutCapsuleInput = {
   order: number
   events?: Prisma.EventCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutItemInput
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
 }
@@ -580,7 +553,6 @@ export type ItemUncheckedCreateWithoutCapsuleInput = {
   contentId: number
   decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutItemInput
 }
 
 export type ItemCreateOrConnectWithoutCapsuleInput = {
@@ -622,7 +594,6 @@ export type ItemScalarWhereInput = {
 export type ItemCreateWithoutContentInput = {
   order: number
   events?: Prisma.EventCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutItemInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
   decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
 }
@@ -633,7 +604,6 @@ export type ItemUncheckedCreateWithoutContentInput = {
   capsuleId: number
   decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutItemInput
 }
 
 export type ItemCreateOrConnectWithoutContentInput = {
@@ -663,7 +633,6 @@ export type ItemUpdateManyWithWhereWithoutContentInput = {
 
 export type ItemCreateWithoutEventsInput = {
   order: number
-  itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutItemInput
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
   decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
@@ -675,7 +644,6 @@ export type ItemUncheckedCreateWithoutEventsInput = {
   contentId: number
   capsuleId: number
   decorId?: number | null
-  itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutItemInput
 }
 
 export type ItemCreateOrConnectWithoutEventsInput = {
@@ -696,7 +664,6 @@ export type ItemUpdateToOneWithWhereWithoutEventsInput = {
 
 export type ItemUpdateWithoutEventsInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
-  itemTargets?: Prisma.ItemTargetUpdateManyWithoutItemNestedInput
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
@@ -708,13 +675,11 @@ export type ItemUncheckedUpdateWithoutEventsInput = {
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutItemNestedInput
 }
 
 export type ItemCreateWithoutDecorInput = {
   order: number
   events?: Prisma.EventCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutItemInput
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
 }
@@ -725,7 +690,6 @@ export type ItemUncheckedCreateWithoutDecorInput = {
   contentId: number
   capsuleId: number
   events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
-  itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutItemInput
 }
 
 export type ItemCreateOrConnectWithoutDecorInput = {
@@ -753,56 +717,6 @@ export type ItemUpdateManyWithWhereWithoutDecorInput = {
   data: Prisma.XOR<Prisma.ItemUpdateManyMutationInput, Prisma.ItemUncheckedUpdateManyWithoutDecorInput>
 }
 
-export type ItemCreateWithoutItemTargetsInput = {
-  order: number
-  events?: Prisma.EventCreateNestedManyWithoutItemInput
-  content: Prisma.ContentCreateNestedOneWithoutItemsInput
-  capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
-  decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
-}
-
-export type ItemUncheckedCreateWithoutItemTargetsInput = {
-  id?: number
-  order: number
-  contentId: number
-  capsuleId: number
-  decorId?: number | null
-  events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
-}
-
-export type ItemCreateOrConnectWithoutItemTargetsInput = {
-  where: Prisma.ItemWhereUniqueInput
-  create: Prisma.XOR<Prisma.ItemCreateWithoutItemTargetsInput, Prisma.ItemUncheckedCreateWithoutItemTargetsInput>
-}
-
-export type ItemUpsertWithoutItemTargetsInput = {
-  update: Prisma.XOR<Prisma.ItemUpdateWithoutItemTargetsInput, Prisma.ItemUncheckedUpdateWithoutItemTargetsInput>
-  create: Prisma.XOR<Prisma.ItemCreateWithoutItemTargetsInput, Prisma.ItemUncheckedCreateWithoutItemTargetsInput>
-  where?: Prisma.ItemWhereInput
-}
-
-export type ItemUpdateToOneWithWhereWithoutItemTargetsInput = {
-  where?: Prisma.ItemWhereInput
-  data: Prisma.XOR<Prisma.ItemUpdateWithoutItemTargetsInput, Prisma.ItemUncheckedUpdateWithoutItemTargetsInput>
-}
-
-export type ItemUpdateWithoutItemTargetsInput = {
-  order?: Prisma.IntFieldUpdateOperationsInput | number
-  events?: Prisma.EventUpdateManyWithoutItemNestedInput
-  content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
-  capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
-  decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
-}
-
-export type ItemUncheckedUpdateWithoutItemTargetsInput = {
-  id?: Prisma.IntFieldUpdateOperationsInput | number
-  order?: Prisma.IntFieldUpdateOperationsInput | number
-  contentId?: Prisma.IntFieldUpdateOperationsInput | number
-  capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
-  decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
-}
-
 export type ItemCreateManyCapsuleInput = {
   id?: number
   order: number
@@ -813,7 +727,6 @@ export type ItemCreateManyCapsuleInput = {
 export type ItemUpdateWithoutCapsuleInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUpdateManyWithoutItemNestedInput
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
 }
@@ -824,7 +737,6 @@ export type ItemUncheckedUpdateWithoutCapsuleInput = {
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutItemNestedInput
 }
 
 export type ItemUncheckedUpdateManyWithoutCapsuleInput = {
@@ -844,7 +756,6 @@ export type ItemCreateManyContentInput = {
 export type ItemUpdateWithoutContentInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUpdateManyWithoutItemNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
 }
@@ -855,7 +766,6 @@ export type ItemUncheckedUpdateWithoutContentInput = {
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutItemNestedInput
 }
 
 export type ItemUncheckedUpdateManyWithoutContentInput = {
@@ -875,7 +785,6 @@ export type ItemCreateManyDecorInput = {
 export type ItemUpdateWithoutDecorInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUpdateManyWithoutItemNestedInput
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
 }
@@ -886,7 +795,6 @@ export type ItemUncheckedUpdateWithoutDecorInput = {
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
-  itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutItemNestedInput
 }
 
 export type ItemUncheckedUpdateManyWithoutDecorInput = {
@@ -903,12 +811,10 @@ export type ItemUncheckedUpdateManyWithoutDecorInput = {
 
 export type ItemCountOutputType = {
   events: number
-  itemTargets: number
 }
 
 export type ItemCountOutputTypeSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   events?: boolean | ItemCountOutputTypeCountEventsArgs
-  itemTargets?: boolean | ItemCountOutputTypeCountItemTargetsArgs
 }
 
 /**
@@ -928,13 +834,6 @@ export type ItemCountOutputTypeCountEventsArgs<ExtArgs extends runtime.Types.Ext
   where?: Prisma.EventWhereInput
 }
 
-/**
- * ItemCountOutputType without action
- */
-export type ItemCountOutputTypeCountItemTargetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  where?: Prisma.ItemTargetWhereInput
-}
-
 
 export type ItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
@@ -943,7 +842,6 @@ export type ItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
   capsuleId?: boolean
   decorId?: boolean
   events?: boolean | Prisma.Item$eventsArgs<ExtArgs>
-  itemTargets?: boolean | Prisma.Item$itemTargetsArgs<ExtArgs>
   content?: boolean | Prisma.ContentDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.Item$capsuleArgs<ExtArgs>
   decor?: boolean | Prisma.Item$decorArgs<ExtArgs>
@@ -983,7 +881,6 @@ export type ItemSelectScalar = {
 export type ItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "order" | "contentId" | "capsuleId" | "decorId", ExtArgs["result"]["item"]>
 export type ItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   events?: boolean | Prisma.Item$eventsArgs<ExtArgs>
-  itemTargets?: boolean | Prisma.Item$itemTargetsArgs<ExtArgs>
   content?: boolean | Prisma.ContentDefaultArgs<ExtArgs>
   capsule?: boolean | Prisma.Item$capsuleArgs<ExtArgs>
   decor?: boolean | Prisma.Item$decorArgs<ExtArgs>
@@ -1004,7 +901,6 @@ export type $ItemPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   name: "Item"
   objects: {
     events: Prisma.$EventPayload<ExtArgs>[]
-    itemTargets: Prisma.$ItemTargetPayload<ExtArgs>[]
     content: Prisma.$ContentPayload<ExtArgs>
     capsule: Prisma.$CapsulePayload<ExtArgs> | null
     decor: Prisma.$DecorPayload<ExtArgs> | null
@@ -1410,7 +1306,6 @@ readonly fields: ItemFieldRefs;
 export interface Prisma__ItemClient<T, Null = never, ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
   readonly [Symbol.toStringTag]: "PrismaPromise"
   events<T extends Prisma.Item$eventsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Item$eventsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$EventPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
-  itemTargets<T extends Prisma.Item$itemTargetsArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Item$itemTargetsArgs<ExtArgs>>): Prisma.PrismaPromise<runtime.Types.Result.GetResult<Prisma.$ItemTargetPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
   content<T extends Prisma.ContentDefaultArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.ContentDefaultArgs<ExtArgs>>): Prisma.Prisma__ContentClient<runtime.Types.Result.GetResult<Prisma.$ContentPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
   capsule<T extends Prisma.Item$capsuleArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Item$capsuleArgs<ExtArgs>>): Prisma.Prisma__CapsuleClient<runtime.Types.Result.GetResult<Prisma.$CapsulePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
   decor<T extends Prisma.Item$decorArgs<ExtArgs> = {}>(args?: Prisma.Subset<T, Prisma.Item$decorArgs<ExtArgs>>): Prisma.Prisma__DecorClient<runtime.Types.Result.GetResult<Prisma.$DecorPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
@@ -1863,30 +1758,6 @@ export type Item$eventsArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
   take?: number
   skip?: number
   distinct?: Prisma.EventScalarFieldEnum | Prisma.EventScalarFieldEnum[]
-}
-
-/**
- * Item.itemTargets
- */
-export type Item$itemTargetsArgs<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
-  /**
-   * Select specific fields to fetch from the ItemTarget
-   */
-  select?: Prisma.ItemTargetSelect<ExtArgs> | null
-  /**
-   * Omit specific fields from the ItemTarget
-   */
-  omit?: Prisma.ItemTargetOmit<ExtArgs> | null
-  /**
-   * Choose, which related nodes to fetch as well
-   */
-  include?: Prisma.ItemTargetInclude<ExtArgs> | null
-  where?: Prisma.ItemTargetWhereInput
-  orderBy?: Prisma.ItemTargetOrderByWithRelationInput | Prisma.ItemTargetOrderByWithRelationInput[]
-  cursor?: Prisma.ItemTargetWhereUniqueInput
-  take?: number
-  skip?: number
-  distinct?: Prisma.ItemTargetScalarFieldEnum | Prisma.ItemTargetScalarFieldEnum[]
 }
 
 /**

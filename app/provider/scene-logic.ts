@@ -297,7 +297,7 @@ export const sceneLogic = setup({
 
 									active: {
 										...context.active,
-										eventTouched: true
+										decorTouched: true
 									}
 								};
 							})
