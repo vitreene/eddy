@@ -22,12 +22,12 @@ note, au fur et a mesure des solutions trouvées, plusieurs conflits ptentiels d
 import * as transitions from "@/player/presets/transitions";
 
 import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor } from "@/api/db";
-import { P } from "../types";
+import { P, type ID } from "../types";
 import { SCENE_ID } from "../constants";
 import { SEP, DEFAULT_DURATION, INTRO, OUTRO } from "@/lib/constants";
 
 import type { PlayerProps } from "..";
-import { classNameToCssDefinition } from "@/lib/utils";
+import { classNameToCssDefinition, getValuesFromGridName } from "@/lib/utils";
 
 const DEFAUT_PATH_IMAGE = "";
 
@@ -36,17 +36,19 @@ const TR = Object.fromEntries(Object.entries(transitions).map(([k, { name: _, ..
 export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string } {
 	const events = mapEvents(snapshot);
 	// console.log("->events", events);
+	const { areas, itemsPositionClassName } = positionElements(snapshot);
+	const styles = createStyle(snapshot, areas);
 
-	const styles = createStyle(snapshot);
+	console.log({ itemsPositionClassName });
 
 	let $capsules;
 	if (snapshot.capsules) {
-		$capsules = Object.values(snapshot.capsules).map((c) => createCapsule(c, snapshot));
+		$capsules = Object.values(snapshot.capsules).map((c) => createCapsule(c, snapshot, itemsPositionClassName));
 	}
 	let $items;
 	if (snapshot.items) {
 		$items = Object.values(snapshot.items)
-			.map((it) => createItems(it, snapshot))
+			.map((it) => createItems(it, snapshot, itemsPositionClassName))
 			.filter(Boolean);
 	}
 
@@ -54,17 +56,54 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 }
 
 //STYLES
-function createStyle(snapshot: SceneComp) {
-	const areas = Object.values(snapshot.decors)
-		.filter((decor) => decor.area)
-		.map((decor) => classNameToCssDefinition(decor.area));
-	console.log("createStyle", areas);
+function createStyle(snapshot: SceneComp, areas: string[]) {
+	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${areas.join("\n")}`.trim();
+}
 
-	return `${snapshot.theme?.generated || ""} ${snapshot.theme?.custom || ""} ${areas.join()}`.trim();
+function positionElements(snapshot: SceneComp) {
+	/*
+- pour chaque item,
+- chercher s'il posede une position
+	oui -> ajouter à areas
+	non ->
+		- chercher sa position dans la capsule
+		- placer selon la grid de la capsule 
+		- créer classe
+		- ajouter à areas
+*/
+
+	const areas: string[] = [];
+	const itemsPositionClassName: Record<ID, string> = {};
+
+	for (const item of Object.values(snapshot.items)) {
+		const decor = snapshot.decors[item.decorId];
+		if (decor.area) {
+			areas.push(classNameToCssDefinition(decor.area));
+		} else {
+			const capsule = snapshot.capsules[item.capsuleId];
+			const grid = getValuesFromGridName(capsule.grid);
+			// position dans la capsule ( 1 ... n)
+			const index =
+				Object.values(snapshot.items)
+					.filter((it) => it.capsuleId == item.capsuleId)
+					.toSorted((a, b) => (a.order > b.order ? 1 : -1))
+					.findIndex((it) => it.id == item.id) + 1;
+
+			console.log({ id: capsule.id, grid });
+
+			const r = grid.w == 1 ? 1 : index % grid.w || grid.w;
+			const c = grid.h == 1 ? 1 : Math.round(index / grid.w) + 1;
+			const prefix = "cell_auto";
+			const area = `${prefix}-r${r}-c${c}`;
+			areas.push(classNameToCssDefinition(area, { prefix }));
+			itemsPositionClassName[item.id] = area;
+		}
+	}
+	return { areas, itemsPositionClassName };
 }
 
 //CAPSULES
-function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
+function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClassnames: Record<ID, string>) {
 	const id = `capsule${SEP}${capsule.id}`;
 
 	if (capsule.id == snapshot.main) {
@@ -113,7 +152,8 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp) {
 				...(move && { move }),
 				tag: "div",
 				id,
-				className: `${capsule.grid || ""} ${decor.className || ""} ${decor.area || ""}`.trim(),
+				className:
+					`${capsule.grid || ""} ${decor.className || ""} ${decor.area || additionalClassnames[item.id] || ""}`.trim(),
 				style: { isolation: "isolate", ...decor.style }
 			},
 			actions
@@ -139,7 +179,7 @@ const itemTag = {
 	sprite: "div"
 } as const;
 
-function createItems(item: ItemComp, snapshot: SceneComp) {
+function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: Record<ID, string>) {
 	const content = snapshot.contents[item.contentId];
 	if (content.type == "capsule") return null;
 	const events = snapshot.events[item.id];
@@ -161,11 +201,14 @@ function createItems(item: ItemComp, snapshot: SceneComp) {
 	const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
 	actions[id] = true;
 	const tag = itemTag[content.type as keyof typeof itemTag];
+
+	console.log(id, "className", decor.area, additionalClassnames[item.id]);
+
 	const initial = {
 		id,
 		tag,
 		...(move && { move }),
-		className: `${decor?.className || ""}  ${decor.area || ""}`.trim(),
+		className: `${decor?.className || ""}  ${decor.area || additionalClassnames[item.id] || ""}`.trim(),
 		style: decor?.style
 	};
 

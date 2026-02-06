@@ -14,6 +14,7 @@ import { buildScene } from "@/player/builder/builder";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 import { Menu } from "@/parts/menu";
+import { ResponsiveBackgroundSliceGrid } from "@/demos/split-image";
 
 export function meta() {
 	return [{ title: "Eddy" }, { name: "description", content: "l'éditeur de séquences" }];
@@ -77,6 +78,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 			</section>
 
 			<section className="base-layout layout-player">
+				{/* <ResponsiveBackgroundSliceGrid src="/images/DSCF6975-crop.jpg" /> */}
 				<PlayerRunner scene={scene} />
 				{/* <DemoTransformEditor /> */}
 			</section>
