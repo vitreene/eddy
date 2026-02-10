@@ -252,6 +252,12 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 
 // contentS
 
+export async function createContent(
+	update: { type: string; name: string } & Partial<Pick<Content, "path" | "inner" | "lang">>
+) {
+	return await prisma.content.create({ data: update });
+}
+
 export async function getcontents(sceneId: number) {
 	/* 
 	- prendre toutes les capsules e la scene
@@ -356,10 +362,11 @@ export async function updateItem({ id, ...update }: Partial<Item>) {
 		data: update
 	});
 }
-export async function additemToCapsule(data: { order: number; capsuleId: number }) {
+
+/* export async function additemToCapsule(data: { order: number; capsuleId: number }) {
 	prisma.$transaction(async (tx) => {});
 	// return await prisma.item.create({data});
-}
+} */
 
 //	ref: string  -> transition, details...
 //	name: string; -> label time
@@ -418,10 +425,6 @@ export async function updateDecor({ id, style, ...d }: Partial<Decor>) {
 export async function getDecorById(id: number) {
 	return await prisma.decor.findUnique({ where: { id } });
 }
-
-// export async function getDecorByCapsuleId(capsuleId: number) {
-// 	return await prisma.capsule.findUnique({ where: { id: capsuleId } }).decor();
-// }
 
 export async function getDecorByItemId(itemId: number) {
 	return await prisma.item.findUnique({ where: { id: itemId } }).decor();

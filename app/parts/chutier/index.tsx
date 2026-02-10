@@ -1,0 +1,169 @@
+import { useState } from "react";
+import { Upload } from "lucide-react";
+import { useDropzone } from "react-dropzone";
+
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { SceneLogicContext } from "@/provider/scene-logic";
+import type { Content } from "@/api/db";
+import { cn } from "@/lib/utils";
+
+type UploadItem = {
+	content: Content;
+};
+
+const ACCEPTED_TYPES = {
+	"image/*": [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg"],
+	"audio/*": [".mp3", ".wav", ".ogg", ".m4a"],
+	"video/*": [".mp4", ".webm", ".mov", ".m4v"],
+	"application/octet-stream": [".lottie", ".glb", ".gltf", ".riv"],
+	"application/vnd.lottie+json": [".lottie"],
+	"application/zip": [".lottie"],
+	"model/gltf-binary": [".glb"],
+	"model/gltf+json": [".gltf"],
+	"application/x-rive": [".riv"]
+};
+
+export function Chutier() {
+	const { send } = SceneLogicContext.useActorRef();
+	const contents = SceneLogicContext.useSelector((state) => Object.values(state.context.contents || {}));
+
+	const [isUploading, setUploading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
+
+	const groupedContents = {
+		image: contents.filter((content) => content.type === "img"),
+		sound: contents.filter((content) => content.type === "sound"),
+		video: contents.filter((content) => content.type === "video"),
+		text: contents.filter((content) => content.type === "text"),
+		others: contents.filter(
+			(content) => !["img", "sound", "video", "text", "capsule"].includes(content.type || "")
+		)
+	};
+
+	const onDrop = async (files: File[]) => {
+		setError(null);
+		if (!files.length) return;
+
+		setUploading(true);
+		try {
+			const formData = new FormData();
+			for (const file of files) formData.append("files", file);
+
+			const res = await fetch("/api/assets/upload", {
+				method: "POST",
+				body: formData
+			});
+
+			if (!res.ok) {
+				const message = await res.text();
+				throw new Error(message || "Echec de l'upload");
+			}
+
+			const data = (await res.json()) as { files?: UploadItem[] };
+			for (const file of data.files || []) {
+				send({ type: "content-add", payload: file.content });
+			}
+		} catch (e) {
+			setError(e instanceof Error ? e.message : "Erreur inattendue");
+		} finally {
+			setUploading(false);
+		}
+	};
+
+	const { getRootProps, getInputProps, open, isDragActive, isDragReject } = useDropzone({
+		onDrop,
+		accept: ACCEPTED_TYPES,
+		maxSize: 200 * 1024 * 1024,
+		maxFiles: 20,
+		disabled: isUploading,
+		noClick: true,
+		noKeyboard: true,
+		onDropRejected: (rejections) => {
+			const first = rejections[0]?.errors?.[0];
+			setError(first?.message || "Depot refuse");
+		}
+	});
+
+	return (
+		<div
+			{...getRootProps()}
+			className={cn(
+				"flex h-full min-h-0 w-full max-w-full min-w-0 flex-col overflow-hidden rounded-md border border-dashed transition-colors",
+				isDragActive && "border-primary bg-primary/5",
+				isDragReject && "border-red-500 bg-red-50"
+			)}
+		>
+			<input {...getInputProps()} />
+			<div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b bg-white/95 p-2 backdrop-blur">
+				<p className="border-primary-500 border-b-2">Chutier</p>
+				<Button type="button" size="icon-sm" variant="outline" onClick={() => open()} disabled={isUploading}>
+					<Upload className="h-4 w-4" />
+				</Button>
+			</div>
+
+			<div className="min-h-0 flex-1 overflow-y-auto p-2 [scrollbar-gutter:stable]">
+				<div className="space-y-3">
+					{isDragActive ? <p className="text-xs">Relachez les fichiers pour les importer</p> : null}
+					{isUploading ? <p className="text-xs">Upload en cours...</p> : null}
+					{error ? <p className="text-xs text-red-600">{error}</p> : null}
+
+					<Tabs defaultValue="images" className="w-full min-w-0 text-xs">
+						<TabsList className="grid h-auto w-full grid-cols-5">
+							<TabsTrigger value="images">Images</TabsTrigger>
+							<TabsTrigger value="sons">Sons</TabsTrigger>
+							<TabsTrigger value="videos">Videos</TabsTrigger>
+							<TabsTrigger value="textes">Textes</TabsTrigger>
+							<TabsTrigger value="autres">Autres</TabsTrigger>
+						</TabsList>
+
+						<TabsContent value="images">
+							<ContentGroup items={groupedContents.image} emptyText="Aucune image" />
+						</TabsContent>
+						<TabsContent value="sons">
+							<ContentGroup items={groupedContents.sound} emptyText="Aucun son" />
+						</TabsContent>
+						<TabsContent value="videos">
+							<ContentGroup items={groupedContents.video} emptyText="Aucune video" />
+						</TabsContent>
+						<TabsContent value="textes">
+							<ContentGroup items={groupedContents.text} emptyText="Aucun texte" />
+						</TabsContent>
+						<TabsContent value="autres">
+							<ContentGroup items={groupedContents.others} emptyText="Aucun autre contenu" />
+						</TabsContent>
+					</Tabs>
+				</div>
+			</div>
+		</div>
+	);
+}
+
+function ContentGroup({ items, emptyText }: { items: Content[]; emptyText: string }) {
+	return (
+		<div className="min-w-0 rounded border p-2">
+			{items.length ? (
+				<ul className="mt-1 space-y-1">
+					{items.map((content) => {
+						const fullLabel =
+							content.type === "text" ? content.inner || "(texte vide)" : content.name || "(sans nom)";
+						const shortLabel = truncateWithEllipsis(fullLabel, 20);
+
+						return (
+							<li key={content.id} className="truncate" title={fullLabel}>
+								[{content.type}] {shortLabel}
+							</li>
+						);
+					})}
+				</ul>
+			) : (
+				<p className="text-muted-foreground mt-1">{emptyText}</p>
+			)}
+		</div>
+	);
+}
+
+function truncateWithEllipsis(value: string, maxLength: number): string {
+	if (value.length <= maxLength) return value;
+	return `${value.slice(0, maxLength)}...`;
+}

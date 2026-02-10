@@ -1,0 +1,2 @@
+ALTER TABLE "content"
+ADD COLUMN "name" TEXT NOT NULL DEFAULT '';

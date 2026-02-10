@@ -8,6 +8,7 @@ export default [
 	//APIS
 	...prefix("api", [
 		route("scene", "./api/scene.ts"),
+		route("assets/upload", "./api/assets-upload.ts"),
 		route("capsule/:id/*", "./api/capsule.ts"),
 		route("decor", "./api/decor.ts"),
 		route("item/:id", "./api/item.ts"),

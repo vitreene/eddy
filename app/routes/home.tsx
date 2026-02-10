@@ -14,6 +14,7 @@ import { buildScene } from "@/player/builder/builder";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 import { Menu } from "@/parts/menu";
+import { Chutier } from "@/parts/chutier";
 import { ResponsiveBackgroundSliceGrid } from "@/demos/split-image";
 import { PinDemo } from "@/demos/Pins";
 
@@ -72,7 +73,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 				<Menu scenes={data.scenes} />
 			</section>
 			<section className="base-layout layout-chutier">
-				<p className="border-primary-500 border-b-2">Chutier</p>
+				<Chutier />
 			</section>
 			<section className="base-layout layout-capsules w-60">
 				<SceneTreeView />

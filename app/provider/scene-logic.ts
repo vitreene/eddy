@@ -3,7 +3,7 @@ import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
 
-import type { Decor, CapsuleComp, ContentEvent, SceneComp, ItemComp } from "@/api/db";
+import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
 import { DEFAULT_DURATION, INTRO } from "@/lib/constants";
@@ -61,6 +61,7 @@ export const sceneLogic = setup({
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
 			| { type: "capsule-update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
+			| { type: "content-add"; payload: Content }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
 			| { type: "tree-after-move"; payload: TreeMoveEvent }
 			| { type: "reorder.capsule"; payload: TreeMoveEvent }
@@ -325,6 +326,17 @@ export const sceneLogic = setup({
 									active: {
 										...context.active,
 										eventTouched: true
+									}
+								};
+							})
+						},
+						"content-add": {
+							actions: assign(({ context, event }) => {
+								return {
+									...context,
+									contents: {
+										...context.contents,
+										[event.payload.id]: event.payload
 									}
 								};
 							})

@@ -97,6 +97,7 @@ model Item {
 
 model Content {
   id    Int     @id @default(autoincrement())
+  name  String  @default("")
   type  String
   path  String?
   inner String?

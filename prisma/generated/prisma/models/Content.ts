@@ -38,6 +38,7 @@ export type ContentSumAggregateOutputType = {
 
 export type ContentMinAggregateOutputType = {
   id: number | null
+  name: string | null
   type: string | null
   path: string | null
   inner: string | null
@@ -47,6 +48,7 @@ export type ContentMinAggregateOutputType = {
 
 export type ContentMaxAggregateOutputType = {
   id: number | null
+  name: string | null
   type: string | null
   path: string | null
   inner: string | null
@@ -56,6 +58,7 @@ export type ContentMaxAggregateOutputType = {
 
 export type ContentCountAggregateOutputType = {
   id: number
+  name: number
   type: number
   path: number
   inner: number
@@ -77,6 +80,7 @@ export type ContentSumAggregateInputType = {
 
 export type ContentMinAggregateInputType = {
   id?: true
+  name?: true
   type?: true
   path?: true
   inner?: true
@@ -86,6 +90,7 @@ export type ContentMinAggregateInputType = {
 
 export type ContentMaxAggregateInputType = {
   id?: true
+  name?: true
   type?: true
   path?: true
   inner?: true
@@ -95,6 +100,7 @@ export type ContentMaxAggregateInputType = {
 
 export type ContentCountAggregateInputType = {
   id?: true
+  name?: true
   type?: true
   path?: true
   inner?: true
@@ -191,6 +197,7 @@ export type ContentGroupByArgs<ExtArgs extends runtime.Types.Extensions.Internal
 
 export type ContentGroupByOutputType = {
   id: number
+  name: string
   type: string
   path: string | null
   inner: string | null
@@ -223,6 +230,7 @@ export type ContentWhereInput = {
   OR?: Prisma.ContentWhereInput[]
   NOT?: Prisma.ContentWhereInput | Prisma.ContentWhereInput[]
   id?: Prisma.IntFilter<"Content"> | number
+  name?: Prisma.StringFilter<"Content"> | string
   type?: Prisma.StringFilter<"Content"> | string
   path?: Prisma.StringNullableFilter<"Content"> | string | null
   inner?: Prisma.StringNullableFilter<"Content"> | string | null
@@ -235,6 +243,7 @@ export type ContentWhereInput = {
 
 export type ContentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   path?: Prisma.SortOrderInput | Prisma.SortOrder
   inner?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -250,6 +259,7 @@ export type ContentWhereUniqueInput = Prisma.AtLeast<{
   AND?: Prisma.ContentWhereInput | Prisma.ContentWhereInput[]
   OR?: Prisma.ContentWhereInput[]
   NOT?: Prisma.ContentWhereInput | Prisma.ContentWhereInput[]
+  name?: Prisma.StringFilter<"Content"> | string
   type?: Prisma.StringFilter<"Content"> | string
   path?: Prisma.StringNullableFilter<"Content"> | string | null
   inner?: Prisma.StringNullableFilter<"Content"> | string | null
@@ -262,6 +272,7 @@ export type ContentWhereUniqueInput = Prisma.AtLeast<{
 
 export type ContentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   path?: Prisma.SortOrderInput | Prisma.SortOrder
   inner?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -279,6 +290,7 @@ export type ContentScalarWhereWithAggregatesInput = {
   OR?: Prisma.ContentScalarWhereWithAggregatesInput[]
   NOT?: Prisma.ContentScalarWhereWithAggregatesInput | Prisma.ContentScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Content"> | number
+  name?: Prisma.StringWithAggregatesFilter<"Content"> | string
   type?: Prisma.StringWithAggregatesFilter<"Content"> | string
   path?: Prisma.StringNullableWithAggregatesFilter<"Content"> | string | null
   inner?: Prisma.StringNullableWithAggregatesFilter<"Content"> | string | null
@@ -287,6 +299,7 @@ export type ContentScalarWhereWithAggregatesInput = {
 }
 
 export type ContentCreateInput = {
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -298,6 +311,7 @@ export type ContentCreateInput = {
 
 export type ContentUncheckedCreateInput = {
   id?: number
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -308,6 +322,7 @@ export type ContentUncheckedCreateInput = {
 }
 
 export type ContentUpdateInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -319,6 +334,7 @@ export type ContentUpdateInput = {
 
 export type ContentUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -330,6 +346,7 @@ export type ContentUncheckedUpdateInput = {
 
 export type ContentCreateManyInput = {
   id?: number
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -338,6 +355,7 @@ export type ContentCreateManyInput = {
 }
 
 export type ContentUpdateManyMutationInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -346,6 +364,7 @@ export type ContentUpdateManyMutationInput = {
 
 export type ContentUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -370,6 +389,7 @@ export type ContentOrderByRelationAggregateInput = {
 
 export type ContentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   path?: Prisma.SortOrder
   inner?: Prisma.SortOrder
@@ -384,6 +404,7 @@ export type ContentAvgOrderByAggregateInput = {
 
 export type ContentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   path?: Prisma.SortOrder
   inner?: Prisma.SortOrder
@@ -393,6 +414,7 @@ export type ContentMaxOrderByAggregateInput = {
 
 export type ContentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
+  name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   path?: Prisma.SortOrder
   inner?: Prisma.SortOrder
@@ -476,6 +498,7 @@ export type ContentUpdateOneRequiredWithoutItemsNestedInput = {
 }
 
 export type ContentCreateWithoutSceneContentsInput = {
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -486,6 +509,7 @@ export type ContentCreateWithoutSceneContentsInput = {
 
 export type ContentUncheckedCreateWithoutSceneContentsInput = {
   id?: number
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -511,6 +535,7 @@ export type ContentUpdateToOneWithWhereWithoutSceneContentsInput = {
 }
 
 export type ContentUpdateWithoutSceneContentsInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -521,6 +546,7 @@ export type ContentUpdateWithoutSceneContentsInput = {
 
 export type ContentUncheckedUpdateWithoutSceneContentsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -530,6 +556,7 @@ export type ContentUncheckedUpdateWithoutSceneContentsInput = {
 }
 
 export type ContentCreateWithoutCapsuleInput = {
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -540,6 +567,7 @@ export type ContentCreateWithoutCapsuleInput = {
 
 export type ContentUncheckedCreateWithoutCapsuleInput = {
   id?: number
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -578,6 +606,7 @@ export type ContentScalarWhereInput = {
   OR?: Prisma.ContentScalarWhereInput[]
   NOT?: Prisma.ContentScalarWhereInput | Prisma.ContentScalarWhereInput[]
   id?: Prisma.IntFilter<"Content"> | number
+  name?: Prisma.StringFilter<"Content"> | string
   type?: Prisma.StringFilter<"Content"> | string
   path?: Prisma.StringNullableFilter<"Content"> | string | null
   inner?: Prisma.StringNullableFilter<"Content"> | string | null
@@ -586,6 +615,7 @@ export type ContentScalarWhereInput = {
 }
 
 export type ContentCreateWithoutItemsInput = {
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -596,6 +626,7 @@ export type ContentCreateWithoutItemsInput = {
 
 export type ContentUncheckedCreateWithoutItemsInput = {
   id?: number
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -621,6 +652,7 @@ export type ContentUpdateToOneWithWhereWithoutItemsInput = {
 }
 
 export type ContentUpdateWithoutItemsInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -631,6 +663,7 @@ export type ContentUpdateWithoutItemsInput = {
 
 export type ContentUncheckedUpdateWithoutItemsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -641,6 +674,7 @@ export type ContentUncheckedUpdateWithoutItemsInput = {
 
 export type ContentCreateManyCapsuleInput = {
   id?: number
+  name?: string
   type: string
   path?: string | null
   inner?: string | null
@@ -648,6 +682,7 @@ export type ContentCreateManyCapsuleInput = {
 }
 
 export type ContentUpdateWithoutCapsuleInput = {
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -658,6 +693,7 @@ export type ContentUpdateWithoutCapsuleInput = {
 
 export type ContentUncheckedUpdateWithoutCapsuleInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -668,6 +704,7 @@ export type ContentUncheckedUpdateWithoutCapsuleInput = {
 
 export type ContentUncheckedUpdateManyWithoutCapsuleInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
+  name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.StringFieldUpdateOperationsInput | string
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
@@ -716,6 +753,7 @@ export type ContentCountOutputTypeCountSceneContentsArgs<ExtArgs extends runtime
 
 export type ContentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  name?: boolean
   type?: boolean
   path?: boolean
   inner?: boolean
@@ -729,6 +767,7 @@ export type ContentSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
 
 export type ContentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  name?: boolean
   type?: boolean
   path?: boolean
   inner?: boolean
@@ -739,6 +778,7 @@ export type ContentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
 
 export type ContentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
+  name?: boolean
   type?: boolean
   path?: boolean
   inner?: boolean
@@ -749,6 +789,7 @@ export type ContentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
 
 export type ContentSelectScalar = {
   id?: boolean
+  name?: boolean
   type?: boolean
   path?: boolean
   inner?: boolean
@@ -756,7 +797,7 @@ export type ContentSelectScalar = {
   capsuleId?: boolean
 }
 
-export type ContentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "type" | "path" | "inner" | "lang" | "capsuleId", ExtArgs["result"]["content"]>
+export type ContentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "type" | "path" | "inner" | "lang" | "capsuleId", ExtArgs["result"]["content"]>
 export type ContentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   capsule?: boolean | Prisma.Content$capsuleArgs<ExtArgs>
   items?: boolean | Prisma.Content$itemsArgs<ExtArgs>
@@ -779,6 +820,7 @@ export type $ContentPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
+    name: string
     type: string
     path: string | null
     inner: string | null
@@ -1211,6 +1253,7 @@ export interface Prisma__ContentClient<T, Null = never, ExtArgs extends runtime.
  */
 export interface ContentFieldRefs {
   readonly id: Prisma.FieldRef<"Content", 'Int'>
+  readonly name: Prisma.FieldRef<"Content", 'String'>
   readonly type: Prisma.FieldRef<"Content", 'String'>
   readonly path: Prisma.FieldRef<"Content", 'String'>
   readonly inner: Prisma.FieldRef<"Content", 'String'>
