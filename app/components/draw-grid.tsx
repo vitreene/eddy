@@ -1,4 +1,5 @@
 import { GRID_DEFAULT_PREFIX } from "@/lib/constants";
+import { gridClassNameToCssDefinition } from "@/lib/utils";
 import cx from "classnames";
 import { Grid2x2 } from "lucide-react";
 import { useId, useState, useRef, useMemo } from "react";
@@ -185,41 +186,11 @@ export function gridWHClassName(
 	opts?: { prefix?: string }
 ): { className: string; cssText: string } {
 	const prefix = opts?.prefix ?? GRID_DEFAULT_PREFIX;
-	const styles = gridStyleFromXY(size.w, size.h);
-	console.log("gridWHClassName", styles);
-
-	const signature = cssObjectToClass(styles);
 	const hash = `grid-w${size.w}-h${size.h}`;
 
 	const className = `${prefix}-${hash}`;
-	const cssText = `.${className}{${signature}}`;
+	const cssText = gridClassNameToCssDefinition(className) ?? `.${className}{display:grid;isolation:isolate}`;
 	return { className, cssText };
-}
-
-function gridStyleFromXY(x: number, y: number): React.CSSProperties {
-	const cols = Math.max(1, Math.floor(x));
-	const rows = Math.max(1, Math.floor(y));
-
-	return {
-		display: "grid",
-		...(cols > 1 && { gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }),
-		...(rows > 1 && { gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }),
-		isolation: "isolate",
-		// overflow: "hidden"
-		...(cols == 1 && rows == 1 && { "& * ": "grid-area: 1 / -1" })
-	};
-}
-
-function cssObjectToClass(styles: React.CSSProperties): string {
-	const toKebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
-
-	const entries = Object.entries(styles).filter(([, v]) => v != null && v !== "");
-	const signature = entries
-		.map(([k, v]) => `${toKebab(k)}:${String(v).trim()}`)
-		.sort()
-		.join(";");
-
-	return signature;
 }
 
 function gimiHash(signature: string) {

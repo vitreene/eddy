@@ -95,13 +95,12 @@ function CapsuleEdit({
 	};
 
 	const onChangeGrid = (size: GridSize) => {
-		const gridClassName = gridWHClassName(size);
+		const { className } = gridWHClassName(size);
 
 		send({
 			type: "capsule-update",
-			payload: { id: capsule.id, grid: gridClassName.className }
+			payload: { id: capsule.id, grid: className }
 		});
-		send({ type: "theme-update", payload: { generated: gridClassName.cssText } });
 	};
 
 	const gridValues = getValuesFromGridName(capsule.grid);

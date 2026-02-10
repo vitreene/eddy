@@ -220,3 +220,31 @@ export function classNameToCssDefinition(className: string, opts?: ParseAreaOpti
 
 	return `.${className}{${cssBody};}`;
 }
+
+function cssObjectToClass(styles: Record<string, string | number>): string {
+	const toKebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
+
+	return Object.entries(styles)
+		.filter(([, v]) => v != null && v !== "")
+		.map(([k, v]) => `${toKebab(k)}:${String(v).trim()}`)
+		.sort()
+		.join(";");
+}
+
+export function gridClassNameToCssDefinition(gridClassName = ""): string | undefined {
+	const className = gridClassName.trim().split(/\s+/)[0]?.replace(/^\./, "");
+	if (!className) return undefined;
+
+	const { w, h } = getValuesFromGridName(className);
+	if (!w || !h) return undefined;
+
+	const styles: Record<string, string> = {
+		display: "grid",
+		...(w > 1 && { gridTemplateColumns: `repeat(${w}, minmax(0, 1fr))` }),
+		...(h > 1 && { gridTemplateRows: `repeat(${h}, minmax(0, 1fr))` }),
+		isolation: "isolate",
+		...(w === 1 && h === 1 && { "& *": "grid-area: 1 / -1" })
+	};
+
+	return `.${className}{${cssObjectToClass(styles)}}`;
+}

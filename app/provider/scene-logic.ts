@@ -255,8 +255,7 @@ export const sceneLogic = setup({
 
 									const active = {
 										...context.active,
-										capsuleTouched: true,
-										...("grid" in payload && { themeTouched: true })
+										capsuleTouched: true
 									};
 									console.log("capsule-update", active);
 

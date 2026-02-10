@@ -27,7 +27,7 @@ import { SCENE_ID } from "../constants";
 import { SEP, DEFAULT_DURATION, INTRO, OUTRO } from "@/lib/constants";
 
 import type { PlayerProps } from "..";
-import { classNameToCssDefinition, getValuesFromGridName } from "@/lib/utils";
+import { classNameToCssDefinition, getValuesFromGridName, gridClassNameToCssDefinition } from "@/lib/utils";
 
 const DEFAUT_PATH_IMAGE = "";
 
@@ -37,7 +37,8 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 	const events = mapEvents(snapshot);
 	// console.log("->events", events);
 	const { areas, itemsPositionClassName } = positionElements(snapshot);
-	const styles = createStyle(snapshot, areas);
+	const gridDefinitions = getGridDefinitions(snapshot);
+	const styles = createStyle(snapshot, areas, gridDefinitions);
 
 	console.log({ itemsPositionClassName });
 
@@ -56,8 +57,24 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 }
 
 //STYLES
-function createStyle(snapshot: SceneComp, areas: string[]) {
-	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${areas.join("\n")}`.trim();
+function createStyle(snapshot: SceneComp, areas: string[], gridDefinitions: string[]) {
+	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${gridDefinitions.join("\n")}\n${areas.join("\n")}`.trim();
+}
+
+function getGridDefinitions(snapshot: SceneComp): string[] {
+	const uniqueClassNames = new Set<string>();
+
+	for (const capsule of Object.values(snapshot.capsules || {})) {
+		if (!capsule?.grid) continue;
+		const className = capsule.grid.trim().split(/\s+/)[0]?.replace(/^\./, "");
+		if (!className) continue;
+		uniqueClassNames.add(className);
+	}
+
+	return [...uniqueClassNames].flatMap((className) => {
+		const definition = gridClassNameToCssDefinition(className);
+		return definition ? [definition] : [];
+	});
 }
 
 function positionElements(snapshot: SceneComp) {
