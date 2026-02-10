@@ -45,7 +45,9 @@ const emptyScene: SceneComp = {
 };
 export interface TreeMoveEvent {
 	sourceId: number;
-	targetId: number;
+	targetId?: number;
+	targetCapsuleId?: number;
+	insertionIndex?: number;
 }
 
 export const sceneLogic = setup({

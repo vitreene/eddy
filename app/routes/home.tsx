@@ -7,7 +7,7 @@ import { EditEvent } from "@/parts/event-edit";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { getScene, getScenes, type SceneComp, type SceneRef } from "@/api/db";
-import { SceneTreeView } from "@/parts/scene-tree-view";
+import { SceneTreeView } from "@/parts/scene-tree";
 import { EditItem } from "@/parts/item-edit";
 import { buildScene } from "@/player/builder/builder";
 // import { DemoTransformEditor } from "@/components/position-editor/exemple";

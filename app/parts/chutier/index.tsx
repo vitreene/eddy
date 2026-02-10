@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Upload } from "lucide-react";
+import { File, FileText, Image, Music, Shapes, Upload, Video } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
 import { Button } from "@/components/ui/button";
@@ -110,11 +110,21 @@ export function Chutier() {
 
 					<Tabs defaultValue="images" className="w-full min-w-0 text-xs">
 						<TabsList className="grid h-auto w-full grid-cols-5">
-							<TabsTrigger value="images">Images</TabsTrigger>
-							<TabsTrigger value="sons">Sons</TabsTrigger>
-							<TabsTrigger value="videos">Videos</TabsTrigger>
-							<TabsTrigger value="textes">Textes</TabsTrigger>
-							<TabsTrigger value="autres">Autres</TabsTrigger>
+							<TabsTrigger value="images">
+								<Image />
+							</TabsTrigger>
+							<TabsTrigger value="sons">
+								<Music />
+							</TabsTrigger>
+							<TabsTrigger value="videos">
+								<Video />
+							</TabsTrigger>
+							<TabsTrigger value="textes">
+								<FileText />
+							</TabsTrigger>
+							<TabsTrigger value="autres">
+								<Shapes />
+							</TabsTrigger>
 						</TabsList>
 
 						<TabsContent value="images">
@@ -148,10 +158,12 @@ function ContentGroup({ items, emptyText }: { items: Content[]; emptyText: strin
 						const fullLabel =
 							content.type === "text" ? content.inner || "(texte vide)" : content.name || "(sans nom)";
 						const shortLabel = truncateWithEllipsis(fullLabel, 20);
+						const Icon = getContentIcon(content.type);
 
 						return (
-							<li key={content.id} className="truncate" title={fullLabel}>
-								[{content.type}] {shortLabel}
+							<li key={content.id} className="flex min-w-0 items-center gap-2" title={fullLabel}>
+								<Icon className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
+								<span className="truncate">{shortLabel}</span>
 							</li>
 						);
 					})}
@@ -166,4 +178,13 @@ function ContentGroup({ items, emptyText }: { items: Content[]; emptyText: strin
 function truncateWithEllipsis(value: string, maxLength: number): string {
 	if (value.length <= maxLength) return value;
 	return `${value.slice(0, maxLength)}...`;
+}
+
+function getContentIcon(type: string) {
+	if (type === "img") return Image;
+	if (type === "sound") return Music;
+	if (type === "video") return Video;
+	if (type === "text") return FileText;
+	if (type === "lottie" || type === "rive" || type === "three3D") return Shapes;
+	return File;
 }

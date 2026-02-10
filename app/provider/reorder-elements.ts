@@ -22,13 +22,18 @@ export const capsuleReorder = fromPromise(async ({ input }) => {
 	}
 });
 export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeMoveEvent) {
-	const { sourceId, targetId } = payload;
+	const { sourceId, targetId, targetCapsuleId, insertionIndex } = payload;
 
 	const item = context.items[sourceId];
-	const target = context.items[targetId];
+	if (!item) return { capsules: context.capsules, items: context.items, moved: null };
 
-	const capsule = context.capsules[target.capsuleId];
+	const target = targetId ? context.items[targetId] : undefined;
+	const destinationCapsuleId = targetCapsuleId ?? target?.capsuleId;
+	if (!destinationCapsuleId) return { capsules: context.capsules, items: context.items, moved: null };
+
+	const capsule = context.capsules[destinationCapsuleId];
 	const sourceCapsule = context.capsules[item.capsuleId];
+	if (!capsule || !sourceCapsule) return { capsules: context.capsules, items: context.items, moved: null };
 
 	// Récupérer les éléments de la capsule cible triés par order
 	const sortedItems = capsule.itemIds
@@ -36,25 +41,39 @@ export function reorderElements(context: Omit<SceneComp, "main">, payload: TreeM
 		.map((id) => context.items[id])
 		.sort((a, b) => a.order - b.order);
 
-	// Trouver la position du target
-	const targetIndex = sortedItems.findIndex((el) => el.id === targetId);
-
-	// Déterminer la nouvelle valeur order
+	// Determiner la nouvelle valeur order
 	let newOrder: number;
-	if (targetIndex === -1) {
-		// Target non trouvé, placer à la fin
-		const lastItem = sortedItems[sortedItems.length - 1];
-		newOrder = calculateNewOrder(lastItem?.order ?? STEP);
+
+	if (typeof insertionIndex === "number") {
+		const clampedIndex = Math.max(0, Math.min(insertionIndex, sortedItems.length));
+		const previous = sortedItems[clampedIndex - 1];
+		const next = sortedItems[clampedIndex];
+
+		if (previous && next) {
+			newOrder = calculateNewOrder(previous.order, next.order);
+		} else if (previous) {
+			newOrder = calculateNewOrder(previous.order);
+		} else if (next) {
+			newOrder = next.order - STEP;
+		} else {
+			newOrder = STEP;
+		}
 	} else {
-		// Placer après target
-		const nextItem = sortedItems[targetIndex + 1];
-		const targetOrder = sortedItems[targetIndex].order;
-		newOrder = calculateNewOrder(targetOrder, nextItem?.order);
+		// Fallback legacy: placer apres target si present, sinon en fin.
+		const targetIndex = targetId ? sortedItems.findIndex((el) => el.id === targetId) : -1;
+		if (targetIndex === -1) {
+			const lastItem = sortedItems[sortedItems.length - 1];
+			newOrder = lastItem ? calculateNewOrder(lastItem.order) : STEP;
+		} else {
+			const nextItem = sortedItems[targetIndex + 1];
+			const targetOrder = sortedItems[targetIndex].order;
+			newOrder = calculateNewOrder(targetOrder, nextItem?.order);
+		}
 	}
 
 	// Mettre à jour uniquement l'élément déplacé
 	item.order = newOrder;
-	item.capsuleId = target.capsuleId;
+	item.capsuleId = destinationCapsuleId;
 
 	// Mettre à jour les références des capsules si changement
 	if (item.capsuleId !== sourceCapsule.id) {
