@@ -1,9 +1,8 @@
 import type { SceneComp, ItemComp } from "@/api/db";
-import { type ActiveState, type TreeMoveEvent } from "./scene-logic";
+import { type ActiveState, type TreeMoveEvent } from "./types";
 import { fromPromise } from "xstate";
 
 export const capsuleReorder = fromPromise(async ({ input }) => {
-	console.log("reorder-capsule");
 	const { context, event } = input as {
 		context: SceneComp & { active: ActiveState };
 		event: { type: "tree-move-item"; payload: TreeMoveEvent };
@@ -13,10 +12,8 @@ export const capsuleReorder = fromPromise(async ({ input }) => {
 		const elements = Object.values(context.items).filter((el) => el.capsuleId == element.capsuleId);
 		const canReorder = new Set(elements.map((el) => el.order)).size != elements.length;
 		if (canReorder) {
-			console.warn("⚠️ Réajustement nécessaire : les ordres sont identiques après déplacement");
 			return fetch(`/api/capsule/${element.capsuleId}/reorder`).then((response) => response.json());
 		} else {
-			console.log("reject====>", canReorder);
 			return Promise.resolve("no-reorder");
 		}
 	}

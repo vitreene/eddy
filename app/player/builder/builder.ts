@@ -94,7 +94,7 @@ function positionElements(snapshot: SceneComp) {
 
 	for (const item of Object.values(snapshot.items)) {
 		const decor = snapshot.decors[item.decorId];
-		if (decor.area) {
+		if (decor?.area) {
 			areas.push(classNameToCssDefinition(decor.area));
 		} else {
 			const capsule = snapshot.capsules[item.capsuleId];
@@ -140,6 +140,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		};
 	} else {
 		const content = Object.values(snapshot.contents).find((c) => c.capsuleId == capsule.id);
+		console.log({ capsule, content, snapshot });
 		const item = Object.values(snapshot.items).find((it) => content.id == it.contentId);
 		const events = snapshot.events[item.id];
 		const decor = snapshot.decors[item.decorId];
@@ -219,13 +220,13 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 	actions[id] = true;
 	const tag = itemTag[content.type as keyof typeof itemTag];
 
-	console.log(id, "className", decor.area, additionalClassnames[item.id]);
+	console.log(id, "className", decor?.area, additionalClassnames[item.id]);
 
 	const initial = {
 		id,
 		tag,
 		...(move && { move }),
-		className: `${decor?.className || ""}  ${decor.area || additionalClassnames[item.id] || ""}`.trim(),
+		className: `${decor?.className || ""}  ${decor?.area || additionalClassnames[item.id] || ""}`.trim(),
 		style: decor?.style
 	};
 

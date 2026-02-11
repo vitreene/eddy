@@ -26,7 +26,7 @@ export function Rubber() {
 	const sceneLogic = SceneLogicContext.useActorRef();
 
 	// TODO mieux définir cues
-	const cues = sceneContents.events;
+	const cues = sceneContents?.events || [];
 
 	const selecteds = events ? selectCues(cues, events[INTRO]?.name, events[OUTRO]?.name) : [];
 	const start = selecteds[0];

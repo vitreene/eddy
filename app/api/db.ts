@@ -145,7 +145,29 @@ main()
 // SCENE
 
 export async function createScene(title: string) {
-	return await prisma.scene.create({ data: { title } });
+	return await prisma.$transaction(async (tx) => {
+		const mainCapsule = await tx.capsule.create({
+			data: {
+				name: "__MAIN__"
+			}
+		});
+
+		const scene = await tx.scene.create({
+			data: {
+				title,
+				capsuleId: mainCapsule.id
+			}
+		});
+
+		await tx.sceneCapsule.create({
+			data: {
+				sceneId: scene.id,
+				capsuleId: mainCapsule.id
+			}
+		});
+
+		return scene;
+	});
 }
 
 export type SceneRef = Pick<Scene, "id" | "title">;
@@ -186,6 +208,23 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 	)
 		.map((sc) => sc.capsule)
 		.filter(Boolean) as Array<DbCapsule>;
+
+	if (sceneDB?.capsuleId && !capsules.find((capsule) => capsule.id === sceneDB.capsuleId)) {
+		const mainCapsule = await prisma.capsule.findUnique({
+			where: { id: sceneDB.capsuleId },
+			include: {
+				items: {
+					include: {
+						content: true,
+						decor: true,
+						events: true
+					}
+				}
+			}
+		});
+
+		if (mainCapsule) capsules.push(mainCapsule as DbCapsule);
+	}
 
 	const scene = { ...sceneDB!, capsules, scenecontents };
 
@@ -236,10 +275,8 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 					flatScene.decors[decor.id] = { ...d, style: JSON.parse(style ?? "{}") };
 				}
 
-				if (events.length > 0) {
-					const evs = Object.fromEntries(events.map((e) => [e.action, e]));
-					flatScene.events[item.id] = evs;
-				}
+				const evs = Object.fromEntries(events.map((e) => [e.action, e]));
+				flatScene.events[item.id] = evs;
 				if (content) {
 					flatScene.contents[content.id] = content;
 				}
@@ -311,15 +348,22 @@ export async function getCapsule(capsuleId: number) {
 }
 
 export async function createCapsule({ sceneId, name }: { sceneId: number; name: string }) {
-	const newCapsule = await prisma.capsule.create({
-		data: {
-			name,
-			scene: {
-				connect: { id: sceneId }
+	return await prisma.$transaction(async (tx) => {
+		const capsule = await tx.capsule.create({
+			data: {
+				name
 			}
-		}
+		});
+
+		await tx.sceneCapsule.create({
+			data: {
+				sceneId,
+				capsuleId: capsule.id
+			}
+		});
+
+		return capsule;
 	});
-	return newCapsule;
 }
 
 export async function updateCapsule(id: number, update: Partial<Omit<Capsule, "id">>) {
@@ -361,6 +405,252 @@ export async function updateItem({ id, ...update }: Partial<Item>) {
 		where: { id },
 		data: update
 	});
+}
+
+type CreateTextItemInput = {
+	capsuleId: number;
+	afterItemId?: number;
+	name?: string;
+	inner?: string;
+};
+
+type CreateCapsuleItemInput = {
+	sceneId: number;
+	destinationCapsuleId: number;
+	afterItemId?: number;
+	capsuleName?: string;
+};
+
+type CreateItemFromContentInput = {
+	contentId: number;
+	capsuleId: number;
+	afterItemId?: number;
+};
+
+export async function createTextItemInCapsule(input: CreateTextItemInput) {
+	return await prisma.$transaction(async (tx) => {
+		const order = await getInsertionOrder(tx, input.capsuleId, input.afterItemId);
+		const decor = await tx.decor.create({ data: {} });
+		const content = await tx.content.create({
+			data: {
+				type: "text",
+				name: input.name || "",
+				inner: input.inner || ""
+			}
+		});
+		const item = await tx.item.create({
+			data: {
+				order,
+				capsuleId: input.capsuleId,
+				contentId: content.id,
+				decorId: decor.id
+			}
+		});
+		return { item, content, decor };
+	});
+}
+
+export async function createCapsuleItem(input: CreateCapsuleItemInput) {
+	return await prisma.$transaction(async (tx) => {
+		const capsule = await tx.capsule.create({
+			data: {
+				name: input.capsuleName || "Capsule"
+			}
+		});
+
+		await tx.sceneCapsule.create({
+			data: {
+				sceneId: input.sceneId,
+				capsuleId: capsule.id
+			}
+		});
+
+		const content = await tx.content.create({
+			data: {
+				type: "capsule",
+				name: capsule.name,
+				capsuleId: capsule.id
+			}
+		});
+
+		const decor = await tx.decor.create({ data: {} });
+
+		const order = await getInsertionOrder(tx, input.destinationCapsuleId, input.afterItemId);
+		const item = await tx.item.create({
+			data: {
+				order,
+				capsuleId: input.destinationCapsuleId,
+				contentId: content.id,
+				decorId: decor.id
+			}
+		});
+
+		return { item, content, capsule, decor };
+	});
+}
+
+export async function createItemFromExistingContent(input: CreateItemFromContentInput) {
+	return await prisma.$transaction(async (tx) => {
+		const order = await getInsertionOrder(tx, input.capsuleId, input.afterItemId);
+		const decor = await tx.decor.create({ data: {} });
+		const item = await tx.item.create({
+			data: {
+				order,
+				capsuleId: input.capsuleId,
+				contentId: input.contentId,
+				decorId: decor.id
+			}
+		});
+		const content = await tx.content.findUnique({ where: { id: input.contentId } });
+		return { item, content, decor };
+	});
+}
+
+export async function deleteItemOnly(itemId: number) {
+	return await prisma.$transaction(async (tx) => {
+		await tx.event.deleteMany({ where: { itemId } });
+		const deleted = await tx.item.delete({ where: { id: itemId } });
+		if (deleted.decorId) {
+			await tx.decor.deleteMany({ where: { id: deleted.decorId } });
+		}
+
+		const remaining = await tx.item.findMany({
+			where: { capsuleId: deleted.capsuleId },
+			select: { id: true },
+			orderBy: { order: "asc" }
+		});
+
+		await Promise.all(
+			remaining.map(({ id }, index) =>
+				tx.item.update({
+					where: { id },
+					data: { order: index * STEP + STEP }
+				})
+			)
+		);
+
+		return deleted;
+	});
+}
+
+export async function deleteCapsuleBranch(input: { itemId: number; capsuleId: number }) {
+	return await prisma.$transaction(async (tx) => {
+		const capsuleIdsToDelete = await collectCapsuleIds(tx, input.capsuleId);
+
+		const descendantItems = await tx.item.findMany({
+			where: { capsuleId: { in: capsuleIdsToDelete } },
+			select: { id: true, contentId: true, decorId: true }
+		});
+
+		const parentItem = await tx.item.findUnique({
+			where: { id: input.itemId },
+			select: { id: true, contentId: true, decorId: true }
+		});
+
+		const itemIds = [
+			...new Set([...descendantItems.map((item) => item.id), ...(parentItem ? [parentItem.id] : [])])
+		];
+		const contentIds = [
+			...new Set([
+				...descendantItems.map((item) => item.contentId),
+				...(parentItem ? [parentItem.contentId] : [])
+			])
+		];
+		const decorIds = [
+			...new Set(
+				[...descendantItems.map((item) => item.decorId), parentItem?.decorId].filter(
+					(id): id is number => typeof id === "number"
+				)
+			)
+		];
+
+		await tx.event.deleteMany({ where: { itemId: { in: itemIds } } });
+		await tx.item.deleteMany({ where: { id: { in: itemIds } } });
+
+		const deletableContents = await tx.content.findMany({
+			where: {
+				id: { in: contentIds },
+				type: { in: ["text", "capsule"] }
+			},
+			select: { id: true }
+		});
+
+		const contentIdsToDelete = deletableContents.map((content) => content.id);
+		if (contentIdsToDelete.length) {
+			await tx.content.deleteMany({ where: { id: { in: contentIdsToDelete } } });
+		}
+
+		if (decorIds.length) {
+			await tx.decor.deleteMany({ where: { id: { in: decorIds } } });
+		}
+
+		await tx.capsule.deleteMany({ where: { id: { in: capsuleIdsToDelete } } });
+
+		return {
+			capsuleIds: capsuleIdsToDelete,
+			itemIds,
+			contentIds: contentIdsToDelete,
+			decorIds,
+			eventItemIds: itemIds
+		};
+	});
+}
+
+async function collectCapsuleIds(tx: any, rootCapsuleId: number): Promise<number[]> {
+	const visited = new Set<number>();
+	const queue = [rootCapsuleId];
+
+	while (queue.length) {
+		const capsuleId = queue.shift();
+		if (!capsuleId || visited.has(capsuleId)) continue;
+		visited.add(capsuleId);
+
+		const items = await tx.item.findMany({
+			where: { capsuleId },
+			select: { contentId: true }
+		});
+		const contentIds = items.map((item: { contentId: number }) => item.contentId);
+		if (!contentIds.length) continue;
+
+		const childCapsules = await tx.content.findMany({
+			where: {
+				id: { in: contentIds },
+				type: "capsule",
+				capsuleId: { not: null }
+			},
+			select: { capsuleId: true }
+		});
+
+		for (const child of childCapsules) {
+			if (child.capsuleId && !visited.has(child.capsuleId)) queue.push(child.capsuleId);
+		}
+	}
+
+	return [...visited];
+}
+
+async function getInsertionOrder(tx: any, capsuleId: number, afterItemId?: number): Promise<number> {
+	const items = (await tx.item.findMany({
+		where: { capsuleId },
+		select: { id: true, order: true },
+		orderBy: { order: "asc" }
+	})) as Array<{ id: number; order: number }>;
+
+	if (!items.length) return STEP;
+
+	if (!afterItemId) {
+		return items[items.length - 1].order + STEP;
+	}
+
+	const index = items.findIndex((item: { id: number; order: number }) => item.id === afterItemId);
+	if (index === -1) {
+		return items[items.length - 1].order + STEP;
+	}
+
+	const current = items[index];
+	const next = items[index + 1];
+	if (!next) return current.order + STEP;
+	return Math.floor(current.order + (next.order - current.order) / 2);
 }
 
 /* export async function additemToCapsule(data: { order: number; capsuleId: number }) {

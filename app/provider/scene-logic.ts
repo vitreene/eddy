@@ -1,26 +1,22 @@
-import { setup, assign } from "xstate";
+import { setup, assign, raise } from "xstate";
 import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
+import { applyTreeMutation, treeMutation } from "./tree-mutations";
 
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
 import { DEFAULT_DURATION, INTRO } from "@/lib/constants";
+import type {
+	ActiveState,
+	TreeMoveEvent,
+	TreeCreateEvent,
+	TreeDeleteEvent,
+	TreeMutationResponse
+} from "./types";
 
-export interface ActiveState {
-	[key: string]: number | string | boolean | null;
-	main: number | null;
-
-	itemId: number | null;
-	contentId: number | null;
-	cue: number | null;
-	action: string | null;
-	eventTouched: boolean;
-	decorTouched: boolean;
-	themeTouched: boolean;
-}
-export const active: ActiveState = {
+const active: ActiveState = {
 	main: null,
 
 	itemId: null,
@@ -43,12 +39,6 @@ const emptyScene: SceneComp = {
 	contents: {},
 	decors: {}
 };
-export interface TreeMoveEvent {
-	sourceId: number;
-	targetId?: number;
-	targetCapsuleId?: number;
-	insertionIndex?: number;
-}
 
 export const sceneLogic = setup({
 	types: {
@@ -65,6 +55,11 @@ export const sceneLogic = setup({
 			| { type: "events-update"; payload: Partial<ContentEvent> }
 			| { type: "content-add"; payload: Content }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
+			| { type: "tree-create-text"; payload: TreeCreateEvent }
+			| { type: "tree-create-capsule"; payload: TreeCreateEvent }
+			| { type: "tree-create-from-content"; payload: TreeCreateEvent }
+			| { type: "tree-delete-item"; payload: TreeDeleteEvent }
+			| { type: "tree-delete-capsule"; payload: TreeDeleteEvent }
 			| { type: "tree-after-move"; payload: TreeMoveEvent }
 			| { type: "reorder.capsule"; payload: TreeMoveEvent }
 			| { type: "theme-update"; payload: Partial<Theme> }
@@ -85,7 +80,6 @@ export const sceneLogic = setup({
 		commitFetch: async ({ context }, params: string[]) => {
 			if (!params.length) return;
 			const itemId = context.active.itemId;
-			console.log({ itemId }, params);
 
 			if (!itemId) return false;
 
@@ -126,8 +120,6 @@ export const sceneLogic = setup({
 				const formData = new FormData();
 				Object.entries(capsule).forEach(([k, v]: [string, unknown]) => formData.set(k, (v || "") as any));
 
-				console.log("POST capsule-update", capsule);
-
 				fetch(`/api/capsule/${id}`, {
 					method: "POST",
 					body: formData
@@ -139,11 +131,9 @@ export const sceneLogic = setup({
 				const capsule = context.capsules[context.contents[contentId].capsuleId];
 
 				const gridClassName = capsule.grid;
-				console.log("themeTouched", { gridClassName, theme: context.theme.generated });
 
 				if (gridClassName) {
 					const generated = findCssClassRule(context.theme.generated, gridClassName);
-					console.log("generated", generated);
 
 					fetch(`/api/theme/${context.theme.id}`, {
 						method: "POST",
@@ -158,7 +148,7 @@ export const sceneLogic = setup({
 		}
 	},
 
-	actors: { capsuleReorder }
+	actors: { capsuleReorder, treeMutation }
 }).createMachine({
 	id: "scene",
 	context: { ...emptyScene, active },
@@ -182,8 +172,6 @@ export const sceneLogic = setup({
 			initial: "active",
 			states: {
 				"end-edit": {
-					actions: () => console.log("end-edit"),
-
 					target: "#scene.start"
 				},
 				active: {
@@ -192,7 +180,6 @@ export const sceneLogic = setup({
 							target: "#scene.edit",
 							actions: [
 								assign(({ context, event }) => {
-									console.log("active-set", event.payload);
 									let cue = null;
 									if ("itemId" in event.payload) {
 										const name = context.events[event.payload.itemId]?.[INTRO]?.name;
@@ -220,8 +207,6 @@ export const sceneLogic = setup({
 								{
 									type: "commitFetch",
 									params: ({ context, event }) => {
-										console.log("commit", context.active, event.payload);
-
 										const diffs: string[] = [];
 										for (const id in event.payload) {
 											if (context.active[id] !== event.payload[id]) diffs.push(id);
@@ -260,7 +245,6 @@ export const sceneLogic = setup({
 										...context.active,
 										capsuleTouched: true
 									};
-									console.log("capsule-update", active);
 
 									return { ...context, capsules, active };
 								})
@@ -349,8 +333,6 @@ export const sceneLogic = setup({
 					on: {
 						"theme-update": {
 							actions: assign(({ context, event }) => {
-								console.log("theme-update");
-
 								const custom = mergeCssStrings(context.theme?.custom, event.payload?.custom);
 								const generated = mergeCssStrings(context.theme?.generated, event.payload?.generated);
 
@@ -376,6 +358,21 @@ export const sceneLogic = setup({
 					states: {
 						idle: {
 							on: {
+								"tree-create-text": {
+									target: "tree-mutation"
+								},
+								"tree-create-capsule": {
+									target: "tree-mutation"
+								},
+								"tree-create-from-content": {
+									target: "tree-mutation"
+								},
+								"tree-delete-item": {
+									target: "tree-mutation"
+								},
+								"tree-delete-capsule": {
+									target: "tree-mutation"
+								},
 								"tree-move-item": {
 									target: "tree-after-move",
 
@@ -389,6 +386,32 @@ export const sceneLogic = setup({
 								}
 							}
 						},
+						"tree-mutation": {
+							invoke: {
+								id: "tree-mutation",
+								input: ({ context, event }) => ({ context, event }),
+								src: "treeMutation",
+								onDone: {
+									target: "idle",
+									actions: [
+										assign(({ context, event }) => {
+											return applyTreeMutation(context, event.output as TreeMutationResponse);
+										}),
+										raise(({ event }) => ({
+											type: "active-set",
+											payload: getMutationActivePayload(event.output as TreeMutationResponse)
+										})),
+										raise(({ event }) => ({
+											type: "commit",
+											payload: getMutationActivePayload(event.output as TreeMutationResponse)
+										}))
+									]
+								},
+								onError: {
+									target: "idle"
+								}
+							}
+						},
 						"tree-after-move": {
 							invoke: {
 								id: "tree-capsule-reorder",
@@ -398,8 +421,6 @@ export const sceneLogic = setup({
 								onDone: {
 									target: "#scene.edit",
 									actions: assign(({ context, event }) => {
-										console.log("tree-capsule-reorder", event);
-
 										if (event.output == "no-reorder") return context;
 										const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
 										const items = reorders.map((r) => ({
@@ -421,6 +442,15 @@ export const sceneLogic = setup({
 });
 
 export const SceneLogicContext = createActorContext(sceneLogic);
+
+function getMutationActivePayload(output: TreeMutationResponse): Partial<ActiveState> {
+	const createdItem = output.created?.item;
+	if (!createdItem) return {};
+	return {
+		itemId: createdItem.id,
+		contentId: createdItem.contentId
+	};
+}
 
 export function getItemFromCapsule(
 	capsuleId: number | null | undefined,

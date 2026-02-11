@@ -9,15 +9,19 @@ interface Props {
 }
 
 export function SlotEditor({ value, onChange }: Props) {
-	console.log(value);
-
 	const item = SceneLogicContext.useSelector((state) =>
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
 	);
 
-	const capsule = SceneLogicContext.useSelector((state) => state.context.capsules[item.capsuleId]);
+	const capsule = SceneLogicContext.useSelector((state) =>
+		item ? state.context.capsules[item.capsuleId] : undefined
+	);
 
-	const decor = SceneLogicContext.useSelector((state) => state.context.decors[item.decorId]);
+	const decor = SceneLogicContext.useSelector((state) =>
+		item?.decorId ? state.context.decors[item.decorId] : undefined
+	);
+
+	if (!item || !capsule?.grid) return null;
 
 	const { w, h } = getValuesFromGridName(capsule.grid);
 
@@ -27,6 +31,5 @@ export function SlotEditor({ value, onChange }: Props) {
 		onChange({ area });
 	};
 
-	if (!capsule.grid) return null;
-	return <GridAreaRadioSelector cols={w} rows={h} value={decor.area} onChange={setArea} />;
+	return <GridAreaRadioSelector cols={w} rows={h} value={value.area || decor?.area} onChange={setArea} />;
 }

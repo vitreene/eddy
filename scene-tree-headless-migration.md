@@ -51,8 +51,8 @@
 
 - [x] Conserver la selection qui met a jour `scene-logic` (`active-set` / `commit` selon flux existant).
 - [x] Conserver le deplacement via `tree-move-item` avec mapping source/target correct.
-- [ ] Ajouter en fin de ligne une action "supprimer" pour les elements (bouton explicite).
-- [ ] Definir les regles de suppression (quels types supprimables, confirmations, cas bloques).
+- [x] Ajouter en fin de ligne une action "supprimer" pour les elements (bouton explicite).
+- [x] Definir les regles de suppression (quels types supprimables, confirmations, cas bloques).
 
 ## 7) Validation
 
@@ -63,6 +63,11 @@
 
 ## 8) Bascule finale
 
-- [ ] Remplacer l'ancien composant dans le flux principal.
-- [ ] Supprimer ou deprecie `app/components/ui/tree-view.tsx` si non utilise.
-- [ ] Faire un nettoyage final (logs, code mort, imports inutiles).
+- [x] Remplacer l'ancien composant dans le flux principal.
+- [x] Supprimer ou deprecie `app/components/ui/tree-view.tsx` si non utilise.
+- [x] Faire un nettoyage final (logs, code mort, imports inutiles).
+
+## Notes techniques (scene-logic)
+
+- Les actions tree passent par `scene-logic` via `tree-create-text`, `tree-create-capsule`, `tree-create-from-content`, `tree-delete-item`, `tree-delete-capsule`.
+- Les mutations DB sont centralisees sur `/api/tree` puis appliquees localement avec `applyTreeMutation` pour garder `items`, `capsules`, `contents`, `decors`, `events` synchronises.

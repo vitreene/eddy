@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import type { Content } from "@/api/db";
+import { CHUTIER_DRAG_MIME, toChutierDragPayload } from "@/lib/drag-content";
 import { cn } from "@/lib/utils";
 
 type UploadItem = {
@@ -159,9 +160,20 @@ function ContentGroup({ items, emptyText }: { items: Content[]; emptyText: strin
 							content.type === "text" ? content.inner || "(texte vide)" : content.name || "(sans nom)";
 						const shortLabel = truncateWithEllipsis(fullLabel, 20);
 						const Icon = getContentIcon(content.type);
+						const dragPayload = toChutierDragPayload(content);
 
 						return (
-							<li key={content.id} className="flex min-w-0 items-center gap-2" title={fullLabel}>
+							<li
+								key={content.id}
+								className="flex min-w-0 cursor-grab items-center gap-2"
+								title={fullLabel}
+								draggable
+								onDragStart={(event) => {
+									event.dataTransfer.setData(CHUTIER_DRAG_MIME, JSON.stringify(dragPayload));
+									event.dataTransfer.setData("text/plain", fullLabel);
+									event.dataTransfer.effectAllowed = "copyMove";
+								}}
+							>
 								<Icon className="text-muted-foreground h-3.5 w-3.5 shrink-0" />
 								<span className="truncate">{shortLabel}</span>
 							</li>
