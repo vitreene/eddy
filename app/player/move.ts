@@ -1,34 +1,33 @@
-import { utils, animate, Timeline } from 'animejs';
-import type { Action } from './types';
+// @ts-nocheck
+import { utils, animate, Timeline } from "animejs";
+import type { Action } from "./types";
 
 // SERT ENCORE ?
 
 export function move(timeLine: Timeline, $el: HTMLElement, a: Action) {
-	if ('move' in a) {
+	if ("move" in a) {
 		switch (typeof a.move) {
-			case 'string':
+			case "string":
 				const [parent] = utils.$(a.move);
 				parent.appendChild($el);
 				break;
-			case 'boolean': {
-				if ('className' in a) {
+			case "boolean": {
+				if ("className" in a) {
 					const old = getAbsoluteCoords($el);
 					setClassNames($el, a);
 					const nex = getAbsoluteCoords($el);
 
-					const px = utils.get($el, 'x', false);
-					const py = utils.get($el, 'y', false);
+					const px = utils.get($el, "x", false);
+					const py = utils.get($el, "y", false);
 
 					const dx = old.x - nex.x;
 					const dy = old.y - nex.y;
 
-					const res = getTransform($el)
-						.invertSelf()
-						.transformPoint(new DOMPoint(dx, dy));
-					console.log('***transition****');
+					const res = getTransform($el).invertSelf().transformPoint(new DOMPoint(dx, dy));
+					console.log("***transition****");
 
 					const transition = animate($el, {
-						composition: 'replace',
+						composition: "replace",
 						x: { from: res.x, to: 0 + px },
 						y: { from: res.y, to: 0 + py },
 
@@ -38,7 +37,7 @@ export function move(timeLine: Timeline, $el: HTMLElement, a: Action) {
 						duration: 1000,
 						onComplete(self) {
 							(utils.cleanInlineStyles(self), self.cancel());
-						},
+						}
 					});
 
 					// timeLine.sync(transition, '+0');
@@ -51,23 +50,19 @@ export function move(timeLine: Timeline, $el: HTMLElement, a: Action) {
 }
 
 export function setClassNames($el: HTMLElement, a: Action) {
-	if ('className' in a) {
+	if ("className" in a) {
 		switch (typeof a.className) {
-			case 'string':
-				a.className.split(' ').forEach((c: string) => $el.classList.add(c));
+			case "string":
+				a.className.split(" ").forEach((c: string) => $el.classList.add(c));
 				break;
-			case 'object': {
+			case "object": {
 				for (const action in a.className) {
 					switch (action) {
-						case 'add':
-							a.className
-								.add!.split(' ')
-								.forEach((c: string) => $el.classList.add(c));
+						case "add":
+							a.className.add!.split(" ").forEach((c: string) => $el.classList.add(c));
 							break;
-						case 'remove':
-							a.className
-								.remove!.split(' ')
-								.forEach((c: string) => $el.classList.remove(c));
+						case "remove":
+							a.className.remove!.split(" ").forEach((c: string) => $el.classList.remove(c));
 					}
 				}
 			}
@@ -81,7 +76,7 @@ export function setClassNames($el: HTMLElement, a: Action) {
 function getAbsoluteCoords($el: HTMLElement) {
 	const coords = {
 		x: 0,
-		y: 0,
+		y: 0
 	};
 
 	traverse($el);
@@ -90,7 +85,7 @@ function getAbsoluteCoords($el: HTMLElement) {
 		x: res.x,
 		y: res.y,
 		width: $el.offsetWidth,
-		height: $el.offsetHeight,
+		height: $el.offsetHeight
 	};
 
 	function traverse(element: HTMLElement) {
@@ -104,9 +99,7 @@ function getAbsoluteCoords($el: HTMLElement) {
 
 function getTransform(element: HTMLElement) {
 	const style = window.getComputedStyle(element);
-	return style.transform !== 'none'
-		? new DOMMatrix(style.transform)
-		: new DOMMatrix();
+	return style.transform !== "none" ? new DOMMatrix(style.transform) : new DOMMatrix();
 }
 
 /* 

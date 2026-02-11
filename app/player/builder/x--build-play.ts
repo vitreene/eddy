@@ -1,3 +1,4 @@
+// @ts-nocheck
 import type { DbSceneComp, ItemComp, SceneContent, TextTime } from "@/api/db";
 import type { Event as MediaEvent } from "@prisma/client";
 

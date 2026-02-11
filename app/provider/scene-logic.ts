@@ -3,11 +3,11 @@ import { createActorContext } from "@xstate/react";
 
 import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements";
 import { applyTreeMutation, treeMutation } from "./tree-mutations";
+import { computeActiveCue } from "./active-cue";
 
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
-import { DEFAULT_DURATION, INTRO } from "@/lib/constants";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -180,22 +180,16 @@ export const sceneLogic = setup({
 							target: "#scene.edit",
 							actions: [
 								assign(({ context, event }) => {
-									let cue = null;
-									if ("itemId" in event.payload) {
-										const name = context.events[event.payload.itemId]?.[INTRO]?.name;
-										cue = name
-											? Object.values(context.sceneContents)
-													.flatMap((sc) => sc.events)
-													.find((ev) => ev.name == name)
+									const cue =
+										"itemId" in event.payload && event.payload.itemId
+											? computeActiveCue(context, event.payload.itemId)
 											: null;
-									}
 
 									return {
 										...context,
 										active: {
 											...context.active,
-											// fin de la transition
-											cue: cue?.start + DEFAULT_DURATION / 1000 || null,
+											cue,
 											...event.payload
 										}
 									};

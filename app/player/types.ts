@@ -75,11 +75,13 @@ export interface MediaStatus {
 	};
 }
 
-export interface Style
-	extends
-		CSS.Properties<string | number>,
-		CSS.PropertiesHyphen<string | number>,
-		Partial<CSSTransformSpecialParam<number>> {}
+type CssStyleBase = CSS.Properties<string | number> & CSS.PropertiesHyphen<string | number>;
+type TransformStyle = Omit<CSSTransformSpecialParam<number>, "x" | "y"> & {
+	x: string | number;
+	y: string | number;
+};
+
+export type Style = CssStyleBase & Partial<TransformStyle>;
 
 interface CSSTransformSpecialParam<T> {
 	x: number;

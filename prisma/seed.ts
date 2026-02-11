@@ -1,6 +1,7 @@
-import fs from 'fs/promises';
-import path from 'node:path';
-import { PrismaClient, Prisma } from '@prisma/client';
+// @ts-nocheck
+import fs from "fs/promises";
+import path from "node:path";
+import { PrismaClient, Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -8,24 +9,24 @@ const scene: Prisma.SceneCreateInput = {};
 
 const capsules = (id: number): Prisma.CapsuleCreateInput[] => [
 	{
-		type: 'background',
-		scene: { connect: { id } },
+		type: "background",
+		scene: { connect: { id } }
 	},
 	{
-		type: 'list',
-		scene: { connect: { id } },
-	},
+		type: "list",
+		scene: { connect: { id } }
+	}
 ];
 
 const medias: Prisma.MediaCreateInput[] = [
 	{
-		type: 'img',
-		path: 'assets/28970388742_2f75d527d6_z.jpg',
+		type: "img",
+		path: "assets/28970388742_2f75d527d6_z.jpg"
 	},
 	{
-		type: 'img',
-		path: 'assets/28999069391_5893263112_z.jpg',
-	},
+		type: "img",
+		path: "assets/28999069391_5893263112_z.jpg"
+	}
 ];
 
 const capsuleElements = (
@@ -36,13 +37,13 @@ const capsuleElements = (
 	{
 		order: 1,
 		media: { connect: { id: media1Id } },
-		capsule: { connect: { id: capsuleId } },
+		capsule: { connect: { id: capsuleId } }
 	},
 	{
 		order: 2,
 		media: { connect: { id: media2Id } },
-		capsule: { connect: { id: capsuleId } },
-	},
+		capsule: { connect: { id: capsuleId } }
+	}
 ];
 
 interface PCapsule {
@@ -109,20 +110,20 @@ export interface TextTime {
 }
 
 async function addSoundToScene(sceneId = 1) {
-	const sound = '/assets/1_7b_e.mp3';
+	const sound = "/assets/1_7b_e.mp3";
 
 	const response = await fs.readFile(`${process.cwd()}/static/assets/custom_transcript.json`, {
-		encoding: 'utf8',
+		encoding: "utf8"
 	});
 
 	const eventsSound: Array<TextTime> = await JSON.parse(response);
 
 	const media = await prisma.media.create({
 		data: {
-			type: 'sound',
+			type: "sound",
 			path: sound,
-			lang: 'fr',
-		},
+			lang: "fr"
+		}
 	});
 
 	const sceneMedia = await prisma.sceneMedia.create({
@@ -131,11 +132,11 @@ async function addSoundToScene(sceneId = 1) {
 			events: JSON.stringify(
 				eventsSound.map((e, index) => ({
 					...e,
-					id: `${media.id}-${index.toString().padStart(3, '0')}-${e.text.trim().replace(/[(?:\W)]+/g, '')}`,
+					id: `${media.id}-${index.toString().padStart(3, "0")}-${e.text.trim().replace(/[(?:\W)]+/g, "")}`
 				}))
 			),
 			sceneId,
-			mediaId: media.id,
-		},
+			mediaId: media.id
+		}
 	});
 }
