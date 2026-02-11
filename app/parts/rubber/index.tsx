@@ -38,7 +38,7 @@ export function Rubber() {
 		} else if (e.target instanceof HTMLLIElement) {
 			slider.current = "";
 			if (selecteds.length == 0) {
-				const payload = events ? { ...events[INTRO], name: e.target.id } : { action: INTRO, name: e.target.id };
+				const payload = makeEventPayload(events, INTRO, e.target.id);
 				sceneLogic.send({ type: "events-update", payload });
 			} else {
 				// add new custom points
@@ -55,7 +55,7 @@ export function Rubber() {
 		function (e: MouseEvent) {
 			if (e.target instanceof HTMLLIElement) {
 				const action = slider.current == SLIDER_START ? INTRO : OUTRO;
-				const payload = events ? { ...events[action], name: e.target.id } : { action, name: e.target.id };
+				const payload = makeEventPayload(events, action, e.target.id);
 				sceneLogic.send({ type: "events-update", payload });
 			}
 		},
@@ -111,4 +111,12 @@ function selectCues(cues: Array<TextTime> = [], start: string, end: string) {
 	let endIndex = cues.findIndex((cue) => cue.name == end);
 	if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
 	return cues.slice(startIndex, endIndex + 1).map((cue) => cue.name);
+}
+
+function makeEventPayload(
+	events: Record<string, { action?: string; name?: string } | undefined> | null,
+	action: string,
+	name: string
+) {
+	return { ...(events?.[action] || {}), action, name };
 }

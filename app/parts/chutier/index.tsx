@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { File, FileText, Image, Music, Shapes, Upload, Video } from "lucide-react";
 import { useDropzone } from "react-dropzone";
 
@@ -25,9 +25,19 @@ const ACCEPTED_TYPES = {
 	"application/x-rive": [".riv"]
 };
 
-export function Chutier() {
+interface ChutierProps {
+	allContents?: Content[];
+}
+
+export function Chutier({ allContents = [] }: ChutierProps) {
 	const { send } = SceneLogicContext.useActorRef();
-	const contents = SceneLogicContext.useSelector((state) => Object.values(state.context.contents || {}));
+	const sceneContents = SceneLogicContext.useSelector((state) => Object.values(state.context.contents || {}));
+	const contents = useMemo(() => {
+		const merged = new Map<number, Content>();
+		for (const content of allContents) merged.set(content.id, content);
+		for (const content of sceneContents) merged.set(content.id, content);
+		return [...merged.values()];
+	}, [allContents, sceneContents]);
 
 	const [isUploading, setUploading] = useState(false);
 	const [error, setError] = useState<string | null>(null);

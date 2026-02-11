@@ -295,6 +295,13 @@ export async function createContent(
 	return await prisma.content.create({ data: update });
 }
 
+export async function getAllContents() {
+	return await prisma.content.findMany({
+		where: { type: { not: "capsule" } },
+		orderBy: { id: "desc" }
+	});
+}
+
 export async function getcontents(sceneId: number) {
 	/* 
 	- prendre toutes les capsules e la scene

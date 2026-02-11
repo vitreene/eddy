@@ -6,7 +6,7 @@ import { PlayerRunner, type PlayerProps } from "~/player";
 import { EditEvent } from "@/parts/event-edit";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
-import { getScene, getScenes, type SceneComp, type SceneRef } from "@/api/db";
+import { getAllContents, getScene, getScenes, type Content, type SceneComp, type SceneRef } from "@/api/db";
 import { SceneTreeView } from "@/parts/scene-tree";
 import { EditItem } from "@/parts/item-edit";
 import { buildScene } from "@/player/builder/builder";
@@ -25,12 +25,14 @@ export function meta() {
 export async function loader({ params }: Route.LoaderArgs) {
 	const scene = params?.id ? await getScene(Number(params?.id)) : null;
 	const scenes = await getScenes();
-	return { scene, scenes };
+	const allContents = await getAllContents();
+	return { scene, scenes, allContents };
 }
 
 interface HomeProps {
 	scene: SceneComp;
 	scenes: Array<SceneRef>;
+	allContents: Content[];
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
@@ -73,7 +75,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 				<Menu scenes={data.scenes} />
 			</section>
 			<section className="base-layout layout-chutier">
-				<Chutier />
+				<Chutier allContents={data.allContents} />
 			</section>
 			<section className="base-layout layout-capsules w-60">
 				<SceneTreeView />
