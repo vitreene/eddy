@@ -11,6 +11,7 @@ import type {
 	Decor as DecorDB
 } from "prisma/generated/prisma/client";
 import type { EditableStyle } from "@/components/style-editor/types";
+import { ROOT } from "@/player/constants";
 
 export type { Content, ContentEvent };
 
@@ -148,7 +149,8 @@ export async function createScene(title: string) {
 	return await prisma.$transaction(async (tx) => {
 		const mainCapsule = await tx.capsule.create({
 			data: {
-				name: "__MAIN__"
+				name: "__MAIN__",
+				grid: ROOT
 			}
 		});
 

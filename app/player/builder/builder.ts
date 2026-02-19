@@ -150,6 +150,8 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		if (events) {
 			for (const action in events) {
 				const ev = events[action];
+				console.log(ev, ev.ref, TR[ev.ref]);
+
 				const actionStyle = getActionStyle(TR[ev.ref].style);
 				const actionName = `${ev.name}-${ev.action}`;
 				if (action == INTRO) {

@@ -20,15 +20,15 @@
 
 /* TESTS */
 
-#capsule__4 #item__7 {
-	/* equivalent x / y / width / height  */
-	grid-area: 1 / 1 / span 1 / span 2;
-}
-
+/* #capsule__4 #item__7 { */
+/* equivalent x / y / width / height  */
+/* grid-area: 1 / 1 / span 1 / span 2; */
+/* } */
+/* 
 #capsule__3,
 #capsule__2 {
 	overflow: hidden;
-}
+} */
 
 /* 
 #item__1,
