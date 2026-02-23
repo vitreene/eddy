@@ -36,7 +36,7 @@ interface HomeProps {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-	console.log("**** HOME : loaderData ", loaderData);
+	//console.log("**** HOME : loaderData ", loaderData);
 
 	return (
 		<SceneLogicContext.Provider>

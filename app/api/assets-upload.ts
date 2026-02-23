@@ -1,6 +1,6 @@
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { randomUUID } from "node:crypto";
+import { nanoid } from "nanoid";
 
 import type { Route } from "../+types/root";
 import { createContent } from "./db";
@@ -100,13 +100,13 @@ export async function action({ request }: Route.ActionArgs) {
 
 		if (!accepted || !contentType) {
 			return Response.json(
-				{ ok: false, message: `Type non accepte: ${file.type || ext || file.name}` },
+				{ ok: false, message: `Type non accepté: ${file.type || ext || file.name}` },
 				{ status: 400 }
 			);
 		}
 
 		const finalExt = extFromFile(file);
-		const storedName = `${Date.now()}-${randomUUID()}${finalExt}`;
+		const storedName = `${nanoid(10)}${finalExt}`;
 		const assetPath = `assets/${storedName}`;
 		const fullFilePath = path.join(assetsDir, storedName);
 

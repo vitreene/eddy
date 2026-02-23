@@ -61,7 +61,7 @@ export function Chutier({ allContents = [] }: ChutierProps) {
 			const formData = new FormData();
 			for (const file of files) formData.append("files", file);
 
-			const res = await fetch("/api/assets/upload", {
+			const res = await fetch("/api/upload", {
 				method: "POST",
 				body: formData
 			});

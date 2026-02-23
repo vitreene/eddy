@@ -131,5 +131,5 @@ export const fadeScaleOut = {
 	// },
 };
 
-export const DEFAULT_IN = fadeIn;
-export const DEFAULT_OUT = fadeOut;
+// export const DEFAULT_IN = fadeIn;
+// export const DEFAULT_OUT = fadeOut;
