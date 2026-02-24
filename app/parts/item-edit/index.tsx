@@ -31,15 +31,22 @@ export function EditItem() {
 	});
 
 	const onStyleChange = useCallback(
-		({ area, className, ...style }: EditableStyle) => {
+		(payload: EditableStyle) => {
+			const baseStyle = (decor?.style as EditableStyle) ?? {};
+			const mergedStyle = { ...baseStyle, ...payload };
+			const area = Object.prototype.hasOwnProperty.call(payload, "area") ? payload.area : decor?.area;
+			const className = Object.prototype.hasOwnProperty.call(payload, "className")
+				? payload.className
+				: decor?.className;
+
 			send({
 				type: "item-update",
 				payload: {
 					decor: {
 						...decor,
-						...(className && { className }),
-						...(area && { area }),
-						...(Object.keys(style).length && { style })
+						className: className ?? null,
+						area: area ?? null,
+						style: mergedStyle
 					} as Decor
 				}
 			});
@@ -47,29 +54,91 @@ export function EditItem() {
 		[send, decor]
 	);
 
+	const onResetStyle = useCallback(() => {
+		send({
+			type: "item-update",
+			payload: {
+				decor: {
+					...decor,
+					className: null,
+					area: null,
+					style: {}
+				} as Decor
+			}
+		});
+	}, [send, decor]);
+
+	const onTextChange = useCallback(
+		(inner: string) => {
+			if (!content || content.type !== "text") return;
+			send({ type: "content-update", payload: { id: content.id, inner } });
+		},
+		[send, content]
+	);
+
+	const onTextCommit = useCallback(
+		(inner: string) => {
+			if (!content || content.type !== "text") return;
+			fetch(`/api/content/${content.id}`, {
+				method: "POST",
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({ inner })
+			});
+		},
+		[content]
+	);
+
 	if (!item) return null;
 
 	return capsule ? (
-		<CapsuleEdit content={content} decor={decor} capsule={capsule} onChange={onStyleChange} />
+		<CapsuleEdit
+			content={content}
+			decor={decor}
+			capsule={capsule}
+			onChange={onStyleChange}
+			onReset={onResetStyle}
+			onTextChange={onTextChange}
+			onTextCommit={onTextCommit}
+		/>
 	) : (
-		<ContentEdit content={content} decor={decor} onChange={onStyleChange} />
+		<ContentEdit
+			content={content}
+			decor={decor}
+			onChange={onStyleChange}
+			onReset={onResetStyle}
+			onTextChange={onTextChange}
+			onTextCommit={onTextCommit}
+		/>
 	);
 }
 
 function ContentEdit({
 	content,
 	decor,
-	onChange
+	onChange,
+	onReset,
+	onTextChange,
+	onTextCommit
 }: {
 	content: Content;
 	decor?: Decor;
 	onChange: (newStyle: EditableStyle) => void;
+	onReset: () => void;
+	onTextChange: (value: string) => void;
+	onTextCommit: (value: string) => void;
 }) {
 	return (
 		<StyleEditor
 			content={content}
 			value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
 			onChange={onChange}
+			onReset={onReset}
+			textValue={content.inner || ""}
+			onTextChange={onTextChange}
+			onTextCommit={onTextCommit}
 		/>
 	);
 }
@@ -78,12 +147,18 @@ function CapsuleEdit({
 	content,
 	decor,
 	capsule,
-	onChange
+	onChange,
+	onReset,
+	onTextChange,
+	onTextCommit
 }: {
 	content: Content;
 	decor?: Decor;
 	capsule: CapsuleComp;
 	onChange: (newStyle: EditableStyle) => void;
+	onReset: () => void;
+	onTextChange: (value: string) => void;
+	onTextCommit: (value: string) => void;
 }) {
 	const { send } = SceneLogicContext.useActorRef();
 
@@ -123,6 +198,10 @@ function CapsuleEdit({
 				content={content}
 				value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
 				onChange={onChange}
+				onReset={onReset}
+				textValue={content.inner || ""}
+				onTextChange={onTextChange}
+				onTextCommit={onTextCommit}
 			/>
 		</>
 	);

@@ -43,6 +43,10 @@ export const ColorMini: React.FC<Props> = ({ type, value, onChange }) => {
 		if (color !== value[key]) onChange({ ...value, [key]: color });
 	};
 
+	const clearColor = (key: keyof EditableStyle) => {
+		onChange({ ...value, [key]: undefined });
+	};
+
 	const fields = type == "typo" ? colorFields : colorFields.filter((f) => f.type == type);
 
 	return (
@@ -103,6 +107,17 @@ export const ColorMini: React.FC<Props> = ({ type, value, onChange }) => {
 							</Popover>
 
 							<span className="text-[9px] opacity-60">{label}</span>
+							{key === "backgroundColor" && (
+								<Button
+									type="button"
+									size="sm"
+									variant="ghost"
+									className="h-5 px-1 text-[10px]"
+									onClick={() => clearColor(key)}
+								>
+									Effacer
+								</Button>
+							)}
 						</div>
 					);
 				})}

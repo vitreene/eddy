@@ -51,6 +51,7 @@ export const sceneLogic = setup({
 			| { type: "reset-active" }
 			| { type: "end-edit" }
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
+			| { type: "content-update"; payload: { id: number; inner?: string; name?: string } }
 			| { type: "capsule-update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
 			| { type: "content-add"; payload: Content }
@@ -287,6 +288,23 @@ export const sceneLogic = setup({
 
 				content: {
 					on: {
+						"content-update": {
+							actions: assign(({ context, event }) => {
+								const current = context.contents[event.payload.id];
+								if (!current) return context;
+
+								return {
+									...context,
+									contents: {
+										...context.contents,
+										[event.payload.id]: {
+											...current,
+											...event.payload
+										}
+									}
+								};
+							})
+						},
 						"events-update": {
 							actions: assign(({ context, event }) => {
 								const itemId = context.active.itemId;

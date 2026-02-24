@@ -26,9 +26,7 @@ export function SlotEditor({ value, onChange }: Props) {
 	const { w, h } = getValuesFromGridName(capsule.grid);
 
 	const setArea = (area: string) => {
-		console.log(area);
-
-		onChange({ area });
+		onChange({ ...value, area });
 	};
 
 	return <GridAreaRadioSelector cols={w} rows={h} value={value.area || decor?.area} onChange={setArea} />;

@@ -297,6 +297,16 @@ export async function createContent(
 	return await prisma.content.create({ data: update });
 }
 
+export async function updateContent(
+	id: number,
+	update: Partial<Pick<Content, "inner" | "name" | "path" | "lang">>
+) {
+	return await prisma.content.update({
+		where: { id },
+		data: update
+	});
+}
+
 export async function getAllContents() {
 	return await prisma.content.findMany({
 		where: { type: { not: "capsule" } },

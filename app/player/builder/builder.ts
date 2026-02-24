@@ -216,7 +216,6 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 		const ev = events[action];
 		const ref =
 			ev.ref || (ev.action == INTRO && "DEFAULT_IN") || (ev.action == OUTRO && "DEFAULT_OUT") || "DEFAULT_IN";
-		console.log(ref, TR[ref]);
 
 		const actionStyle = getActionStyle(TR[ref].style);
 		const actionName = `${ev.name}-${ev.action}`;

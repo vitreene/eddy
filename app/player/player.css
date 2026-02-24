@@ -5,45 +5,20 @@
 	grid-area: 1 / -1;
 	min-height: 0;
 	min-width: 0;
+	container-type: size;
 }
 
 .bg-image {
 	background-size: cover;
 	background-position: center;
 	background-repeat: no-repeat;
+	/* background-clip: content-box; */
+	background-origin: content-box;
 }
 .bg-sprite {
 	background-size: contain;
 	background-position: center;
 	background-repeat: no-repeat;
+	/* background-clip: content-box; */
+	background-origin: content-box;
 }
-
-/* TESTS */
-
-/* #capsule__4 #item__7 { */
-/* equivalent x / y / width / height  */
-/* grid-area: 1 / 1 / span 1 / span 2; */
-/* } */
-/* 
-#capsule__3,
-#capsule__2 {
-	overflow: hidden;
-} */
-
-/* 
-#item__1,
-#item__2 {
-	grid-area: 1 / -1;
-}
-
-#capsule__2 {
-	grid-area: 1/1;
-	overflow: hidden;
-} 
-#item__4 {
-	grid-area: 1/2;
-}
-#item__3 {
-	grid-area: 2/2;
-}
-*/

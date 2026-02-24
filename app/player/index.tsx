@@ -57,7 +57,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 		telco.seek((active.cue ?? 0) * 1000);
 	}, [active.cue, telco]);
 
-	const styles = `@scope{${playerCss} ${scene.styles} ${ROOT_SCENE_CLASSNAME}}`;
+	const styles = `@scope{${playerCss} ${scene.styles}}`;
 
 	return (
 		<>
