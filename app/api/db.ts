@@ -686,7 +686,7 @@ export async function addEventToContent({
 	duration,
 	itemId
 }: {
-	id: number | undefined;
+	id?: number;
 	name: string;
 	action: string;
 	ref: string;
@@ -698,13 +698,23 @@ export async function addEventToContent({
 		action,
 		duration,
 		ref,
-		item: { connect: { id: itemId } }
+		itemId
 	};
+
 	if (id) {
 		return prisma.event.update({ where: { id }, data });
-	} else {
-		return prisma.event.create({ data });
 	}
+
+	const existing = await prisma.event.findFirst({
+		where: { itemId, action },
+		select: { id: true }
+	});
+
+	if (existing) {
+		return prisma.event.update({ where: { id: existing.id }, data });
+	}
+
+	return prisma.event.create({ data });
 }
 
 export async function removeEventFromcontent(id: number) {

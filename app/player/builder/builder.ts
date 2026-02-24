@@ -75,8 +75,6 @@ function getGridDefinitions(snapshot: SceneComp): string[] {
 		uniqueClassNames.add(className);
 	}
 
-	console.log({ uniqueClassNames });
-
 	return [...uniqueClassNames].flatMap((className) => {
 		const definition = gridClassNameToCssDefinition(className);
 		return definition ? [definition] : [];
@@ -179,7 +177,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 				id,
 				className:
 					`${capsule.grid || ""} ${decor.className || ""} ${decor.area || additionalClassnames[item.id] || ""}`.trim(),
-				style: { isolation: "isolate", ...decor.style }
+				style: { ...decor.style }
 			},
 			actions
 		};
@@ -216,8 +214,11 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 
 	for (const action in events) {
 		const ev = events[action];
+		const ref =
+			ev.ref || (ev.action == INTRO && "DEFAULT_IN") || (ev.action == OUTRO && "DEFAULT_OUT") || "DEFAULT_IN";
+		console.log(ref, TR[ref]);
 
-		const actionStyle = getActionStyle(TR[ev.ref].style);
+		const actionStyle = getActionStyle(TR[ref].style);
 		const actionName = `${ev.name}-${ev.action}`;
 		if (action == INTRO) {
 			actions[actionName] = { style: actionStyle, move: parentId };
@@ -992,5 +993,10 @@ const context: SceneComp = {
 			".ed-grid-w5-h2{display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}.ed-grid-w6-h2{display:grid;grid-template-columns:repeat(6, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}.ed-grid-w10-h1{display:grid;grid-template-columns:repeat(10, minmax(0, 1fr));grid-template-rows:repeat(1, minmax(0, 1fr))}.ed-grid-w4-h2{display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}.ed-grid-w7-h2{display:grid;grid-template-columns:repeat(7, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}"
 	}
 };
+
+*/
+/* 
+creation de capsule grid par défaut !!! 
+
 
 */

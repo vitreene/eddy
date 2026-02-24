@@ -134,7 +134,7 @@ export function SceneTreeView() {
 		canDrag: (dragged) => dragged.every((item) => !!item.getItemData().itemId),
 		canDrop: (_, target) => {
 			const targetData = target.item.getItemData();
-			if (targetData.kind === "root") return false;
+			if (targetData.kind === "root") return Boolean(main);
 			if (targetData.kind === "capsule") return Boolean(targetData.capsuleId);
 			return Boolean(targetData.itemId);
 		},
@@ -150,11 +150,13 @@ export function SceneTreeView() {
 			const targetData = target.item.getItemData();
 			const targetId = targetData.itemId;
 			const targetCapsuleId =
-				targetData.kind === "capsule"
-					? targetData.capsuleId
-					: targetData.kind === "item"
+				targetData.kind === "root"
+					? main
+					: targetData.kind === "capsule"
 						? targetData.capsuleId
-						: undefined;
+						: targetData.kind === "item"
+							? targetData.capsuleId
+							: undefined;
 			const insertionIndex = isOrderedDragTarget(target) ? target.insertionIndex : undefined;
 
 			if (!sourceId || (!targetId && !targetCapsuleId) || sourceId === targetId) return;
@@ -173,7 +175,7 @@ export function SceneTreeView() {
 			const payload = readChutierDragPayload(dataTransfer);
 			if (!payload?.contentId) return false;
 			const targetData = target.item.getItemData();
-			if (targetData.kind === "root") return false;
+			if (targetData.kind === "root") return Boolean(main);
 			if (targetData.kind === "capsule") return Boolean(targetData.capsuleId);
 			return Boolean(targetData.itemId);
 		},
@@ -183,11 +185,13 @@ export function SceneTreeView() {
 
 			const targetData = target.item.getItemData();
 			const targetCapsuleId =
-				targetData.kind === "capsule"
-					? targetData.capsuleId
-					: targetData.kind === "item"
+				targetData.kind === "root"
+					? main
+					: targetData.kind === "capsule"
 						? targetData.capsuleId
-						: undefined;
+						: targetData.kind === "item"
+							? targetData.capsuleId
+							: undefined;
 
 			if (!targetCapsuleId) return;
 

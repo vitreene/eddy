@@ -131,6 +131,7 @@ model Event {
   decorId Int?   @unique @map("decor_id") // basé sur  // name
   decor   Decor? @relation(fields: [decorId], references: [id])
 
+  @@unique([itemId, action])
   @@map("event")
 }
 

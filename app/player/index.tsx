@@ -29,20 +29,33 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 
 	useEffect(() => {
 		const { persos, events } = scene;
-		if (scene && typeof window !== "undefined") {
-			// if (telco) telco.revert();
-			preload(persos).then((p) => {
-				if (p.size) {
-					console.log("active.cue", active.cue);
+		let cancelled = false;
+		let currentTelco: TelcoProps | null = null;
 
+		if (scene && typeof window !== "undefined") {
+			preload(persos).then((p) => {
+				if (cancelled) return;
+				if (p.size) {
 					const render: HTMLElement | null = sceneRef.current;
+					if (render) render.innerHTML = "";
 					const player = new Player({ render, persos: p, eventtimes: events, onEnd });
 					player.telco.seek((active.cue ?? 0) * 1000);
+					currentTelco = player.telco;
 					setTelco(player.telco);
 				}
 			});
 		}
-	}, [active.cue, scene, telco]);
+
+		return () => {
+			cancelled = true;
+			if (currentTelco) currentTelco.revert();
+		};
+	}, [scene]);
+
+	useEffect(() => {
+		if (!telco) return;
+		telco.seek((active.cue ?? 0) * 1000);
+	}, [active.cue, telco]);
 
 	const styles = `@scope{${playerCss} ${scene.styles} ${ROOT_SCENE_CLASSNAME}}`;
 

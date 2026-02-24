@@ -33,8 +33,6 @@ export interface TelcoProps {
 }
 
 export class Player {
-	private static _instance: Player | null = null;
-
 	timeLine!: Timeline;
 	eventtimes!: MapEvent;
 	render!: HTMLElement;
@@ -59,11 +57,6 @@ export class Player {
 		onEnd?: (tm: Timer) => void;
 	}) {
 		if (!render) throw new Error("Le player ne peut etre rendu.");
-
-		if (Player._instance) {
-			return Player._instance;
-		}
-		Player._instance = this;
 		this.render = render;
 		this.persos = persos;
 		this.eventtimes = eventtimes;
