@@ -18,7 +18,7 @@ export async function preload(store: Array<Perso>): Promise<Store> {
 	// console.log('LOAD SOUNDS');
 
 	const st02 = await getPersoImages(st01.persos);
-	// console.log('LOAD IMAGES');
+	// console.log("LOAD IMAGES", st02);
 
 	const st03 = await getPersoVideos(st01.persos);
 	// console.log('LOAD VIDEOS');

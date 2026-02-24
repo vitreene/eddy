@@ -10,7 +10,7 @@ import { getAllContents, getScene, getScenes, type Content, type SceneComp, type
 import { SceneTreeView } from "@/parts/scene-tree";
 import { EditItem } from "@/parts/item-edit";
 import { buildScene } from "@/player/builder/builder";
-// import { DemoTransformEditor } from "@/components/position-editor/exemple";
+import { DemoTransformEditor } from "@/components/position-editor/exemple";
 
 // import * as scene02 from "../demos/scenes/scene-02";
 import { Menu } from "@/parts/menu";
@@ -54,8 +54,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 
 	const actorRef = SceneLogicContext.useActorRef();
 	useEffect(() => {
-		actorRef.subscribe((snapshot) => {
-			console.log("snapshot", snapshot.status, snapshot.context);
+		const subscription = actorRef.subscribe((snapshot) => {
 			const { active, ...state } = snapshot.context;
 			if (Object.keys(state).length) {
 				const sc = buildScene(state);
@@ -63,6 +62,8 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 				setScene(sc);
 			}
 		});
+
+		return () => subscription.unsubscribe();
 	}, [actorRef]);
 
 	useEffect(() => {

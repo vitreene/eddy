@@ -60,7 +60,7 @@ export async function loadImages(srcs: string[] | Img[]) {
 						const src = typeof source === "string" ? source : source.src;
 						const ikono = <HTMLImageElement>new Image();
 						ikono.onload = () => {
-							// console.log('IMG LOADED', src);
+							console.log("IMG LOADED", src);
 							resolve({ ikono, src });
 						};
 						ikono.onerror = (err) => resolve({ ikono: new Image(), src });

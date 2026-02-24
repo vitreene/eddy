@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
 	type FeatureImplementation,
 	dragAndDropFeature,
@@ -23,7 +23,7 @@ import {
 	Video
 } from "lucide-react";
 
-import { getItemFromCapsule, SceneLogicContext } from "@/provider/scene-logic";
+import { SceneLogicContext } from "@/provider/scene-logic";
 import { Button } from "@/components/ui/button";
 import { readChutierDragPayload } from "@/lib/drag-content";
 import { cn } from "@/lib/utils";
@@ -53,23 +53,36 @@ const clickBehaviorNoExpand: FeatureImplementation = {
 export function SceneTreeView() {
 	const main = SceneLogicContext.useSelector((state) => state.context.main);
 	const activeItemId = SceneLogicContext.useSelector((state) => state.context.active.itemId);
-	const capsules = SceneLogicContext.useSelector((state) => {
-		if (!state.context.capsules) return null;
+	const capsulesById = SceneLogicContext.useSelector((state) => state.context.capsules);
+	const items = SceneLogicContext.useSelector((state) => state.context.items);
+	const contentsById = SceneLogicContext.useSelector((state) => state.context.contents);
+
+	const capsuleItemIdByCapsuleId = useMemo(() => {
+		const byCapsuleId: Record<number, number | undefined> = {};
+		for (const item of Object.values(items || {})) {
+			const content = contentsById[item.contentId];
+			if (content?.type === "capsule" && content.capsuleId) {
+				byCapsuleId[content.capsuleId] = item.id;
+			}
+		}
+		return byCapsuleId;
+	}, [items, contentsById]);
+
+	const capsules = useMemo(() => {
+		if (!capsulesById) return null;
 		return Object.fromEntries(
-			Object.values(state.context.capsules).map((capsule) => {
-				const item = getItemFromCapsule(capsule.id, state.context);
-				return [capsule.id, { ...capsule, itemId: item?.id }];
+			Object.values(capsulesById).map((capsule) => {
+				return [capsule.id, { ...capsule, itemId: capsuleItemIdByCapsuleId[capsule.id] }];
 			})
 		);
-	});
-	const items = SceneLogicContext.useSelector((state) => state.context.items);
-	const contents: { [key: number]: Content } = SceneLogicContext.useSelector((state) =>
-		Object.fromEntries(
-			Object.values(state.context.items || {}).map((item) => [
-				[item.contentId],
-				state.context.contents[item.contentId]
-			])
-		)
+	}, [capsulesById, capsuleItemIdByCapsuleId]);
+
+	const contents: { [key: number]: Content } = useMemo(
+		() =>
+			Object.fromEntries(
+				Object.values(items || {}).map((item) => [item.contentId, contentsById[item.contentId]])
+			),
+		[items, contentsById]
 	);
 
 	const { send } = SceneLogicContext.useActorRef();
@@ -208,8 +221,13 @@ export function SceneTreeView() {
 		return `${model.rootItemId}#${nodeIds}#${children}`;
 	}, [model]);
 
+	const lastTreeSyncKeyRef = useRef<string | null>(null);
+
 	useEffect(() => {
 		if (!hasTreeData) return;
+		const syncKey = `${treeModelFingerprint}|${activeItemId ?? ""}`;
+		if (lastTreeSyncKeyRef.current === syncKey) return;
+		lastTreeSyncKeyRef.current = syncKey;
 
 		const selectedItemIds = tree.getState().selectedItems || [];
 		const hasMissingSelected = selectedItemIds.some((id) => !model.nodesById[id]);
@@ -250,7 +268,7 @@ export function SceneTreeView() {
 				}
 			}
 		}
-	}, [activeItemId, hasTreeData, tree, treeModelFingerprint]);
+	}, [activeItemId, hasTreeData, model, tree, treeModelFingerprint]);
 
 	const selectedNode = tree
 		.getItems()
@@ -293,10 +311,7 @@ export function SceneTreeView() {
 					onClick={() => {
 						send({
 							type: "tree-create-capsule",
-							payload: {
-								...getCreatePayload(),
-								capsuleName: "Capsule"
-							}
+							payload: getCreatePayload()
 						});
 					}}
 				>
@@ -310,11 +325,7 @@ export function SceneTreeView() {
 					onClick={() => {
 						send({
 							type: "tree-create-text",
-							payload: {
-								...getCreatePayload(),
-								name: "",
-								inner: ""
-							}
+							payload: getCreatePayload()
 						});
 					}}
 				>

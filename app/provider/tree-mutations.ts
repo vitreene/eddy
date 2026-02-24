@@ -3,6 +3,16 @@ import { fromPromise } from "xstate";
 import type { ItemComp } from "@/api/db";
 import type { SceneTreeContext, TreeCreateEvent, TreeDeleteEvent, TreeMutationResponse } from "./types";
 
+const DEFAULT_TEXT = {
+	name: "",
+	inner: ""
+} as const;
+
+const DEFAULT_CAPSULE = {
+	name: "Capsule",
+	grid: "ed-grid-w1-h1"
+} as const;
+
 export const treeMutation = fromPromise(async ({ input }) => {
 	const { context, event } = input as {
 		context: SceneTreeContext;
@@ -42,6 +52,9 @@ export const treeMutation = fromPromise(async ({ input }) => {
 	if (!placement.destinationCapsuleId) throw new Error("No destination capsule found for tree mutation");
 
 	if (event.type === "tree-create-text") {
+		const name = event.payload.name || DEFAULT_TEXT.name;
+		const inner = event.payload.inner || DEFAULT_TEXT.inner;
+
 		const res = await fetch("/api/tree", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -49,8 +62,8 @@ export const treeMutation = fromPromise(async ({ input }) => {
 				action: "create-text",
 				capsuleId: placement.destinationCapsuleId,
 				afterItemId: placement.afterItemId,
-				name: event.payload.name || "",
-				inner: event.payload.inner || ""
+				name,
+				inner
 			})
 		});
 		if (!res.ok) throw new Error("Failed to create text item");
@@ -58,6 +71,9 @@ export const treeMutation = fromPromise(async ({ input }) => {
 	}
 
 	if (event.type === "tree-create-capsule") {
+		const capsuleName = event.payload.capsuleName || event.payload.name || DEFAULT_CAPSULE.name;
+		const grid = event.payload.grid || DEFAULT_CAPSULE.grid;
+
 		const res = await fetch("/api/tree", {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
@@ -66,7 +82,8 @@ export const treeMutation = fromPromise(async ({ input }) => {
 				sceneId: context.id,
 				destinationCapsuleId: placement.destinationCapsuleId,
 				afterItemId: placement.afterItemId,
-				capsuleName: event.payload.capsuleName || event.payload.name || "Capsule"
+				capsuleName,
+				grid
 			})
 		});
 		if (!res.ok) throw new Error("Failed to create capsule item");

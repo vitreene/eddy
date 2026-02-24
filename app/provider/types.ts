@@ -6,6 +6,7 @@ export interface TreeCreateEvent {
 	contentId?: number;
 	name?: string;
 	inner?: string;
+	grid?: string;
 	capsuleName?: string;
 }
 

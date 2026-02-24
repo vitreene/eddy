@@ -40,6 +40,18 @@ type DragMode =
 	| { kind: "origin" }
 	| { kind: "move" };
 
+// Canonical overlay handle map: id + local position + cursor.
+const RESIZE_HANDLES: Array<[ResizeHandle, number, number, string]> = [
+	["nw", 0, 0, "nwse-resize"],
+	["n", 50, 0, "ns-resize"],
+	["ne", 100, 0, "nesw-resize"],
+	["e", 100, 50, "ew-resize"],
+	["se", 100, 100, "nwse-resize"],
+	["s", 50, 100, "ns-resize"],
+	["sw", 0, 100, "nesw-resize"],
+	["w", 0, 50, "ew-resize"]
+];
+
 export function VisualTransformEditor({
 	element,
 	active = true,
@@ -55,14 +67,18 @@ export function VisualTransformEditor({
 	const [internal, setInternal] = useState<ElementTransform | null>(null);
 	const t = (isControlled ? value! : internal) ?? null;
 
+	// True when we can safely read/write DOM geometry.
 	const domOk = useMemo(() => canUseDOM(element), [element]);
+	// Stable coordinate converters used during pointer interactions.
 	const ptr = useMemo(() => createPointerConverters(), []);
 
+	// Layout reference used to project local coordinates into the parent space.
 	const offsetParent = useMemo(() => {
 		if (!element) return null;
 		return getOffsetParent(element);
 	}, [element]);
 
+	// Prevents re-applying transform right after initial DOM read.
 	const skipApplyOnceRef = useRef(false);
 
 	const setT = (next: ElementTransform) => {
@@ -79,37 +95,11 @@ export function VisualTransformEditor({
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [domOk, active, element]);
 
-	useEffect(() => {
-		if (!domOk || !active || !applyToElement || !element || !t) return;
-		if (skipApplyOnceRef.current) {
-			skipApplyOnceRef.current = false;
-			return;
-		}
-		applyTransformPreserve(element, t);
-	}, [domOk, active, applyToElement, element, t]);
-
 	// force re-measure for overlay matrix
+	// Incremented to force recomputing overlay matrix on viewport/layout changes.
 	const [nonce, setNonce] = useState(0);
-	useEffect(() => {
-		if (!domOk || !active || !element) return;
-		const doc = element.ownerDocument;
-		const win = doc?.defaultView;
-		if (!win) return;
 
-		const bump = () => setNonce((n) => n + 1);
-		win.addEventListener("resize", bump, { passive: true });
-		win.addEventListener("scroll", bump, { passive: true, capture: true });
-		const ro = new ResizeObserver(bump);
-		ro.observe(element);
-		if (offsetParent) ro.observe(offsetParent);
-
-		return () => {
-			win.removeEventListener("resize", bump);
-			win.removeEventListener("scroll", bump, true as any);
-			ro.disconnect();
-		};
-	}, [domOk, active, element, offsetParent]);
-
+	// Target portal root where the editing overlay is rendered.
 	const portalContainer = useMemo(() => {
 		if (!domOk || !active || !element) return null;
 		const doc = element.ownerDocument;
@@ -117,6 +107,7 @@ export function VisualTransformEditor({
 	}, [domOk, active, element, overlayContainer]);
 
 	// Frame matrix (local->viewport)
+	// Derived visual frame in viewport coordinates for handles and outlines.
 	const frame = useMemo(() => {
 		if (!domOk || !active || !element || !offsetParent || !t) return null;
 
@@ -130,8 +121,9 @@ export function VisualTransformEditor({
 		const M = Mp.multiply(Ml);
 
 		return { w: t.width, h: t.height, M };
-	}, [domOk, active, element, offsetParent, t]);
+	}, [domOk, active, element, offsetParent, t, nonce]);
 
+	// Mutable drag session state shared by pointermove/pointerup listeners.
 	const dragRef = useRef<{
 		mode: DragMode;
 		startPointerParent: Pt;
@@ -248,21 +240,102 @@ export function VisualTransformEditor({
 		win.addEventListener("pointercancel", onUp, { passive: true });
 	};
 
-	// drag move sur l’élément
+	const overlay =
+		!domOk || !active || !element || !t || !portalContainer || !frame ? null : (
+			<VisualTransformOverlay
+				className={className}
+				frame={frame}
+				t={t}
+				portalContainer={portalContainer}
+				onDragStart={beginDrag}
+			/>
+		);
+
+	return (
+		<VisualTransformEditorDomEffects
+			domOk={domOk}
+			active={active}
+			applyToElement={applyToElement}
+			element={element}
+			t={t}
+			offsetParent={offsetParent}
+			skipApplyOnceRef={skipApplyOnceRef}
+			setNonce={setNonce}
+		>
+			{overlay}
+		</VisualTransformEditorDomEffects>
+	);
+}
+
+type VisualTransformEditorDomEffectsProps = {
+	domOk: boolean;
+	active: boolean;
+	applyToElement: boolean;
+	element: HTMLElement | null;
+	t: ElementTransform | null;
+	offsetParent: HTMLElement | null;
+	skipApplyOnceRef: React.MutableRefObject<boolean>;
+	setNonce: React.Dispatch<React.SetStateAction<number>>;
+	children: React.ReactNode;
+};
+
+function VisualTransformEditorDomEffects({
+	domOk,
+	active,
+	applyToElement,
+	element,
+	t,
+	offsetParent,
+	skipApplyOnceRef,
+	setNonce,
+	children
+}: VisualTransformEditorDomEffectsProps) {
+	// Applies the latest transform to the target element after drag/state updates.
+	useEffect(() => {
+		if (!domOk || !active || !applyToElement || !element || !t) return;
+		if (skipApplyOnceRef.current) {
+			skipApplyOnceRef.current = false;
+			return;
+		}
+		applyTransformPreserve(element, t);
+	}, [domOk, active, applyToElement, element, t, skipApplyOnceRef]);
+
+	// Invalidates overlay frame when viewport or observed boxes change.
 	useEffect(() => {
 		if (!domOk || !active || !element) return;
-		const onDown = (e: PointerEvent) => {
-			if (e.button !== 0) return;
-			beginDrag(e, { kind: "move" });
+		const doc = element.ownerDocument;
+		const win = doc?.defaultView;
+		if (!win) return;
+
+		const bump = () => setNonce((n) => n + 1);
+		win.addEventListener("resize", bump, { passive: true });
+		win.addEventListener("scroll", bump, { passive: true, capture: true });
+		const ro = new ResizeObserver(bump);
+		ro.observe(element);
+		if (offsetParent) ro.observe(offsetParent);
+
+		return () => {
+			win.removeEventListener("resize", bump);
+			win.removeEventListener("scroll", bump, true as any);
+			ro.disconnect();
 		};
-		element.addEventListener("pointerdown", onDown);
-		return () => element.removeEventListener("pointerdown", onDown);
-	}, [domOk, active, element, offsetParent, t]);
+	}, [domOk, active, element, offsetParent, setNonce]);
 
-	if (!domOk || !active || !element || !t || !portalContainer || !frame) return null;
+	return <>{children}</>;
+}
 
+type OverlayProps = {
+	className?: string;
+	frame: { w: number; h: number; M: DOMMatrix };
+	t: ElementTransform;
+	portalContainer: HTMLElement;
+	onDragStart: (ev: { clientX: number; clientY: number }, mode: DragMode) => void;
+};
+
+function VisualTransformOverlay({ className, frame, t, portalContainer, onDragStart }: OverlayProps) {
 	const { w, h, M } = frame;
 
+	// Overlay placement style derived from local->viewport affine matrix.
 	const frameStyle: React.CSSProperties = {
 		position: "fixed",
 		left: 0,
@@ -271,10 +344,11 @@ export function VisualTransformEditor({
 		height: h,
 		transformOrigin: "0 0",
 		transform: `matrix(${M.a}, ${M.b}, ${M.c}, ${M.d}, ${M.e}, ${M.f})`,
-		pointerEvents: "none",
+		pointerEvents: "auto",
 		zIndex: 9999
 	};
 
+	// Shared visual style for resize handles.
 	const handleBase: React.CSSProperties = {
 		position: "absolute",
 		width: 10,
@@ -289,7 +363,15 @@ export function VisualTransformEditor({
 
 	const overlay = (
 		<div className={className} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
-			<div style={frameStyle}>
+			<div
+				style={frameStyle}
+				onPointerDown={(e) => {
+					if (e.button !== 0) return;
+					e.preventDefault();
+					e.stopPropagation();
+					onDragStart(e, { kind: "move" });
+				}}
+			>
 				<div
 					style={{
 						position: "absolute",
@@ -300,7 +382,6 @@ export function VisualTransformEditor({
 					}}
 				/>
 
-				{/* rotation handle */}
 				<div
 					style={{
 						position: "absolute",
@@ -318,7 +399,7 @@ export function VisualTransformEditor({
 					onPointerDown={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
-						beginDrag(e, { kind: "rotate" });
+						onDragStart(e, { kind: "rotate" });
 					}}
 				/>
 				<div
@@ -333,7 +414,6 @@ export function VisualTransformEditor({
 					}}
 				/>
 
-				{/* pivot : stable car en repère LOCAL (%) */}
 				<div
 					style={{
 						position: "absolute",
@@ -351,30 +431,18 @@ export function VisualTransformEditor({
 					onPointerDown={(e) => {
 						e.preventDefault();
 						e.stopPropagation();
-						beginDrag(e, { kind: "origin" });
+						onDragStart(e, { kind: "origin" });
 					}}
 				/>
 
-				{/* resize handles */}
-				{(
-					[
-						["nw", 0, 0, "nwse-resize"],
-						["n", 50, 0, "ns-resize"],
-						["ne", 100, 0, "nesw-resize"],
-						["e", 100, 50, "ew-resize"],
-						["se", 100, 100, "nwse-resize"],
-						["s", 50, 100, "ns-resize"],
-						["sw", 0, 100, "nesw-resize"],
-						["w", 0, 50, "ew-resize"]
-					] as Array<[ResizeHandle, number, number, string]>
-				).map(([id, lx, ly, cursor]) => (
+				{RESIZE_HANDLES.map(([id, lx, ly, cursor]) => (
 					<div
 						key={id}
 						style={{ ...handleBase, left: `${lx}%`, top: `${ly}%`, cursor }}
 						onPointerDown={(e) => {
 							e.preventDefault();
 							e.stopPropagation();
-							beginDrag(e, { kind: "resize", handle: id });
+							onDragStart(e, { kind: "resize", handle: id });
 						}}
 					/>
 				))}

@@ -1,5 +1,6 @@
 import type { Content } from "@/api/db";
 import cx from "classnames";
+import { getMediaUrl } from "@/lib/media-url";
 
 const SIZECSS = {
 	icon: "w-10  h-8",
@@ -18,6 +19,8 @@ export function Media({
 	selected?: boolean;
 	className?: string;
 }) {
+	const mediaSrc = getMediaUrl(attr.path);
+
 	switch (attr.type) {
 		case "img":
 			return (
@@ -25,7 +28,7 @@ export function Media({
 					className={cx(className, SIZECSS[size], "object-contain", {
 						"border border-red-400": selected
 					})}
-					src={`/${attr.path!}`}
+					src={mediaSrc}
 					draggable={false}
 				/>
 			);

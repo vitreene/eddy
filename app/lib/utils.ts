@@ -100,6 +100,8 @@ type GeneratedGridCss = {
  *       index w+1 = ligne 2 col 1
  *  - si tu as un index 0-based, passe (index+1)
  */
+
+/* 
 export function generateGridCss(w: number, h: number): GeneratedGridCss {
 	const W = Math.max(1, Math.floor(w));
 	const H = Math.max(1, Math.floor(h));
@@ -110,18 +112,19 @@ export function generateGridCss(w: number, h: number): GeneratedGridCss {
 	let cssText = "";
 
 	// Conteneur
-	cssText += `.${containerClass}{display:grid;grid-template-columns:repeat(${W}, minmax(0, 1fr));grid-template-rows:repeat(${H}, minmax(0, 1fr))}`;
+	cssText += `.${containerClass}{display:grid;grid-template-columns:repeat(${W}, minmax(0, 1fr));grid-template-rows:repeat(${H}, minmax(0, 1fr));overflow:hidden;}`;
 
 	// Items (index 1..W*H)
 	const total = W * H;
 	for (let index = 1; index <= total; index++) {
 		const row = Math.floor((index - 1) / W) + 1; // 1..H
 		const col = ((index - 1) % W) + 1; // 1..W
-		cssText += `.${itemClassPrefix}${index}{grid-column:${col}/span 1;grid-row:${row}/span 1}`;
+		cssText += `.${itemClassPrefix}${index}{grid-column:${col}/span 1;grid-row:${row}/span 1;overflow:hidden;}`;
 	}
 
 	return { containerClass, itemClassPrefix, cssText };
 }
+ */
 
 /* --- Exemple ---
 const { containerClass, itemClassPrefix, cssText } = generateGridCss(4, 3);
@@ -242,8 +245,9 @@ export function gridClassNameToCssDefinition(gridClassName = ""): string | undef
 		display: "grid",
 		...(w > 1 && { gridTemplateColumns: `repeat(${w}, minmax(0, 1fr))` }),
 		...(h > 1 && { gridTemplateRows: `repeat(${h}, minmax(0, 1fr))` }),
+		...(w === 1 && h === 1 && { "& *": "grid-area: 1 / -1" }),
 		isolation: "isolate",
-		...(w === 1 && h === 1 && { "& *": "grid-area: 1 / -1" })
+		overflow: "hidden"
 	};
 
 	return `.${className}{${cssObjectToClass(styles)}}`;

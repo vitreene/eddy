@@ -34,7 +34,9 @@ export function createElements(this: Player): void {
 function createNode(perso: Perso) {
 	const { type, initial } = perso;
 	const $el =
-		type == P.VIDEO ? (perso as PersoMediaDef).media : document.createElement(createTag({ type, initial }));
+		type == (P.VIDEO || P.IMG || P.SPRITE)
+			? (perso as PersoMediaDef).media
+			: document.createElement(createTag({ type, initial }));
 
 	for (const k in initial) {
 		if (k == "src") {
@@ -46,7 +48,23 @@ function createNode(perso: Perso) {
 		}
 		if (k == "id") $el.id = initial.id;
 		if (k == "style") {
-			utils.set($el, { ...initial.style! });
+			const styleEntries = Object.entries(initial.style || {});
+			const styleForAnime: Record<string, string | number> = {};
+
+			//  utils.set pouvait interpréter certaines chaînes (ex: notation scientifique), d’où des mutations inattendues de noms de fichiers.
+
+			for (const [styleKey, styleValue] of styleEntries) {
+				if (styleValue == null) continue;
+				if (styleKey === "backgroundImage") {
+					$el.style.setProperty("background-image", String(styleValue));
+					continue;
+				}
+				styleForAnime[styleKey] = styleValue as string | number;
+			}
+
+			if (Object.keys(styleForAnime).length) {
+				utils.set($el, styleForAnime);
+			}
 		}
 		if (k == "className")
 			if (typeof initial.className == "string") {

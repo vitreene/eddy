@@ -25,6 +25,7 @@ import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor } from "@/api/db
 import { P, type ID } from "../types";
 import { SCENE_ID } from "../constants";
 import { SEP, DEFAULT_DURATION, INTRO, OUTRO } from "@/lib/constants";
+import { getMediaUrl } from "@/lib/media-url";
 
 import type { PlayerProps } from "..";
 import { classNameToCssDefinition, getValuesFromGridName, gridClassNameToCssDefinition } from "@/lib/utils";
@@ -33,6 +34,9 @@ const DEFAUT_PATH_IMAGE = "";
 
 const TR = Object.fromEntries(Object.entries(transitions).map(([k, { name: _, ...v }]) => [k, v]));
 
+TR.DEFAULT_IN = TR.fadeIn;
+TR.DEFAULT_OUT = TR.fadeOut;
+
 export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string } {
 	const events = mapEvents(snapshot);
 	// console.log("->events", events);
@@ -40,7 +44,7 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 	const gridDefinitions = getGridDefinitions(snapshot);
 	const styles = createStyle(snapshot, areas, gridDefinitions);
 
-	console.log({ itemsPositionClassName });
+	// console.log({ itemsPositionClassName });
 
 	let $capsules;
 	if (snapshot.capsules) {
@@ -71,6 +75,8 @@ function getGridDefinitions(snapshot: SceneComp): string[] {
 		uniqueClassNames.add(className);
 	}
 
+	console.log({ uniqueClassNames });
+
 	return [...uniqueClassNames].flatMap((className) => {
 		const definition = gridClassNameToCssDefinition(className);
 		return definition ? [definition] : [];
@@ -89,13 +95,13 @@ function positionElements(snapshot: SceneComp) {
 		- ajouter à areas
 */
 
-	const areas: string[] = [];
+	const areas = new Set<string>();
 	const itemsPositionClassName: Record<ID, string> = {};
 
 	for (const item of Object.values(snapshot.items)) {
 		const decor = snapshot.decors[item.decorId];
 		if (decor?.area) {
-			areas.push(classNameToCssDefinition(decor.area));
+			areas.add(classNameToCssDefinition(decor.area));
 		} else {
 			const capsule = snapshot.capsules[item.capsuleId];
 			const grid = getValuesFromGridName(capsule.grid);
@@ -106,17 +112,18 @@ function positionElements(snapshot: SceneComp) {
 					.toSorted((a, b) => (a.order > b.order ? 1 : -1))
 					.findIndex((it) => it.id == item.id) + 1;
 
-			console.log({ id: capsule.id, grid });
+			// console.log({ id: capsule.id, grid });
 
 			const r = grid.w == 1 ? 1 : index % grid.w || grid.w;
 			const c = grid.h == 1 ? 1 : Math.round(index / grid.w) + 1;
 			const prefix = "cell_auto";
 			const area = `${prefix}-r${r}-c${c}`;
-			areas.push(classNameToCssDefinition(area, { prefix }));
+			areas.add(classNameToCssDefinition(area, { prefix }));
 			itemsPositionClassName[item.id] = area;
 		}
 	}
-	return { areas, itemsPositionClassName };
+
+	return { areas: [...areas], itemsPositionClassName };
 }
 
 //CAPSULES
@@ -140,7 +147,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		};
 	} else {
 		const content = Object.values(snapshot.contents).find((c) => c.capsuleId == capsule.id);
-		console.log({ capsule, content, snapshot });
+		// console.log({ capsule, content, snapshot });
 		const item = Object.values(snapshot.items).find((it) => content.id == it.contentId);
 		const events = snapshot.events[item.id];
 		const decor = snapshot.decors[item.decorId];
@@ -150,8 +157,6 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		if (events) {
 			for (const action in events) {
 				const ev = events[action];
-				console.log(ev, ev.ref, TR[ev.ref]);
-
 				const actionStyle = getActionStyle(TR[ev.ref].style);
 				const actionName = `${ev.name}-${ev.action}`;
 				if (action == INTRO) {
@@ -211,6 +216,7 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 
 	for (const action in events) {
 		const ev = events[action];
+
 		const actionStyle = getActionStyle(TR[ev.ref].style);
 		const actionName = `${ev.name}-${ev.action}`;
 		if (action == INTRO) {
@@ -222,7 +228,7 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 	actions[id] = true;
 	const tag = itemTag[content.type as keyof typeof itemTag];
 
-	console.log(id, "className", decor?.area, additionalClassnames[item.id]);
+	// console.log(id, "className", decor?.area, additionalClassnames[item.id]);
 
 	const initial = {
 		id,
@@ -233,6 +239,8 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 	};
 
 	const type = itemType[content.type as keyof typeof itemType];
+	const mediaPath = content.path ?? DEFAUT_PATH_IMAGE;
+	const mediaSrc = getMediaUrl(mediaPath);
 
 	switch (type) {
 		case P.SOUND:
@@ -241,7 +249,7 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 				type,
 				initial: {
 					...initial,
-					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
+					src: mediaSrc
 				},
 				actions
 			};
@@ -253,9 +261,9 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 					className: `bg-image ${initial.className || ""}`,
 					style: {
 						...initial.style,
-						backgroundImage: `url("/${content.path ?? DEFAUT_PATH_IMAGE}")`
+						backgroundImage: `url("${mediaSrc}")`
 					},
-					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
+					src: mediaSrc
 				},
 				actions
 			};
@@ -267,9 +275,9 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 					className: `bg-sprite ${initial.className || ""}`,
 					style: {
 						...initial.style,
-						backgroundImage: `url("/${content.path ?? DEFAUT_PATH_IMAGE}")`
+						backgroundImage: `url("${mediaSrc}")`
 					},
-					src: `/${content.path ?? DEFAUT_PATH_IMAGE}`
+					src: mediaSrc
 				},
 				actions
 			};

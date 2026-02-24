@@ -130,6 +130,7 @@ const adapter = new PrismaBetterSqlite3({
 });
 
 export const prisma = new PrismaClient({ adapter });
+const DEFAULT_CAPSULE_GRID = "ed-grid-w1-h1";
 
 async function main() {}
 
@@ -229,7 +230,6 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 	}
 
 	const scene = { ...sceneDB!, capsules, scenecontents };
-
 	return flattenScene(scene);
 }
 
@@ -360,7 +360,8 @@ export async function createCapsule({ sceneId, name }: { sceneId: number; name: 
 	return await prisma.$transaction(async (tx) => {
 		const capsule = await tx.capsule.create({
 			data: {
-				name
+				name,
+				grid: DEFAULT_CAPSULE_GRID
 			}
 		});
 
@@ -419,15 +420,16 @@ export async function updateItem({ id, ...update }: Partial<Item>) {
 type CreateTextItemInput = {
 	capsuleId: number;
 	afterItemId?: number;
-	name?: string;
-	inner?: string;
+	name: string;
+	inner: string;
 };
 
 type CreateCapsuleItemInput = {
 	sceneId: number;
 	destinationCapsuleId: number;
 	afterItemId?: number;
-	capsuleName?: string;
+	capsuleName: string;
+	grid: string;
 };
 
 type CreateItemFromContentInput = {
@@ -443,8 +445,8 @@ export async function createTextItemInCapsule(input: CreateTextItemInput) {
 		const content = await tx.content.create({
 			data: {
 				type: "text",
-				name: input.name || "",
-				inner: input.inner || ""
+				name: input.name,
+				inner: input.inner
 			}
 		});
 		const item = await tx.item.create({
@@ -463,7 +465,8 @@ export async function createCapsuleItem(input: CreateCapsuleItemInput) {
 	return await prisma.$transaction(async (tx) => {
 		const capsule = await tx.capsule.create({
 			data: {
-				name: input.capsuleName || "Capsule"
+				name: input.capsuleName,
+				grid: input.grid
 			}
 		});
 
@@ -592,6 +595,10 @@ export async function deleteCapsuleBranch(input: { itemId: number; capsuleId: nu
 		if (decorIds.length) {
 			await tx.decor.deleteMany({ where: { id: { in: decorIds } } });
 		}
+
+		await tx.sceneCapsule.deleteMany({
+			where: { capsuleId: { in: capsuleIdsToDelete } }
+		});
 
 		await tx.capsule.deleteMany({ where: { id: { in: capsuleIdsToDelete } } });
 

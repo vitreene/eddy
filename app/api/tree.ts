@@ -12,15 +12,16 @@ type TreeMutationBody =
 			action: "create-text";
 			capsuleId: number;
 			afterItemId?: number;
-			name?: string;
-			inner?: string;
+			name: string;
+			inner: string;
 	  }
 	| {
 			action: "create-capsule";
 			sceneId: number;
 			destinationCapsuleId: number;
 			afterItemId?: number;
-			capsuleName?: string;
+			capsuleName: string;
+			grid: string;
 	  }
 	| {
 			action: "create-from-content";
@@ -56,7 +57,8 @@ export async function action({ request }: Route.ActionArgs) {
 			sceneId: Number(body.sceneId),
 			destinationCapsuleId: Number(body.destinationCapsuleId),
 			afterItemId: body.afterItemId ? Number(body.afterItemId) : undefined,
-			capsuleName: body.capsuleName
+			capsuleName: body.capsuleName,
+			grid: body.grid
 		});
 		return Response.json({ ok: true, action: body.action, created });
 	}
