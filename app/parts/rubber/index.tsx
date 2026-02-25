@@ -1,5 +1,6 @@
 import cx from "classnames";
 import { useCallback, useRef } from "react";
+import { Trash2 } from "lucide-react";
 
 import { INTRO, OUTRO } from "@/lib/constants";
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -29,6 +30,7 @@ export function Rubber() {
 	const cues = sceneContents?.events || [];
 
 	const selecteds = events ? selectCues(cues, events[INTRO]?.name, events[OUTRO]?.name) : [];
+	const hasClearableEvents = Boolean(events && Object.values(events).some((event) => Boolean(event?.name)));
 	const start = selecteds[0];
 	const end = selecteds[selecteds.length - 1];
 
@@ -62,28 +64,52 @@ export function Rubber() {
 		[events, sceneLogic]
 	);
 
+	const clearAllEvents = () => {
+		if (!hasClearableEvents) return;
+		if (!events) return;
+
+		const actions = Object.keys(events);
+		for (const action of actions) {
+			const payload = makeEventPayload(events, action, "");
+			sceneLogic.send({ type: "events-update", payload });
+		}
+	};
+
 	return (
-		<ul
-			onMouseDown={enterSelection}
-			onMouseUp={exitSelection}
-			className="flex flex-1 flex-wrap items-start border border-amber-200"
-		>
-			{cues &&
-				cues.map((cue) => {
-					const selected = selecteds.includes(cue.name);
-					return (
-						<li
-							key={cue.name}
-							id={cue.name}
-							className={cx("px-2 py-1 text-sm select-none", { "bg-amber-200": selected })}
-						>
-							{cue.name == start && <SliderButtonStart />}
-							{cue.text}
-							{cue.name == end && <SliderButtonEnd />}
-						</li>
-					);
-				})}
-		</ul>
+		<div className="flex flex-1 flex-col gap-2">
+			<div className="flex justify-end">
+				<button
+					type="button"
+					onClick={clearAllEvents}
+					disabled={!hasClearableEvents}
+					className="inline-flex items-center gap-1 rounded border border-stone-300 px-2 py-1 text-xs hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent"
+				>
+					<Trash2 className="h-3.5 w-3.5" />
+				</button>
+			</div>
+
+			<ul
+				onMouseDown={enterSelection}
+				onMouseUp={exitSelection}
+				className="flex flex-1 flex-wrap items-start border border-amber-200"
+			>
+				{cues &&
+					cues.map((cue) => {
+						const selected = selecteds.includes(cue.name);
+						return (
+							<li
+								key={cue.name}
+								id={cue.name}
+								className={cx("px-2 py-1 text-sm select-none", { "bg-amber-200": selected })}
+							>
+								{cue.name == start && <SliderButtonStart />}
+								{cue.text}
+								{cue.name == end && <SliderButtonEnd />}
+							</li>
+						);
+					})}
+			</ul>
+		</div>
 	);
 }
 
