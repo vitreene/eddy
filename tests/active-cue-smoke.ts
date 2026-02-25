@@ -25,7 +25,11 @@ function createBaseContext(): SceneComp {
 				order: 1,
 				events: [
 					{ name: "item-intro", text: "", start: 2, end: 2.1 },
+					{ name: "capsule-intro", text: "", start: 2, end: 2 },
+					{ name: "capsule-outro", text: "", start: 8, end: 8 },
 					{ name: "parent-intro", text: "", start: 3, end: 3.1 },
+					{ name: "override-mid-intro", text: "", start: 3, end: 3 },
+					{ name: "override-mid-outro", text: "", start: 7, end: 7 },
 					{ name: "ancestor-intro", text: "", start: 4, end: 4.1 },
 					{ name: "parent-outro", text: "", start: 6, end: 6.2 },
 					{ name: "scene-end", text: "", start: 10, end: 10 }
@@ -88,7 +92,54 @@ function addLeafItem(context: SceneComp, itemId: number, capsuleId: number) {
 	};
 }
 
+function addCapsuleWithThreeLeafItems(context: SceneComp, capsuleId: number) {
+	context.capsules[capsuleId] = { id: capsuleId, name: `c${capsuleId}`, type: null, grid: null, itemIds: [] };
+	addLeafItem(context, capsuleId * 100 + 1, capsuleId);
+	addLeafItem(context, capsuleId * 100 + 2, capsuleId);
+	addLeafItem(context, capsuleId * 100 + 3, capsuleId);
+	context.items[capsuleId * 100 + 1].order = 1000;
+	context.items[capsuleId * 100 + 2].order = 2000;
+	context.items[capsuleId * 100 + 3].order = 3000;
+	context.capsules[capsuleId].itemIds = [capsuleId * 100 + 1, capsuleId * 100 + 2, capsuleId * 100 + 3];
+}
+
 const cases: Case[] = [
+	{
+		name: "item sans events herite d'une repartition capsule (3 items)",
+		build: () => {
+			const context = createBaseContext();
+			addCapsuleHost(context, { hostItemId: 20, hostCapsuleId: 1, childCapsuleId: 2 });
+			addCapsuleWithThreeLeafItems(context, 2);
+			context.events[20] = {
+				intro: { name: "capsule-intro", action: "intro", ref: "x" } as any,
+				outro: { name: "capsule-outro", action: "outro", ref: "x" } as any
+			};
+			return { context, itemId: 201 };
+		},
+		check: (result) => {
+			assert.equal(result.cueSec, 2.5);
+		}
+	},
+	{
+		name: "repartition capsule avec override milieu conserve la position precise",
+		build: () => {
+			const context = createBaseContext();
+			addCapsuleHost(context, { hostItemId: 20, hostCapsuleId: 1, childCapsuleId: 2 });
+			addCapsuleWithThreeLeafItems(context, 2);
+			context.events[20] = {
+				intro: { name: "capsule-intro", action: "intro", ref: "x" } as any,
+				outro: { name: "capsule-outro", action: "outro", ref: "x" } as any
+			};
+			context.events[202] = {
+				intro: { name: "override-mid-intro", action: "intro", ref: "x" } as any,
+				outro: { name: "override-mid-outro", action: "outro", ref: "x" } as any
+			};
+			return { context, itemId: 203 };
+		},
+		check: (result) => {
+			assert.equal(result.cueSec, 7.5);
+		}
+	},
 	{
 		name: "item intro + parent sans intro",
 		build: () => {
