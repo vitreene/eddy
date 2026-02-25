@@ -229,6 +229,7 @@ function deriveItemVisibilityWindows(context: SceneComp): Map<number, Visibility
 	const derivedCueWindowByItemId = new Map<number, CueWindow>();
 
 	const pendingCapsuleIds = new Set<number>(Object.keys(context.capsules).map(Number));
+	const sceneBounds = getSceneBoundsFromCues(cueByName);
 	const maxPasses = pendingCapsuleIds.size + 1;
 	let pass = 0;
 
@@ -243,25 +244,47 @@ function deriveItemVisibilityWindows(context: SceneComp): Map<number, Visibility
 			const capsule = context.capsules[capsuleId];
 			if (!capsule) {
 				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
 				continue;
 			}
+
+			if (capsuleId === context.main) {
+				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
+				continue;
+			}
+
+			let capsuleStartCue = 0;
+			let capsuleEndCue = Number.POSITIVE_INFINITY;
 
 			const hostItemId = hostItemByCapsuleId.get(capsuleId);
 			if (!hostItemId) {
 				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
 				continue;
 			}
 
 			const hostCueWindow = getItemCueWindow(hostItemId);
-			if (!hostCueWindow) continue;
-			const capsuleStartCue = hostCueWindow.introCueSec;
-			const capsuleEndCue = hostCueWindow.outroCueSec;
+			if (!hostCueWindow) {
+				const hostItem = context.items[hostItemId];
+				if (hostItem?.capsuleId === context.main) {
+					capsuleStartCue = sceneBounds.start;
+					capsuleEndCue = sceneBounds.end;
+				} else {
+					continue;
+				}
+			} else {
+				capsuleStartCue = hostCueWindow.introCueSec;
+				capsuleEndCue = hostCueWindow.outroCueSec;
+			}
+
 			if (
 				!Number.isFinite(capsuleStartCue) ||
 				!Number.isFinite(capsuleEndCue) ||
 				capsuleEndCue <= capsuleStartCue
 			) {
 				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
 				continue;
 			}
 
@@ -351,4 +374,13 @@ function deriveItemVisibilityWindows(context: SceneComp): Map<number, Visibility
 	}
 
 	return result;
+}
+
+function getSceneBoundsFromCues(cueByName: Map<string, TextTime>): { start: number; end: number } {
+	let end = 0;
+	for (const cue of cueByName.values()) {
+		const cueEnd = Number.isFinite(cue.end) ? cue.end : cue.start;
+		if (cueEnd > end) end = cueEnd;
+	}
+	return { start: 0, end };
 }

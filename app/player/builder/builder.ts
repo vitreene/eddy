@@ -114,6 +114,7 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 	const allContents = Object.values(snapshot.contents || {});
 	const capsulesById = snapshot.capsules || {};
 	const pendingCapsuleIds = new Set<number>(Object.keys(capsulesById).map(Number));
+	const sceneBounds = getSceneContentBounds(clonedSceneContents[sceneContent.id].events || []);
 
 	type Window = { start: number; end: number };
 	type Lock = { index: number; start: number; end: number };
@@ -128,20 +129,32 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 			const capsule = capsulesById[capsuleId];
 			if (!capsule) {
 				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
 				continue;
 			}
+
+			if (capsule.id === snapshot.main) {
+				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
+				continue;
+			}
+
+			let capsuleStart = 0;
+			let capsuleEnd = Number.POSITIVE_INFINITY;
 
 			const capsuleContent = allContents.find(
 				(content) => content.type == "capsule" && content.capsuleId == capsule.id
 			);
 			if (!capsuleContent) {
 				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
 				continue;
 			}
 
 			const capsuleHostItem = allItems.find((item) => item.contentId == capsuleContent.id);
 			if (!capsuleHostItem) {
 				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
 				continue;
 			}
 
@@ -149,19 +162,31 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 			const capsuleIntroName = capsuleHostEvents[INTRO]?.name;
 			const capsuleOutroName = capsuleHostEvents[OUTRO]?.name;
 			if (!capsuleIntroName || !capsuleOutroName) {
-				continue;
+				if (capsuleHostItem.capsuleId === snapshot.main) {
+					capsuleStart = sceneBounds.start;
+					capsuleEnd = sceneBounds.end;
+				} else {
+					continue;
+				}
+			} else {
+				const capsuleIntroCue = cueByName.get(capsuleIntroName);
+				const capsuleOutroCue = cueByName.get(capsuleOutroName);
+				if (!capsuleIntroCue || !capsuleOutroCue) {
+					if (capsuleHostItem.capsuleId === snapshot.main) {
+						capsuleStart = sceneBounds.start;
+						capsuleEnd = sceneBounds.end;
+					} else {
+						continue;
+					}
+				} else {
+					capsuleStart = Number(capsuleIntroCue.start);
+					capsuleEnd = Number(capsuleOutroCue.end);
+				}
 			}
 
-			const capsuleIntroCue = cueByName.get(capsuleIntroName);
-			const capsuleOutroCue = cueByName.get(capsuleOutroName);
-			if (!capsuleIntroCue || !capsuleOutroCue) {
-				continue;
-			}
-
-			const capsuleStart = Number(capsuleIntroCue.start);
-			const capsuleEnd = Number(capsuleOutroCue.end);
 			if (!Number.isFinite(capsuleStart) || !Number.isFinite(capsuleEnd) || capsuleEnd <= capsuleStart) {
 				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
 				continue;
 			}
 
@@ -259,7 +284,7 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 			}
 
 			pendingCapsuleIds.delete(capsuleId);
-			if (generatedForCapsule) progressed = true;
+			progressed = true;
 		}
 
 		if (!progressed) break;
@@ -271,6 +296,15 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 		events: clonedEvents,
 		sceneContents: clonedSceneContents
 	};
+}
+
+function getSceneContentBounds(cues: TextTime[]): { start: number; end: number } {
+	let end = 0;
+	for (const cue of cues) {
+		const cueEnd = Number.isFinite(cue.end) ? cue.end : cue.start;
+		if (cueEnd > end) end = cueEnd;
+	}
+	return { start: 0, end };
 }
 
 function createGeneratedEvent({
