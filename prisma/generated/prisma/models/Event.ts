@@ -9,8 +9,8 @@
  * 🟢 You can import this file directly.
  */
 import type * as runtime from "@prisma/client/runtime/client"
-import type * as $Enums from "../enums.js"
-import type * as Prisma from "../internal/prismaNamespace.js"
+import type * as $Enums from "../enums"
+import type * as Prisma from "../internal/prismaNamespace"
 
 /**
  * Model Event
@@ -279,6 +279,7 @@ export type EventOrderByWithRelationInput = {
 export type EventWhereUniqueInput = Prisma.AtLeast<{
   id?: number
   decorId?: number
+  itemId_action?: Prisma.EventItemIdActionCompoundUniqueInput
   AND?: Prisma.EventWhereInput | Prisma.EventWhereInput[]
   OR?: Prisma.EventWhereInput[]
   NOT?: Prisma.EventWhereInput | Prisma.EventWhereInput[]
@@ -290,7 +291,7 @@ export type EventWhereUniqueInput = Prisma.AtLeast<{
   itemId?: Prisma.IntNullableFilter<"Event"> | number | null
   item?: Prisma.XOR<Prisma.ItemNullableScalarRelationFilter, Prisma.ItemWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
-}, "id" | "decorId">
+}, "id" | "decorId" | "itemId_action">
 
 export type EventOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
@@ -402,6 +403,11 @@ export type EventListRelationFilter = {
 
 export type EventOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
+}
+
+export type EventItemIdActionCompoundUniqueInput = {
+  itemId: number
+  action: string
 }
 
 export type EventCountOrderByAggregateInput = {

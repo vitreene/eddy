@@ -21,7 +21,7 @@ note, au fur et a mesure des solutions trouvées, plusieurs conflits ptentiels d
 
 import * as transitions from "@/player/presets/transitions";
 
-import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor } from "@/api/db";
+import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor, ContentEvent } from "@/api/db";
 import { P, type ID } from "../types";
 import { SCENE_ID } from "../constants";
 import { SEP, DEFAULT_DURATION, INTRO, OUTRO } from "@/lib/constants";
@@ -38,26 +38,261 @@ TR.DEFAULT_IN = TR.fadeIn;
 TR.DEFAULT_OUT = TR.fadeOut;
 
 export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string } {
-	const events = mapEvents(snapshot);
+	const derivedSnapshot = applyCapsuleDefaultItemEvents(snapshot);
+	const events = mapEvents(derivedSnapshot);
 	// console.log("->events", events);
-	const { areas, itemsPositionClassName } = positionElements(snapshot);
-	const gridDefinitions = getGridDefinitions(snapshot);
-	const styles = createStyle(snapshot, areas, gridDefinitions);
+	const { areas, itemsPositionClassName } = positionElements(derivedSnapshot);
+	const gridDefinitions = getGridDefinitions(derivedSnapshot);
+	const styles = createStyle(derivedSnapshot, areas, gridDefinitions);
 
 	// console.log({ itemsPositionClassName });
 
 	let $capsules;
-	if (snapshot.capsules) {
-		$capsules = Object.values(snapshot.capsules).map((c) => createCapsule(c, snapshot, itemsPositionClassName));
+	if (derivedSnapshot.capsules) {
+		$capsules = Object.values(derivedSnapshot.capsules).map((c) =>
+			createCapsule(c, derivedSnapshot, itemsPositionClassName)
+		);
 	}
 	let $items;
-	if (snapshot.items) {
-		$items = Object.values(snapshot.items)
-			.map((it) => createItems(it, snapshot, itemsPositionClassName))
+	if (derivedSnapshot.items) {
+		$items = Object.values(derivedSnapshot.items)
+			.map((it) => createItems(it, derivedSnapshot, itemsPositionClassName))
 			.filter(Boolean);
 	}
 
 	return { persos: [...$capsules, ...$items], events, styles };
+}
+
+function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
+	// Runtime-only derivation pass:
+	// - computes missing intro/outro events for capsule children,
+	// - propagates duration constraints parent -> child capsules,
+	// - never writes back to DB.
+	if (!snapshot?.capsules || !snapshot?.items || !snapshot?.sceneContents) return snapshot;
+
+	const sceneContent =
+		Object.values(snapshot.sceneContents).find((sc) => sc.sceneId == snapshot.id) ||
+		Object.values(snapshot.sceneContents)[0];
+
+	if (!sceneContent) return snapshot;
+
+	const clonedEvents: SceneComp["events"] = Object.fromEntries(
+		Object.entries(snapshot.events || {}).map(([itemId, eventMap]) => [itemId, { ...(eventMap || {}) }])
+	);
+
+	const clonedSceneContents: SceneComp["sceneContents"] = {
+		...snapshot.sceneContents,
+		[sceneContent.id]: {
+			...sceneContent,
+			events: [...(sceneContent.events || [])]
+		}
+	};
+
+	const cueByName = new Map<string, TextTime>();
+	for (const cue of clonedSceneContents[sceneContent.id].events || []) {
+		cueByName.set(cue.name, cue);
+	}
+
+	let syntheticCueId = -1;
+	const ensureCueAtTime = (timeSec: number, hint: string) => {
+		const key = `__auto_${hint}_${Math.round(timeSec * 1000)}`;
+		if (!cueByName.has(key)) {
+			const cue: TextTime = {
+				id: syntheticCueId--,
+				name: key,
+				text: "",
+				start: timeSec,
+				end: timeSec
+			};
+			clonedSceneContents[sceneContent.id].events.push(cue);
+			cueByName.set(key, cue);
+		}
+		return key;
+	};
+
+	const allItems = Object.values(snapshot.items);
+	const allContents = Object.values(snapshot.contents || {});
+	const capsulesById = snapshot.capsules || {};
+	const pendingCapsuleIds = new Set<number>(Object.keys(capsulesById).map(Number));
+
+	type Window = { start: number; end: number };
+	type Lock = { index: number; start: number; end: number };
+
+	const maxPasses = pendingCapsuleIds.size + 1;
+	let pass = 0;
+
+	while (pendingCapsuleIds.size > 0 && pass < maxPasses) {
+		let progressed = false;
+
+		for (const capsuleId of [...pendingCapsuleIds]) {
+			const capsule = capsulesById[capsuleId];
+			if (!capsule) {
+				pendingCapsuleIds.delete(capsuleId);
+				continue;
+			}
+
+			const capsuleContent = allContents.find(
+				(content) => content.type == "capsule" && content.capsuleId == capsule.id
+			);
+			if (!capsuleContent) {
+				pendingCapsuleIds.delete(capsuleId);
+				continue;
+			}
+
+			const capsuleHostItem = allItems.find((item) => item.contentId == capsuleContent.id);
+			if (!capsuleHostItem) {
+				pendingCapsuleIds.delete(capsuleId);
+				continue;
+			}
+
+			const capsuleHostEvents = clonedEvents[capsuleHostItem.id] || {};
+			const capsuleIntroName = capsuleHostEvents[INTRO]?.name;
+			const capsuleOutroName = capsuleHostEvents[OUTRO]?.name;
+			if (!capsuleIntroName || !capsuleOutroName) {
+				continue;
+			}
+
+			const capsuleIntroCue = cueByName.get(capsuleIntroName);
+			const capsuleOutroCue = cueByName.get(capsuleOutroName);
+			if (!capsuleIntroCue || !capsuleOutroCue) {
+				continue;
+			}
+
+			const capsuleStart = Number(capsuleIntroCue.start);
+			const capsuleEnd = Number(capsuleOutroCue.end);
+			if (!Number.isFinite(capsuleStart) || !Number.isFinite(capsuleEnd) || capsuleEnd <= capsuleStart) {
+				pendingCapsuleIds.delete(capsuleId);
+				continue;
+			}
+
+			const orderedChildren = (capsule.itemIds || [])
+				.map((itemId) => snapshot.items[itemId])
+				.filter((item): item is ItemComp => Boolean(item))
+				.toSorted((a, b) => (a.order > b.order ? 1 : -1));
+
+			if (!orderedChildren.length) {
+				pendingCapsuleIds.delete(capsuleId);
+				progressed = true;
+				continue;
+			}
+
+			const locks: Lock[] = [];
+			for (const [index, item] of orderedChildren.entries()) {
+				const events = clonedEvents[item.id] || {};
+				const introName = events[INTRO]?.name;
+				const outroName = events[OUTRO]?.name;
+				if (!introName || !outroName) continue;
+
+				const introCue = cueByName.get(introName);
+				const outroCue = cueByName.get(outroName);
+				if (!introCue || !outroCue) continue;
+
+				const start = Number(introCue.start);
+				const end = Number(outroCue.end);
+				if (!Number.isFinite(start) || !Number.isFinite(end)) continue;
+
+				locks.push({ index, start, end });
+			}
+
+			const orderedLocks = locks
+				.toSorted((a, b) => a.index - b.index)
+				.reduce((acc, lock) => {
+					const prevEnd = acc.length ? acc[acc.length - 1].end : capsuleStart;
+					let start = Math.min(Math.max(lock.start, capsuleStart), capsuleEnd);
+					let end = Math.min(Math.max(lock.end, capsuleStart), capsuleEnd);
+					if (start < prevEnd) start = prevEnd;
+					if (end < start) end = start;
+					acc.push({ ...lock, start, end });
+					return acc;
+				}, [] as Lock[]);
+
+			const windows: Array<Window | undefined> = new Array(orderedChildren.length);
+
+			const allocateEvenly = (fromIndex: number, toIndex: number, start: number, end: number) => {
+				if (toIndex < fromIndex) return;
+				const count = toIndex - fromIndex + 1;
+				const span = end - start;
+				for (let offset = 0; offset < count; offset++) {
+					const segStart = start + (span * offset) / count;
+					const segEnd = start + (span * (offset + 1)) / count;
+					windows[fromIndex + offset] = { start: segStart, end: segEnd };
+				}
+			};
+
+			let previousIndex = -1;
+			let previousEnd = capsuleStart;
+
+			for (const lock of orderedLocks) {
+				allocateEvenly(previousIndex + 1, lock.index - 1, previousEnd, lock.start);
+				windows[lock.index] = { start: lock.start, end: lock.end };
+				previousIndex = lock.index;
+				previousEnd = lock.end;
+			}
+
+			allocateEvenly(previousIndex + 1, orderedChildren.length - 1, previousEnd, capsuleEnd);
+
+			let generatedForCapsule = false;
+			for (const [index, item] of orderedChildren.entries()) {
+				const window = windows[index];
+				if (!window) continue;
+
+				if (!clonedEvents[item.id]) clonedEvents[item.id] = {};
+				const currentEvents = clonedEvents[item.id];
+
+				if (!currentEvents[INTRO]) {
+					currentEvents[INTRO] = createGeneratedEvent({
+						itemId: item.id,
+						action: INTRO,
+						name: ensureCueAtTime(window.start, `capsule_${capsule.id}_item_${item.id}_intro`)
+					});
+					generatedForCapsule = true;
+				}
+
+				if (!currentEvents[OUTRO]) {
+					currentEvents[OUTRO] = createGeneratedEvent({
+						itemId: item.id,
+						action: OUTRO,
+						name: ensureCueAtTime(window.end, `capsule_${capsule.id}_item_${item.id}_outro`)
+					});
+					generatedForCapsule = true;
+				}
+			}
+
+			pendingCapsuleIds.delete(capsuleId);
+			if (generatedForCapsule) progressed = true;
+		}
+
+		if (!progressed) break;
+		pass++;
+	}
+
+	return {
+		...snapshot,
+		events: clonedEvents,
+		sceneContents: clonedSceneContents
+	};
+}
+
+function createGeneratedEvent({
+	itemId,
+	action,
+	name
+}: {
+	itemId: number;
+	action: string;
+	name: string;
+}): ContentEvent {
+	// Synthetic event used only by builder when intro/outro is missing.
+	return {
+		id: -1,
+		name,
+		action,
+		ref: "",
+		duration: null,
+		delay: null,
+		itemId,
+		decorId: null
+	};
 }
 
 //STYLES
@@ -145,17 +380,20 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		};
 	} else {
 		const content = Object.values(snapshot.contents).find((c) => c.capsuleId == capsule.id);
+		if (!content) return null;
 		// console.log({ capsule, content, snapshot });
 		const item = Object.values(snapshot.items).find((it) => content.id == it.contentId);
+		if (!item) return null;
 		const events = snapshot.events[item.id];
-		const decor = snapshot.decors[item.decorId];
+		const decor = snapshot.decors[item.decorId] || { className: "", area: "", style: {} };
 		const parentId = `capsule${SEP}${item.capsuleId}`;
 		const actions: Record<string | number, any> = {};
 
 		if (events) {
 			for (const action in events) {
 				const ev = events[action];
-				const actionStyle = getActionStyle(TR[ev.ref].style);
+				const preset = getTransitionPresetForEvent({ snapshot, item, event: ev });
+				const actionStyle = getActionStyle(preset.style);
 				const actionName = `${ev.name}-${ev.action}`;
 				if (action == INTRO) {
 					actions[actionName] = { style: actionStyle, move: parentId };
@@ -206,18 +444,16 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 	const content = snapshot.contents[item.contentId];
 	if (content.type == "capsule") return null;
 	const events = snapshot.events[item.id];
-	const decor = snapshot.decors[item.decorId];
+	const decor = snapshot.decors[item.decorId] || { className: "", area: "", style: {} };
 	const parentId = `capsule${SEP}${item.capsuleId}`;
 	const id = `item${SEP}${item.id}`;
 
 	const actions: Record<string | number, any> = {};
 
-	for (const action in events) {
+	for (const action in events || {}) {
 		const ev = events[action];
-		const ref =
-			ev.ref || (ev.action == INTRO && "DEFAULT_IN") || (ev.action == OUTRO && "DEFAULT_OUT") || "DEFAULT_IN";
-
-		const actionStyle = getActionStyle(TR[ref].style);
+		const preset = getTransitionPresetForEvent({ snapshot, item, event: ev });
+		const actionStyle = getActionStyle(preset.style);
 		const actionName = `${ev.name}-${ev.action}`;
 		if (action == INTRO) {
 			actions[actionName] = { style: actionStyle, move: parentId };
@@ -298,6 +534,78 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 				actions
 			};
 	}
+}
+
+function getTransitionPresetForEvent({
+	snapshot,
+	item,
+	event
+}: {
+	snapshot: SceneComp;
+	item: ItemComp;
+	event: ContentEvent;
+}) {
+	// Priority chain:
+	// 1) explicit event ref
+	// 2) capsule default transition for this action
+	// 3) global DEFAULT_IN/DEFAULT_OUT
+	const eventAction = event.action == OUTRO ? OUTRO : INTRO;
+	const eventRef = parseTransitionRef(event.ref);
+	const capsule = snapshot.capsules?.[item.capsuleId];
+	const capsuleRef = getCapsuleDefaultTransitionRef(capsule, eventAction);
+	const fallbackRef = eventAction == OUTRO ? "DEFAULT_OUT" : "DEFAULT_IN";
+
+	return (
+		getTransitionPreset(eventRef) ||
+		getTransitionPreset(capsuleRef) ||
+		getTransitionPreset(fallbackRef) ||
+		TR.DEFAULT_IN
+	);
+}
+
+function getCapsuleDefaultTransitionRef(capsule: CapsuleComp | undefined, action: string): string | null {
+	// Capsule defaults are distinct from capsule-host item events.
+	if (!capsule) return null;
+
+	const transitionValue =
+		action == INTRO
+			? (capsule as unknown as Record<string, unknown>).defaultItemIntroTransition
+			: (capsule as unknown as Record<string, unknown>).defaultItemOutroTransition;
+
+	return parseTransitionRef(transitionValue);
+}
+
+function parseTransitionRef(value: unknown): string | null {
+	// Accepts either plain preset key, or serialized action/ref JSON.
+	if (!value) return null;
+	if (typeof value == "string") {
+		const raw = value.trim();
+		if (!raw) return null;
+		if (raw.startsWith("{")) {
+			try {
+				const parsed = JSON.parse(raw) as { ref?: unknown };
+				if (typeof parsed.ref == "string") return parsed.ref;
+			} catch {
+				return raw;
+			}
+		}
+		return raw;
+	}
+	if (typeof value != "object") return null;
+
+	const record = value as Record<string, unknown>;
+	if (typeof record.ref == "string") return record.ref;
+	return null;
+}
+
+function getTransitionPreset(ref: string | null) {
+	// Resolves transition presets by exported key only.
+	if (!ref) return null;
+
+	const byKey = TR[ref as keyof typeof TR];
+	if (byKey?.style) return byKey;
+
+	return null;
 }
 /* 
 export type MapEvent = Map<number, Eventime | Eventime[]>;

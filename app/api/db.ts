@@ -47,8 +47,13 @@ export interface ItemComp extends Item {
     grid: string | null;
 }
 	 */
-export interface CapsuleComp extends Capsule {
+export interface CapsuleComp extends Omit<
+	Capsule,
+	"defaultItemIntroTransition" | "defaultItemOutroTransition"
+> {
 	itemIds: number[];
+	defaultItemIntroTransition?: string | { action?: string; ref?: string } | null;
+	defaultItemOutroTransition?: string | { action?: string; ref?: string } | null;
 }
 
 export interface TextTime {
@@ -258,9 +263,19 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 	// Capsules and items
 	if (scene.capsules) {
 		scene.capsules.forEach(({ items: items, ...capsule }) => {
+			const capsuleRecord = capsule as Record<string, unknown>;
 			const itemIds: number[] = items.map((item) => item.id);
 
-			flatScene.capsules[capsule.id] = { ...capsule, itemIds };
+			flatScene.capsules[capsule.id] = {
+				...capsule,
+				defaultItemIntroTransition: parseCapsuleTransition(
+					(capsuleRecord.defaultItemIntroTransition as string | null | undefined) ?? null
+				),
+				defaultItemOutroTransition: parseCapsuleTransition(
+					(capsuleRecord.defaultItemOutroTransition as string | null | undefined) ?? null
+				),
+				itemIds
+			};
 
 			// Store decor in flat structure
 
@@ -389,7 +404,7 @@ export async function createCapsule({ sceneId, name }: { sceneId: number; name: 
 export async function updateCapsule(id: number, update: Partial<Omit<Capsule, "id">>) {
 	return await prisma.capsule.update({
 		where: { id },
-		data: update
+		data: update as any
 	});
 }
 
@@ -763,4 +778,31 @@ export async function updateTheme(themeId: number, update: Partial<Theme>) {
 	const custom = (theme.custom || "") + (update.custom || "");
 	const generated = (theme.generated || "") + (update.generated || "");
 	return await prisma.theme.update({ where: { id: themeId }, data: { ...update, custom, generated } });
+}
+
+function parseCapsuleTransition(
+	value: string | null | undefined
+): string | { action?: string; ref?: string } | null {
+	// Read-side compatibility:
+	// - plain strings are still accepted
+	// - canonical JSON { action, ref } is parsed into object form
+	if (!value) return null;
+	const raw = value.trim();
+	if (!raw) return null;
+
+	if (raw.startsWith("{")) {
+		try {
+			const parsed = JSON.parse(raw) as { action?: unknown; ref?: unknown };
+			if (typeof parsed == "object" && parsed && typeof parsed.ref == "string") {
+				return {
+					...(typeof parsed.action == "string" ? { action: parsed.action } : {}),
+					ref: parsed.ref
+				};
+			}
+		} catch {
+			return raw;
+		}
+	}
+
+	return raw;
 }

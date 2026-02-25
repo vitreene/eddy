@@ -16,10 +16,10 @@
  */
 
 import * as runtime from "@prisma/client/runtime/client"
-import type * as Prisma from "../models.js"
-import { type PrismaClient } from "./class.js"
+import type * as Prisma from "../models"
+import { type PrismaClient } from "./class"
 
-export type * from '../models.js'
+export type * from '../models'
 
 export type DMMF = typeof runtime.DMMF
 
@@ -80,12 +80,12 @@ export type PrismaVersion = {
 }
 
 /**
- * Prisma Client JS version: 7.2.0
- * Query Engine version: 0c8ef2ce45c83248ab3df073180d5eda9e8be7a3
+ * Prisma Client JS version: 7.4.0
+ * Query Engine version: ab56fe763f921d033a6c195e7ddeb3e255bdbb57
  */
 export const prismaVersion: PrismaVersion = {
-  client: "7.2.0",
-  engine: "0c8ef2ce45c83248ab3df073180d5eda9e8be7a3"
+  client: "7.4.0",
+  engine: "ab56fe763f921d033a6c195e7ddeb3e255bdbb57"
 }
 
 /**
@@ -1225,7 +1225,9 @@ export const CapsuleScalarFieldEnum = {
   id: 'id',
   name: 'name',
   type: 'type',
-  grid: 'grid'
+  grid: 'grid',
+  defaultItemIntroTransition: 'defaultItemIntroTransition',
+  defaultItemOutroTransition: 'defaultItemOutroTransition'
 } as const
 
 export type CapsuleScalarFieldEnum = (typeof CapsuleScalarFieldEnum)[keyof typeof CapsuleScalarFieldEnum]

@@ -115,11 +115,21 @@ export const sceneLogic = setup({
 			if (capsuleTouched) {
 				const contentId = context.items[itemId].contentId;
 				const { id, ...capsule } = context.capsules[context.contents[contentId].capsuleId];
+				const capsuleRecord = capsule as Record<string, unknown>;
 
 				delete capsule.itemIds;
 
+				const introSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemIntroTransition, "intro");
+				const outroSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemOutroTransition, "outro");
+
 				const formData = new FormData();
-				Object.entries(capsule).forEach(([k, v]: [string, unknown]) => formData.set(k, (v || "") as any));
+				Object.entries(capsule).forEach(([k, v]: [string, unknown]) => {
+					if (k == "defaultItemIntroTransition" || k == "defaultItemOutroTransition") return;
+					formData.set(k, (v || "") as any);
+				});
+
+				formData.set("defaultItemIntroTransition", introSerialized);
+				formData.set("defaultItemOutroTransition", outroSerialized);
 
 				fetch(`/api/capsule/${id}`, {
 					method: "POST",
@@ -454,6 +464,28 @@ export const sceneLogic = setup({
 });
 
 export const SceneLogicContext = createActorContext(sceneLogic);
+
+function serializeCapsuleTransition(value: unknown, action: "intro" | "outro"): string {
+	// Canonical persistence format for capsule defaults.
+	// We always store JSON { action, ref } in DB.
+	if (!value) return "";
+
+	if (typeof value == "string") {
+		const ref = value.trim();
+		if (!ref) return "";
+		return JSON.stringify({ action, ref });
+	}
+
+	if (typeof value == "object") {
+		const record = value as Record<string, unknown>;
+		const ref = typeof record.ref == "string" ? record.ref.trim() : "";
+		if (!ref) return "";
+		const currentAction = typeof record.action == "string" && record.action ? record.action : action;
+		return JSON.stringify({ action: currentAction, ref });
+	}
+
+	return "";
+}
 
 function getMutationActivePayload(output: TreeMutationResponse): Partial<ActiveState> {
 	const createdItem = output.created?.item;

@@ -17,8 +17,8 @@
 
 import * as runtime from "@prisma/client/runtime/index-browser"
 
-export type * from '../models.js'
-export type * from './prismaNamespace.js'
+export type * from '../models'
+export type * from './prismaNamespace'
 
 export const Decimal = runtime.Decimal
 
@@ -69,9 +69,9 @@ export type ModelName = (typeof ModelName)[keyof typeof ModelName]
  * Enums
  */
 
-export const TransactionIsolationLevel = {
+export const TransactionIsolationLevel = runtime.makeStrictEnum({
   Serializable: 'Serializable'
-} as const
+} as const)
 
 export type TransactionIsolationLevel = (typeof TransactionIsolationLevel)[keyof typeof TransactionIsolationLevel]
 
@@ -112,7 +112,9 @@ export const CapsuleScalarFieldEnum = {
   id: 'id',
   name: 'name',
   type: 'type',
-  grid: 'grid'
+  grid: 'grid',
+  defaultItemIntroTransition: 'defaultItemIntroTransition',
+  defaultItemOutroTransition: 'defaultItemOutroTransition'
 } as const
 
 export type CapsuleScalarFieldEnum = (typeof CapsuleScalarFieldEnum)[keyof typeof CapsuleScalarFieldEnum]

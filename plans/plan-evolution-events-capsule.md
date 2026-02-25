@@ -1,0 +1,136 @@
+# Plan d'action — Evolution des events/transitions des items de capsule
+
+- [x] **1. Cartographier l'existant**
+  - Identifier ou sont geres aujourd'hui les events `intro/outro` (items + capsule) et les transitions (nommees / objets interpolation).
+  - Localiser les points d'entree dans `builder.ts` et l'UI d'edition capsule/item.
+  - Resultat de cartographie:
+    - `builder.ts` reconstruit le runtime player depuis `SceneComp` (`buildScene` -> `createCapsule`/`createItems`/`mapEvents`).
+    - Les transitions nommees sont resolues via `app/player/presets/transitions.ts` puis mappees dans `TR` (`DEFAULT_IN`/`DEFAULT_OUT` actuellement `fadeIn`/`fadeOut`).
+    - Pour un item standard, la transition est lue depuis `events[itemId][intro|outro].ref`; fallback actuel: `DEFAULT_IN`/`DEFAULT_OUT` (`createItems`).
+    - Pour une capsule (en tant qu'item), meme logique dans `createCapsule`; si aucun event, `intro/outro` par defaut sont appliques.
+    - Les temps `intro/outro` sont derives des cues audio (`sceneContents.events`) via `mapEvents` avec `event.name` -> cue `start/end`.
+    - Edition event item: `app/parts/event-edit/index.tsx` met a jour `events-update` (`action`, `name`, `ref`) et persiste via `scene-logic` -> `POST /api/content/:itemId`.
+    - Edition capsule: `app/parts/item-edit/index.tsx` expose nom + grille, envoie `capsule-update`; persistance via `scene-logic` -> `POST /api/capsule/:id`.
+    - Persistance DB capsule actuelle: `Capsule` contient `name/type/grid` uniquement (`prisma/schema.prisma`), update via `app/api/capsule.ts` + `updateCapsule`.
+    - Conventions events `action/ref`: stockees cote `Event` en DB (`action`, `ref` string), upsert par `addEventToContent`.
+
+- [x] **2. Formaliser les regles metier d'heritage capsule -> items**
+  - Definir la regle: un item sans event explicite herite du comportement par defaut defini dans la capsule.
+  - Clarifier la distinction entre:
+    - defaults pour les items de la capsule
+    - events propres de la capsule (en tant qu'item elle-meme).
+  - Specification fonctionnelle (v2):
+    - Les transitions par defaut capsule remplacent le fallback actuel `DEFAULT_IN/DEFAULT_OUT` dans `builder.ts` pour les items enfants sans `ref` explicite.
+    - Les events `intro/outro` explicites d'un item restent prioritaires sur tout fallback capsule.
+    - Les transitions explicites d'un item (via `ref`) restent prioritaires sur les transitions par defaut capsule.
+    - Les transitions par defaut capsule n'impactent pas les events propres de la capsule en tant qu'item hote dans sa capsule parente.
+    - Si une capsule ne definit pas de transition par defaut entree/sortie, `builder.ts` conserve le fallback global existant (`DEFAULT_IN/DEFAULT_OUT`).
+    - Les valeurs capsule `defaultItemIntroTransition` / `defaultItemOutroTransition` suivent le meme contrat que les events (`action` + `ref`):
+      - `action` implicite par champ (`intro` pour `defaultItemIntroTransition`, `outro` pour `defaultItemOutroTransition`)
+      - `ref` peut etre une transition nommee (cle preset), ou une reference resolvable selon la convention existante.
+  - Ordre de priorite a appliquer dans `builder.ts` (item enfant):
+    - Intro: `event.intro.ref` -> `capsule.defaultItemIntroTransition.ref` -> `DEFAULT_IN`
+    - Outro: `event.outro.ref` -> `capsule.defaultItemOutroTransition.ref` -> `DEFAULT_OUT`
+    - Si `ref` est present mais non resolu, fallback defensif vers la valeur suivante de la chaine.
+  - Impacts explicites sur l'existant:
+    - Oui, cette evolution modifie la regle actuelle de fallback des transitions dans `createItems`/`createCapsule` de `builder.ts`.
+    - Le calcul temporel `mapEvents` (base sur `event.name` + cue start/end) n'est pas modifie par cette etape.
+
+- [x] **3. Definir l'algorithme de repartition temporelle**
+  - Cas standard: duree visible capsule = `outro - intro`, repartie equitablement entre les items sans timings explicites.
+  - Cas mixte: si certains items ont des timings forces, distribuer le temps restant a parts egales entre les autres, en conservant l'ordre.
+  - Verifier avec l'exemple (2" -> 8", 3 images, override image 2 a 3" -> 7").
+  - Realisation:
+    - Fenetre capsule derivee depuis l'item hote de capsule: `intro.start` -> `outro.end`.
+    - Ordonnancement de calcul ajoute: les fenetres de capsules sont resolues avant la derivation des items enfants dependants.
+    - Pour les capsules imbriquees, calcul iteratif parent -> enfant (sans heritage transitif des transitions), afin de propager uniquement les durees.
+    - Les items avec `intro`+`outro` explicites sont traites comme verrous temporels, normalises dans la fenetre capsule.
+    - Les intervalles libres (avant, entre, apres verrous) sont redistribues a parts egales entre items non verrouilles, ordre conserve.
+    - Le resultat est utilise pour combler uniquement les actions manquantes par item (`intro` et/ou `outro`).
+
+- [x] **4. Implementer la generation des events manquants dans `builder.ts`**
+  - Generer a la volee les `intro/outro` absents pour les items d'une capsule.
+  - Ne rien persister en base (etats derives uniquement runtime/build).
+  - Garantir un comportement stable meme si aucun item n'a d'event explicite.
+  - Realisation:
+    - Ajout d'une phase derivee appelee au debut de `buildScene`: `applyCapsuleDefaultItemEvents(snapshot)`.
+    - La phase clone `events` et `sceneContents`, puis enrichit le snapshot runtime sans mutation de la source.
+    - Creation de cues synthetiques `__auto_*` pour porter les timings derives en secondes.
+    - Injection d'events runtime generes (`ContentEvent`) seulement si `intro` et/ou `outro` manquent.
+
+- [x] **5. Implementer la logique de transitions par defaut**
+  - Si un item n'a pas de transition definie, appliquer la transition par defaut d'entree/sortie de la capsule.
+  - Si aucune transition defaut capsule n'est definie, conserver le fallback global existant.
+  - Realisation:
+    - `builder.ts` applique desormais la priorite: `event.ref` -> `capsule.defaultItem*Transition.ref` -> `DEFAULT_IN/DEFAULT_OUT`.
+    - Lecture defensive des champs capsule (support string direct ou objet avec `{ ref }`, conforme conventions `action/ref`).
+    - Resolution defensive: si `ref` est absent/non resolu, fallback automatique vers l'etape suivante.
+    - La logique est appliquee pour les items standards et pour les capsules non-main en tant qu'items hotes dans leur capsule parente.
+
+- [x] **5.1 Definir la responsabilite `scene-logic` pour la persistance capsule**
+  - Ajouter la regle: les valeurs de transitions definies pour la capsule sont gerees par `scene-logic`.
+  - `scene-logic` devient responsable de l'enregistrement en base des transitions par defaut de capsule.
+  - `builder.ts` reste strictement en calcul derive (aucune ecriture DB) pour les events/transitions manquants des items.
+  - Realisation:
+    - `scene-logic` serialize maintenant les defaults capsule en JSON (`{ action, ref }`) et les envoie a `/api/capsule/:id`.
+    - `builder.ts` reste purement derive (aucune persistance DB).
+
+- [x] **5.2 Aligner le contrat de donnees entre UI, `scene-logic` et `builder.ts`**
+  - Etendre le modele capsule avec deux champs explicites (exemple):
+    - `defaultItemIntroTransition`
+    - `defaultItemOutroTransition`
+  - Pour ces variables, s'appuyer sur les conventions existantes des events (`action` et `ref`):
+    - meme structure de serialisation
+    - meme regles de validation/type
+    - meme logique de resolution des references
+  - Faire transiter ces champs dans les payloads UI -> API -> `scene-logic`.
+  - Dans `builder.ts`, lire ces champs comme source prioritaire de fallback des items.
+  - Realisation:
+    - UI capsule envoie `defaultItemIntroTransition` / `defaultItemOutroTransition` via `capsule-update`.
+    - API capsule valide et normalise ces champs selon la convention `action/ref`.
+    - Chargement scene (`flattenScene`) deserialize ces champs pour usage runtime.
+    - `builder.ts` lit ces champs en priorite de fallback transitions.
+
+- [x] **5.3 Gerer migration et compatibilite**
+  - Migration DB: ajouter les nouveaux champs (nullable) sur l'entite capsule.
+  - Retrocompatibilite: si champs absents/null, conserver le comportement actuel (fallback global).
+  - Ajouter validation serveur (types acceptes: nom de transition ou objet d'interpolation conforme).
+  - Realisation:
+    - Migration ajoutee: `prisma/migrations/20260225173000_capsule_default_item_transitions/migration.sql`.
+    - Schema Prisma etendu (`default_item_intro_transition`, `default_item_outro_transition`, nullable).
+    - Compatibilite conservee: valeur absente/null -> fallback `DEFAULT_IN/DEFAULT_OUT`.
+    - Validation serveur ajoutee dans `app/api/capsule.ts` (string ref ou JSON `{ action, ref }` valide).
+
+- [x] **6. Etendre l'UI d'edition de capsule**
+  - Ajouter une zone "Transitions par defaut des items":
+    - Transition d'entree par defaut
+    - Transition de sortie par defaut
+  - Garder ces reglages separes des events/transitions propres de la capsule (item parent).
+  - Realisation:
+    - Ajout dans `app/parts/item-edit/index.tsx` de 2 selects (entree/sortie) bases sur les presets de transitions.
+    - Les valeurs sont stockees sur capsule via `capsule-update` (`defaultItemIntroTransition`, `defaultItemOutroTransition`) et utilisees en preview runtime.
+    - Separation conservee: cette zone configure les defaults des items enfants, pas les events de la capsule hote.
+    - Persistance DB active: `scene-logic` serialize et envoie ces champs, l'API capsule valide/normalise, et la DB les stocke.
+
+- [x] **7. Ajouter des tests cibles**
+  - Tests unitaires `builder.ts`:
+    - heritage complet
+    - cas mixte avec overrides
+    - transitions par defaut + fallback.
+  - Fixtures pour securiser les regressions timeline.
+  - Realisation:
+    - Ajout d'un smoke test dedie `builder-capsule-smoke.ts` couvrant:
+      - repartition auto 3 items,
+      - override item intermediaire + repartition du reste,
+      - transitions par defaut capsule,
+      - absence d'heritage transitif des transitions,
+      - robustesse si decor manquant.
+    - Execution validee: `npm run test:smoke`.
+
+- [x] **8. Verification fonctionnelle de bout en bout**
+  - Controle dans l'editeur: selection item, overrides, recalcul des voisins.
+  - Validation du rendu timeline/preview et coherence UX.
+  - Realisation:
+    - QA technique executee via smoke tests: `npm run test:smoke`.
+    - Validation de la scene de recette creee en DB: `getScene(7)` + `buildScene(scene)` sans exception runtime.
+    - Resultat observe: scene `7` construite avec `5` persos et `6` entrees timeline.

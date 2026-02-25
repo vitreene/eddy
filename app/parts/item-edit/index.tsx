@@ -4,6 +4,8 @@ import { getValuesFromGridName } from "@/lib/utils";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { StyleEditor } from "@/components/style-editor";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
+import * as TR from "@/player/presets/transitions";
+import { INTRO, OUTRO } from "@/lib/constants";
 
 import { DEFAULT_STYLE } from "@/lib/constants";
 
@@ -178,6 +180,19 @@ function CapsuleEdit({
 		});
 	};
 
+	const onChangeDefaultTransition = (action: string, ref: string) => {
+		send({
+			type: "capsule-update",
+			payload:
+				action == INTRO
+					? { id: capsule.id, defaultItemIntroTransition: ref || null }
+					: { id: capsule.id, defaultItemOutroTransition: ref || null }
+		});
+	};
+
+	const introRef = parseTransitionRef(capsule.defaultItemIntroTransition);
+	const outroRef = parseTransitionRef(capsule.defaultItemOutroTransition);
+
 	const gridValues = getValuesFromGridName(capsule.grid);
 	return (
 		<>
@@ -194,6 +209,32 @@ function CapsuleEdit({
 
 			<ResizableGridFrame key={capsule.id} w={gridValues.w} h={gridValues.h} onChange={onChangeGrid} />
 
+			<div className="mt-3 mb-2 border border-stone-300 p-2 text-xs">
+				<p className="mb-2 font-medium">Transitions par defaut des items</p>
+				<div className="mb-2 grid grid-cols-[80px_1fr] items-center gap-2">
+					<label>Entree</label>
+					<select value={introRef} onChange={(e) => onChangeDefaultTransition(INTRO, e.currentTarget.value)}>
+						<option value="">-- fallback global --</option>
+						{Object.entries(TR).map(([k, t]) => (
+							<option key={k} value={k}>
+								{t.name}
+							</option>
+						))}
+					</select>
+				</div>
+				<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+					<label>Sortie</label>
+					<select value={outroRef} onChange={(e) => onChangeDefaultTransition(OUTRO, e.currentTarget.value)}>
+						<option value="">-- fallback global --</option>
+						{Object.entries(TR).map(([k, t]) => (
+							<option key={k} value={k}>
+								{t.name}
+							</option>
+						))}
+					</select>
+				</div>
+			</div>
+
 			<StyleEditor
 				content={content}
 				value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
@@ -205,4 +246,23 @@ function CapsuleEdit({
 			/>
 		</>
 	);
+}
+
+function parseTransitionRef(value: CapsuleComp["defaultItemIntroTransition"]): string {
+	if (!value) return "";
+	if (typeof value == "string") {
+		const raw = value.trim();
+		if (!raw) return "";
+		if (raw.startsWith("{")) {
+			try {
+				const parsed = JSON.parse(raw) as { ref?: unknown };
+				if (typeof parsed.ref == "string") return parsed.ref;
+			} catch {
+				return raw;
+			}
+		}
+		return raw;
+	}
+	if (typeof value == "object" && typeof value.ref == "string") return value.ref;
+	return "";
 }
