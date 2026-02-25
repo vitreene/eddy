@@ -8,3 +8,4 @@ export const DEFAULT_STYLE = { fontFamily: "Inter", fontSize: "3cqw", color: "#2
 export const GRID_DEFAULT_PREFIX = "ed";
 
 export const DEFAULT_DURATION = 500;
+export const AUTOCOMMIT_TOUCHED_IDLE_MS = 800;

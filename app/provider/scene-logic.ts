@@ -8,6 +8,7 @@ import { computeActiveCue } from "./active-cue";
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
+import { AUTOCOMMIT_TOUCHED_IDLE_MS } from "@/lib/constants";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -46,6 +47,7 @@ export const sceneLogic = setup({
 		input: {} as SceneComp,
 		events: {} as
 			| { type: "init"; payload: SceneComp }
+			| { type: "persist-touched" }
 			| { type: "active-set"; payload: Partial<ActiveState> }
 			| { type: "commit"; payload: Partial<ActiveState> }
 			| { type: "reset-active" }
@@ -66,6 +68,45 @@ export const sceneLogic = setup({
 			| { type: "theme-update"; payload: Partial<Theme> }
 	},
 	actions: {
+		commitTouchedOnSelectionSwitch: ({ context, event }) => {
+			if (event.type !== "active-set") return;
+			if (!("itemId" in event.payload)) return;
+			if (!event.payload.itemId || event.payload.itemId === context.active.itemId) return;
+
+			const params = getTouchedParams(context);
+			if (!params.length) return;
+
+			executePersistTouchedCommits(context, params);
+		},
+		resetTouchedOnSelectionSwitch: assign(({ context, event }) => {
+			if (event.type !== "active-set") return context;
+			if (!("itemId" in event.payload)) return context;
+			if (!event.payload.itemId || event.payload.itemId === context.active.itemId) return context;
+			if (!getTouchedParams(context).length) return context;
+
+			return {
+				...context,
+				active: {
+					...context.active,
+					eventTouched: false,
+					decorTouched: false,
+					themeTouched: false,
+					capsuleTouched: false
+				}
+			};
+		}),
+		resetTouched: assign(({ context }) => {
+			return {
+				...context,
+				active: {
+					...context.active,
+					eventTouched: false,
+					decorTouched: false,
+					themeTouched: false,
+					capsuleTouched: false
+				}
+			};
+		}),
 		reset: assign(({ context }) => {
 			return {
 				...context,
@@ -79,83 +120,16 @@ export const sceneLogic = setup({
 			};
 		}),
 		commitFetch: async ({ context }, params: string[]) => {
-			if (!params.length) return;
-			const itemId = context.active.itemId;
-
-			if (!itemId) return false;
-
-			const decorTouched = params.includes("decorTouched");
-			const eventTouched = params.includes("eventTouched");
-			const themeTouched = params.includes("themeTouched");
-			const capsuleTouched = params.includes("capsuleTouched");
-
-			if (eventTouched) {
-				fetch(`/api/content/${itemId}`, {
-					method: "POST",
-					headers: {
-						Accept: "application/json",
-						"Content-Type": "application/json"
-					},
-					body: JSON.stringify(context.events[itemId])
-				});
-			}
-
-			if (decorTouched && context.items[itemId].decorId) {
-				const decor = context.decors?.[context.items[itemId].decorId];
-				if (decor) {
-					const { id: decorId, ...rest } = decor;
-					fetch(`/api/decor`, {
-						method: "POST",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ itemId, decorId, ...rest })
-					});
-				}
-			}
-
-			if (capsuleTouched) {
-				const contentId = context.items[itemId].contentId;
-				const { id, ...capsule } = context.capsules[context.contents[contentId].capsuleId];
-				const capsuleRecord = capsule as Record<string, unknown>;
-
-				delete capsule.itemIds;
-
-				const introSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemIntroTransition, "intro");
-				const outroSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemOutroTransition, "outro");
-
-				const formData = new FormData();
-				Object.entries(capsule).forEach(([k, v]: [string, unknown]) => {
-					if (k == "defaultItemIntroTransition" || k == "defaultItemOutroTransition") return;
-					formData.set(k, (v || "") as any);
-				});
-
-				formData.set("defaultItemIntroTransition", introSerialized);
-				formData.set("defaultItemOutroTransition", outroSerialized);
-
-				fetch(`/api/capsule/${id}`, {
-					method: "POST",
-					body: formData
-				});
-			}
-
-			if (themeTouched) {
-				const contentId = context.items[itemId].contentId;
-				const capsule = context.capsules[context.contents[contentId].capsuleId];
-
-				const gridClassName = capsule.grid;
-
-				if (gridClassName) {
-					const generated = findCssClassRule(context.theme.generated, gridClassName);
-
-					fetch(`/api/theme/${context.theme.id}`, {
-						method: "POST",
-						headers: {
-							Accept: "application/json",
-							"Content-Type": "application/json"
-						},
-						body: JSON.stringify({ generated })
-					});
-				}
-			}
+			executePersistTouchedCommits(context, params);
+		}
+	},
+	guards: {
+		hasTouchedChanges: ({ context }) => getTouchedParams(context).length > 0,
+		hasTouchedChangesOnSelectionSwitch: ({ context, event }) => {
+			if (event.type !== "active-set") return false;
+			if (!("itemId" in event.payload)) return false;
+			if (!event.payload.itemId || event.payload.itemId === context.active.itemId) return false;
+			return getTouchedParams(context).length > 0;
 		}
 	},
 
@@ -182,6 +156,35 @@ export const sceneLogic = setup({
 			type: "parallel",
 			initial: "active",
 			states: {
+				autosave: {
+					initial: "clean",
+					states: {
+						clean: {
+							on: {
+								"persist-touched": {
+									target: "touched"
+								}
+							}
+						},
+						touched: {
+							on: {
+								"persist-touched": {
+									target: "touched"
+								},
+								commit: {
+									target: "clean"
+								}
+							},
+							after: {
+								[AUTOCOMMIT_TOUCHED_IDLE_MS]: {
+									guard: "hasTouchedChanges",
+									actions: raise(() => ({ type: "commit", payload: {} })),
+									target: "clean"
+								}
+							}
+						}
+					}
+				},
 				"end-edit": {
 					target: "#scene.start"
 				},
@@ -190,6 +193,8 @@ export const sceneLogic = setup({
 						"active-set": {
 							target: "#scene.edit",
 							actions: [
+								{ type: "commitTouchedOnSelectionSwitch" },
+								{ type: "resetTouchedOnSelectionSwitch" },
 								assign(({ context, event }) => {
 									const cue =
 										"itemId" in event.payload && event.payload.itemId
@@ -211,18 +216,7 @@ export const sceneLogic = setup({
 							actions: [
 								{
 									type: "commitFetch",
-									params: ({ context, event }) => {
-										const diffs: string[] = [];
-										for (const id in event.payload) {
-											if (context.active[id] !== event.payload[id]) diffs.push(id);
-										}
-										if (context.active.eventTouched) diffs.push("eventTouched");
-										if (context.active.decorTouched) diffs.push("decorTouched");
-										if (context.active.themeTouched) diffs.push("themeTouched");
-										if (context.active.capsuleTouched) diffs.push("capsuleTouched");
-
-										return diffs;
-									}
+									params: ({ context }) => getTouchedParams(context)
 								},
 								{ type: "reset" }
 							]
@@ -252,7 +246,8 @@ export const sceneLogic = setup({
 									};
 
 									return { ...context, capsules, active };
-								})
+								}),
+								raise(() => ({ type: "persist-touched" }))
 							]
 						}
 					}
@@ -262,36 +257,39 @@ export const sceneLogic = setup({
 					on: {
 						"item-update": {
 							target: "#scene.edit",
-							actions: assign(({ context, event }) => {
-								const { decor, ...payload } = event.payload;
-								if (!decor) return context;
-								const decorId = decor.id;
-								const itemId = context.active.itemId!;
-								const newItem = {
-									...context.items[itemId],
-									...payload
-								};
+							actions: [
+								assign(({ context, event }) => {
+									const { decor, ...payload } = event.payload;
+									if (!decor) return context;
+									const decorId = decor.id;
+									const itemId = context.active.itemId!;
+									const newItem = {
+										...context.items[itemId],
+										...payload
+									};
 
-								return {
-									...context,
-									items: {
-										...context.items,
-										[itemId]: newItem
-									},
-									decors: {
-										...context.decors,
-										[decorId]: {
-											...context.decors?.[decorId],
-											...decor
+									return {
+										...context,
+										items: {
+											...context.items,
+											[itemId]: newItem
+										},
+										decors: {
+											...context.decors,
+											[decorId]: {
+												...context.decors?.[decorId],
+												...decor
+											}
+										},
+
+										active: {
+											...context.active,
+											decorTouched: true
 										}
-									},
-
-									active: {
-										...context.active,
-										decorTouched: true
-									}
-								};
-							})
+									};
+								}),
+								raise(() => ({ type: "persist-touched" }))
+							]
 						}
 					}
 				},
@@ -316,27 +314,30 @@ export const sceneLogic = setup({
 							})
 						},
 						"events-update": {
-							actions: assign(({ context, event }) => {
-								const itemId = context.active.itemId;
+							actions: [
+								assign(({ context, event }) => {
+									const itemId = context.active.itemId;
 
-								if (!itemId) return context;
-								const action = event.payload.action;
-								if (!action) return context;
-								return {
-									...context,
-									events: {
-										...context.events,
-										[itemId]: {
-											...(context.events[itemId] ?? {}),
-											[action]: { ...context.events[itemId]?.[action], ...event.payload }
+									if (!itemId) return context;
+									const action = event.payload.action;
+									if (!action) return context;
+									return {
+										...context,
+										events: {
+											...context.events,
+											[itemId]: {
+												...(context.events[itemId] ?? {}),
+												[action]: { ...context.events[itemId]?.[action], ...event.payload }
+											}
+										},
+										active: {
+											...context.active,
+											eventTouched: true
 										}
-									},
-									active: {
-										...context.active,
-										eventTouched: true
-									}
-								};
-							})
+									};
+								}),
+								raise(() => ({ type: "persist-touched" }))
+							]
 						},
 						"content-add": {
 							actions: assign(({ context, event }) => {
@@ -354,24 +355,27 @@ export const sceneLogic = setup({
 				theme: {
 					on: {
 						"theme-update": {
-							actions: assign(({ context, event }) => {
-								const custom = mergeCssStrings(context.theme?.custom, event.payload?.custom);
-								const generated = mergeCssStrings(context.theme?.generated, event.payload?.generated);
+							actions: [
+								assign(({ context, event }) => {
+									const custom = mergeCssStrings(context.theme?.custom, event.payload?.custom);
+									const generated = mergeCssStrings(context.theme?.generated, event.payload?.generated);
 
-								const theme = {
-									...context.theme,
-									...event.payload,
-									custom,
-									generated
-								};
+									const theme = {
+										...context.theme,
+										...event.payload,
+										custom,
+										generated
+									};
 
-								const active = {
-									...context.active,
-									themeTouched: true
-								};
+									const active = {
+										...context.active,
+										themeTouched: true
+									};
 
-								return { ...context, theme, active };
-							})
+									return { ...context, theme, active };
+								}),
+								raise(() => ({ type: "persist-touched" }))
+							]
 						}
 					}
 				},
@@ -437,7 +441,6 @@ export const sceneLogic = setup({
 						"tree-after-move": {
 							invoke: {
 								id: "tree-capsule-reorder",
-								reenter: true,
 								input: ({ context, event }) => ({ context, event }),
 								src: "capsuleReorder",
 								onDone: {
@@ -494,6 +497,95 @@ function getMutationActivePayload(output: TreeMutationResponse): Partial<ActiveS
 		itemId: createdItem.id,
 		contentId: createdItem.contentId
 	};
+}
+
+function executePersistTouchedCommits(context: SceneComp & { active: ActiveState }, params: string[]) {
+	if (!params.length) return;
+	const itemId = context.active.itemId;
+
+	if (!itemId) return false;
+
+	const decorTouched = params.includes("decorTouched");
+	const eventTouched = params.includes("eventTouched");
+	const themeTouched = params.includes("themeTouched");
+	const capsuleTouched = params.includes("capsuleTouched");
+
+	if (eventTouched) {
+		fetch(`/api/content/${itemId}`, {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify(context.events[itemId])
+		});
+	}
+
+	if (decorTouched && context.items[itemId].decorId) {
+		const decor = context.decors?.[context.items[itemId].decorId];
+		if (decor) {
+			const { id: decorId, ...rest } = decor;
+			fetch(`/api/decor`, {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ itemId, decorId, ...rest })
+			});
+		}
+	}
+
+	if (capsuleTouched) {
+		const contentId = context.items[itemId].contentId;
+		const { id, ...capsule } = context.capsules[context.contents[contentId].capsuleId];
+		const capsuleRecord = capsule as Record<string, unknown>;
+
+		delete capsule.itemIds;
+
+		const introSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemIntroTransition, "intro");
+		const outroSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemOutroTransition, "outro");
+
+		const formData = new FormData();
+		Object.entries(capsule).forEach(([k, v]: [string, unknown]) => {
+			if (k == "defaultItemIntroTransition" || k == "defaultItemOutroTransition") return;
+			formData.set(k, (v || "") as any);
+		});
+
+		formData.set("defaultItemIntroTransition", introSerialized);
+		formData.set("defaultItemOutroTransition", outroSerialized);
+
+		fetch(`/api/capsule/${id}`, {
+			method: "POST",
+			body: formData
+		});
+	}
+
+	if (themeTouched) {
+		const contentId = context.items[itemId].contentId;
+		const capsule = context.capsules[context.contents[contentId].capsuleId];
+
+		const gridClassName = capsule.grid;
+
+		if (gridClassName) {
+			const generated = findCssClassRule(context.theme.generated, gridClassName);
+
+			fetch(`/api/theme/${context.theme.id}`, {
+				method: "POST",
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({ generated })
+			});
+		}
+	}
+}
+
+function getTouchedParams(context: SceneComp & { active: ActiveState }): string[] {
+	const params: string[] = [];
+	if (context.active.eventTouched) params.push("eventTouched");
+	if (context.active.decorTouched) params.push("decorTouched");
+	if (context.active.themeTouched) params.push("themeTouched");
+	if (context.active.capsuleTouched) params.push("capsuleTouched");
+	return params;
 }
 
 export function getItemFromCapsule(
