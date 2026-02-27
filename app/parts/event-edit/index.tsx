@@ -3,8 +3,8 @@ import { CircleSmallIcon } from "lucide-react";
 
 import type { ItemComp, ContentEvent } from "@/api/db";
 
-import { INTRO, OUTRO } from "@/lib/constants";
-import { getTransitionOptions, normalizeTransitionRef } from "@/player/presets/transitions";
+import { INTRO, OUTRO } from "@/config/constants";
+import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";

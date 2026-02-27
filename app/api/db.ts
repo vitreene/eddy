@@ -16,7 +16,7 @@ import {
 	DEFAULT_TRANSITION_BY_ACTION,
 	normalizeTransitionAction,
 	normalizeTransitionRef
-} from "@/player/presets/transitions";
+} from "@/config/transitions";
 
 export type { Content, ContentEvent };
 
@@ -948,6 +948,14 @@ export async function getDecorById(id: number) {
 
 export async function getDecorByItemId(itemId: number) {
 	return await prisma.item.findUnique({ where: { id: itemId } }).decor();
+}
+
+export async function getItemContentType(itemId: number): Promise<string | null> {
+	const item = await prisma.item.findUnique({
+		where: { id: itemId },
+		select: { content: { select: { type: true } } }
+	});
+	return item?.content?.type ?? null;
 }
 
 // THEME

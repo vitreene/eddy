@@ -1,4 +1,4 @@
-import { EMPTY, SEP } from "@/lib/constants";
+import { EMPTY, SEP } from "@/config/constants";
 import type { CapsuleComp, Content, ItemComp } from "@/api/db";
 
 type CapsulesById = Record<number, CapsuleComp & { itemId?: number }>;

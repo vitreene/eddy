@@ -1,4 +1,4 @@
-import { INTRO, OUTRO } from "@/lib/constants";
+import { INTRO, OUTRO } from "@/config/constants";
 
 type MotionValue = { from?: number | string; to: number | string };
 

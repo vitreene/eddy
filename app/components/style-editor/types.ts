@@ -11,6 +11,8 @@ export interface EditableStyle {
 	color?: string; // text color
 	backgroundColor?: string; // bg
 	borderColor?: string; // border
+	backgroundSize?: string;
+	backgroundRepeat?: string;
 
 	/* SPACING */
 	padding?: string; // "10px"
@@ -23,6 +25,7 @@ export interface EditableStyle {
 
 	/* EXTRA */
 	area?: string;
+	className?: string;
 }
 
 export type StyleKey = keyof EditableStyle;

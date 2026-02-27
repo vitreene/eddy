@@ -4,10 +4,9 @@ import { getValuesFromGridName } from "@/lib/utils";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { StyleEditor } from "@/components/style-editor";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
-import { getTransitionOptions, normalizeTransitionRef } from "@/player/presets/transitions";
-import { INTRO, OUTRO } from "@/lib/constants";
-
-import { DEFAULT_STYLE } from "@/lib/constants";
+import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
+import { INTRO, OUTRO } from "@/config/constants";
+import { applyStyleDefaults, stripDefaultStyleValues } from "@/config/item-style-defaults";
 
 import type { CapsuleComp, Decor, Content } from "@/api/db";
 import type { GridSize } from "@/components/draw-grid";
@@ -34,8 +33,9 @@ export function EditItem() {
 
 	const onStyleChange = useCallback(
 		(payload: EditableStyle) => {
-			const baseStyle = (decor?.style as EditableStyle) ?? {};
+			const baseStyle = applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content?.type);
 			const mergedStyle = { ...baseStyle, ...payload };
+			const style = stripDefaultStyleValues(mergedStyle, content?.type);
 			const area = Object.prototype.hasOwnProperty.call(payload, "area") ? payload.area : decor?.area;
 			const className = Object.prototype.hasOwnProperty.call(payload, "className")
 				? payload.className
@@ -48,12 +48,12 @@ export function EditItem() {
 						...decor,
 						className: className ?? null,
 						area: area ?? null,
-						style: mergedStyle
+						style
 					} as Decor
 				}
 			});
 		},
-		[send, decor]
+		[send, decor, content?.type]
 	);
 
 	const onResetStyle = useCallback(() => {
@@ -135,7 +135,7 @@ function ContentEdit({
 	return (
 		<StyleEditor
 			content={content}
-			value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
+			value={applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type)}
 			onChange={onChange}
 			onReset={onReset}
 			textValue={content.inner || ""}
@@ -237,7 +237,7 @@ function CapsuleEdit({
 
 			<StyleEditor
 				content={content}
-				value={(decor?.style as EditableStyle) ?? DEFAULT_STYLE}
+				value={applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type)}
 				onChange={onChange}
 				onReset={onReset}
 				textValue={content.inner || ""}

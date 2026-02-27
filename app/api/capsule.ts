@@ -2,7 +2,7 @@ import { getCapsule, reorderCapsule, updateCapsule } from "./db";
 
 import type { Route } from "../+types/root";
 import type { Capsule } from "prisma/generated/prisma/client";
-import { normalizeTransitionRef } from "@/player/presets/transitions";
+import { normalizeTransitionRef } from "@/config/transitions";
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const { "*": splat, id } = params;

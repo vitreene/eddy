@@ -8,8 +8,8 @@ import { computeActiveCue } from "./active-cue";
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
-import { AUTOCOMMIT_TOUCHED_IDLE_MS } from "@/lib/constants";
-import { normalizeTransitionRef } from "@/player/presets/transitions";
+import { AUTOCOMMIT_TOUCHED_IDLE_MS } from "@/config/constants";
+import { normalizeTransitionRef } from "@/config/transitions";
 import type {
 	ActiveState,
 	TreeMoveEvent,

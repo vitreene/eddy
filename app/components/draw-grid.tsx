@@ -1,4 +1,4 @@
-import { GRID_DEFAULT_PREFIX } from "@/lib/constants";
+import { GRID_DEFAULT_PREFIX } from "@/config/constants";
 import { gridClassNameToCssDefinition } from "@/lib/utils";
 import cx from "classnames";
 import { Grid2x2 } from "lucide-react";

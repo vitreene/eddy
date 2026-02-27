@@ -2,8 +2,8 @@ import cx from "classnames";
 import { useCallback, useRef } from "react";
 import { Trash2 } from "lucide-react";
 
-import { INTRO, OUTRO } from "@/lib/constants";
-import { DEFAULT_TRANSITION_BY_ACTION } from "@/player/presets/transitions";
+import { INTRO, OUTRO } from "@/config/constants";
+import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
