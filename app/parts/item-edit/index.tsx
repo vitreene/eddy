@@ -7,6 +7,7 @@ import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
 import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
 import { INTRO, OUTRO } from "@/config/constants";
 import { applyStyleDefaults, stripDefaultStyleValues } from "@/config/item-style-defaults";
+import { CAPSULE_TYPES, getSelectableCapsuleTypeConfigs, resolveCapsuleType } from "@/config/capsule-types";
 
 import type { CapsuleComp, Decor, Content } from "@/api/db";
 import type { GridSize } from "@/components/draw-grid";
@@ -163,6 +164,8 @@ function CapsuleEdit({
 	onTextCommit: (value: string) => void;
 }) {
 	const { send } = SceneLogicContext.useActorRef();
+	const selectableTypeConfigs = getSelectableCapsuleTypeConfigs();
+	const resolvedCapsuleType = resolveCapsuleType(capsule.type);
 
 	const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
 		e.preventDefault();
@@ -180,6 +183,23 @@ function CapsuleEdit({
 		});
 	};
 
+	const onChangeCapsuleType = (nextType: string) => {
+		if (nextType == CAPSULE_TYPES.CARROUSEL) {
+			const { className } = gridWHClassName({ w: 1, h: 1 });
+			send({ type: "capsule-update", payload: { id: capsule.id, type: nextType, grid: className } });
+			return;
+		}
+
+		send({ type: "capsule-update", payload: { id: capsule.id, type: nextType } });
+	};
+
+	const onChangeLineParams = (orientation: "horizontal" | "vertical", cells: number) => {
+		const safeCells = Math.max(1, Math.floor(cells || 1));
+		const size = orientation == "horizontal" ? { w: safeCells, h: 1 } : { w: 1, h: safeCells };
+		const { className } = gridWHClassName(size);
+		send({ type: "capsule-update", payload: { id: capsule.id, grid: className } });
+	};
+
 	const onChangeDefaultTransition = (action: string, ref: string) => {
 		send({
 			type: "capsule-update",
@@ -194,6 +214,14 @@ function CapsuleEdit({
 	const outroRef = normalizeTransitionRef(parseTransitionRef(capsule.defaultItemOutroTransition), OUTRO);
 
 	const gridValues = getValuesFromGridName(capsule.grid);
+	// Important derived variable:
+	// line params are inferred from current grid so UI stays source-of-truth with persisted capsule.grid.
+	const lineOrientation = gridValues.h == 1 ? "horizontal" : "vertical";
+	const lineCells = Math.max(gridValues.w, gridValues.h, 1);
+	const isCarousel = resolvedCapsuleType == CAPSULE_TYPES.CARROUSEL;
+	const isLine = resolvedCapsuleType == CAPSULE_TYPES.LIGNE;
+	const isGrid = resolvedCapsuleType == CAPSULE_TYPES.GRILLE;
+	const isCard = resolvedCapsuleType == CAPSULE_TYPES.CARD;
 	return (
 		<>
 			<form onBlur={onSubmit} className="mb-2">
@@ -207,7 +235,64 @@ function CapsuleEdit({
 				/>
 			</form>
 
-			<ResizableGridFrame key={capsule.id} w={gridValues.w} h={gridValues.h} onChange={onChangeGrid} />
+			<div className="mt-3 mb-2 border border-stone-300 p-2 text-xs">
+				<div className="mb-2 grid grid-cols-[80px_1fr] items-center gap-2">
+					<label>Type</label>
+					<select
+						value={resolvedCapsuleType == CAPSULE_TYPES.LEGACY ? CAPSULE_TYPES.CARROUSEL : resolvedCapsuleType}
+						onChange={(e) => onChangeCapsuleType(e.currentTarget.value)}
+					>
+						{selectableTypeConfigs.map((cfg) => (
+							<option key={cfg.type} value={cfg.type}>
+								{cfg.label}
+							</option>
+						))}
+					</select>
+				</div>
+
+				{isCarousel ? (
+					<div className="space-y-1">
+						<p>Grille forcee: 1 x 1</p>
+						<p className="text-muted-foreground">Mode temporel configurable a l'etape suivante.</p>
+					</div>
+				) : null}
+
+				{isLine ? (
+					<div className="space-y-2">
+						<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+							<label>Orientation</label>
+							<select
+								value={lineOrientation}
+								onChange={(e) => onChangeLineParams(e.currentTarget.value as "horizontal" | "vertical", lineCells)}
+							>
+								<option value="horizontal">Horizontale</option>
+								<option value="vertical">Verticale</option>
+							</select>
+						</div>
+						<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+							<label>Cellules</label>
+							<input
+								type="number"
+								min={1}
+								max={24}
+								value={lineCells}
+								onChange={(e) => onChangeLineParams(lineOrientation, Number(e.currentTarget.value))}
+							/>
+						</div>
+						<p className="text-muted-foreground">Mode temporel configurable a l'etape suivante.</p>
+					</div>
+				) : null}
+
+				{isGrid ? (
+					<ResizableGridFrame key={capsule.id} w={gridValues.w} h={gridValues.h} onChange={onChangeGrid} />
+				) : null}
+
+				{isCard ? (
+					<p className="text-muted-foreground">
+						Card: configuration de base activee. Le composant visuel des areas sera ajoute dans une etape dediee.
+					</p>
+				) : null}
+			</div>
 
 			<div className="mt-3 mb-2 border border-stone-300 p-2 text-xs">
 				<p className="mb-2 font-medium">Transitions par defaut des items</p>

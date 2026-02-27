@@ -2,6 +2,12 @@ import { GridAreaRadioSelector } from "./grid-area-selector";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { getValuesFromGridName } from "@/lib/utils";
 import type { EditableStyle } from "@/components/style-editor/types";
+import {
+	CAPSULE_TYPES,
+	parseCardTemplateAreas,
+	resolveCapsuleType,
+	shouldCapsuleUseExplicitArea
+} from "@/config/capsule-types";
 
 interface Props {
 	value: EditableStyle;
@@ -22,12 +28,26 @@ export function SlotEditor({ value, onChange }: Props) {
 	);
 
 	if (!item || !capsule?.grid) return null;
-
-	const { w, h } = getValuesFromGridName(capsule.grid);
+	if (!shouldCapsuleUseExplicitArea(capsule.type)) return null;
 
 	const setArea = (area: string) => {
 		onChange({ ...value, area });
 	};
+
+	const capsuleType = resolveCapsuleType(capsule.type);
+	if (capsuleType === CAPSULE_TYPES.CARD) {
+		const templateAreas = parseCardTemplateAreas(capsule.grid);
+		if (!templateAreas.length) return null;
+		return (
+			<GridAreaRadioSelector
+				templateAreas={templateAreas}
+				value={value.area || decor?.area}
+				onChange={setArea}
+			/>
+		);
+	}
+
+	const { w, h } = getValuesFromGridName(capsule.grid);
 
 	return <GridAreaRadioSelector cols={w} rows={h} value={value.area || decor?.area} onChange={setArea} />;
 }

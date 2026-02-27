@@ -17,6 +17,7 @@ import {
 	normalizeTransitionAction,
 	normalizeTransitionRef
 } from "@/config/transitions";
+import { CAPSULE_TYPES } from "@/config/capsule-types";
 
 export type { Content, ContentEvent };
 
@@ -664,7 +665,8 @@ export async function createCapsuleItem(input: CreateCapsuleItemInput) {
 		const capsule = await tx.capsule.create({
 			data: {
 				name: input.capsuleName,
-				grid: input.grid
+				grid: input.grid,
+				type: CAPSULE_TYPES.CARROUSEL
 			}
 		});
 
@@ -956,6 +958,34 @@ export async function getItemContentType(itemId: number): Promise<string | null>
 		select: { content: { select: { type: true } } }
 	});
 	return item?.content?.type ?? null;
+}
+
+export async function getItemCapsuleType(itemId: number): Promise<string | null> {
+	const item = await prisma.item.findUnique({
+		where: { id: itemId },
+		select: { capsule: { select: { type: true } } }
+	});
+	return item?.capsule?.type ?? null;
+}
+
+export async function clearCapsuleItemAreas(capsuleId: number) {
+	return await prisma.$transaction(async (tx) => {
+		const items = await tx.item.findMany({
+			where: { capsuleId },
+			select: { decorId: true }
+		});
+
+		const decorIds = items.map((item) => item.decorId).filter((id): id is number => typeof id === "number");
+
+		if (!decorIds.length) return { updated: 0 };
+
+		const result = await tx.decor.updateMany({
+			where: { id: { in: decorIds } },
+			data: { area: null }
+		});
+
+		return { updated: result.count };
+	});
 }
 
 // THEME

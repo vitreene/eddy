@@ -22,6 +22,9 @@ export interface EditableStyle {
 	display?: "flex" | "block" | "inline-block" | "grid";
 	justifyContent?: "flex-start" | "center" | "flex-end";
 	alignItems?: "flex-start" | "center" | "flex-end";
+	justifySelf?: "start" | "center" | "end" | "stretch";
+	alignSelf?: "start" | "center" | "end" | "stretch";
+	placeSelf?: string;
 
 	/* EXTRA */
 	area?: string;

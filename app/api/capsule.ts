@@ -1,8 +1,9 @@
-import { getCapsule, reorderCapsule, updateCapsule } from "./db";
+import { clearCapsuleItemAreas, getCapsule, reorderCapsule, updateCapsule } from "./db";
 
 import type { Route } from "../+types/root";
 import type { Capsule } from "prisma/generated/prisma/client";
 import { normalizeTransitionRef } from "@/config/transitions";
+import { isCapsuleKnownType, shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const { "*": splat, id } = params;
@@ -33,14 +34,27 @@ export async function action({ params, request }: Route.ActionArgs) {
 		defaultItemOutroTransition?: string | null;
 	} = {
 		...(typeof rawData.name == "string" ? { name: rawData.name } : {}),
-		...(typeof rawData.type == "string" ? { type: rawData.type || null } : {}),
+		...(typeof rawData.type == "string" ? { type: normalizeCapsuleTypeField(rawData.type) } : {}),
 		...(typeof rawData.grid == "string" ? { grid: rawData.grid || null } : {}),
 		defaultItemIntroTransition: introTransition.value,
 		defaultItemOutroTransition: outroTransition.value
 	};
 
 	await updateCapsule(Number(params.id), data as any);
+
+	if (typeof data.type == "string" || data.type === null) {
+		if (!shouldCapsuleUseExplicitArea(data.type ?? null)) {
+			await clearCapsuleItemAreas(Number(params.id));
+		}
+	}
+
 	return { ok: true };
+}
+
+function normalizeCapsuleTypeField(raw: string): string | null {
+	const value = raw.trim();
+	if (!value) return null;
+	return isCapsuleKnownType(value) ? value : null;
 }
 //
 

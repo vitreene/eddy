@@ -1,7 +1,16 @@
 import type { Route } from "../+types/root";
 
 import { stripDefaultStyleValues } from "@/config/item-style-defaults";
-import { createDecor, updateDecor, getDecorByItemId, getItemContentType, updateItem, type Decor } from "./db";
+import { shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
+import {
+	createDecor,
+	updateDecor,
+	getDecorByItemId,
+	getItemCapsuleType,
+	getItemContentType,
+	updateItem,
+	type Decor
+} from "./db";
 
 export async function action({ request }: Route.ActionArgs) {
 	const contentType = request.headers.get("content-type") || "";
@@ -12,7 +21,8 @@ export async function action({ request }: Route.ActionArgs) {
 			itemId?: number;
 		};
 		const contentType = itemId ? await getItemContentType(Number(itemId)) : null;
-		const normalizedDecorData = normalizeDecorPayload(decorData, contentType);
+		const capsuleType = itemId ? await getItemCapsuleType(Number(itemId)) : null;
+		const normalizedDecorData = normalizeDecorPayload(decorData, contentType, capsuleType);
 
 		// Si decorId est fourni, mettre à jour directement
 		if (decorId) {
@@ -40,9 +50,14 @@ export async function action({ request }: Route.ActionArgs) {
 	return { ok: false };
 }
 
-function normalizeDecorPayload(decorData: Partial<Decor>, contentType: string | null): Partial<Decor> {
+function normalizeDecorPayload(
+	decorData: Partial<Decor>,
+	contentType: string | null,
+	capsuleType: string | null
+): Partial<Decor> {
 	return {
 		...decorData,
+		area: shouldCapsuleUseExplicitArea(capsuleType) ? (decorData.area ?? null) : null,
 		style: stripDefaultStyleValues((decorData.style as Record<string, unknown>) ?? {}, contentType ?? undefined)
 	};
 }

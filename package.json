@@ -7,7 +7,7 @@
 		"dev": "react-router dev",
 		"start": "react-router-serve ./build/server/index.js",
 		"typecheck": "react-router typegen && tsc",
-		"test:smoke": "npx tsx tests/active-cue-smoke.ts && npx tsx tests/builder-capsule-smoke.ts"
+		"test:smoke": "npx tsx tests/active-cue-smoke.ts && npx tsx tests/builder-capsule-smoke.ts && npx tsx tests/capsule-types-smoke.ts"
 	},
 	"dependencies": {
 		"@headless-tree/core": "^1.6.3",

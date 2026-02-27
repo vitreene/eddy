@@ -248,6 +248,88 @@ const cases: Case[] = [
 		}
 	},
 	{
+		name: "line type does not auto-generate outro for child items",
+		run: () => {
+			const context = createSceneBase();
+			context.capsules[2].type = "ligne" as any;
+			context.capsules[2].grid = "ed-grid-w3-h1";
+
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+			const actionKeys = Object.keys(item1.actions);
+
+			const hasAutoIntro = actionKeys.some((key) => key.includes("item_1_intro"));
+			const hasAutoOutro = actionKeys.some((key) => key.includes("item_1_outro"));
+
+			assert.equal(hasAutoIntro, true);
+			assert.equal(hasAutoOutro, false);
+		}
+	},
+	{
+		name: "line vertical ignores stale explicit areas and auto-places by order",
+		run: () => {
+			const context = createSceneBase();
+			context.capsules[2].type = "ligne" as any;
+			context.capsules[2].grid = "ed-grid-w1-h3";
+			context.decors[11].area = "cell-r1-c2" as any;
+			context.decors[12].area = "cell-r1-c1" as any;
+			context.decors[13].area = "cell-r1-c3" as any;
+
+			const scene = buildScene(context);
+			const i1 = getItemPerso(scene, 1);
+			const i2 = getItemPerso(scene, 2);
+			const i3 = getItemPerso(scene, 3);
+
+			assert.equal(i1.initial.className.includes("cell_auto_ligne-r1-c1"), true);
+			assert.equal(i2.initial.className.includes("cell_auto_ligne-r2-c1"), true);
+			assert.equal(i3.initial.className.includes("cell_auto_ligne-r3-c1"), true);
+		}
+	},
+	{
+		name: "main capsule children render in item.order",
+		run: () => {
+			const context = createSceneBase();
+			context.capsules[3] = { id: 3, name: "child-2", type: null, grid: "ed-grid-w1-h1", itemIds: [] } as any;
+			context.contents[901] = {
+				id: 901,
+				name: "child-capsule-2",
+				type: "capsule",
+				path: null,
+				inner: null,
+				lang: null,
+				capsuleId: 3
+			} as any;
+			context.decors[14] = {
+				id: 14,
+				name: null,
+				className: "",
+				area: "",
+				style: {},
+				itemTargetId: null,
+				basedUpon: null
+			} as any;
+			context.items[101] = {
+				id: 101,
+				order: 500,
+				contentId: 901,
+				capsuleId: 1,
+				decorId: 14,
+				visible: true,
+				eventIds: []
+			} as any;
+			context.capsules[1].itemIds = [100, 101];
+
+			const scene = buildScene(context);
+			const ids = scene.persos.map((perso: any) => perso?.initial?.id).filter(Boolean);
+			const capsule2Pos = ids.indexOf("capsule__2");
+			const capsule3Pos = ids.indexOf("capsule__3");
+
+			assert.ok(capsule2Pos >= 0);
+			assert.ok(capsule3Pos >= 0);
+			assert.equal(capsule3Pos < capsule2Pos, true);
+		}
+	},
+	{
 		name: "missing decor does not crash builder",
 		run: () => {
 			const context = createSceneBase();

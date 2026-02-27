@@ -11,9 +11,26 @@ export type ResolveCueWindowsResult = {
 	cueByName: Map<string, TextTime>;
 };
 
+export type ResolveCueWindowsCapsuleBehavior = {
+	timeMode: "distributed" | "fixed";
+	fixedSeconds: number;
+	generateDefaultOutro: boolean;
+};
+
+type ResolveCueWindowsOptions = {
+	generateMissingEvents?: boolean;
+	behaviorByCapsuleId?: Record<number, ResolveCueWindowsCapsuleBehavior>;
+};
+
+const DEFAULT_CAPSULE_BEHAVIOR: ResolveCueWindowsCapsuleBehavior = {
+	timeMode: "distributed",
+	fixedSeconds: 2,
+	generateDefaultOutro: true
+};
+
 export function resolveCueWindows(
 	snapshot: SceneComp,
-	options: { generateMissingEvents?: boolean } = {}
+	options: ResolveCueWindowsOptions = {}
 ): ResolveCueWindowsResult {
 	const generateMissingEvents = options.generateMissingEvents ?? false;
 
@@ -143,6 +160,8 @@ export function resolveCueWindows(
 				continue;
 			}
 
+			const capsuleBehavior = options.behaviorByCapsuleId?.[capsule.id] || DEFAULT_CAPSULE_BEHAVIOR;
+
 			const locks: Lock[] = [];
 			for (const [index, item] of orderedChildren.entries()) {
 				const events = baseEvents[item.id] || {};
@@ -185,15 +204,30 @@ export function resolveCueWindows(
 				}
 			};
 
-			let previousIndex = -1;
-			let previousEnd = capsuleStart;
-			for (const lock of orderedLocks) {
-				allocateEvenly(previousIndex + 1, lock.index - 1, previousEnd, lock.start);
-				windows[lock.index] = { start: lock.start, end: lock.end };
-				previousIndex = lock.index;
-				previousEnd = lock.end;
+			if (capsuleBehavior.timeMode === "fixed") {
+				// Important fixed-time variable:
+				// fixedSeconds defines slot duration for each item when no explicit events are provided.
+				const fixedSeconds = Math.max(0.1, capsuleBehavior.fixedSeconds || 0);
+				for (const [index] of orderedChildren.entries()) {
+					const start = Math.min(capsuleStart + index * fixedSeconds, capsuleEnd);
+					const end = Math.min(start + fixedSeconds, capsuleEnd);
+					windows[index] = { start, end };
+				}
+
+				for (const lock of orderedLocks) {
+					windows[lock.index] = { start: lock.start, end: lock.end };
+				}
+			} else {
+				let previousIndex = -1;
+				let previousEnd = capsuleStart;
+				for (const lock of orderedLocks) {
+					allocateEvenly(previousIndex + 1, lock.index - 1, previousEnd, lock.start);
+					windows[lock.index] = { start: lock.start, end: lock.end };
+					previousIndex = lock.index;
+					previousEnd = lock.end;
+				}
+				allocateEvenly(previousIndex + 1, orderedChildren.length - 1, previousEnd, capsuleEnd);
 			}
-			allocateEvenly(previousIndex + 1, orderedChildren.length - 1, previousEnd, capsuleEnd);
 
 			for (const [index, item] of orderedChildren.entries()) {
 				const window = windows[index];
@@ -217,7 +251,7 @@ export function resolveCueWindows(
 					});
 				}
 
-				if (generateMissingEvents && !currentEvents[OUTRO]) {
+				if (generateMissingEvents && capsuleBehavior.generateDefaultOutro && !currentEvents[OUTRO]) {
 					currentEvents[OUTRO] = createGeneratedEvent({
 						itemId: item.id,
 						action: OUTRO,
@@ -230,7 +264,11 @@ export function resolveCueWindows(
 
 				cueWindowsByItemId.set(item.id, {
 					start: introCue ? Number(introCue.start) : appliedWindow.start,
-					end: outroCue ? Number(outroCue.end) : appliedWindow.end
+					end: outroCue
+						? Number(outroCue.end)
+						: capsuleBehavior.generateDefaultOutro
+							? appliedWindow.end
+							: capsuleEnd
 				});
 			}
 
