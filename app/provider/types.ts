@@ -22,7 +22,14 @@ export type SceneTreeContext = SceneComp & {
 export type TreeMutationResponse = {
 	action: "create-text" | "create-capsule" | "create-from-content" | "delete-item" | "delete-capsule";
 	created?: {
-		item?: { id: number; order: number; contentId: number; capsuleId: number; decorId: number | null };
+		item?: {
+			id: number;
+			order: number;
+			contentId: number;
+			capsuleId: number;
+			decorId: number | null;
+			visible: boolean;
+		};
 		content?: Content;
 		decor?: Decor;
 		capsule?: { id: number; name: string; type: string | null; grid: string | null };

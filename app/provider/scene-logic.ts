@@ -54,6 +54,7 @@ export const sceneLogic = setup({
 			| { type: "reset-active" }
 			| { type: "end-edit" }
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
+			| { type: "item-visibility-toggle"; payload: { itemId: number; visible: boolean } }
 			| { type: "content-update"; payload: { id: number; inner?: string; name?: string } }
 			| { type: "capsule-update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
@@ -122,6 +123,14 @@ export const sceneLogic = setup({
 		}),
 		commitFetch: async ({ context }, params: string[]) => {
 			executePersistTouchedCommits(context, params);
+		},
+		persistItemVisibility: async (_, params: { itemId: number; visible: boolean }) => {
+			const formData = new FormData();
+			formData.set("visible", params.visible ? "true" : "false");
+			void fetch(`/api/item/${params.itemId}`, {
+				method: "POST",
+				body: formData
+			});
 		}
 	},
 	guards: {
@@ -256,6 +265,25 @@ export const sceneLogic = setup({
 
 				item: {
 					on: {
+						"item-visibility-toggle": {
+							actions: [
+								assign(({ context, event }) => {
+									const current = context.items[event.payload.itemId];
+									if (!current) return context;
+									return {
+										...context,
+										items: {
+											...context.items,
+											[event.payload.itemId]: {
+												...current,
+												visible: event.payload.visible
+											}
+										}
+									};
+								}),
+								{ type: "persistItemVisibility", params: ({ event }) => event.payload }
+							]
+						},
 						"item-update": {
 							target: "#scene.edit",
 							actions: [

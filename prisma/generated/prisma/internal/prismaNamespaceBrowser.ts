@@ -123,6 +123,7 @@ export type CapsuleScalarFieldEnum = (typeof CapsuleScalarFieldEnum)[keyof typeo
 export const ItemScalarFieldEnum = {
   id: 'id',
   order: 'order',
+  visible: 'visible',
   contentId: 'contentId',
   capsuleId: 'capsuleId',
   decorId: 'decorId'

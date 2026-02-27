@@ -1,0 +1,2 @@
+ALTER TABLE "item"
+ADD COLUMN "visible" BOOLEAN NOT NULL DEFAULT true;

@@ -13,6 +13,7 @@ export type SceneTreeNodeData = {
 	itemId?: number;
 	capsuleId?: number;
 	contentType?: string;
+	visible?: boolean;
 };
 
 type BuildTreeArgs = {
@@ -90,7 +91,8 @@ function registerCapsuleChildren(
 				kind: "capsule",
 				isFolder: true,
 				itemId: childCapsule.itemId,
-				capsuleId: childCapsule.id
+				capsuleId: childCapsule.id,
+				visible: childCapsule.itemId ? items[childCapsule.itemId]?.visible !== false : true
 			};
 			childrenById[childId] = registerCapsuleChildren(
 				childCapsule,
@@ -112,7 +114,8 @@ function registerCapsuleChildren(
 			isFolder: false,
 			itemId: item.id,
 			capsuleId: item.capsuleId,
-			contentType: content?.type
+			contentType: content?.type,
+			visible: item.visible !== false
 		};
 		childrenById[nodeId] = [];
 		childIds.push(nodeId);

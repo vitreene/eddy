@@ -10,6 +10,8 @@ import {
 import { useTree } from "@headless-tree/react";
 import {
 	ChevronRight,
+	Eye,
+	EyeOff,
 	File,
 	FilePlus,
 	FileText,
@@ -216,7 +218,10 @@ export function SceneTreeView() {
 	const treeModelFingerprint = useMemo(() => {
 		const nodeIds = Object.entries(model.nodesById)
 			.sort(([a], [b]) => a.localeCompare(b))
-			.map(([id, node]) => `${id}:${node.label}:${node.kind}:${node.itemId ?? ""}:${node.contentType ?? ""}`)
+			.map(
+				([id, node]) =>
+					`${id}:${node.label}:${node.kind}:${node.itemId ?? ""}:${node.contentType ?? ""}:${node.visible ?? ""}`
+			)
 			.join("|");
 		const children = Object.entries(model.childrenById)
 			.sort(([a], [b]) => a.localeCompare(b))
@@ -344,6 +349,8 @@ export function SceneTreeView() {
 					const isFolder = item.isFolder();
 					const isExpanded = item.isExpanded();
 					const canDrag = Boolean(data.itemId);
+					const isHidden = data.visible === false;
+					const canToggleVisibility = (data.kind === "item" || data.kind === "capsule") && Boolean(data.itemId);
 					const canDelete =
 						item.isSelected() && (data.kind === "item" || data.kind === "capsule") && Boolean(data.itemId);
 
@@ -352,7 +359,7 @@ export function SceneTreeView() {
 							key={item.getId()}
 							{...item.getProps()}
 							className={cn(
-								"flex h-7 items-center gap-1 rounded px-1 text-xs",
+								"group flex h-7 items-center gap-1 rounded px-1 text-xs",
 								item.isSelected() && "bg-accent",
 								item.isDragTarget() && "bg-primary/10",
 								item.isFocused() && "outline-primary/40 outline-1"
@@ -409,28 +416,49 @@ export function SceneTreeView() {
 								<span className="min-w-0 flex-1 truncate">{item.getItemName()}</span>
 							</span>
 
-							{canDelete ? (
-								<Button
-									type="button"
-									size="icon-sm"
-									variant="ghost"
-									onClick={(e) => {
-										e.preventDefault();
-										e.stopPropagation();
-										if (data.kind === "capsule" && data.capsuleId) {
+							<div className={cn("flex items-center gap-1", !isHidden && "opacity-0 group-hover:opacity-100")}>
+								{canToggleVisibility ? (
+									<Button
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										onClick={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
 											send({
-												type: "tree-delete-capsule",
-												payload: { itemId: Number(data.itemId), capsuleId: Number(data.capsuleId) }
+												type: "item-visibility-toggle",
+												payload: { itemId: Number(data.itemId), visible: Boolean(isHidden) }
 											});
-										} else {
-											send({ type: "tree-delete-item", payload: { itemId: Number(data.itemId) } });
-										}
-									}}
-									aria-label={data.kind === "capsule" ? "Supprimer la capsule" : "Supprimer l'element"}
-								>
-									<Trash2 className="h-3.5 w-3.5" />
-								</Button>
-							) : null}
+										}}
+										aria-label={isHidden ? "Afficher l'element" : "Masquer l'element"}
+									>
+										{isHidden ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+									</Button>
+								) : null}
+
+								{canDelete ? (
+									<Button
+										type="button"
+										size="icon-sm"
+										variant="ghost"
+										onClick={(e) => {
+											e.preventDefault();
+											e.stopPropagation();
+											if (data.kind === "capsule" && data.capsuleId) {
+												send({
+													type: "tree-delete-capsule",
+													payload: { itemId: Number(data.itemId), capsuleId: Number(data.capsuleId) }
+												});
+											} else {
+												send({ type: "tree-delete-item", payload: { itemId: Number(data.itemId) } });
+											}
+										}}
+										aria-label={data.kind === "capsule" ? "Supprimer la capsule" : "Supprimer l'element"}
+									>
+										<Trash2 className="h-3.5 w-3.5" />
+									</Button>
+								) : null}
+							</div>
 						</div>
 					);
 				})}

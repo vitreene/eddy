@@ -1236,6 +1236,7 @@ export type CapsuleScalarFieldEnum = (typeof CapsuleScalarFieldEnum)[keyof typeo
 export const ItemScalarFieldEnum = {
   id: 'id',
   order: 'order',
+  visible: 'visible',
   contentId: 'contentId',
   capsuleId: 'capsuleId',
   decorId: 'decorId'
@@ -1336,6 +1337,13 @@ export type IntFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'In
  * Reference to a field of type 'String'
  */
 export type StringFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'String'>
+    
+
+
+/**
+ * Reference to a field of type 'Boolean'
+ */
+export type BooleanFieldRefInput<$PrismaModel> = FieldRefInputType<$PrismaModel, 'Boolean'>
     
 
 

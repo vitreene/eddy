@@ -75,6 +75,7 @@ model Capsule {
 model Item {
   id     Int     @id @default(autoincrement())
   order  Int
+  visible Boolean @default(true)
   events Event[]
 
   contentId Int     @map("content_id")

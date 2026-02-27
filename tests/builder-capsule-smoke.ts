@@ -35,10 +35,10 @@ function createSceneBase(): SceneComp {
 			2: { id: 2, name: "child", type: null, grid: "ed-grid-w1-h1", itemIds: [1, 2, 3] }
 		},
 		items: {
-			100: { id: 100, order: 1000, contentId: 900, capsuleId: 1, decorId: 10, eventIds: [] },
-			1: { id: 1, order: 1000, contentId: 1, capsuleId: 2, decorId: 11, eventIds: [] },
-			2: { id: 2, order: 2000, contentId: 2, capsuleId: 2, decorId: 12, eventIds: [] },
-			3: { id: 3, order: 3000, contentId: 3, capsuleId: 2, decorId: 13, eventIds: [] }
+			100: { id: 100, order: 1000, contentId: 900, capsuleId: 1, decorId: 10, visible: true, eventIds: [] },
+			1: { id: 1, order: 1000, contentId: 1, capsuleId: 2, decorId: 11, visible: true, eventIds: [] },
+			2: { id: 2, order: 2000, contentId: 2, capsuleId: 2, decorId: 12, visible: true, eventIds: [] },
+			3: { id: 3, order: 3000, contentId: 3, capsuleId: 2, decorId: 13, visible: true, eventIds: [] }
 		},
 		contents: {
 			900: {
@@ -220,6 +220,31 @@ const cases: Case[] = [
 			assert.equal(i1Out.startsWith("__auto_maximal__"), true);
 			assert.equal(starts.get(i1In), 2000);
 			assert.equal(starts.get(i1Out), 8000);
+		}
+	},
+	{
+		name: "hidden item is ignored by builder",
+		run: () => {
+			const context = createSceneBase();
+			context.items[1].visible = false;
+
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+			assert.equal(Boolean(item1), false);
+		}
+	},
+	{
+		name: "hidden capsule host hides capsule and descendants",
+		run: () => {
+			const context = createSceneBase();
+			context.items[100].visible = false;
+			context.items[2].visible = false;
+
+			const scene = buildScene(context);
+			const capsule = scene.persos.find((perso: any) => perso?.initial?.id === "capsule__2");
+			const childItem2 = getItemPerso(scene, 2);
+			assert.equal(Boolean(capsule), false);
+			assert.equal(Boolean(childItem2), false);
 		}
 	},
 	{

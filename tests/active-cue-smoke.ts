@@ -67,6 +67,7 @@ function addCapsuleHost(
 		contentId,
 		capsuleId: args.hostCapsuleId,
 		decorId: null,
+		visible: true,
 		eventIds: []
 	};
 }
@@ -88,6 +89,7 @@ function addLeafItem(context: SceneComp, itemId: number, capsuleId: number) {
 		contentId,
 		capsuleId,
 		decorId: null,
+		visible: true,
 		eventIds: []
 	};
 }

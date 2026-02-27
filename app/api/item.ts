@@ -9,8 +9,14 @@ export async function action({ params, request }: Route.ActionArgs) {
 	if (formData.has("order")) data.order = Number(data.order);
 	if (formData.has("contentId")) data.contentId = Number(data.contentId);
 	if (formData.has("capsuleId")) data.capsuleId = Number(data.capsuleId);
+	if (formData.has("visible")) {
+		const raw = String(formData.get("visible") ?? "")
+			.trim()
+			.toLowerCase();
+		data.visible = raw == "true" || raw == "1" || raw == "on";
+	}
 
-	updateItem(data);
+	await updateItem(data);
 	return { ok: true };
 }
 //

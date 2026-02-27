@@ -45,6 +45,7 @@ export type ItemSumAggregateOutputType = {
 export type ItemMinAggregateOutputType = {
   id: number | null
   order: number | null
+  visible: boolean | null
   contentId: number | null
   capsuleId: number | null
   decorId: number | null
@@ -53,6 +54,7 @@ export type ItemMinAggregateOutputType = {
 export type ItemMaxAggregateOutputType = {
   id: number | null
   order: number | null
+  visible: boolean | null
   contentId: number | null
   capsuleId: number | null
   decorId: number | null
@@ -61,6 +63,7 @@ export type ItemMaxAggregateOutputType = {
 export type ItemCountAggregateOutputType = {
   id: number
   order: number
+  visible: number
   contentId: number
   capsuleId: number
   decorId: number
@@ -87,6 +90,7 @@ export type ItemSumAggregateInputType = {
 export type ItemMinAggregateInputType = {
   id?: true
   order?: true
+  visible?: true
   contentId?: true
   capsuleId?: true
   decorId?: true
@@ -95,6 +99,7 @@ export type ItemMinAggregateInputType = {
 export type ItemMaxAggregateInputType = {
   id?: true
   order?: true
+  visible?: true
   contentId?: true
   capsuleId?: true
   decorId?: true
@@ -103,6 +108,7 @@ export type ItemMaxAggregateInputType = {
 export type ItemCountAggregateInputType = {
   id?: true
   order?: true
+  visible?: true
   contentId?: true
   capsuleId?: true
   decorId?: true
@@ -198,6 +204,7 @@ export type ItemGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalArg
 export type ItemGroupByOutputType = {
   id: number
   order: number
+  visible: boolean
   contentId: number
   capsuleId: number
   decorId: number | null
@@ -229,6 +236,7 @@ export type ItemWhereInput = {
   NOT?: Prisma.ItemWhereInput | Prisma.ItemWhereInput[]
   id?: Prisma.IntFilter<"Item"> | number
   order?: Prisma.IntFilter<"Item"> | number
+  visible?: Prisma.BoolFilter<"Item"> | boolean
   contentId?: Prisma.IntFilter<"Item"> | number
   capsuleId?: Prisma.IntFilter<"Item"> | number
   decorId?: Prisma.IntNullableFilter<"Item"> | number | null
@@ -241,6 +249,7 @@ export type ItemWhereInput = {
 export type ItemOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  visible?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -257,6 +266,7 @@ export type ItemWhereUniqueInput = Prisma.AtLeast<{
   OR?: Prisma.ItemWhereInput[]
   NOT?: Prisma.ItemWhereInput | Prisma.ItemWhereInput[]
   order?: Prisma.IntFilter<"Item"> | number
+  visible?: Prisma.BoolFilter<"Item"> | boolean
   contentId?: Prisma.IntFilter<"Item"> | number
   capsuleId?: Prisma.IntFilter<"Item"> | number
   events?: Prisma.EventListRelationFilter
@@ -268,6 +278,7 @@ export type ItemWhereUniqueInput = Prisma.AtLeast<{
 export type ItemOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  visible?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -284,6 +295,7 @@ export type ItemScalarWhereWithAggregatesInput = {
   NOT?: Prisma.ItemScalarWhereWithAggregatesInput | Prisma.ItemScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Item"> | number
   order?: Prisma.IntWithAggregatesFilter<"Item"> | number
+  visible?: Prisma.BoolWithAggregatesFilter<"Item"> | boolean
   contentId?: Prisma.IntWithAggregatesFilter<"Item"> | number
   capsuleId?: Prisma.IntWithAggregatesFilter<"Item"> | number
   decorId?: Prisma.IntNullableWithAggregatesFilter<"Item"> | number | null
@@ -291,6 +303,7 @@ export type ItemScalarWhereWithAggregatesInput = {
 
 export type ItemCreateInput = {
   order: number
+  visible?: boolean
   events?: Prisma.EventCreateNestedManyWithoutItemInput
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
@@ -300,6 +313,7 @@ export type ItemCreateInput = {
 export type ItemUncheckedCreateInput = {
   id?: number
   order: number
+  visible?: boolean
   contentId: number
   capsuleId: number
   decorId?: number | null
@@ -308,6 +322,7 @@ export type ItemUncheckedCreateInput = {
 
 export type ItemUpdateInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
@@ -317,6 +332,7 @@ export type ItemUpdateInput = {
 export type ItemUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -326,6 +342,7 @@ export type ItemUncheckedUpdateInput = {
 export type ItemCreateManyInput = {
   id?: number
   order: number
+  visible?: boolean
   contentId: number
   capsuleId: number
   decorId?: number | null
@@ -333,11 +350,13 @@ export type ItemCreateManyInput = {
 
 export type ItemUpdateManyMutationInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
 }
 
 export type ItemUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -356,6 +375,7 @@ export type ItemOrderByRelationAggregateInput = {
 export type ItemCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  visible?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -372,6 +392,7 @@ export type ItemAvgOrderByAggregateInput = {
 export type ItemMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  visible?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -380,6 +401,7 @@ export type ItemMaxOrderByAggregateInput = {
 export type ItemMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  visible?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   capsuleId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -438,6 +460,10 @@ export type ItemUncheckedUpdateManyWithoutCapsuleNestedInput = {
   update?: Prisma.ItemUpdateWithWhereUniqueWithoutCapsuleInput | Prisma.ItemUpdateWithWhereUniqueWithoutCapsuleInput[]
   updateMany?: Prisma.ItemUpdateManyWithWhereWithoutCapsuleInput | Prisma.ItemUpdateManyWithWhereWithoutCapsuleInput[]
   deleteMany?: Prisma.ItemScalarWhereInput | Prisma.ItemScalarWhereInput[]
+}
+
+export type BoolFieldUpdateOperationsInput = {
+  set?: boolean
 }
 
 export type ItemCreateNestedManyWithoutContentInput = {
@@ -542,6 +568,7 @@ export type ItemUncheckedUpdateManyWithoutDecorNestedInput = {
 
 export type ItemCreateWithoutCapsuleInput = {
   order: number
+  visible?: boolean
   events?: Prisma.EventCreateNestedManyWithoutItemInput
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
@@ -550,6 +577,7 @@ export type ItemCreateWithoutCapsuleInput = {
 export type ItemUncheckedCreateWithoutCapsuleInput = {
   id?: number
   order: number
+  visible?: boolean
   contentId: number
   decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
@@ -586,6 +614,7 @@ export type ItemScalarWhereInput = {
   NOT?: Prisma.ItemScalarWhereInput | Prisma.ItemScalarWhereInput[]
   id?: Prisma.IntFilter<"Item"> | number
   order?: Prisma.IntFilter<"Item"> | number
+  visible?: Prisma.BoolFilter<"Item"> | boolean
   contentId?: Prisma.IntFilter<"Item"> | number
   capsuleId?: Prisma.IntFilter<"Item"> | number
   decorId?: Prisma.IntNullableFilter<"Item"> | number | null
@@ -593,6 +622,7 @@ export type ItemScalarWhereInput = {
 
 export type ItemCreateWithoutContentInput = {
   order: number
+  visible?: boolean
   events?: Prisma.EventCreateNestedManyWithoutItemInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
   decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
@@ -601,6 +631,7 @@ export type ItemCreateWithoutContentInput = {
 export type ItemUncheckedCreateWithoutContentInput = {
   id?: number
   order: number
+  visible?: boolean
   capsuleId: number
   decorId?: number | null
   events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
@@ -633,6 +664,7 @@ export type ItemUpdateManyWithWhereWithoutContentInput = {
 
 export type ItemCreateWithoutEventsInput = {
   order: number
+  visible?: boolean
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
   decor?: Prisma.DecorCreateNestedOneWithoutItemsInput
@@ -641,6 +673,7 @@ export type ItemCreateWithoutEventsInput = {
 export type ItemUncheckedCreateWithoutEventsInput = {
   id?: number
   order: number
+  visible?: boolean
   contentId: number
   capsuleId: number
   decorId?: number | null
@@ -664,6 +697,7 @@ export type ItemUpdateToOneWithWhereWithoutEventsInput = {
 
 export type ItemUpdateWithoutEventsInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
@@ -672,6 +706,7 @@ export type ItemUpdateWithoutEventsInput = {
 export type ItemUncheckedUpdateWithoutEventsInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -679,6 +714,7 @@ export type ItemUncheckedUpdateWithoutEventsInput = {
 
 export type ItemCreateWithoutDecorInput = {
   order: number
+  visible?: boolean
   events?: Prisma.EventCreateNestedManyWithoutItemInput
   content: Prisma.ContentCreateNestedOneWithoutItemsInput
   capsule?: Prisma.CapsuleCreateNestedOneWithoutItemsInput
@@ -687,6 +723,7 @@ export type ItemCreateWithoutDecorInput = {
 export type ItemUncheckedCreateWithoutDecorInput = {
   id?: number
   order: number
+  visible?: boolean
   contentId: number
   capsuleId: number
   events?: Prisma.EventUncheckedCreateNestedManyWithoutItemInput
@@ -720,12 +757,14 @@ export type ItemUpdateManyWithWhereWithoutDecorInput = {
 export type ItemCreateManyCapsuleInput = {
   id?: number
   order: number
+  visible?: boolean
   contentId: number
   decorId?: number | null
 }
 
 export type ItemUpdateWithoutCapsuleInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
@@ -734,6 +773,7 @@ export type ItemUpdateWithoutCapsuleInput = {
 export type ItemUncheckedUpdateWithoutCapsuleInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
@@ -742,6 +782,7 @@ export type ItemUncheckedUpdateWithoutCapsuleInput = {
 export type ItemUncheckedUpdateManyWithoutCapsuleInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
@@ -749,12 +790,14 @@ export type ItemUncheckedUpdateManyWithoutCapsuleInput = {
 export type ItemCreateManyContentInput = {
   id?: number
   order: number
+  visible?: boolean
   capsuleId: number
   decorId?: number | null
 }
 
 export type ItemUpdateWithoutContentInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutItemsNestedInput
@@ -763,6 +806,7 @@ export type ItemUpdateWithoutContentInput = {
 export type ItemUncheckedUpdateWithoutContentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
@@ -771,6 +815,7 @@ export type ItemUncheckedUpdateWithoutContentInput = {
 export type ItemUncheckedUpdateManyWithoutContentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
@@ -778,12 +823,14 @@ export type ItemUncheckedUpdateManyWithoutContentInput = {
 export type ItemCreateManyDecorInput = {
   id?: number
   order: number
+  visible?: boolean
   contentId: number
   capsuleId: number
 }
 
 export type ItemUpdateWithoutDecorInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   events?: Prisma.EventUpdateManyWithoutItemNestedInput
   content?: Prisma.ContentUpdateOneRequiredWithoutItemsNestedInput
   capsule?: Prisma.CapsuleUpdateOneWithoutItemsNestedInput
@@ -792,6 +839,7 @@ export type ItemUpdateWithoutDecorInput = {
 export type ItemUncheckedUpdateWithoutDecorInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.EventUncheckedUpdateManyWithoutItemNestedInput
@@ -800,6 +848,7 @@ export type ItemUncheckedUpdateWithoutDecorInput = {
 export type ItemUncheckedUpdateManyWithoutDecorInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
+  visible?: Prisma.BoolFieldUpdateOperationsInput | boolean
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   capsuleId?: Prisma.IntFieldUpdateOperationsInput | number
 }
@@ -838,6 +887,7 @@ export type ItemCountOutputTypeCountEventsArgs<ExtArgs extends runtime.Types.Ext
 export type ItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   order?: boolean
+  visible?: boolean
   contentId?: boolean
   capsuleId?: boolean
   decorId?: boolean
@@ -851,6 +901,7 @@ export type ItemSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = r
 export type ItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   order?: boolean
+  visible?: boolean
   contentId?: boolean
   capsuleId?: boolean
   decorId?: boolean
@@ -862,6 +913,7 @@ export type ItemSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 export type ItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
   id?: boolean
   order?: boolean
+  visible?: boolean
   contentId?: boolean
   capsuleId?: boolean
   decorId?: boolean
@@ -873,12 +925,13 @@ export type ItemSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensio
 export type ItemSelectScalar = {
   id?: boolean
   order?: boolean
+  visible?: boolean
   contentId?: boolean
   capsuleId?: boolean
   decorId?: boolean
 }
 
-export type ItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "order" | "contentId" | "capsuleId" | "decorId", ExtArgs["result"]["item"]>
+export type ItemOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "order" | "visible" | "contentId" | "capsuleId" | "decorId", ExtArgs["result"]["item"]>
 export type ItemInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   events?: boolean | Prisma.Item$eventsArgs<ExtArgs>
   content?: boolean | Prisma.ContentDefaultArgs<ExtArgs>
@@ -908,6 +961,7 @@ export type $ItemPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs =
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
     order: number
+    visible: boolean
     contentId: number
     capsuleId: number
     decorId: number | null
@@ -1340,6 +1394,7 @@ export interface Prisma__ItemClient<T, Null = never, ExtArgs extends runtime.Typ
 export interface ItemFieldRefs {
   readonly id: Prisma.FieldRef<"Item", 'Int'>
   readonly order: Prisma.FieldRef<"Item", 'Int'>
+  readonly visible: Prisma.FieldRef<"Item", 'Boolean'>
   readonly contentId: Prisma.FieldRef<"Item", 'Int'>
   readonly capsuleId: Prisma.FieldRef<"Item", 'Int'>
   readonly decorId: Prisma.FieldRef<"Item", 'Int'>
