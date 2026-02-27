@@ -21,15 +21,17 @@ export async function action({ request, params }: Route.ActionArgs) {
 	} = body;
 
 	const events = await Promise.all(
-		Object.entries(data).map(([action, texttime]) =>
-			addEventToContent({
-				action,
-				id: texttime.id,
-				name: texttime.name,
-				ref: texttime.ref!,
-				itemId: Number(id)
-			})
-		)
+		Object.entries(data)
+			.filter(([, texttime]) => typeof texttime?.name == "string" && texttime.name.trim().length > 0)
+			.map(([action, texttime]) =>
+				addEventToContent({
+					action,
+					id: texttime.id,
+					name: texttime.name,
+					ref: texttime.ref!,
+					itemId: Number(id)
+				})
+			)
 	);
 	return { ok: true, id, events };
 }

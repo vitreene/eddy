@@ -3,6 +3,7 @@ import { useCallback, useRef } from "react";
 import { Trash2 } from "lucide-react";
 
 import { INTRO, OUTRO } from "@/lib/constants";
+import { DEFAULT_TRANSITION_BY_ACTION } from "@/player/presets/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
@@ -145,6 +146,7 @@ function makeEventPayload(
 	name: string
 ) {
 	const current = events?.[action] || {};
-	const defaultRef = action === OUTRO ? "DEFAULT_OUT" : "DEFAULT_IN";
+	const defaultRef =
+		action === OUTRO ? DEFAULT_TRANSITION_BY_ACTION[OUTRO] : DEFAULT_TRANSITION_BY_ACTION[INTRO];
 	return { ...current, action, name, ref: current.ref || defaultRef };
 }

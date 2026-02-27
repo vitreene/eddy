@@ -4,7 +4,7 @@ import { getValuesFromGridName } from "@/lib/utils";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { StyleEditor } from "@/components/style-editor";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
-import * as TR from "@/player/presets/transitions";
+import { getTransitionOptions, normalizeTransitionRef } from "@/player/presets/transitions";
 import { INTRO, OUTRO } from "@/lib/constants";
 
 import { DEFAULT_STYLE } from "@/lib/constants";
@@ -190,8 +190,8 @@ function CapsuleEdit({
 		});
 	};
 
-	const introRef = parseTransitionRef(capsule.defaultItemIntroTransition);
-	const outroRef = parseTransitionRef(capsule.defaultItemOutroTransition);
+	const introRef = normalizeTransitionRef(parseTransitionRef(capsule.defaultItemIntroTransition), INTRO);
+	const outroRef = normalizeTransitionRef(parseTransitionRef(capsule.defaultItemOutroTransition), OUTRO);
 
 	const gridValues = getValuesFromGridName(capsule.grid);
 	return (
@@ -215,9 +215,9 @@ function CapsuleEdit({
 					<label>Entree</label>
 					<select value={introRef} onChange={(e) => onChangeDefaultTransition(INTRO, e.currentTarget.value)}>
 						<option value="">-- fallback global --</option>
-						{Object.entries(TR).map(([k, t]) => (
-							<option key={k} value={k}>
-								{t.name}
+						{getTransitionOptions(INTRO).map(({ key, name }) => (
+							<option key={key} value={key}>
+								{name}
 							</option>
 						))}
 					</select>
@@ -226,9 +226,9 @@ function CapsuleEdit({
 					<label>Sortie</label>
 					<select value={outroRef} onChange={(e) => onChangeDefaultTransition(OUTRO, e.currentTarget.value)}>
 						<option value="">-- fallback global --</option>
-						{Object.entries(TR).map(([k, t]) => (
-							<option key={k} value={k}>
-								{t.name}
+						{getTransitionOptions(OUTRO).map(({ key, name }) => (
+							<option key={key} value={key}>
+								{name}
 							</option>
 						))}
 					</select>

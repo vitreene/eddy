@@ -4,13 +4,11 @@ import { CircleSmallIcon } from "lucide-react";
 import type { ItemComp, ContentEvent } from "@/api/db";
 
 import { INTRO, OUTRO } from "@/lib/constants";
-import * as TR from "@/player/presets/transitions";
+import { getTransitionOptions, normalizeTransitionRef } from "@/player/presets/transitions";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 import { Rubber } from "../rubber";
 import { ContentPanel } from "./event-panel";
-
-const defaultTransition = "fondu entrée";
 
 const actionOrder = [INTRO, OUTRO];
 
@@ -38,22 +36,19 @@ function ContentInfos({ item }: { item: ItemComp }) {
 			<ContentPanel id={item.contentId} />
 			<div className="w-40">
 				<p className="mb-2">Transitions</p>
-				{events &&
-					Object.values(events)
-						//a revoir si d'autres events sont ajoutés
-						.toSorted((a, b) => {
-							const aI = actionOrder.findIndex((action) => action == a.action);
-							const bI = actionOrder.findIndex((action) => action == b.action);
-							return aI - bI;
-						})
-						.map((event) => <MediaEventTransition key={event.action} event={event} />)}
+				{actionOrder.map((action) => {
+					const event = (events?.[action] ?? { action, ref: "" }) as Partial<ContentEvent> & {
+						action: string;
+					};
+					return <MediaEventTransition key={action} event={event} />;
+				})}
 			</div>
 		</div>
 	);
 }
 
 // action == marker
-function MediaEventTransition({ event }: { event: ContentEvent }) {
+function MediaEventTransition({ event }: { event: Partial<ContentEvent> & { action: string } }) {
 	const sceneLogic = SceneLogicContext.useActorRef();
 
 	const onChangeAction = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -62,7 +57,7 @@ function MediaEventTransition({ event }: { event: ContentEvent }) {
 
 	return (
 		<div className="mb-2 text-xs">
-			<input name="target" hidden defaultValue={event.name} />
+			<input name="target" hidden defaultValue={event.name || ""} />
 			<div className="flex gap-1">
 				<CircleSmallIcon
 					className={cx(
@@ -70,25 +65,31 @@ function MediaEventTransition({ event }: { event: ContentEvent }) {
 						event.action === INTRO ? "fill-green-300 stroke-green-500" : "fill-red-300 stroke-red-500"
 					)}
 				/>
-				<SelectAction value={event.ref ?? defaultTransition} onChange={onChangeAction} />
+				<SelectAction
+					action={event.action}
+					value={event.ref ? normalizeTransitionRef(event.ref, event.action) : ""}
+					onChange={onChangeAction}
+				/>
 			</div>
 		</div>
 	);
 }
 
 function SelectAction({
+	action,
 	value,
 	onChange
 }: {
+	action: string;
 	value: string;
 	onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void;
 }) {
 	return (
-		<select name={"ref"} onChange={onChange} defaultValue={value}>
-			<option value={""}>––</option>
-			{Object.entries(TR).map(([k, t]) => (
-				<option key={k} value={k}>
-					{t.name}
+		<select name={"ref"} onChange={onChange} value={value}>
+			<option value="">--</option>
+			{getTransitionOptions(action).map(({ key, name }) => (
+				<option key={key} value={key}>
+					{name}
 				</option>
 			))}
 		</select>

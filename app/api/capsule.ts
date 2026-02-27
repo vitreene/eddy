@@ -2,6 +2,7 @@ import { getCapsule, reorderCapsule, updateCapsule } from "./db";
 
 import type { Route } from "../+types/root";
 import type { Capsule } from "prisma/generated/prisma/client";
+import { normalizeTransitionRef } from "@/player/presets/transitions";
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const { "*": splat, id } = params;
@@ -60,7 +61,7 @@ function parseCapsuleTransitionField(
 	if (!raw) return { ok: true, value: null };
 
 	if (!raw.startsWith("{")) {
-		return { ok: true, value: JSON.stringify({ action, ref: raw }) };
+		return { ok: true, value: JSON.stringify({ action, ref: normalizeTransitionRef(raw, action) }) };
 	}
 
 	try {
@@ -77,7 +78,10 @@ function parseCapsuleTransitionField(
 
 		return {
 			ok: true,
-			value: JSON.stringify({ action: normalizedAction, ref: parsed.ref.trim() })
+			value: JSON.stringify({
+				action: normalizedAction,
+				ref: normalizeTransitionRef(parsed.ref.trim(), normalizedAction)
+			})
 		};
 	} catch {
 		return {

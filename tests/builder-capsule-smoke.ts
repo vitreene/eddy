@@ -12,8 +12,8 @@ function createSceneBase(): SceneComp {
 		main: 1,
 		events: {
 			100: {
-				intro: { name: "capsule-intro", action: "intro", ref: "fadeIn" } as any,
-				outro: { name: "capsule-outro", action: "outro", ref: "fadeOut" } as any
+				intro: { name: "capsule-intro", action: "intro", ref: "fade" } as any,
+				outro: { name: "capsule-outro", action: "outro", ref: "fade" } as any
 			}
 		},
 		sceneContents: {
@@ -114,8 +114,8 @@ const cases: Case[] = [
 		run: () => {
 			const context = createSceneBase();
 			context.events[2] = {
-				intro: { name: "mid-intro", action: "intro", ref: "fadeIn" } as any,
-				outro: { name: "mid-outro", action: "outro", ref: "fadeOut" } as any
+				intro: { name: "mid-intro", action: "intro", ref: "fade" } as any,
+				outro: { name: "mid-outro", action: "outro", ref: "fade" } as any
 			};
 
 			const scene = buildScene(context);
@@ -140,8 +140,8 @@ const cases: Case[] = [
 		name: "capsule default transitions apply to child items",
 		run: () => {
 			const context = createSceneBase();
-			context.capsules[2].defaultItemIntroTransition = { action: "intro", ref: "swipeLeftIn" };
-			context.capsules[2].defaultItemOutroTransition = { action: "outro", ref: "swipeLeftOut" };
+			context.capsules[2].defaultItemIntroTransition = { action: "intro", ref: "swipe-left" };
+			context.capsules[2].defaultItemOutroTransition = { action: "outro", ref: "swipe-left" };
 
 			const scene = buildScene(context);
 			const item1 = getItemPerso(scene, 1);
@@ -156,8 +156,8 @@ const cases: Case[] = [
 		name: "no transitive transition inheritance across capsules",
 		run: () => {
 			const context = createSceneBase();
-			context.capsules[1].defaultItemIntroTransition = { action: "intro", ref: "swipeRightIn" };
-			context.capsules[1].defaultItemOutroTransition = { action: "outro", ref: "swipeRightOut" };
+			context.capsules[1].defaultItemIntroTransition = { action: "intro", ref: "swipe-right" };
+			context.capsules[1].defaultItemOutroTransition = { action: "outro", ref: "swipe-right" };
 
 			const scene = buildScene(context);
 			const item1 = getItemPerso(scene, 1);
@@ -165,6 +165,61 @@ const cases: Case[] = [
 
 			assert.equal(item1.actions[introKey].style.x, undefined);
 			assert.equal(item1.actions[introKey].style.opacity?.from, 0);
+		}
+	},
+	{
+		name: "zoom transition uses scale to 1 on intro",
+		run: () => {
+			const context = createSceneBase();
+			context.events[1] = {
+				intro: { ...context.events[1]?.intro, action: "intro", ref: "zoom", name: "c2" },
+				outro: { ...context.events[1]?.outro, action: "outro", ref: "zoom", name: "c3" }
+			} as any;
+
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+			const introKey = getItemActionName(scene, 1, "intro");
+
+			assert.equal(item1.actions[introKey].style.scale?.from, 0.2);
+			assert.equal(item1.actions[introKey].style.scale?.to, 1);
+		}
+	},
+	{
+		name: "cut transition has empty style",
+		run: () => {
+			const context = createSceneBase();
+			context.events[1] = {
+				intro: { ...context.events[1]?.intro, action: "intro", ref: "cut", name: "c2" },
+				outro: { ...context.events[1]?.outro, action: "outro", ref: "cut", name: "c3" }
+			} as any;
+
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+			const introKey = getItemActionName(scene, 1, "intro");
+			const outroKey = getItemActionName(scene, 1, "outro");
+
+			assert.deepEqual(item1.actions[introKey].style, {});
+			assert.deepEqual(item1.actions[outroKey].style, {});
+		}
+	},
+	{
+		name: "degenerate auto windows become maximal auto events",
+		run: () => {
+			const context = createSceneBase();
+			context.events[2] = {
+				intro: { name: "capsule-intro", action: "intro", ref: "fade" } as any,
+				outro: { name: "capsule-outro", action: "outro", ref: "fade" } as any
+			};
+
+			const scene = buildScene(context);
+			const starts = getActionStarts(scene);
+			const i1In = getItemActionName(scene, 1, "intro");
+			const i1Out = getItemActionName(scene, 1, "outro");
+
+			assert.equal(i1In.startsWith("__auto_maximal__"), true);
+			assert.equal(i1Out.startsWith("__auto_maximal__"), true);
+			assert.equal(starts.get(i1In), 2000);
+			assert.equal(starts.get(i1Out), 8000);
 		}
 	},
 	{

@@ -12,6 +12,11 @@ import type {
 } from "prisma/generated/prisma/client";
 import type { EditableStyle } from "@/components/style-editor/types";
 import { ROOT } from "@/player/constants";
+import {
+	DEFAULT_TRANSITION_BY_ACTION,
+	normalizeTransitionAction,
+	normalizeTransitionRef
+} from "@/player/presets/transitions";
 
 export type { Content, ContentEvent };
 
@@ -886,12 +891,15 @@ export async function addEventToContent({
 	duration?: number;
 	itemId: number;
 }) {
-	const normalizedRef =
-		typeof ref == "string" && ref.trim().length ? ref.trim() : action == "outro" ? "DEFAULT_OUT" : "DEFAULT_IN";
+	const normalizedAction = normalizeTransitionAction(action);
+	const normalizedRef = normalizeTransitionRef(
+		typeof ref == "string" && ref.trim().length ? ref.trim() : DEFAULT_TRANSITION_BY_ACTION[normalizedAction],
+		normalizedAction
+	);
 
 	const data = {
 		name,
-		action,
+		action: normalizedAction,
 		duration,
 		ref: normalizedRef,
 		itemId

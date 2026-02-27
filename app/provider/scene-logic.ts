@@ -9,6 +9,7 @@ import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } f
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
 import { AUTOCOMMIT_TOUCHED_IDLE_MS } from "@/lib/constants";
+import { normalizeTransitionRef } from "@/player/presets/transitions";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -476,7 +477,7 @@ function serializeCapsuleTransition(value: unknown, action: "intro" | "outro"): 
 	if (typeof value == "string") {
 		const ref = value.trim();
 		if (!ref) return "";
-		return JSON.stringify({ action, ref });
+		return JSON.stringify({ action, ref: normalizeTransitionRef(ref, action) });
 	}
 
 	if (typeof value == "object") {
@@ -484,7 +485,7 @@ function serializeCapsuleTransition(value: unknown, action: "intro" | "outro"): 
 		const ref = typeof record.ref == "string" ? record.ref.trim() : "";
 		if (!ref) return "";
 		const currentAction = typeof record.action == "string" && record.action ? record.action : action;
-		return JSON.stringify({ action: currentAction, ref });
+		return JSON.stringify({ action: currentAction, ref: normalizeTransitionRef(ref, currentAction) });
 	}
 
 	return "";

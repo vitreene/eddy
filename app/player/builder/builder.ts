@@ -19,7 +19,7 @@ Donc plutot partir sur une suppression lors d'un "move"
 note, au fur et a mesure des solutions trouvées, plusieurs conflits ptentiels de créqtion de style à résoudre. 
 */
 
-import * as transitions from "@/player/presets/transitions";
+import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/player/presets/transitions";
 
 import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor, ContentEvent } from "@/api/db";
 import { P, type ID } from "../types";
@@ -31,11 +31,6 @@ import type { PlayerProps } from "..";
 import { classNameToCssDefinition, getValuesFromGridName, gridClassNameToCssDefinition } from "@/lib/utils";
 
 const DEFAUT_PATH_IMAGE = "";
-
-const TR = Object.fromEntries(Object.entries(transitions).map(([k, { name: _, ...v }]) => [k, v]));
-
-TR.DEFAULT_IN = TR.fadeIn;
-TR.DEFAULT_OUT = TR.fadeOut;
 
 export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string } {
 	const derivedSnapshot = applyCapsuleDefaultItemEvents(snapshot);
@@ -93,9 +88,13 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 		cueByName.set(cue.name, cue);
 	}
 
+	const AUTO_PREFIX = "__auto_";
+	const AUTO_MAXIMAL_PREFIX = "__auto_maximal__";
+
 	let syntheticCueId = -1;
-	const ensureCueAtTime = (timeSec: number, hint: string) => {
-		const key = `__auto_${hint}_${Math.round(timeSec * 1000)}`;
+	const ensureCueAtTime = (timeSec: number, hint: string, mode: "auto" | "maximal" = "auto") => {
+		const prefix = mode == "maximal" ? AUTO_MAXIMAL_PREFIX : AUTO_PREFIX;
+		const key = `${prefix}${hint}_${Math.round(timeSec * 1000)}`;
 		if (!cueByName.has(key)) {
 			const cue: TextTime = {
 				id: syntheticCueId--,
@@ -260,6 +259,12 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 			for (const [index, item] of orderedChildren.entries()) {
 				const window = windows[index];
 				if (!window) continue;
+				const isDegenerateWindow = window.end <= window.start;
+				const appliedWindow = isDegenerateWindow ? { start: capsuleStart, end: capsuleEnd } : window;
+				const hintPrefix = isDegenerateWindow
+					? `maximal_capsule_${capsule.id}_item_${item.id}`
+					: `capsule_${capsule.id}_item_${item.id}`;
+				const cueMode = isDegenerateWindow ? "maximal" : "auto";
 
 				if (!clonedEvents[item.id]) clonedEvents[item.id] = {};
 				const currentEvents = clonedEvents[item.id];
@@ -268,7 +273,7 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 					currentEvents[INTRO] = createGeneratedEvent({
 						itemId: item.id,
 						action: INTRO,
-						name: ensureCueAtTime(window.start, `capsule_${capsule.id}_item_${item.id}_intro`)
+						name: ensureCueAtTime(appliedWindow.start, `${hintPrefix}_intro`, cueMode)
 					});
 					generatedForCapsule = true;
 				}
@@ -277,7 +282,7 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 					currentEvents[OUTRO] = createGeneratedEvent({
 						itemId: item.id,
 						action: OUTRO,
-						name: ensureCueAtTime(window.end, `capsule_${capsule.id}_item_${item.id}_outro`)
+						name: ensureCueAtTime(appliedWindow.end, `${hintPrefix}_outro`, cueMode)
 					});
 					generatedForCapsule = true;
 				}
@@ -434,8 +439,12 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 				} else actions[actionName] = { style: actionStyle };
 			}
 		} else {
-			actions[INTRO] = { style: getActionStyle(TR.DEFAULT_IN.style) };
-			actions[OUTRO] = { style: getActionStyle(TR.DEFAULT_OUT.style) };
+			actions[INTRO] = {
+				style: getActionStyle(getTransitionPreset(DEFAULT_TRANSITION_BY_ACTION[INTRO], INTRO).style)
+			};
+			actions[OUTRO] = {
+				style: getActionStyle(getTransitionPreset(DEFAULT_TRANSITION_BY_ACTION[OUTRO], OUTRO).style)
+			};
 		}
 		actions[id] = true;
 
@@ -582,19 +591,14 @@ function getTransitionPresetForEvent({
 	// Priority chain:
 	// 1) explicit event ref
 	// 2) capsule default transition for this action
-	// 3) global DEFAULT_IN/DEFAULT_OUT
+	// 3) global default transition for this action
 	const eventAction = event.action == OUTRO ? OUTRO : INTRO;
 	const eventRef = parseTransitionRef(event.ref);
 	const capsule = snapshot.capsules?.[item.capsuleId];
 	const capsuleRef = getCapsuleDefaultTransitionRef(capsule, eventAction);
-	const fallbackRef = eventAction == OUTRO ? "DEFAULT_OUT" : "DEFAULT_IN";
-
-	return (
-		getTransitionPreset(eventRef) ||
-		getTransitionPreset(capsuleRef) ||
-		getTransitionPreset(fallbackRef) ||
-		TR.DEFAULT_IN
-	);
+	const fallbackRef = DEFAULT_TRANSITION_BY_ACTION[eventAction];
+	const resolvedRef = eventRef || capsuleRef || fallbackRef;
+	return getTransitionPreset(resolvedRef, eventAction);
 }
 
 function getCapsuleDefaultTransitionRef(capsule: CapsuleComp | undefined, action: string): string | null {
@@ -632,15 +636,6 @@ function parseTransitionRef(value: unknown): string | null {
 	return null;
 }
 
-function getTransitionPreset(ref: string | null) {
-	// Resolves transition presets by exported key only.
-	if (!ref) return null;
-
-	const byKey = TR[ref as keyof typeof TR];
-	if (byKey?.style) return byKey;
-
-	return null;
-}
 /* 
 export type MapEvent = Map<number, Eventime | Eventime[]>;
 
