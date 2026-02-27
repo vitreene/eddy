@@ -511,14 +511,22 @@ function executePersistTouchedCommits(context: SceneComp & { active: ActiveState
 	const capsuleTouched = params.includes("capsuleTouched");
 
 	if (eventTouched) {
-		fetch(`/api/content/${itemId}`, {
+		void fetch(`/api/content/${itemId}`, {
 			method: "POST",
 			headers: {
 				Accept: "application/json",
 				"Content-Type": "application/json"
 			},
 			body: JSON.stringify(context.events[itemId])
-		});
+		})
+			.then((response) => {
+				if (!response.ok) {
+					console.error("Event persist failed", { itemId, status: response.status });
+				}
+			})
+			.catch((error) => {
+				console.error("Event persist failed", { itemId, error });
+			});
 	}
 
 	if (decorTouched && context.items[itemId].decorId) {

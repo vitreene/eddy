@@ -238,6 +238,174 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 	return flattenScene(scene);
 }
 
+export async function deleteScene(sceneId: number, options: { keepTexts?: boolean } = {}) {
+	const keepTexts = options.keepTexts ?? true;
+
+	return await prisma.$transaction(async (tx) => {
+		const scene = await tx.scene.findUnique({
+			where: { id: sceneId },
+			select: {
+				id: true,
+				themeId: true,
+				decorId: true,
+				capsuleId: true,
+				sceneContents: {
+					select: { id: true, contentId: true, decorId: true }
+				},
+				sceneCapsules: {
+					select: { capsuleId: true }
+				}
+			}
+		});
+
+		if (!scene) throw new Error(`Scene ${sceneId} not found`);
+
+		const capsuleIds = [
+			...new Set(
+				[...scene.sceneCapsules.map((sceneCapsule) => sceneCapsule.capsuleId), scene.capsuleId].filter(
+					(id): id is number => typeof id === "number"
+				)
+			)
+		];
+
+		const items = capsuleIds.length
+			? await tx.item.findMany({
+					where: { capsuleId: { in: capsuleIds } },
+					select: { id: true, contentId: true, decorId: true }
+				})
+			: [];
+
+		const itemIds = items.map((item) => item.id);
+		const retainedContentIds = [
+			...new Set([
+				...items.map((item) => item.contentId),
+				...scene.sceneContents.map((entry) => entry.contentId)
+			])
+		];
+		const textContentCandidateIds = keepTexts
+			? []
+			: (
+					await tx.content.findMany({
+						where: { id: { in: retainedContentIds }, type: "text" },
+						select: { id: true }
+					})
+				).map((content) => content.id);
+
+		const events = itemIds.length
+			? await tx.event.findMany({
+					where: { itemId: { in: itemIds } },
+					select: { id: true, decorId: true }
+				})
+			: [];
+
+		const itemTargets = capsuleIds.length
+			? await tx.itemTarget.findMany({
+					where: { targetId: { in: capsuleIds } },
+					select: { id: true }
+				})
+			: [];
+
+		const itemTargetIds = itemTargets.map((itemTarget) => itemTarget.id);
+		const itemTargetDecorIds = itemTargetIds.length
+			? (
+					await tx.decor.findMany({
+						where: { itemTargetId: { in: itemTargetIds } },
+						select: { id: true }
+					})
+				).map((decor) => decor.id)
+			: [];
+
+		const decorIds = [
+			...new Set(
+				[
+					scene.decorId,
+					...scene.sceneContents.map((sceneContent) => sceneContent.decorId),
+					...items.map((item) => item.decorId),
+					...events.map((event) => event.decorId),
+					...itemTargetDecorIds
+				].filter((id): id is number => typeof id === "number")
+			)
+		];
+
+		await tx.sceneContent.deleteMany({ where: { sceneId } });
+
+		if (itemIds.length) {
+			await tx.event.deleteMany({ where: { itemId: { in: itemIds } } });
+			await tx.item.deleteMany({ where: { id: { in: itemIds } } });
+		}
+
+		if (itemTargetIds.length) {
+			await tx.decor.updateMany({
+				where: { itemTargetId: { in: itemTargetIds } },
+				data: { itemTargetId: null }
+			});
+			await tx.itemTarget.deleteMany({ where: { id: { in: itemTargetIds } } });
+		}
+
+		await tx.sceneCapsule.deleteMany({ where: { sceneId } });
+		await tx.scene.delete({ where: { id: sceneId } });
+
+		if (capsuleIds.length) {
+			await tx.content.updateMany({
+				where: { capsuleId: { in: capsuleIds } },
+				data: { capsuleId: null }
+			});
+			await tx.capsule.deleteMany({ where: { id: { in: capsuleIds } } });
+		}
+
+		if (scene.themeId) {
+			await tx.theme.deleteMany({
+				where: {
+					id: scene.themeId,
+					scenes: { none: {} }
+				}
+			});
+		}
+
+		if (decorIds.length) {
+			await tx.decor.deleteMany({
+				where: {
+					id: { in: decorIds },
+					scenes: { none: {} },
+					sceneContents: { none: {} },
+					items: { none: {} },
+					events: { none: {} },
+					bases: { none: {} }
+				}
+			});
+		}
+
+		const deletedTextContentIds: number[] = [];
+		if (textContentCandidateIds.length) {
+			for (const contentId of textContentCandidateIds) {
+				const [itemRefCount, sceneContentRefCount] = await Promise.all([
+					tx.item.count({ where: { contentId } }),
+					tx.sceneContent.count({ where: { contentId } })
+				]);
+				if (!itemRefCount && !sceneContentRefCount) {
+					deletedTextContentIds.push(contentId);
+				}
+			}
+
+			if (deletedTextContentIds.length) {
+				await tx.content.deleteMany({ where: { id: { in: deletedTextContentIds } } });
+			}
+		}
+
+		return {
+			sceneId,
+			capsuleIds,
+			itemIds,
+			decorIds,
+			eventIds: events.map((event) => event.id),
+			retainedContentIds,
+			retainedContentCount: retainedContentIds.length,
+			deletedTextContentIds,
+			deletedTextContentCount: deletedTextContentIds.length
+		};
+	});
+}
+
 export function flattenScene(scene: DbSceneComp): SceneComp {
 	const flatScene: SceneComp = {
 		id: scene.id,
@@ -718,11 +886,14 @@ export async function addEventToContent({
 	duration?: number;
 	itemId: number;
 }) {
+	const normalizedRef =
+		typeof ref == "string" && ref.trim().length ? ref.trim() : action == "outro" ? "DEFAULT_OUT" : "DEFAULT_IN";
+
 	const data = {
 		name,
 		action,
 		duration,
-		ref,
+		ref: normalizedRef,
 		itemId
 	};
 

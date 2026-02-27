@@ -140,9 +140,11 @@ function selectCues(cues: Array<TextTime> = [], start: string, end: string) {
 }
 
 function makeEventPayload(
-	events: Record<string, { action?: string; name?: string } | undefined> | null,
+	events: Record<string, { action?: string; name?: string; ref?: string } | undefined> | null,
 	action: string,
 	name: string
 ) {
-	return { ...(events?.[action] || {}), action, name };
+	const current = events?.[action] || {};
+	const defaultRef = action === OUTRO ? "DEFAULT_OUT" : "DEFAULT_IN";
+	return { ...current, action, name, ref: current.ref || defaultRef };
 }

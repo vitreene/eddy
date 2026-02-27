@@ -73,7 +73,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	return (
 		<main className="app-layout">
 			<section className="base-layout layout-menu">
-				<Menu scenes={data.scenes} />
+				<Menu scenes={data.scenes} sceneId={data.scene.id} />
 			</section>
 			<section className="base-layout layout-chutier">
 				<Chutier allContents={data.allContents} />
