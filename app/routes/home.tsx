@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { Route } from "./+types/home";
 
 import { PlayerRunner, type PlayerProps } from "~/player";
@@ -51,16 +51,17 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 		events: new Map(),
 		styles: ""
 	});
+	const previousSceneStateRef = useRef<SceneComp | null>(null);
 
 	const actorRef = SceneLogicContext.useActorRef();
 	useEffect(() => {
 		const subscription = actorRef.subscribe((snapshot) => {
 			const { active, ...state } = snapshot.context;
-			if (Object.keys(state).length) {
-				const sc = buildScene(state);
+			if (!Object.keys(state).length) return;
+			if (!hasSceneDataChanged(previousSceneStateRef.current, state)) return;
 
-				setScene(sc);
-			}
+			previousSceneStateRef.current = state;
+			setScene(buildScene(state));
 		});
 
 		return () => subscription.unsubscribe();
@@ -97,3 +98,19 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 		</main>
 	);
 });
+
+function hasSceneDataChanged(previous: SceneComp | null, next: SceneComp): boolean {
+	if (!previous) return true;
+	return (
+		previous.id !== next.id ||
+		previous.title !== next.title ||
+		previous.main !== next.main ||
+		previous.events !== next.events ||
+		previous.sceneContents !== next.sceneContents ||
+		previous.capsules !== next.capsules ||
+		previous.items !== next.items ||
+		previous.contents !== next.contents ||
+		previous.decors !== next.decors ||
+		previous.theme !== next.theme
+	);
+}

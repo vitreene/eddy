@@ -23,31 +23,22 @@ export function SlotEditor({ value, onChange }: Props) {
 		item ? state.context.capsules[item.capsuleId] : undefined
 	);
 
-	const decor = SceneLogicContext.useSelector((state) =>
-		item?.decorId ? state.context.decors[item.decorId] : undefined
-	);
-
 	if (!item || !capsule?.grid) return null;
+	if (resolveCapsuleType(capsule.type) === CAPSULE_TYPES.CARROUSEL) return null;
 	if (!shouldCapsuleUseExplicitArea(capsule.type)) return null;
 
 	const setArea = (area: string) => {
-		onChange({ ...value, area });
+		onChange({ area });
 	};
 
 	const capsuleType = resolveCapsuleType(capsule.type);
 	if (capsuleType === CAPSULE_TYPES.CARD) {
 		const templateAreas = parseCardTemplateAreas(capsule.grid);
 		if (!templateAreas.length) return null;
-		return (
-			<GridAreaRadioSelector
-				templateAreas={templateAreas}
-				value={value.area || decor?.area}
-				onChange={setArea}
-			/>
-		);
+		return <GridAreaRadioSelector templateAreas={templateAreas} value={value.area} onChange={setArea} />;
 	}
 
 	const { w, h } = getValuesFromGridName(capsule.grid);
 
-	return <GridAreaRadioSelector cols={w} rows={h} value={value.area || decor?.area} onChange={setArea} />;
+	return <GridAreaRadioSelector cols={w} rows={h} value={value.area} onChange={setArea} />;
 }

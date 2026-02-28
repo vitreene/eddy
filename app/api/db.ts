@@ -18,6 +18,7 @@ import {
 	normalizeTransitionRef
 } from "@/config/transitions";
 import { CAPSULE_TYPES } from "@/config/capsule-types";
+import { deriveEventKind } from "@/config/custom-events";
 
 export type { Content, ContentEvent };
 
@@ -81,6 +82,9 @@ export interface TextTime {
 	start: number;
 	end: number;
 	ref?: string;
+	delay?: number;
+	duration?: number;
+	position?: "start" | "middle" | "end" | null;
 }
 
 export interface SceneContent {
@@ -122,7 +126,7 @@ interface DbCapsule extends Capsule {
 	items: Array<
 		Item & {
 			content: Content;
-			events: Array<ContentEvent>;
+			events: Array<ContentEvent & { decor?: DecorDB | null }>;
 			decor?: DecorDB | null;
 		}
 	>;
@@ -224,7 +228,7 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 							include: {
 								content: true,
 								decor: true,
-								events: true
+								events: { include: { decor: true } }
 							}
 						}
 					}
@@ -243,7 +247,7 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 					include: {
 						content: true,
 						decor: true,
-						events: true
+						events: { include: { decor: true } }
 					}
 				}
 			}
@@ -478,6 +482,15 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 					const { style, ...d } = decor;
 					flatScene.decors[decor.id] = { ...d, style: JSON.parse(style ?? "{}") };
 				}
+
+				events.forEach((event) => {
+					if (!event?.decor) return;
+					const { style, ...eventDecor } = event.decor;
+					flatScene.decors[event.decor.id] = {
+						...eventDecor,
+						style: JSON.parse(style ?? "{}")
+					};
+				});
 
 				const evs = Object.fromEntries(events.map((e) => [e.action, e]));
 				flatScene.events[item.id] = evs;
@@ -899,48 +912,111 @@ export async function addEventToContent({
 	action,
 	ref,
 	duration,
+	delay,
+	position,
+	decorId,
 	itemId
 }: {
 	id?: number;
-	name: string;
+	name?: string | null;
 	action: string;
-	ref: string;
+	ref?: string | null;
 	duration?: number;
+	delay?: number;
+	position?: string | null;
+	decorId?: number | null;
 	itemId: number;
 }) {
-	const normalizedAction = normalizeTransitionAction(action);
-	const normalizedRef = normalizeTransitionRef(
-		typeof ref == "string" && ref.trim().length ? ref.trim() : DEFAULT_TRANSITION_BY_ACTION[normalizedAction],
-		normalizedAction
-	);
+	const eventKind = deriveEventKind(action);
+	const transitionAction = normalizeTransitionAction(action);
+	const normalizedAction = eventKind === "custom" ? action.trim() : transitionAction;
+	const normalizedName = typeof name == "string" && name.trim().length ? name.trim() : null;
+	const normalizedRef =
+		eventKind === "custom"
+			? null
+			: normalizeTransitionRef(
+					typeof ref == "string" && ref.trim().length
+						? ref.trim()
+						: DEFAULT_TRANSITION_BY_ACTION[transitionAction],
+					transitionAction
+				);
 
-	const data = {
-		name,
-		action: normalizedAction,
-		duration,
-		ref: normalizedRef,
-		itemId
-	};
+	const normalizedDuration =
+		typeof duration == "number" && Number.isFinite(duration) && duration > 0 ? duration : null;
+	const normalizedDelay = typeof delay == "number" && Number.isFinite(delay) && delay >= 0 ? delay : null;
+	const normalizedPosition = eventKind === "custom" && typeof position == "string" ? position : null;
 
-	if (id) {
-		return prisma.event.update({ where: { id }, data });
-	}
+	return await prisma.$transaction(async (tx) => {
+		const targetById = id
+			? await tx.event.findUnique({ where: { id }, select: { id: true, decorId: true } })
+			: null;
 
-	const existing = await prisma.event.findFirst({
-		where: { itemId, action },
-		select: { id: true }
+		const existingByNaturalKey = !id
+			? await tx.event.findFirst({
+					where: { itemId, action: normalizedAction },
+					select: { id: true, decorId: true }
+				})
+			: null;
+
+		const currentDecorId = targetById?.decorId ?? existingByNaturalKey?.decorId ?? null;
+		let resolvedDecorId: number | null = null;
+
+		if (eventKind === "custom") {
+			if (typeof decorId == "number" && Number.isFinite(decorId)) {
+				resolvedDecorId = decorId;
+			} else if (typeof currentDecorId == "number") {
+				resolvedDecorId = currentDecorId;
+			} else {
+				const createdDecor = await tx.decor.create({ data: {} });
+				resolvedDecorId = createdDecor.id;
+			}
+		}
+
+		const data = {
+			name: normalizedName,
+			action: normalizedAction,
+			duration: normalizedDuration,
+			delay: normalizedDelay,
+			position: normalizedPosition,
+			ref: normalizedRef,
+			decorId: resolvedDecorId,
+			itemId
+		};
+
+		if (targetById) {
+			return tx.event.update({ where: { id: targetById.id }, data });
+		}
+
+		if (existingByNaturalKey) {
+			return tx.event.update({ where: { id: existingByNaturalKey.id }, data });
+		}
+
+		return tx.event.create({ data });
 	});
-
-	if (existing) {
-		return prisma.event.update({ where: { id: existing.id }, data });
-	}
-
-	return prisma.event.create({ data });
 }
 
 export async function removeEventFromcontent(id: number) {
 	return await prisma.event.delete({
 		where: { id }
+	});
+}
+
+export async function removeCustomEventFromContent(id: number) {
+	const event = await prisma.event.findUnique({
+		where: { id },
+		select: { id: true, action: true, decorId: true }
+	});
+	if (!event) return null;
+	if (deriveEventKind(event.action) !== "custom") {
+		throw new Error("Cannot delete intro/outro events");
+	}
+
+	return await prisma.$transaction(async (tx) => {
+		const deleted = await tx.event.delete({ where: { id: event.id } });
+		if (typeof event.decorId == "number") {
+			await tx.decor.deleteMany({ where: { id: event.decorId } });
+		}
+		return deleted;
 	});
 }
 

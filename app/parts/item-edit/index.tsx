@@ -8,8 +8,10 @@ import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitio
 import { INTRO, OUTRO } from "@/config/constants";
 import { applyStyleDefaults, stripDefaultStyleValues } from "@/config/item-style-defaults";
 import { CAPSULE_TYPES, getSelectableCapsuleTypeConfigs, resolveCapsuleType } from "@/config/capsule-types";
+import { deriveEventKind } from "@/config/custom-events";
+import { getCueTimeAtPosition } from "@/player/visibility/custom-event-cue-mapping";
 
-import type { CapsuleComp, Decor, Content } from "@/api/db";
+import type { CapsuleComp, Content, ContentEvent, Decor, SceneComp, TextTime } from "@/api/db";
 import type { GridSize } from "@/components/draw-grid";
 import type { EditableStyle } from "@/components/style-editor/types";
 
@@ -19,13 +21,35 @@ export function EditItem() {
 	const item = SceneLogicContext.useSelector((state) =>
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
 	);
+	console.log("EDIT", item);
 
 	const content: Content = SceneLogicContext.useSelector((state) => state.context.contents[item?.contentId]);
 
-	const decor = SceneLogicContext.useSelector((state) => {
-		if (!item?.decorId) return undefined;
-		return state.context.decors[item.decorId];
+	const decorState = SceneLogicContext.useSelector((state) => {
+		if (!item) return { decor: undefined as Decor | undefined, editDecor: undefined as Decor | undefined };
+
+		const itemDecor = item.decorId ? state.context.decors[item.decorId] : undefined;
+		const activeEventAction = state.context.active.event;
+		const activeEvent = activeEventAction ? state.context.events[item.id]?.[activeEventAction] : null;
+
+		if (!activeEvent || deriveEventKind(activeEvent.action) !== "custom" || !activeEvent.decorId) {
+			return { decor: itemDecor, editDecor: itemDecor };
+		}
+
+		const eventDecor = state.context.decors[activeEvent.decorId];
+		if (!eventDecor) return { decor: itemDecor, editDecor: undefined };
+
+		const baseBeforeEvent = resolveDecorBeforeCustomEvent(
+			state.context,
+			item.id,
+			activeEvent.action,
+			itemDecor
+		);
+		return { decor: mergeDecorChain(baseBeforeEvent, eventDecor), editDecor: eventDecor };
 	});
+
+	const decor = decorState.decor;
+	const editDecor = decorState.editDecor;
 
 	const capsule = SceneLogicContext.useSelector((state) => {
 		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
@@ -34,19 +58,24 @@ export function EditItem() {
 
 	const onStyleChange = useCallback(
 		(payload: EditableStyle) => {
+			if (!editDecor) return;
+
+			const payloadStyleOnly = { ...payload };
+			const hasArea = Object.prototype.hasOwnProperty.call(payloadStyleOnly, "area");
+			const hasClassName = Object.prototype.hasOwnProperty.call(payloadStyleOnly, "className");
+			if (hasArea) delete payloadStyleOnly.area;
+			if (hasClassName) delete payloadStyleOnly.className;
+
 			const baseStyle = applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content?.type);
-			const mergedStyle = { ...baseStyle, ...payload };
-			const style = stripDefaultStyleValues(mergedStyle, content?.type);
-			const area = Object.prototype.hasOwnProperty.call(payload, "area") ? payload.area : decor?.area;
-			const className = Object.prototype.hasOwnProperty.call(payload, "className")
-				? payload.className
-				: decor?.className;
+			const style = stripDefaultStyleValues({ ...baseStyle, ...payloadStyleOnly }, content?.type);
+			const area = hasArea ? payload.area : decor?.area;
+			const className = hasClassName ? payload.className : decor?.className;
 
 			send({
 				type: "item-update",
 				payload: {
 					decor: {
-						...decor,
+						...editDecor,
 						className: className ?? null,
 						area: area ?? null,
 						style
@@ -54,22 +83,23 @@ export function EditItem() {
 				}
 			});
 		},
-		[send, decor, content?.type]
+		[send, decor, editDecor, content?.type]
 	);
 
 	const onResetStyle = useCallback(() => {
+		if (!editDecor) return;
 		send({
 			type: "item-update",
 			payload: {
 				decor: {
-					...decor,
+					...editDecor,
 					className: null,
 					area: null,
 					style: {}
 				} as Decor
 			}
 		});
-	}, [send, decor]);
+	}, [send, editDecor]);
 
 	const onTextChange = useCallback(
 		(inner: string) => {
@@ -136,7 +166,11 @@ function ContentEdit({
 	return (
 		<StyleEditor
 			content={content}
-			value={applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type)}
+			value={{
+				...applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type),
+				area: decor?.area ?? undefined,
+				className: decor?.className ?? undefined
+			}}
 			onChange={onChange}
 			onReset={onReset}
 			textValue={content.inner || ""}
@@ -394,7 +428,11 @@ function CapsuleEdit({
 
 			<StyleEditor
 				content={content}
-				value={applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type)}
+				value={{
+					...applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type),
+					area: decor?.area ?? undefined,
+					className: decor?.className ?? undefined
+				}}
 				onChange={onChange}
 				onReset={onReset}
 				textValue={content.inner || ""}
@@ -422,4 +460,96 @@ function parseTransitionRef(value: CapsuleComp["defaultItemIntroTransition"]): s
 	}
 	if (typeof value == "object" && typeof value.ref == "string") return value.ref;
 	return "";
+}
+
+function resolveDecorBeforeCustomEvent(
+	context: SceneComp,
+	itemId: number,
+	currentAction: string,
+	itemDecor: Decor | undefined
+): Decor | undefined {
+	const events = context.events[itemId] || {};
+	const orderedCustomEvents = getOrderedCustomEvents(context, events);
+	const currentIndex = orderedCustomEvents.findIndex((entry) => entry.event.action === currentAction);
+	if (currentIndex < 0) return itemDecor;
+
+	let resolved = itemDecor;
+	for (const entry of orderedCustomEvents.slice(0, currentIndex)) {
+		if (!entry.event.decorId) continue;
+		const eventDecor = context.decors[entry.event.decorId];
+		if (!eventDecor) continue;
+		resolved = mergeDecorChain(resolved, eventDecor);
+	}
+
+	return resolved;
+}
+
+function getOrderedCustomEvents(
+	context: SceneComp,
+	events: Record<string, ContentEvent | undefined>
+): Array<{ event: ContentEvent; timeSec: number }> {
+	const sceneContent =
+		Object.values(context.sceneContents).find((sceneContent) => sceneContent.sceneId == context.id) ||
+		Object.values(context.sceneContents)[0];
+	const cues = sceneContent?.events || [];
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+	const introCue = events[INTRO]?.name ? cueByName.get(events[INTRO]!.name || "") : null;
+	const outroCue = events[OUTRO]?.name ? cueByName.get(events[OUTRO]!.name || "") : null;
+
+	const withTimes = Object.values(events)
+		.filter((event): event is ContentEvent => Boolean(event) && deriveEventKind(event!.action) === "custom")
+		.map((event) => ({
+			event,
+			timeSec: resolveCustomEventTimeSec(event, cueByName, introCue || null, outroCue || null)
+		}))
+		.filter((entry): entry is { event: ContentEvent; timeSec: number } => Number.isFinite(entry.timeSec));
+
+	return withTimes.toSorted((a, b) => {
+		if (a.timeSec !== b.timeSec) return a.timeSec - b.timeSec;
+		return a.event.action.localeCompare(b.event.action);
+	});
+}
+
+function resolveCustomEventTimeSec(
+	event: ContentEvent,
+	cueByName: Map<string, TextTime>,
+	introCue: TextTime | null,
+	outroCue: TextTime | null
+): number {
+	if (event.name) {
+		const cue = cueByName.get(event.name);
+		if (!cue) return Number.NaN;
+		const position = (event.position === "start" || event.position === "end" ? event.position : "middle") as
+			| "start"
+			| "middle"
+			| "end";
+		return getCueTimeAtPosition(cue, position);
+	}
+
+	if (typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0 && introCue) {
+		const introStart = Number(introCue.start);
+		if (!Number.isFinite(introStart)) return Number.NaN;
+		const outroEnd = outroCue ? Number(outroCue.end) : Number.POSITIVE_INFINITY;
+		const target = introStart + event.delay;
+		if (Number.isFinite(outroEnd)) return Math.min(Math.max(target, introStart), outroEnd);
+		return target;
+	}
+
+	return Number.NaN;
+}
+
+function mergeDecorChain(base: Decor | undefined, override: Decor | undefined): Decor | undefined {
+	if (!base) return override;
+	if (!override) return base;
+
+	return {
+		...base,
+		...override,
+		area: override.area ?? base.area,
+		className: override.className ?? base.className,
+		style: {
+			...((base.style as EditableStyle) || {}),
+			...((override.style as EditableStyle) || {})
+		}
+	};
 }

@@ -21,7 +21,9 @@ note, au fur et a mesure des solutions trouvées, plusieurs conflits ptentiels d
 
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
 import { resolveCueWindows } from "@/player/visibility/resolve-cue-windows";
+import { getCueTimeAtPosition } from "@/player/visibility/custom-event-cue-mapping";
 import { getCapsuleTypeConfig, shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
+import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import { buildPlacementCss } from "@/player/capsule-layout/layout-css";
 
 import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor, ContentEvent } from "@/api/db";
@@ -321,14 +323,35 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		const actions: Record<string | number, any> = {};
 
 		if (events) {
-			for (const action in events) {
-				const ev = events[action];
+			const orderedEvents = getOrderedEventsForItem(snapshot, events);
+			let previousMs = 0;
+			let previousStyleState = { ...(decor.style || {}) } as Record<string, number | string>;
+			for (const entry of orderedEvents) {
+				const ev = entry.event;
+				const actionName = buildEventActionName(ev);
+				const eventKind = deriveEventKind(ev.action);
+
+				if (eventKind === "custom") {
+					const targetStyle = getDecorStyle(snapshot, ev.decorId);
+					const durationMs =
+						typeof ev.duration == "number" && Number.isFinite(ev.duration) && ev.duration > 0
+							? Math.round(ev.duration * 1000)
+							: Math.max(DEFAULT_DURATION, (entry.startMs ?? previousMs + DEFAULT_DURATION) - previousMs);
+					const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
+					actions[actionName] = { style: customStyle };
+					previousStyleState = { ...previousStyleState, ...targetStyle };
+					if (entry.startMs !== null) previousMs = entry.startMs;
+					continue;
+				}
+
 				const preset = getTransitionPresetForEvent({ snapshot, item, event: ev });
 				const actionStyle = getActionStyle(preset.style);
-				const actionName = `${ev.name}-${ev.action}`;
-				if (action == INTRO) {
+				if (ev.action == INTRO) {
 					actions[actionName] = { style: actionStyle, move: parentId };
-				} else actions[actionName] = { style: actionStyle };
+				} else {
+					actions[actionName] = { style: actionStyle };
+				}
+				if (entry.startMs !== null) previousMs = entry.startMs;
 			}
 		} else {
 			actions[INTRO] = {
@@ -388,14 +411,35 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 
 	const actions: Record<string | number, any> = {};
 
-	for (const action in events || {}) {
-		const ev = events[action];
+	const orderedEvents = getOrderedEventsForItem(snapshot, events || {});
+	let previousMs = 0;
+	let previousStyleState = { ...(decor.style || {}) } as Record<string, number | string>;
+	for (const entry of orderedEvents) {
+		const ev = entry.event;
+		const actionName = buildEventActionName(ev);
+		const eventKind = deriveEventKind(ev.action);
+
+		if (eventKind === "custom") {
+			const targetStyle = getDecorStyle(snapshot, ev.decorId);
+			const durationMs =
+				typeof ev.duration == "number" && Number.isFinite(ev.duration) && ev.duration > 0
+					? Math.round(ev.duration * 1000)
+					: Math.max(DEFAULT_DURATION, (entry.startMs ?? previousMs + DEFAULT_DURATION) - previousMs);
+			const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
+			actions[actionName] = { style: customStyle };
+			previousStyleState = { ...previousStyleState, ...targetStyle };
+			if (entry.startMs !== null) previousMs = entry.startMs;
+			continue;
+		}
+
 		const preset = getTransitionPresetForEvent({ snapshot, item, event: ev });
 		const actionStyle = getActionStyle(preset.style);
-		const actionName = `${ev.name}-${ev.action}`;
-		if (action == INTRO) {
+		if (ev.action == INTRO) {
 			actions[actionName] = { style: actionStyle, move: parentId };
-		} else actions[actionName] = { style: actionStyle };
+		} else {
+			actions[actionName] = { style: actionStyle };
+		}
+		if (entry.startMs !== null) previousMs = entry.startMs;
 	}
 
 	const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
@@ -559,44 +603,140 @@ function mapEvents(snapshot: SceneComp) {
 
 	if (!snapshot || !snapshot.events || !snapshot.sceneContents) return map;
 
-	const sceneContents = Object.values(snapshot.sceneContents).find((sc) => sc.sceneId == snapshot.id);
-
-	const cues: Array<TextTime> = (sceneContents && sceneContents.events) || [];
 	let lastCue = 0;
 
-	for (const actions in snapshot.events) {
-		const action = snapshot.events[actions];
-		for (const key in action) {
-			const ev = action[key];
-			if (!ev || !ev.name) continue;
+	for (const item of Object.values(snapshot.items || {})) {
+		const events = snapshot.events[item.id] || {};
+		const orderedEvents = getOrderedEventsForItem(snapshot, events);
+		for (const entry of orderedEvents) {
+			const ev = entry.event;
+			if (entry.startMs === null) continue;
+			if (entry.startMs > lastCue) lastCue = entry.startMs;
 
-			const cue = cues.find((c) => c.name == ev.name);
-			if (!cue) continue;
-
-			const timeSec = ev.action == OUTRO ? cue.end : cue.start;
-			const timeMs = Math.round(timeSec * 1000);
-
-			if (timeMs > lastCue) lastCue = timeMs;
-
-			const item = {
-				name: `${ev.name}-${ev.action}`,
-				start: timeMs
+			const mapped = {
+				name: buildEventActionName(ev),
+				start: entry.startMs
 			};
 
-			if (map.has(timeMs)) {
-				const existing = map.get(timeMs);
-				if (Array.isArray(existing)) {
-					existing.push(item);
-				} else {
-					map.set(timeMs, [existing, item]);
-				}
-			} else {
-				map.set(timeMs, [item]);
-			}
+			const existing = map.get(entry.startMs) || [];
+			existing.push(mapped);
+			map.set(entry.startMs, existing);
 		}
 	}
 	map.set(lastCue - DEFAULT_DURATION, [{ name: OUTRO, start: lastCue - DEFAULT_DURATION }]);
 	return map;
+}
+
+type OrderedEvent = {
+	event: ContentEvent;
+	startMs: number | null;
+};
+
+function getOrderedEventsForItem(
+	snapshot: SceneComp,
+	events: Record<string, ContentEvent | undefined>
+): OrderedEvent[] {
+	const sceneContent =
+		Object.values(snapshot.sceneContents).find((sc) => sc.sceneId == snapshot.id) ||
+		Object.values(snapshot.sceneContents)[0];
+	const cues = sceneContent?.events || [];
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+	const introCue = events[INTRO]?.name ? cueByName.get(events[INTRO]!.name || "") : null;
+	const outroCue = events[OUTRO]?.name ? cueByName.get(events[OUTRO]!.name || "") : null;
+
+	const result: OrderedEvent[] = [];
+	for (const event of Object.values(events || {})) {
+		if (!event) continue;
+		const startMs = resolveEventStartMs(event, cueByName, introCue || null, outroCue || null);
+		result.push({ event, startMs });
+	}
+
+	return result.toSorted((a, b) => {
+		if (a.startMs === null && b.startMs !== null) return 1;
+		if (a.startMs !== null && b.startMs === null) return -1;
+		if (a.startMs !== null && b.startMs !== null && a.startMs !== b.startMs) return a.startMs - b.startMs;
+		return actionRank(a.event.action) - actionRank(b.event.action);
+	});
+}
+
+function resolveEventStartMs(
+	event: ContentEvent,
+	cueByName: Map<string, TextTime>,
+	introCue: TextTime | null,
+	outroCue: TextTime | null
+): number | null {
+	const kind = deriveEventKind(event.action);
+	if (kind === "outro") {
+		const cue = event.name ? cueByName.get(event.name) : null;
+		if (!cue) return null;
+		return Math.round(Number(cue.end) * 1000);
+	}
+
+	if (kind === "intro") {
+		const cue = event.name ? cueByName.get(event.name) : null;
+		if (!cue) return null;
+		return Math.round(Number(cue.start) * 1000);
+	}
+
+	if (event.name) {
+		const cue = cueByName.get(event.name);
+		if (!cue) return null;
+		const position = (event.position || "middle") as CustomEventPosition;
+		return Math.round(getCueTimeAtPosition(cue, position) * 1000);
+	}
+
+	if (typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0 && introCue) {
+		const windowStart = Number(introCue.start);
+		const windowEnd = outroCue ? Number(outroCue.end) : Number.POSITIVE_INFINITY;
+		if (!Number.isFinite(windowStart)) return null;
+		const target = windowStart + event.delay;
+		const bounded = Number.isFinite(windowEnd) ? Math.min(target, windowEnd) : target;
+		return Math.round(Math.max(windowStart, bounded) * 1000);
+	}
+
+	return null;
+}
+
+function actionRank(action: string): number {
+	if (action === INTRO) return 0;
+	if (deriveEventKind(action) === "custom") return 1;
+	if (action === OUTRO) return 2;
+	return 3;
+}
+
+function buildEventActionName(event: ContentEvent): string {
+	const label = event.name || event.action;
+	return `${label}-${event.action}`;
+}
+
+function getDecorStyle(
+	snapshot: SceneComp,
+	decorId: number | null | undefined
+): Record<string, number | string> {
+	if (!decorId) return {};
+	const decor = snapshot.decors?.[decorId];
+	if (!decor || !decor.style || typeof decor.style != "object") return {};
+	const style = decor.style as Record<string, unknown>;
+	return Object.fromEntries(
+		Object.entries(style).filter(([, value]) => typeof value == "number" || typeof value == "string")
+	) as Record<string, number | string>;
+}
+
+function buildStyleInterpolation(
+	fromStyle: Record<string, number | string>,
+	toStyle: Record<string, number | string>,
+	durationMs: number
+): ActionStyle {
+	const style: ActionStyle = {};
+	for (const [key, to] of Object.entries(toStyle)) {
+		const from = fromStyle[key];
+		if (typeof from == "undefined" || from === to) {
+			style[key] = { to, duration: durationMs };
+		} else {
+			style[key] = { from, to, duration: durationMs };
+		}
+	}
+	return style;
 }
 
 type ActionStyle = Record<string, { from?: number | string; to: number | string; duration?: number }>;

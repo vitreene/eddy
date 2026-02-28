@@ -8,8 +8,10 @@ import { computeActiveCue } from "./active-cue";
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
-import { AUTOCOMMIT_TOUCHED_IDLE_MS } from "@/config/constants";
+import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO } from "@/config/constants";
 import { normalizeTransitionRef } from "@/config/transitions";
+import { deriveEventKind, normalizeCustomEventDraft, type CustomEventPosition } from "@/config/custom-events";
+import { resolveClosestCuePointFromDelay } from "@/player/visibility/custom-event-cue-mapping";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -24,7 +26,9 @@ const active: ActiveState = {
 	itemId: null,
 	contentId: null,
 	cue: null,
+	progress: null,
 	action: null,
+	event: null,
 	eventTouched: false,
 	decorTouched: false,
 	themeTouched: false
@@ -58,6 +62,27 @@ export const sceneLogic = setup({
 			| { type: "content-update"; payload: { id: number; inner?: string; name?: string } }
 			| { type: "capsule-update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
+			| { type: "events-persisted"; payload: { itemId: number; events: ContentEvent[] } }
+			| {
+					type: "custom-event-create";
+					payload?: {
+						name?: string;
+						delay?: number | null;
+						duration?: number | null;
+						position?: CustomEventPosition | null;
+					};
+			  }
+			| {
+					type: "custom-event-update";
+					payload: {
+						action: string;
+						name?: string | null;
+						delay?: number | null;
+						duration?: number | null;
+						position?: CustomEventPosition | null;
+					};
+			  }
+			| { type: "custom-event-delete"; payload: { action: string } }
 			| { type: "content-add"; payload: Content }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
 			| { type: "tree-create-text"; payload: TreeCreateEvent }
@@ -70,7 +95,7 @@ export const sceneLogic = setup({
 			| { type: "theme-update"; payload: Partial<Theme> }
 	},
 	actions: {
-		commitTouchedOnSelectionSwitch: ({ context, event }) => {
+		commitTouchedOnSelectionSwitch: ({ context, event, self }) => {
 			if (event.type !== "active-set") return;
 			if (!("itemId" in event.payload)) return;
 			if (!event.payload.itemId || event.payload.itemId === context.active.itemId) return;
@@ -78,7 +103,11 @@ export const sceneLogic = setup({
 			const params = getTouchedParams(context);
 			if (!params.length) return;
 
-			executePersistTouchedCommits(context, params);
+			void executePersistTouchedCommits(context, params, {
+				onEventsPersisted: (itemId, events) => {
+					self.send({ type: "events-persisted", payload: { itemId, events } });
+				}
+			});
 		},
 		resetTouchedOnSelectionSwitch: assign(({ context, event }) => {
 			if (event.type !== "active-set") return context;
@@ -121,8 +150,12 @@ export const sceneLogic = setup({
 				}
 			};
 		}),
-		commitFetch: async ({ context }, params: string[]) => {
-			executePersistTouchedCommits(context, params);
+		commitFetch: async ({ context, self }, params: string[]) => {
+			await executePersistTouchedCommits(context, params, {
+				onEventsPersisted: (itemId, events) => {
+					self.send({ type: "events-persisted", payload: { itemId, events } });
+				}
+			});
 		},
 		persistItemVisibility: async (_, params: { itemId: number; visible: boolean }) => {
 			const formData = new FormData();
@@ -130,6 +163,21 @@ export const sceneLogic = setup({
 			void fetch(`/api/item/${params.itemId}`, {
 				method: "POST",
 				body: formData
+			});
+		},
+		deleteCustomEvent: async ({ context }, params: { action: string }) => {
+			const itemId = context.active.itemId;
+			if (!itemId) return;
+			const eventId = context.events[itemId]?.[params.action]?.id;
+			if (!eventId) return;
+
+			void fetch(`/api/content/${itemId}`, {
+				method: "DELETE",
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify({ eventId })
 			});
 		}
 	},
@@ -207,15 +255,21 @@ export const sceneLogic = setup({
 								{ type: "resetTouchedOnSelectionSwitch" },
 								assign(({ context, event }) => {
 									const cue =
-										"itemId" in event.payload && event.payload.itemId
-											? computeActiveCue(context, event.payload.itemId)
-											: null;
+										"itemId" in event.payload
+											? event.payload.itemId
+												? computeActiveCue(context, event.payload.itemId)
+												: null
+											: context.active.cue;
 
 									return {
 										...context,
 										active: {
 											...context.active,
 											cue,
+											event:
+												"itemId" in event.payload && event.payload.itemId !== context.active.itemId
+													? null
+													: context.active.event,
 											...event.payload
 										}
 									};
@@ -325,6 +379,54 @@ export const sceneLogic = setup({
 
 				content: {
 					on: {
+						"events-persisted": {
+							actions: assign(({ context, event }) => {
+								const current = context.events[event.payload.itemId] || {};
+								const persistedByAction = Object.fromEntries(
+									event.payload.events.map((persisted) => [persisted.action, persisted])
+								) as Record<string, ContentEvent>;
+
+								const merged = Object.fromEntries(
+									Object.entries(current).map(([action, local]) => {
+										const persisted = persistedByAction[action];
+										return [action, persisted ? { ...local, ...persisted } : local];
+									})
+								);
+
+								const decorsToEnsure = Object.fromEntries(
+									event.payload.events
+										.filter((persisted) => typeof persisted.decorId == "number")
+										.map((persisted) => {
+											const decorId = persisted.decorId as number;
+											if (context.decors[decorId]) return [decorId, context.decors[decorId]];
+											return [
+												decorId,
+												{
+													id: decorId,
+													name: null,
+													className: null,
+													area: null,
+													style: {},
+													itemTargetId: null,
+													basedUpon: null
+												} as Decor
+											];
+										})
+								);
+
+								return {
+									...context,
+									decors: {
+										...context.decors,
+										...decorsToEnsure
+									},
+									events: {
+										...context.events,
+										[event.payload.itemId]: merged
+									}
+								};
+							})
+						},
 						"content-update": {
 							actions: assign(({ context, event }) => {
 								const current = context.contents[event.payload.id];
@@ -366,6 +468,132 @@ export const sceneLogic = setup({
 									};
 								}),
 								raise(() => ({ type: "persist-touched" }))
+							]
+						},
+						"custom-event-create": {
+							actions: [
+								assign(({ context, event }) => {
+									const itemId = context.active.itemId;
+									if (!itemId) return context;
+
+									const currentEvents = context.events[itemId] ?? {};
+									const existingActions = Object.keys(currentEvents);
+									const action = nextCustomAction(existingActions);
+									const seeded = seedCustomEventPlacement(context, itemId);
+									const normalized = normalizeCustomEventDraft({
+										action,
+										name: event.payload?.name ?? seeded.name,
+										delay: event.payload?.delay ?? seeded.delay,
+										duration: event.payload?.duration ?? null,
+										position: event.payload?.position ?? seeded.position,
+										ref: null
+									});
+
+									const customEvent = {
+										id: undefined,
+										action,
+										itemId,
+										name: normalized.name,
+										ref: null,
+										delay: normalized.delay,
+										duration: normalized.duration,
+										position: normalized.position,
+										decorId: null
+									} as ContentEvent;
+
+									return {
+										...context,
+										events: {
+											...context.events,
+											[itemId]: {
+												...currentEvents,
+												[action]: customEvent
+											}
+										},
+										active: {
+											...context.active,
+											event: action,
+											eventTouched: true
+										}
+									};
+								}),
+								raise(() => ({ type: "persist-touched" }))
+							]
+						},
+						"custom-event-update": {
+							actions: [
+								assign(({ context, event }) => {
+									const itemId = context.active.itemId;
+									if (!itemId) return context;
+									const current = context.events[itemId]?.[event.payload.action];
+									if (!current || deriveEventKind(current.action) !== "custom") return context;
+
+									const nextDraft = {
+										action: current.action,
+										name: hasOwn(event.payload, "name") ? event.payload.name : current.name,
+										delay: hasOwn(event.payload, "delay") ? event.payload.delay : (current as any).delay,
+										duration: hasOwn(event.payload, "duration") ? event.payload.duration : (current as any).duration,
+										position: hasOwn(event.payload, "position") ? event.payload.position : (current as any).position,
+										ref: null
+									} as Parameters<typeof normalizeCustomEventDraft>[0];
+
+									const normalized = normalizeCustomEventDraft(nextDraft);
+
+									return {
+										...context,
+										events: {
+											...context.events,
+											[itemId]: {
+												...(context.events[itemId] ?? {}),
+												[event.payload.action]: {
+													...current,
+													name: normalized.name,
+													ref: null,
+													delay: normalized.delay,
+													duration: normalized.duration,
+													position: normalized.position
+												}
+											}
+										},
+										active: {
+											...context.active,
+											eventTouched: true
+										}
+									};
+								}),
+								raise(() => ({ type: "persist-touched" }))
+							]
+						},
+						"custom-event-delete": {
+							actions: [
+								assign(({ context, event }) => {
+									const itemId = context.active.itemId;
+									if (!itemId) return context;
+									const current = context.events[itemId]?.[event.payload.action];
+									if (!current || deriveEventKind(current.action) !== "custom") return context;
+
+									const nextEvents = { ...(context.events[itemId] ?? {}) };
+									delete nextEvents[event.payload.action];
+									const nextDecors = { ...context.decors };
+									if (typeof current.decorId == "number") {
+										delete nextDecors[current.decorId];
+									}
+
+									return {
+										...context,
+										decors: nextDecors,
+										events: {
+											...context.events,
+											[itemId]: nextEvents
+										},
+										active: {
+											...context.active,
+											event: context.active.event === event.payload.action ? null : context.active.event,
+											eventTouched: true
+										}
+									};
+								}),
+								{ type: "deleteCustomEvent", params: ({ event }) => ({ action: event.payload.action }) }
 							]
 						},
 						"content-add": {
@@ -528,7 +756,13 @@ function getMutationActivePayload(output: TreeMutationResponse): Partial<ActiveS
 	};
 }
 
-function executePersistTouchedCommits(context: SceneComp & { active: ActiveState }, params: string[]) {
+async function executePersistTouchedCommits(
+	context: SceneComp & { active: ActiveState },
+	params: string[],
+	options?: {
+		onEventsPersisted?: (itemId: number, events: ContentEvent[]) => void;
+	}
+) {
 	if (!params.length) return;
 	const itemId = context.active.itemId;
 
@@ -540,28 +774,33 @@ function executePersistTouchedCommits(context: SceneComp & { active: ActiveState
 	const capsuleTouched = params.includes("capsuleTouched");
 
 	if (eventTouched) {
-		void fetch(`/api/content/${itemId}`, {
-			method: "POST",
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify(context.events[itemId])
-		})
-			.then((response) => {
-				if (!response.ok) {
-					console.error("Event persist failed", { itemId, status: response.status });
-				}
-			})
-			.catch((error) => {
-				console.error("Event persist failed", { itemId, error });
+		try {
+			const response = await fetch(`/api/content/${itemId}`, {
+				method: "POST",
+				headers: {
+					Accept: "application/json",
+					"Content-Type": "application/json"
+				},
+				body: JSON.stringify(context.events[itemId])
 			});
+
+			if (!response.ok) {
+				console.error("Event persist failed", { itemId, status: response.status });
+			} else {
+				const payload = (await response.json()) as { events?: ContentEvent[] };
+				if (Array.isArray(payload.events)) {
+					options?.onEventsPersisted?.(itemId, payload.events);
+				}
+			}
+		} catch (error) {
+			console.error("Event persist failed", { itemId, error });
+		}
 	}
 
-	if (decorTouched && context.items[itemId].decorId) {
-		const decor = context.decors?.[context.items[itemId].decorId];
-		if (decor) {
-			const { id: decorId, ...rest } = decor;
+	if (decorTouched) {
+		const target = resolveActiveDecorTarget(context, itemId);
+		if (target.decor) {
+			const { id: decorId, ...rest } = target.decor;
 			const style =
 				rest.style && typeof rest.style == "object"
 					? Object.fromEntries(
@@ -620,6 +859,114 @@ function executePersistTouchedCommits(context: SceneComp & { active: ActiveState
 			});
 		}
 	}
+}
+
+function nextCustomAction(existingActions: string[]): string {
+	const used = new Set(existingActions);
+	let index = 1;
+	while (used.has(`custom-${index}`)) index += 1;
+	return `custom-${index}`;
+}
+
+function hasOwn<T extends object>(obj: T, key: string): boolean {
+	return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+function resolveActiveDecorTarget(
+	context: SceneComp & { active: ActiveState },
+	itemId: number
+): { decor: Decor | undefined } {
+	const activeEventAction = context.active.event;
+	if (activeEventAction) {
+		const activeEvent = context.events[itemId]?.[activeEventAction];
+		if (activeEvent && deriveEventKind(activeEvent.action) === "custom" && activeEvent.decorId) {
+			return { decor: context.decors[activeEvent.decorId] };
+		}
+	}
+
+	const itemDecorId = context.items[itemId]?.decorId;
+	if (!itemDecorId) return { decor: undefined };
+	return { decor: context.decors[itemDecorId] };
+}
+
+function computeDefaultCustomDelaySec(
+	context: SceneComp & { active: ActiveState },
+	itemId: number
+): number | null {
+	const itemEvents = context.events[itemId] || {};
+	const introName = itemEvents[INTRO]?.name;
+	const outroName = itemEvents[OUTRO]?.name;
+	if (!introName || !outroName) return null;
+
+	const sceneContent =
+		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
+		Object.values(context.sceneContents || {})[0];
+	if (!sceneContent?.events?.length) return null;
+
+	const introCue = sceneContent.events.find((cue) => cue.name == introName);
+	const outroCue = sceneContent.events.find((cue) => cue.name == outroName);
+	if (!introCue || !outroCue) return null;
+
+	const start = Number(introCue.start);
+	const end = Number(outroCue.end);
+	if (!Number.isFinite(start) || !Number.isFinite(end) || end <= start) return null;
+
+	const activeCueSec = context.active.cue;
+	if (typeof activeCueSec == "number" && Number.isFinite(activeCueSec)) {
+		const clamped = Math.min(Math.max(activeCueSec, start), end);
+		return clamped - start;
+	}
+
+	return (end - start) / 2;
+}
+
+function seedCustomEventPlacement(
+	context: SceneComp & { active: ActiveState },
+	itemId: number
+): { name: string | null; delay: number | null; position: CustomEventPosition | null } {
+	const itemEvents = context.events[itemId] || {};
+	const introName = itemEvents[INTRO]?.name;
+	const outroName = itemEvents[OUTRO]?.name;
+	const sceneContent =
+		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
+		Object.values(context.sceneContents || {})[0];
+	const cues = sceneContent?.events || [];
+
+	if (introName && outroName && cues.length) {
+		const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+		const introCue = cueByName.get(introName);
+		if (introCue) {
+			const introStart = Number(introCue.start);
+			const baseDelay = computeDefaultCustomDelaySec(context, itemId);
+			const activeDelay =
+				typeof context.active.cue == "number" &&
+				Number.isFinite(context.active.cue) &&
+				Number.isFinite(introStart)
+					? Math.max(0, context.active.cue - introStart)
+					: baseDelay;
+
+			const point = resolveClosestCuePointFromDelay({
+				cues,
+				introName,
+				outroName,
+				delaySec: activeDelay
+			});
+
+			if (point) {
+				return {
+					name: point.name,
+					delay: null,
+					position: point.position
+				};
+			}
+		}
+	}
+
+	return {
+		name: null,
+		delay: computeDefaultCustomDelaySec(context, itemId),
+		position: null
+	};
 }
 
 function getTouchedParams(context: SceneComp & { active: ActiveState }): string[] {

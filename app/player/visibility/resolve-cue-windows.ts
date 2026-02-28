@@ -308,6 +308,7 @@ function createGeneratedEvent({
 		ref: "",
 		duration: null,
 		delay: null,
+		position: null,
 		itemId,
 		decorId: null
 	};

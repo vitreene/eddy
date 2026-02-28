@@ -52,7 +52,7 @@ export function createScene(this: Player): void {
 		for (const [actionName, action] of Object.entries(perso.actions)) {
 			if (typeof action == "boolean") continue;
 			const positions = timeEvents.get(actionName);
-			console.log("ADD", $el.id, actionName, action.style!, positions);
+			// console.log("ADD", $el.id, actionName, action.style!, positions);
 
 			if (positions && "style" in action) {
 				positions.forEach((position) => {

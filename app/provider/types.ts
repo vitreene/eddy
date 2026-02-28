@@ -59,7 +59,9 @@ export interface ActiveState {
 	itemId: number | null;
 	contentId: number | null;
 	cue: number | null;
+	progress: number | null;
 	action: string | null;
+	event: string | null;
 	eventTouched: boolean;
 	decorTouched: boolean;
 	themeTouched: boolean;

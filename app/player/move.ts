@@ -7,42 +7,45 @@ import type { Action } from "./types";
 export function move(timeLine: Timeline, $el: HTMLElement, a: Action) {
 	if ("move" in a) {
 		switch (typeof a.move) {
-			case "string":
+			case "string": {
 				const [parent] = utils.$(a.move);
 				parent.appendChild($el);
 				break;
-			case "boolean": {
-				if ("className" in a) {
-					const old = getAbsoluteCoords($el);
-					setClassNames($el, a);
-					const nex = getAbsoluteCoords($el);
-
-					const px = utils.get($el, "x", false);
-					const py = utils.get($el, "y", false);
-
-					const dx = old.x - nex.x;
-					const dy = old.y - nex.y;
-
-					const res = getTransform($el).invertSelf().transformPoint(new DOMPoint(dx, dy));
-					console.log("***transition****");
-
-					const transition = animate($el, {
-						composition: "replace",
-						x: { from: res.x, to: 0 + px },
-						y: { from: res.y, to: 0 + py },
-
-						width: { from: old.width, to: nex.width },
-						height: { from: old.height, to: nex.height },
-
-						duration: 1000,
-						onComplete(self) {
-							(utils.cleanInlineStyles(self), self.cancel());
-						}
-					});
-
-					// timeLine.sync(transition, '+0');
-				}
 			}
+			case "boolean":
+				{
+					if ("className" in a) {
+						const old = getAbsoluteCoords($el);
+						setClassNames($el, a);
+						const nex = getAbsoluteCoords($el);
+
+						const px = utils.get($el, "x", false);
+						const py = utils.get($el, "y", false);
+
+						const dx = old.x - nex.x;
+						const dy = old.y - nex.y;
+
+						const res = getTransform($el).invertSelf().transformPoint(new DOMPoint(dx, dy));
+						console.log("***transition****");
+
+						const transition = animate($el, {
+							composition: "replace",
+							x: { from: res.x, to: 0 + px },
+							y: { from: res.y, to: 0 + py },
+
+							width: { from: old.width, to: nex.width },
+							height: { from: old.height, to: nex.height },
+
+							duration: 1000,
+							onComplete(self) {
+								(utils.cleanInlineStyles(self), self.cancel());
+							}
+						});
+
+						// timeLine.sync(transition, '+0');
+					}
+				}
+				break;
 			default:
 				break;
 		}
@@ -55,18 +58,20 @@ export function setClassNames($el: HTMLElement, a: Action) {
 			case "string":
 				a.className.split(" ").forEach((c: string) => $el.classList.add(c));
 				break;
-			case "object": {
-				for (const action in a.className) {
-					switch (action) {
-						case "add":
-							a.className.add!.split(" ").forEach((c: string) => $el.classList.add(c));
-							break;
-						case "remove":
-							a.className.remove!.split(" ").forEach((c: string) => $el.classList.remove(c));
+			case "object":
+				{
+					for (const action in a.className) {
+						switch (action) {
+							case "add":
+								a.className.add!.split(" ").forEach((c: string) => $el.classList.add(c));
+								break;
+							case "remove":
+								a.className.remove!.split(" ").forEach((c: string) => $el.classList.remove(c));
+						}
 					}
 				}
-			}
 
+				break;
 			default:
 				break;
 		}

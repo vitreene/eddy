@@ -121,11 +121,12 @@ model Content {
  */
 model Event {
   id       Int    @id @default(autoincrement())
-  name     String
+  name     String?
   action   String
-  ref      String // référence nommée dans une config, sans décor 
-  duration Int?
-  delay    Int?
+  ref      String? // référence nommée dans une config, sans décor
+  duration Float?
+  delay    Float?
+  position String?
 
   itemId Int?  @map("item_id")
   item   Item? @relation(fields: [itemId], references: [id])
@@ -133,7 +134,8 @@ model Event {
   decorId Int?   @unique @map("decor_id") // basé sur  // name
   decor   Decor? @relation(fields: [decorId], references: [id])
 
-  @@unique([itemId, action])
+  @@unique([itemId, name])
+  @@index([itemId, action])
   @@map("event")
 }
 

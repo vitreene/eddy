@@ -385,5 +385,5 @@ export function parseCardTemplateAreas(grid: string | null | undefined): string[
 
 export function shouldCapsuleUseExplicitArea(type: string | null | undefined): boolean {
 	const resolved = resolveCapsuleType(type);
-	return resolved === CAPSULE_TYPES.CARD || resolved === CAPSULE_TYPES.LEGACY;
+	return resolved !== CAPSULE_TYPES.CARROUSEL;
 }

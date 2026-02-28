@@ -52,6 +52,7 @@ export type EventMinAggregateOutputType = {
   ref: string | null
   duration: number | null
   delay: number | null
+  position: string | null
   itemId: number | null
   decorId: number | null
 }
@@ -63,6 +64,7 @@ export type EventMaxAggregateOutputType = {
   ref: string | null
   duration: number | null
   delay: number | null
+  position: string | null
   itemId: number | null
   decorId: number | null
 }
@@ -74,6 +76,7 @@ export type EventCountAggregateOutputType = {
   ref: number
   duration: number
   delay: number
+  position: number
   itemId: number
   decorId: number
   _all: number
@@ -103,6 +106,7 @@ export type EventMinAggregateInputType = {
   ref?: true
   duration?: true
   delay?: true
+  position?: true
   itemId?: true
   decorId?: true
 }
@@ -114,6 +118,7 @@ export type EventMaxAggregateInputType = {
   ref?: true
   duration?: true
   delay?: true
+  position?: true
   itemId?: true
   decorId?: true
 }
@@ -125,6 +130,7 @@ export type EventCountAggregateInputType = {
   ref?: true
   duration?: true
   delay?: true
+  position?: true
   itemId?: true
   decorId?: true
   _all?: true
@@ -218,11 +224,12 @@ export type EventGroupByArgs<ExtArgs extends runtime.Types.Extensions.InternalAr
 
 export type EventGroupByOutputType = {
   id: number
-  name: string
+  name: string | null
   action: string
-  ref: string
+  ref: string | null
   duration: number | null
   delay: number | null
+  position: string | null
   itemId: number | null
   decorId: number | null
   _count: EventCountAggregateOutputType | null
@@ -252,11 +259,12 @@ export type EventWhereInput = {
   OR?: Prisma.EventWhereInput[]
   NOT?: Prisma.EventWhereInput | Prisma.EventWhereInput[]
   id?: Prisma.IntFilter<"Event"> | number
-  name?: Prisma.StringFilter<"Event"> | string
+  name?: Prisma.StringNullableFilter<"Event"> | string | null
   action?: Prisma.StringFilter<"Event"> | string
-  ref?: Prisma.StringFilter<"Event"> | string
-  duration?: Prisma.IntNullableFilter<"Event"> | number | null
-  delay?: Prisma.IntNullableFilter<"Event"> | number | null
+  ref?: Prisma.StringNullableFilter<"Event"> | string | null
+  duration?: Prisma.FloatNullableFilter<"Event"> | number | null
+  delay?: Prisma.FloatNullableFilter<"Event"> | number | null
+  position?: Prisma.StringNullableFilter<"Event"> | string | null
   itemId?: Prisma.IntNullableFilter<"Event"> | number | null
   decorId?: Prisma.IntNullableFilter<"Event"> | number | null
   item?: Prisma.XOR<Prisma.ItemNullableScalarRelationFilter, Prisma.ItemWhereInput> | null
@@ -265,11 +273,12 @@ export type EventWhereInput = {
 
 export type EventOrderByWithRelationInput = {
   id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
   action?: Prisma.SortOrder
-  ref?: Prisma.SortOrder
+  ref?: Prisma.SortOrderInput | Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
   delay?: Prisma.SortOrderInput | Prisma.SortOrder
+  position?: Prisma.SortOrderInput | Prisma.SortOrder
   itemId?: Prisma.SortOrderInput | Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
   item?: Prisma.ItemOrderByWithRelationInput
@@ -279,27 +288,29 @@ export type EventOrderByWithRelationInput = {
 export type EventWhereUniqueInput = Prisma.AtLeast<{
   id?: number
   decorId?: number
-  itemId_action?: Prisma.EventItemIdActionCompoundUniqueInput
+  itemId_name?: Prisma.EventItemIdNameCompoundUniqueInput
   AND?: Prisma.EventWhereInput | Prisma.EventWhereInput[]
   OR?: Prisma.EventWhereInput[]
   NOT?: Prisma.EventWhereInput | Prisma.EventWhereInput[]
-  name?: Prisma.StringFilter<"Event"> | string
+  name?: Prisma.StringNullableFilter<"Event"> | string | null
   action?: Prisma.StringFilter<"Event"> | string
-  ref?: Prisma.StringFilter<"Event"> | string
-  duration?: Prisma.IntNullableFilter<"Event"> | number | null
-  delay?: Prisma.IntNullableFilter<"Event"> | number | null
+  ref?: Prisma.StringNullableFilter<"Event"> | string | null
+  duration?: Prisma.FloatNullableFilter<"Event"> | number | null
+  delay?: Prisma.FloatNullableFilter<"Event"> | number | null
+  position?: Prisma.StringNullableFilter<"Event"> | string | null
   itemId?: Prisma.IntNullableFilter<"Event"> | number | null
   item?: Prisma.XOR<Prisma.ItemNullableScalarRelationFilter, Prisma.ItemWhereInput> | null
   decor?: Prisma.XOR<Prisma.DecorNullableScalarRelationFilter, Prisma.DecorWhereInput> | null
-}, "id" | "decorId" | "itemId_action">
+}, "id" | "decorId" | "itemId_name">
 
 export type EventOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
-  name?: Prisma.SortOrder
+  name?: Prisma.SortOrderInput | Prisma.SortOrder
   action?: Prisma.SortOrder
-  ref?: Prisma.SortOrder
+  ref?: Prisma.SortOrderInput | Prisma.SortOrder
   duration?: Prisma.SortOrderInput | Prisma.SortOrder
   delay?: Prisma.SortOrderInput | Prisma.SortOrder
+  position?: Prisma.SortOrderInput | Prisma.SortOrder
   itemId?: Prisma.SortOrderInput | Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.EventCountOrderByAggregateInput
@@ -314,83 +325,91 @@ export type EventScalarWhereWithAggregatesInput = {
   OR?: Prisma.EventScalarWhereWithAggregatesInput[]
   NOT?: Prisma.EventScalarWhereWithAggregatesInput | Prisma.EventScalarWhereWithAggregatesInput[]
   id?: Prisma.IntWithAggregatesFilter<"Event"> | number
-  name?: Prisma.StringWithAggregatesFilter<"Event"> | string
+  name?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   action?: Prisma.StringWithAggregatesFilter<"Event"> | string
-  ref?: Prisma.StringWithAggregatesFilter<"Event"> | string
-  duration?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
-  delay?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
+  ref?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
+  duration?: Prisma.FloatNullableWithAggregatesFilter<"Event"> | number | null
+  delay?: Prisma.FloatNullableWithAggregatesFilter<"Event"> | number | null
+  position?: Prisma.StringNullableWithAggregatesFilter<"Event"> | string | null
   itemId?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
   decorId?: Prisma.IntNullableWithAggregatesFilter<"Event"> | number | null
 }
 
 export type EventCreateInput = {
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   item?: Prisma.ItemCreateNestedOneWithoutEventsInput
   decor?: Prisma.DecorCreateNestedOneWithoutEventsInput
 }
 
 export type EventUncheckedCreateInput = {
   id?: number
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   itemId?: number | null
   decorId?: number | null
 }
 
 export type EventUpdateInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   item?: Prisma.ItemUpdateOneWithoutEventsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutEventsNestedInput
 }
 
 export type EventUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type EventCreateManyInput = {
   id?: number
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   itemId?: number | null
   decorId?: number | null
 }
 
 export type EventUpdateManyMutationInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type EventUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
@@ -405,9 +424,9 @@ export type EventOrderByRelationAggregateInput = {
   _count?: Prisma.SortOrder
 }
 
-export type EventItemIdActionCompoundUniqueInput = {
+export type EventItemIdNameCompoundUniqueInput = {
   itemId: number
-  action: string
+  name: string
 }
 
 export type EventCountOrderByAggregateInput = {
@@ -417,6 +436,7 @@ export type EventCountOrderByAggregateInput = {
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   delay?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
@@ -436,6 +456,7 @@ export type EventMaxOrderByAggregateInput = {
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   delay?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
@@ -447,6 +468,7 @@ export type EventMinOrderByAggregateInput = {
   ref?: Prisma.SortOrder
   duration?: Prisma.SortOrder
   delay?: Prisma.SortOrder
+  position?: Prisma.SortOrder
   itemId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
 }
@@ -501,6 +523,14 @@ export type EventUncheckedUpdateManyWithoutItemNestedInput = {
   deleteMany?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
 }
 
+export type NullableFloatFieldUpdateOperationsInput = {
+  set?: number | null
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
+}
+
 export type EventCreateNestedManyWithoutDecorInput = {
   create?: Prisma.XOR<Prisma.EventCreateWithoutDecorInput, Prisma.EventUncheckedCreateWithoutDecorInput> | Prisma.EventCreateWithoutDecorInput[] | Prisma.EventUncheckedCreateWithoutDecorInput[]
   connectOrCreate?: Prisma.EventCreateOrConnectWithoutDecorInput | Prisma.EventCreateOrConnectWithoutDecorInput[]
@@ -544,21 +574,23 @@ export type EventUncheckedUpdateManyWithoutDecorNestedInput = {
 }
 
 export type EventCreateWithoutItemInput = {
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   decor?: Prisma.DecorCreateNestedOneWithoutEventsInput
 }
 
 export type EventUncheckedCreateWithoutItemInput = {
   id?: number
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   decorId?: number | null
 }
 
@@ -592,31 +624,34 @@ export type EventScalarWhereInput = {
   OR?: Prisma.EventScalarWhereInput[]
   NOT?: Prisma.EventScalarWhereInput | Prisma.EventScalarWhereInput[]
   id?: Prisma.IntFilter<"Event"> | number
-  name?: Prisma.StringFilter<"Event"> | string
+  name?: Prisma.StringNullableFilter<"Event"> | string | null
   action?: Prisma.StringFilter<"Event"> | string
-  ref?: Prisma.StringFilter<"Event"> | string
-  duration?: Prisma.IntNullableFilter<"Event"> | number | null
-  delay?: Prisma.IntNullableFilter<"Event"> | number | null
+  ref?: Prisma.StringNullableFilter<"Event"> | string | null
+  duration?: Prisma.FloatNullableFilter<"Event"> | number | null
+  delay?: Prisma.FloatNullableFilter<"Event"> | number | null
+  position?: Prisma.StringNullableFilter<"Event"> | string | null
   itemId?: Prisma.IntNullableFilter<"Event"> | number | null
   decorId?: Prisma.IntNullableFilter<"Event"> | number | null
 }
 
 export type EventCreateWithoutDecorInput = {
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   item?: Prisma.ItemCreateNestedOneWithoutEventsInput
 }
 
 export type EventUncheckedCreateWithoutDecorInput = {
   id?: number
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   itemId?: number | null
 }
 
@@ -647,79 +682,87 @@ export type EventUpdateManyWithWhereWithoutDecorInput = {
 
 export type EventCreateManyItemInput = {
   id?: number
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   decorId?: number | null
 }
 
 export type EventUpdateWithoutItemInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decor?: Prisma.DecorUpdateOneWithoutEventsNestedInput
 }
 
 export type EventUncheckedUpdateWithoutItemInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type EventUncheckedUpdateManyWithoutItemInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type EventCreateManyDecorInput = {
   id?: number
-  name: string
+  name?: string | null
   action: string
-  ref: string
+  ref?: string | null
   duration?: number | null
   delay?: number | null
+  position?: string | null
   itemId?: number | null
 }
 
 export type EventUpdateWithoutDecorInput = {
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   item?: Prisma.ItemUpdateOneWithoutEventsNestedInput
 }
 
 export type EventUncheckedUpdateWithoutDecorInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
 export type EventUncheckedUpdateManyWithoutDecorInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
-  name?: Prisma.StringFieldUpdateOperationsInput | string
+  name?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   action?: Prisma.StringFieldUpdateOperationsInput | string
-  ref?: Prisma.StringFieldUpdateOperationsInput | string
-  duration?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
-  delay?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
+  ref?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  duration?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  delay?: Prisma.NullableFloatFieldUpdateOperationsInput | number | null
+  position?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   itemId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -732,6 +775,7 @@ export type EventSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs = 
   ref?: boolean
   duration?: boolean
   delay?: boolean
+  position?: boolean
   itemId?: boolean
   decorId?: boolean
   item?: boolean | Prisma.Event$itemArgs<ExtArgs>
@@ -745,6 +789,7 @@ export type EventSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   ref?: boolean
   duration?: boolean
   delay?: boolean
+  position?: boolean
   itemId?: boolean
   decorId?: boolean
   item?: boolean | Prisma.Event$itemArgs<ExtArgs>
@@ -758,6 +803,7 @@ export type EventSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensi
   ref?: boolean
   duration?: boolean
   delay?: boolean
+  position?: boolean
   itemId?: boolean
   decorId?: boolean
   item?: boolean | Prisma.Event$itemArgs<ExtArgs>
@@ -771,11 +817,12 @@ export type EventSelectScalar = {
   ref?: boolean
   duration?: boolean
   delay?: boolean
+  position?: boolean
   itemId?: boolean
   decorId?: boolean
 }
 
-export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "action" | "ref" | "duration" | "delay" | "itemId" | "decorId", ExtArgs["result"]["event"]>
+export type EventOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "action" | "ref" | "duration" | "delay" | "position" | "itemId" | "decorId", ExtArgs["result"]["event"]>
 export type EventInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   item?: boolean | Prisma.Event$itemArgs<ExtArgs>
   decor?: boolean | Prisma.Event$decorArgs<ExtArgs>
@@ -797,11 +844,12 @@ export type $EventPayload<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   }
   scalars: runtime.Types.Extensions.GetPayloadResult<{
     id: number
-    name: string
+    name: string | null
     action: string
-    ref: string
+    ref: string | null
     duration: number | null
     delay: number | null
+    position: string | null
     itemId: number | null
     decorId: number | null
   }, ExtArgs["result"]["event"]>
@@ -1233,8 +1281,9 @@ export interface EventFieldRefs {
   readonly name: Prisma.FieldRef<"Event", 'String'>
   readonly action: Prisma.FieldRef<"Event", 'String'>
   readonly ref: Prisma.FieldRef<"Event", 'String'>
-  readonly duration: Prisma.FieldRef<"Event", 'Int'>
-  readonly delay: Prisma.FieldRef<"Event", 'Int'>
+  readonly duration: Prisma.FieldRef<"Event", 'Float'>
+  readonly delay: Prisma.FieldRef<"Event", 'Float'>
+  readonly position: Prisma.FieldRef<"Event", 'String'>
   readonly itemId: Prisma.FieldRef<"Event", 'Int'>
   readonly decorId: Prisma.FieldRef<"Event", 'Int'>
 }

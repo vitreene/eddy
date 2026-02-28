@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { Timeline, Timer } from "animejs";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcwIcon } from "lucide-react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -24,38 +24,63 @@ const onEnd = (t: Timer) => console.log("PLAYER the end", t.duration, t);
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
+	const { send } = SceneLogicContext.useActorRef();
 	const sceneRef = useRef<HTMLDivElement>(null);
+	const initializedSceneRef = useRef<PlayerProps | null>(null);
+	const playerTelcoRef = useRef<TelcoProps | null>(null);
+	const buildTokenRef = useRef(0);
 	const [telco, setTelco] = useState<TelcoProps>(null);
 
 	useEffect(() => {
+		if (initializedSceneRef.current === scene) return;
+		initializedSceneRef.current = scene;
+		buildTokenRef.current += 1;
+		const token = buildTokenRef.current;
+
+		if (playerTelcoRef.current) {
+			playerTelcoRef.current.revert();
+			playerTelcoRef.current = null;
+			setTelco(null);
+		}
+
 		const { persos, events } = scene;
-		let cancelled = false;
-		let currentTelco: TelcoProps | null = null;
 
 		if (scene && typeof window !== "undefined") {
 			preload(persos).then((p) => {
-				if (cancelled) return;
+				if (token !== buildTokenRef.current) return;
 				if (p.size) {
 					const render: HTMLElement | null = sceneRef.current;
 					if (render) render.innerHTML = "";
 					const player = new Player({ render, persos: p, eventtimes: events, onEnd });
 					player.telco.seek((active.cue ?? 0) * 1000);
-					currentTelco = player.telco;
+					playerTelcoRef.current = player.telco;
 					setTelco(player.telco);
 				}
 			});
 		}
+	}, [scene, active.cue]);
 
+	useEffect(() => {
 		return () => {
-			cancelled = true;
-			if (currentTelco) currentTelco.revert();
+			buildTokenRef.current += 1;
+			if (playerTelcoRef.current) {
+				playerTelcoRef.current.revert();
+				playerTelcoRef.current = null;
+			}
 		};
-	}, [scene]);
+	}, []);
 
 	useEffect(() => {
 		if (!telco) return;
 		telco.seek((active.cue ?? 0) * 1000);
 	}, [active.cue, telco]);
+
+	const onProgressSeek = useCallback(
+		(progress: number, timeMs: number) => {
+			send({ type: "active-set", payload: { progress, cue: timeMs / 1000 } });
+		},
+		[send]
+	);
 
 	const styles = `@scope{${playerCss} ${scene.styles}}`;
 
@@ -63,12 +88,18 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 		<>
 			<style>{styles}</style>
 			<div ref={sceneRef} id={SCENE_ID} className="aspect-video flex-1" />
-			<Telco telco={telco!} />
+			<Telco telco={telco!} onSeek={onProgressSeek} />
 		</>
 	);
 });
 
-function Telco({ telco }: { telco?: TelcoProps }) {
+function Telco({
+	telco,
+	onSeek
+}: {
+	telco?: TelcoProps;
+	onSeek: (progress: number, timeMs: number) => void;
+}) {
 	const [progress, setProgress] = useState<number>(0);
 	const [toggle, setToggle] = useState<boolean>(telco?.paused ?? true);
 
@@ -77,6 +108,7 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 		const p = (value * (telco?.duration || 0)) / 100;
 		const progression = p > 0 ? p : 0;
 		telco?.seek(progression);
+		onSeek(value, progression);
 	}
 
 	useEffect(() => {
@@ -97,6 +129,7 @@ function Telco({ telco }: { telco?: TelcoProps }) {
 	const replay = () => {
 		telco?.replay();
 		setToggle(false);
+		onSeek(0, 0);
 	};
 
 	return (

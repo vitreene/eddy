@@ -151,6 +151,7 @@ export const EventScalarFieldEnum = {
   ref: 'ref',
   duration: 'duration',
   delay: 'delay',
+  position: 'position',
   itemId: 'itemId',
   decorId: 'decorId'
 } as const

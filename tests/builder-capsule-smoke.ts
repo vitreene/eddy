@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 
 import type { SceneComp } from "../app/api/db";
 import { buildScene } from "../app/player/builder/builder";
+import {
+	resolveClosestCuePointFromDelay,
+	resolveDelayFromCuePoint
+} from "../app/player/visibility/custom-event-cue-mapping";
 
 type Case = { name: string; run: () => void };
 
@@ -282,7 +286,7 @@ const cases: Case[] = [
 		}
 	},
 	{
-		name: "line vertical ignores stale explicit areas and auto-places by order",
+		name: "line vertical preserves explicit areas when provided",
 		run: () => {
 			const context = createSceneBase();
 			context.capsules[2].type = "rangee" as any;
@@ -296,9 +300,9 @@ const cases: Case[] = [
 			const i2 = getItemPerso(scene, 2);
 			const i3 = getItemPerso(scene, 3);
 
-			assert.equal(i1.initial.className.includes("cell_auto_rangee-r1-c1"), true);
-			assert.equal(i2.initial.className.includes("cell_auto_rangee-r2-c1"), true);
-			assert.equal(i3.initial.className.includes("cell_auto_rangee-r3-c1"), true);
+			assert.equal(i1.initial.className.includes("cell-r1-c2"), true);
+			assert.equal(i2.initial.className.includes("cell-r1-c1"), true);
+			assert.equal(i3.initial.className.includes("cell-r1-c3"), true);
 		}
 	},
 	{
@@ -335,6 +339,62 @@ const cases: Case[] = [
 			assert.equal(starts.get(i1In), 2000);
 			assert.equal(starts.get(i2In), 4000);
 			assert.equal(starts.get(i3In), 6000);
+		}
+	},
+	{
+		name: "custom event name+position maps to cue middle time",
+		run: () => {
+			const context = createSceneBase();
+			context.sceneContents[1].events.push({ name: "custom-cue", text: "", start: 4, end: 6 } as any);
+			context.events[1] = {
+				intro: { name: "capsule-intro", action: "intro", ref: "fade" } as any,
+				outro: { name: "capsule-outro", action: "outro", ref: "fade" } as any,
+				"custom-1": {
+					name: "custom-cue",
+					action: "custom-1",
+					position: "middle",
+					ref: null
+				} as any
+			};
+
+			const scene = buildScene(context);
+			const starts = getActionStarts(scene);
+			assert.equal(starts.get("custom-cue-custom-1"), 5000);
+		}
+	},
+	{
+		name: "custom event duration overrides interpolation duration",
+		run: () => {
+			const context = createSceneBase();
+			context.sceneContents[1].events.push({ name: "custom-cue", text: "", start: 5, end: 5 } as any);
+			context.decors[21] = {
+				id: 21,
+				name: null,
+				className: "",
+				area: "",
+				style: { opacity: 0.25 },
+				itemTargetId: null,
+				basedUpon: null
+			} as any;
+			context.events[1] = {
+				intro: { name: "capsule-intro", action: "intro", ref: "fade" } as any,
+				outro: { name: "capsule-outro", action: "outro", ref: "fade" } as any,
+				"custom-1": {
+					name: "custom-cue",
+					action: "custom-1",
+					position: "start",
+					duration: 1.5,
+					decorId: 21,
+					ref: null
+				} as any
+			};
+
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+			const customKey = Object.keys(item1.actions).find((key) => key.endsWith("-custom-1"));
+			assert.ok(customKey);
+			assert.equal(item1.actions[customKey!].style.opacity.to, 0.25);
+			assert.equal(item1.actions[customKey!].style.opacity.duration, 1500);
 		}
 	},
 	{
@@ -379,6 +439,44 @@ const cases: Case[] = [
 			assert.ok(capsule2Pos >= 0);
 			assert.ok(capsule3Pos >= 0);
 			assert.equal(capsule3Pos < capsule2Pos, true);
+		}
+	},
+	{
+		name: "delay to cue-point mapping picks nearest cue position",
+		run: () => {
+			const cues = [
+				{ name: "intro", text: "", start: 2, end: 2 } as any,
+				{ name: "a", text: "", start: 4, end: 5 } as any,
+				{ name: "outro", text: "", start: 8, end: 8 } as any
+			];
+			const point = resolveClosestCuePointFromDelay({
+				cues,
+				introName: "intro",
+				outroName: "outro",
+				delaySec: 2.6
+			});
+
+			assert.equal(point?.name, "a");
+			assert.equal(point?.position, "middle");
+		}
+	},
+	{
+		name: "cue-point to delay mapping converts back from intro",
+		run: () => {
+			const cues = [
+				{ name: "intro", text: "", start: 2, end: 2 } as any,
+				{ name: "a", text: "", start: 4, end: 6 } as any,
+				{ name: "outro", text: "", start: 8, end: 8 } as any
+			];
+			const delay = resolveDelayFromCuePoint({
+				cues,
+				introName: "intro",
+				outroName: "outro",
+				cueName: "a",
+				position: "middle"
+			});
+
+			assert.equal(delay, 3);
 		}
 	},
 	{
