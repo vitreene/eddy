@@ -562,10 +562,16 @@ function executePersistTouchedCommits(context: SceneComp & { active: ActiveState
 		const decor = context.decors?.[context.items[itemId].decorId];
 		if (decor) {
 			const { id: decorId, ...rest } = decor;
+			const style =
+				rest.style && typeof rest.style == "object"
+					? Object.fromEntries(
+							Object.entries(rest.style as Record<string, unknown>).filter(([key]) => key !== "outline")
+						)
+					: rest.style;
 			fetch(`/api/decor`, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ itemId, decorId, ...rest })
+				body: JSON.stringify({ itemId, decorId, ...rest, style })
 			});
 		}
 	}

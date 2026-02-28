@@ -16,6 +16,7 @@ export const MANAGED_ITEM_STYLE_KEYS: Array<keyof EditableStyle> = [
 	"placeSelf",
 	"backgroundSize",
 	"backgroundRepeat",
+	"outline",
 	"area",
 	"className"
 ];
@@ -36,6 +37,7 @@ export const DEFAULT_STYLE: EditableStyle = {
 	placeSelf: undefined,
 	backgroundSize: "cover",
 	backgroundRepeat: "no-repeat",
+	outline: undefined,
 	area: undefined,
 	className: undefined
 };

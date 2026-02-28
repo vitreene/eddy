@@ -1,8 +1,8 @@
-# Plan capsule types (carrousel, ligne, grille, card)
+# Plan capsule types (carrousel, rangee, liste, grille, card)
 
 ## Objectif
 
-Introduire un systeme de types de capsule (`carrousel`, `ligne`, `grille`, `card`) pilote par configuration, partage entre `edit-capsule`, `scene-logic` et `builder`, avec generation CSS et regles d'animation coherentes, tout en preservant strictement le comportement legacy quand `type` est absent.
+Introduire un systeme de types de capsule (`carrousel`, `rangee`, `liste`, `grille`, `card`) pilote par configuration, partage entre `edit-capsule`, `scene-logic` et `builder`, avec generation CSS et regles d'animation coherentes, tout en preservant strictement le comportement legacy quand `type` est absent.
 
 ## Etapes de preparation (prioritaires)
 
@@ -12,7 +12,7 @@ Introduire un systeme de types de capsule (`carrousel`, `ligne`, `grille`, `card
     - [x] comportement transitions par defaut (intro/outro),
     - [x] comportement placement (slot auto, rebouclage, areas),
     - [x] generation CSS associee.
-  - [x] Definir un registre des types (`carrousel`, `ligne`, `grille`, `card`) + valeurs par defaut.
+  - [x] Definir un registre des types (`carrousel`, `rangee`, `liste`, `grille`, `card`) + valeurs par defaut.
   - [x] Definir un mode `legacy` implicite si `capsule.type` est vide/null.
   - [x] Exposer une API unique consommee par `edit-capsule` et `builder`.
 
@@ -43,7 +43,7 @@ Introduire un systeme de types de capsule (`carrousel`, `ligne`, `grille`, `card
   - [x] Retirer le mode "choix libre concurrent" type/grille (source unique via type + params).
   - [x] Afficher dynamiquement les parametres selon type:
     - [x] `carrousel`: mode temps (repartition | fixe X sec),
-    - [x] `ligne`: orientation + taille `n` + mode temps,
+    - [x] `rangee`: orientation + taille `n` + mode temps,
     - [x] `grille`: rows/cols + mode temps,
     - [x] `card`: config de base seulement (sans nouveau composant).
   - [x] Conserver transitions par defaut fondu quand non precise.
@@ -55,7 +55,7 @@ Introduire un systeme de types de capsule (`carrousel`, `ligne`, `grille`, `card
     - [x] repartition temporelle par defaut (comportement actuel),
     - [x] option duree fixe par item,
     - [x] intro/outro par defaut = fondu.
-  - [x] `ligne`
+  - [x] `rangee`
     - [x] grille 1xn ou nx1 selon orientation,
     - [x] placement auto indexe avec rebouclage,
     - [x] repartition temporelle ou duree fixe,
@@ -64,10 +64,11 @@ Introduire un systeme de types de capsule (`carrousel`, `ligne`, `grille`, `card
     - [x] rows/cols configurables,
     - [x] placement auto indexe avec rebouclage,
     - [x] repartition temporelle ou duree fixe,
-    - [x] meme regle d'outro que `ligne` (a valider si divergence voulue).
+    - [x] meme regle d'outro que `rangee` (a valider si divergence voulue).
   - [x] `card`
     - [x] mode configuration uniquement,
     - [x] contrat de `grid-areas` present pour usage SlotEditor futur.
+  - [x] Basculer de `duree auto` vers `duree` + valeur (ex: 2 secondes) dans l'interface et la persistance capsule.
 
 ## Integration SlotEditor / card (preparation)
 
@@ -104,8 +105,9 @@ Introduire un systeme de types de capsule (`carrousel`, `ligne`, `grille`, `card
 - 2026-02-27: Pause etape 3 finie (helpers CSS factorises dans `player/capsule-layout/layout-css.ts`, builder simplifie, contrat card prepare).
 - 2026-02-27: Pause etape 4 finie (default `carrousel` a la creation capsule + normalisation API `type` + compat legacy preservee).
 - 2026-02-27: Pause etape 5 finie (UI type obligatoire + params dynamiques selon type dans edit-capsule).
-- 2026-02-27: Pause etape 6 finie (regles runtime par type activees: placement carrousel/ligne/grille + outro par defaut desactive pour ligne/grille + support fixed-time dans resolver).
+- 2026-02-27: Pause etape 6 finie (regles runtime par type activees: placement carrousel/rangee/grille + outro par defaut desactive pour rangee/grille + support fixed-time dans resolver).
 - 2026-02-27: Pause etape 7 finie (contrat areas `card` encode dans `grid` via prefix `areas:` + branchement SlotEditor sur template areas).
 - 2026-02-27: Pause etape 8 finie (compat legacy maintenue, verification non-regression via typecheck/smoke; migration backfill laissee optionnelle).
 - 2026-02-27: Pause etape 9 finie (nouveau smoke `capsule-types` + couverture registre, parser card, fixed mode, legacy fallback).
 - 2026-02-27: Pause etape 10 finie (typecheck + smoke complets + sanity-check build scene 1 legacy).
+- 2026-02-27: Traitement ajoute/executé: switch `duree auto` / `duree` + valeur persistee (`itemDurationMode`, `itemDurationSec`) et prise en compte par le builder.

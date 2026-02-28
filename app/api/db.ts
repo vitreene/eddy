@@ -53,14 +53,26 @@ export interface ItemComp extends Item {
     grid: string | null;
 }
 	 */
-export interface CapsuleComp extends Omit<
-	Capsule,
-	"defaultItemIntroTransition" | "defaultItemOutroTransition"
-> {
+
+export interface CapsuleComp {
+	id: number;
+	name: string;
+	type: string | null;
+	grid: string | null;
+	profil?: string | null;
 	itemIds: number[];
 	defaultItemIntroTransition?: string | { action?: string; ref?: string } | null;
 	defaultItemOutroTransition?: string | { action?: string; ref?: string } | null;
+	itemDurationMode?: "auto" | "fixed";
+	itemDurationSec?: number | null;
 }
+
+type CapsuleProfil = {
+	itemDurationMode?: "auto" | "fixed";
+	itemDurationSec?: number | null;
+	defaultItemIntroTransition?: string | null;
+	defaultItemOutroTransition?: string | null;
+};
 
 export interface TextTime {
 	id?: number;
@@ -437,17 +449,18 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 	// Capsules and items
 	if (scene.capsules) {
 		scene.capsules.forEach(({ items: items, ...capsule }) => {
-			const capsuleRecord = capsule as Record<string, unknown>;
+			const capsuleProfil = parseCapsuleProfil(capsule.profil);
 			const itemIds: number[] = items.map((item) => item.id);
 
 			flatScene.capsules[capsule.id] = {
 				...capsule,
-				defaultItemIntroTransition: parseCapsuleTransition(
-					(capsuleRecord.defaultItemIntroTransition as string | null | undefined) ?? null
-				),
-				defaultItemOutroTransition: parseCapsuleTransition(
-					(capsuleRecord.defaultItemOutroTransition as string | null | undefined) ?? null
-				),
+				defaultItemIntroTransition: parseCapsuleTransition(capsuleProfil.defaultItemIntroTransition ?? null),
+				defaultItemOutroTransition: parseCapsuleTransition(capsuleProfil.defaultItemOutroTransition ?? null),
+				itemDurationMode: capsuleProfil.itemDurationMode === "fixed" ? "fixed" : "auto",
+				itemDurationSec:
+					typeof capsuleProfil.itemDurationSec == "number" && Number.isFinite(capsuleProfil.itemDurationSec)
+						? capsuleProfil.itemDurationSec
+						: null,
 				itemIds
 			};
 
@@ -560,7 +573,8 @@ export async function createCapsule({ sceneId, name }: { sceneId: number; name: 
 		const capsule = await tx.capsule.create({
 			data: {
 				name,
-				grid: DEFAULT_CAPSULE_GRID
+				grid: DEFAULT_CAPSULE_GRID,
+				profil: serializeCapsuleProfil(defaultCapsuleProfil())
 			}
 		});
 
@@ -666,7 +680,8 @@ export async function createCapsuleItem(input: CreateCapsuleItemInput) {
 			data: {
 				name: input.capsuleName,
 				grid: input.grid,
-				type: CAPSULE_TYPES.CARROUSEL
+				type: CAPSULE_TYPES.CARROUSEL,
+				profil: serializeCapsuleProfil(defaultCapsuleProfil())
 			}
 		});
 
@@ -995,6 +1010,30 @@ export async function updateTheme(themeId: number, update: Partial<Theme>) {
 	const custom = (theme.custom || "") + (update.custom || "");
 	const generated = (theme.generated || "") + (update.generated || "");
 	return await prisma.theme.update({ where: { id: themeId }, data: { ...update, custom, generated } });
+}
+
+function parseCapsuleProfil(value: string | null | undefined): CapsuleProfil {
+	if (!value) return {};
+	try {
+		const parsed = JSON.parse(value) as CapsuleProfil;
+		if (!parsed || typeof parsed != "object") return {};
+		return parsed;
+	} catch {
+		return {};
+	}
+}
+
+function defaultCapsuleProfil(): CapsuleProfil {
+	return {
+		itemDurationMode: "auto",
+		itemDurationSec: null,
+		defaultItemIntroTransition: JSON.stringify({ action: "intro", ref: "fade" }),
+		defaultItemOutroTransition: JSON.stringify({ action: "outro", ref: "fade" })
+	};
+}
+
+function serializeCapsuleProfil(profil: CapsuleProfil): string {
+	return JSON.stringify(profil);
 }
 
 function parseCapsuleTransition(

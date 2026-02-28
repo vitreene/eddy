@@ -55,9 +55,12 @@ function normalizeDecorPayload(
 	contentType: string | null,
 	capsuleType: string | null
 ): Partial<Decor> {
+	const rawStyle = (decorData.style as Record<string, unknown>) ?? {};
+	const styleWithoutDebug = Object.fromEntries(Object.entries(rawStyle).filter(([key]) => key !== "outline"));
+
 	return {
 		...decorData,
 		area: shouldCapsuleUseExplicitArea(capsuleType) ? (decorData.area ?? null) : null,
-		style: stripDefaultStyleValues((decorData.style as Record<string, unknown>) ?? {}, contentType ?? undefined)
+		style: stripDefaultStyleValues(styleWithoutDebug, contentType ?? undefined)
 	};
 }

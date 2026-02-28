@@ -117,6 +117,15 @@ export const StyleEditor: React.FC<Props> = ({
 			<ColorMini type={type} value={value} onChange={onChange} />
 
 			<SpacingMini value={value} onChange={onChange} />
+
+			<div className="mt-2 flex items-center gap-2 text-xs">
+				<input
+					type="checkbox"
+					checked={value.outline === "1px solid red"}
+					onChange={(e) => update("outline", e.currentTarget.checked ? "1px solid red" : undefined)}
+				/>
+				<label>outline</label>
+			</div>
 		</div>
 	);
 };

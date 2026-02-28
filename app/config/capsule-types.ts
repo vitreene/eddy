@@ -1,14 +1,20 @@
 export const CAPSULE_TYPES = {
 	CARROUSEL: "carrousel",
-	LIGNE: "ligne",
+	RANGEE: "rangee",
+	LISTE: "liste",
 	GRILLE: "grille",
 	CARD: "card",
 	LEGACY: "legacy"
 } as const;
 
+const CAPSULE_LEGACY_TYPE_ALIASES = {
+	RANGEE_UTF8: "rangée"
+} as const;
+
 export type CapsuleKnownType =
 	| (typeof CAPSULE_TYPES)["CARROUSEL"]
-	| (typeof CAPSULE_TYPES)["LIGNE"]
+	| (typeof CAPSULE_TYPES)["RANGEE"]
+	| (typeof CAPSULE_TYPES)["LISTE"]
 	| (typeof CAPSULE_TYPES)["GRILLE"]
 	| (typeof CAPSULE_TYPES)["CARD"];
 
@@ -25,6 +31,10 @@ type CapsuleLayoutBehavior =
 			kind: "line";
 			grid: { mode: "derived"; rows: 1; cols: "n" } | { mode: "derived"; rows: "n"; cols: 1 };
 			reloop: true;
+	  }
+	| {
+			kind: "list";
+			grid: { mode: "list" };
 	  }
 	| {
 			kind: "grid";
@@ -69,7 +79,7 @@ type CapsuleParamSchema = {
  * - `ui` decrit la configuration (ce que l'utilisateur peut regler dans edit-capsule).
  * - `runtime` decrit l'execution (ce que builder/player appliquent au moment du play).
  *
- * - `type`: identifiant de type resolu (`carrousel`, `ligne`, `grille`, `card`, `legacy`).
+ * - `type`: identifiant de type resolu (`carrousel`, `rangee`, `liste`, `grille`, `card`, `legacy`).
  * - `label` / `description`: metadonnees d'affichage pour l'interface.
  * - `ui`:
  *    - `selectable`: indique si le type est selectionnable dans edit-capsule.
@@ -130,10 +140,10 @@ const CAPSULE_TYPE_REGISTRY: Record<CapsuleResolvedType, CapsuleTypeConfig> = {
 			}
 		}
 	},
-	[CAPSULE_TYPES.LIGNE]: {
-		type: CAPSULE_TYPES.LIGNE,
-		label: "Ligne",
-		description: "Place les items en ligne horizontale ou verticale avec rebouclage.",
+	[CAPSULE_TYPES.RANGEE]: {
+		type: CAPSULE_TYPES.RANGEE,
+		label: "Rangée",
+		description: "Place les items en rangée horizontale ou verticale avec rebouclage.",
 		ui: {
 			selectable: true,
 			params: [
@@ -174,6 +184,44 @@ const CAPSULE_TYPE_REGISTRY: Record<CapsuleResolvedType, CapsuleTypeConfig> = {
 				kind: "line",
 				grid: { mode: "derived", rows: 1, cols: "n" },
 				reloop: true
+			}
+		}
+	},
+	[CAPSULE_TYPES.LISTE]: {
+		type: CAPSULE_TYPES.LISTE,
+		label: "Liste",
+		description: "Place les items les uns apres les autres sans contrainte de grille.",
+		ui: {
+			selectable: true,
+			params: [
+				{
+					name: "orientation",
+					type: "enum",
+					defaultValue: "vertical",
+					options: ["horizontal", "vertical"]
+				},
+				{
+					name: "timeMode",
+					type: "enum",
+					defaultValue: "distributed",
+					options: ["distributed", "fixed"]
+				},
+				{
+					name: "fixedSeconds",
+					type: "number",
+					defaultValue: FIXED_SECONDS_DEFAULT,
+					min: 1,
+					max: 60,
+					step: 0.5
+				}
+			]
+		},
+		runtime: {
+			time: { mode: "distributed", defaultFixedSeconds: FIXED_SECONDS_DEFAULT },
+			transitions: { defaultIntroRef: "fade", defaultOutroRef: null },
+			layout: {
+				kind: "list",
+				grid: { mode: "list" }
 			}
 		}
 	},
@@ -272,13 +320,17 @@ export function isCapsuleKnownType(value: string | null | undefined): value is C
 	if (!value) return false;
 	return (
 		value === CAPSULE_TYPES.CARROUSEL ||
-		value === CAPSULE_TYPES.LIGNE ||
+		value === CAPSULE_TYPES.RANGEE ||
+		value === CAPSULE_TYPES.LISTE ||
 		value === CAPSULE_TYPES.GRILLE ||
 		value === CAPSULE_TYPES.CARD
 	);
 }
 
 export function resolveCapsuleType(value: string | null | undefined): CapsuleResolvedType {
+	if (value === CAPSULE_LEGACY_TYPE_ALIASES.RANGEE_UTF8) {
+		return CAPSULE_TYPES.RANGEE;
+	}
 	return isCapsuleKnownType(value) ? value : CAPSULE_TYPES.LEGACY;
 }
 
@@ -290,7 +342,8 @@ export function getCapsuleTypeConfig(value: string | null | undefined): CapsuleT
 export function getSelectableCapsuleTypeConfigs(): CapsuleTypeConfig[] {
 	return [
 		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.CARROUSEL],
-		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.LIGNE],
+		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.RANGEE],
+		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.LISTE],
 		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.GRILLE],
 		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.CARD]
 	];

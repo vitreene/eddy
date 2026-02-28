@@ -31,8 +31,24 @@ function createSceneBase(): SceneComp {
 			}
 		},
 		capsules: {
-			1: { id: 1, name: "main", type: null, grid: "ed-grid-w1-h1", itemIds: [100] },
-			2: { id: 2, name: "child", type: null, grid: "ed-grid-w1-h1", itemIds: [1, 2, 3] }
+			1: {
+				id: 1,
+				name: "main",
+				type: null,
+				grid: "ed-grid-w1-h1",
+				itemDurationMode: "auto",
+				itemDurationSec: null,
+				itemIds: [100]
+			},
+			2: {
+				id: 2,
+				name: "child",
+				type: null,
+				grid: "ed-grid-w1-h1",
+				itemDurationMode: "auto",
+				itemDurationSec: null,
+				itemIds: [1, 2, 3]
+			}
 		},
 		items: {
 			100: { id: 100, order: 1000, contentId: 900, capsuleId: 1, decorId: 10, visible: true, eventIds: [] },
@@ -251,7 +267,7 @@ const cases: Case[] = [
 		name: "line type does not auto-generate outro for child items",
 		run: () => {
 			const context = createSceneBase();
-			context.capsules[2].type = "ligne" as any;
+			context.capsules[2].type = "rangee" as any;
 			context.capsules[2].grid = "ed-grid-w3-h1";
 
 			const scene = buildScene(context);
@@ -269,7 +285,7 @@ const cases: Case[] = [
 		name: "line vertical ignores stale explicit areas and auto-places by order",
 		run: () => {
 			const context = createSceneBase();
-			context.capsules[2].type = "ligne" as any;
+			context.capsules[2].type = "rangee" as any;
 			context.capsules[2].grid = "ed-grid-w1-h3";
 			context.decors[11].area = "cell-r1-c2" as any;
 			context.decors[12].area = "cell-r1-c1" as any;
@@ -280,9 +296,45 @@ const cases: Case[] = [
 			const i2 = getItemPerso(scene, 2);
 			const i3 = getItemPerso(scene, 3);
 
-			assert.equal(i1.initial.className.includes("cell_auto_ligne-r1-c1"), true);
-			assert.equal(i2.initial.className.includes("cell_auto_ligne-r2-c1"), true);
-			assert.equal(i3.initial.className.includes("cell_auto_ligne-r3-c1"), true);
+			assert.equal(i1.initial.className.includes("cell_auto_rangee-r1-c1"), true);
+			assert.equal(i2.initial.className.includes("cell_auto_rangee-r2-c1"), true);
+			assert.equal(i3.initial.className.includes("cell_auto_rangee-r3-c1"), true);
+		}
+	},
+	{
+		name: "list type generates liste-rN classes without area css constraints",
+		run: () => {
+			const context = createSceneBase();
+			context.capsules[2].type = "liste" as any;
+			context.capsules[2].grid = "liste-vertical";
+
+			const scene = buildScene(context);
+			const i1 = getItemPerso(scene, 1);
+			const i2 = getItemPerso(scene, 2);
+			const i3 = getItemPerso(scene, 3);
+
+			assert.equal(i1.initial.className.includes("liste-r1"), true);
+			assert.equal(i2.initial.className.includes("liste-r2"), true);
+			assert.equal(i3.initial.className.includes("liste-r3"), true);
+			assert.equal((scene.styles || "").includes(".liste-r1{"), false);
+		}
+	},
+	{
+		name: "fixed item duration mode spaces intros by configured seconds",
+		run: () => {
+			const context = createSceneBase();
+			(context.capsules[2] as any).itemDurationMode = "fixed";
+			(context.capsules[2] as any).itemDurationSec = 2;
+
+			const scene = buildScene(context);
+			const starts = getActionStarts(scene);
+			const i1In = getItemActionName(scene, 1, "intro");
+			const i2In = getItemActionName(scene, 2, "intro");
+			const i3In = getItemActionName(scene, 3, "intro");
+
+			assert.equal(starts.get(i1In), 2000);
+			assert.equal(starts.get(i2In), 4000);
+			assert.equal(starts.get(i3In), 6000);
 		}
 	},
 	{

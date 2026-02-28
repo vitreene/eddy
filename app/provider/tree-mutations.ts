@@ -243,8 +243,14 @@ export function applyTreeMutation(context: SceneTreeContext, output: TreeMutatio
 
 	const capsules = { ...context.capsules };
 	if (createdCapsule) {
+		const profile = parseCapsuleProfile(createdCapsule.profil);
 		capsules[createdCapsule.id] = {
 			...createdCapsule,
+			profil: createdCapsule.profil ?? null,
+			defaultItemIntroTransition: profile.defaultItemIntroTransition ?? null,
+			defaultItemOutroTransition: profile.defaultItemOutroTransition ?? null,
+			itemDurationMode: profile.itemDurationMode ?? "auto",
+			itemDurationSec: profile.itemDurationSec ?? null,
 			itemIds: []
 		};
 	}
@@ -264,6 +270,22 @@ export function applyTreeMutation(context: SceneTreeContext, output: TreeMutatio
 			contentId: createdItem.contentId
 		}
 	};
+}
+
+function parseCapsuleProfile(raw: string | null | undefined): {
+	defaultItemIntroTransition?: string | null;
+	defaultItemOutroTransition?: string | null;
+	itemDurationMode?: "auto" | "fixed";
+	itemDurationSec?: number | null;
+} {
+	if (!raw) return {};
+	try {
+		const parsed = JSON.parse(raw);
+		if (!parsed || typeof parsed != "object") return {};
+		return parsed;
+	} catch {
+		return {};
+	}
 }
 
 function buildCapsuleItemIds(items: Record<number, ItemComp>, capsuleId: number): number[] {

@@ -32,7 +32,15 @@ export type TreeMutationResponse = {
 		};
 		content?: Content;
 		decor?: Decor;
-		capsule?: { id: number; name: string; type: string | null; grid: string | null };
+		capsule?: {
+			id: number;
+			name: string;
+			type: string | null;
+			grid: string | null;
+			itemDurationMode?: string;
+			itemDurationSec?: number | null;
+			profil?: string | null;
+		};
 	};
 	deleted?: { id: number; order: number; contentId: number; capsuleId: number };
 	deletedCapsule?: {

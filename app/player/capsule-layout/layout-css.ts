@@ -43,7 +43,7 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 		if (itemIndex <= 0) continue;
 
 		const { areaClassName, areaDefinition } = getAutoAreaForItem(capsule, itemIndex);
-		areas.add(areaDefinition);
+		if (areaDefinition) areas.add(areaDefinition);
 		itemPlacementClassByItemId[item.id] = areaClassName;
 	}
 
@@ -57,19 +57,24 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 }
 
 function buildGridDefinitions(snapshot: SceneComp): string[] {
-	const uniqueClassNames = new Set<string>();
+	const definitions = new Set<string>();
 
 	for (const capsule of Object.values(snapshot.capsules || {})) {
 		if (!capsule?.grid) continue;
 		const className = capsule.grid.trim().split(/\s+/)[0]?.replace(/^\./, "");
 		if (!className) continue;
-		uniqueClassNames.add(className);
+
+		const type = getCapsuleTypeConfig(capsule.type).type;
+		if (type === "liste") {
+			definitions.add(`.${className}{display:grid}`);
+			continue;
+		}
+
+		const definition = gridClassNameToCssDefinition(className);
+		if (definition) definitions.add(definition);
 	}
 
-	return [...uniqueClassNames].flatMap((className) => {
-		const definition = gridClassNameToCssDefinition(className);
-		return definition ? [definition] : [];
-	});
+	return [...definitions];
 }
 
 function getAutoAreaForItem(
@@ -85,7 +90,7 @@ function getAutoAreaForItem(
 	}
 
 	const { r, c } = getCoordinatesByCapsuleType(capsule, itemIndex, grid);
-	const areaClassName = `${prefix}-r${r}-c${c}`;
+	const areaClassName = typeConfig.type === "liste" ? `liste-r${r}` : `${prefix}-r${r}-c${c}`;
 
 	if (typeConfig.type === "card") {
 		const contractAreas = readCardAreasContract(capsule);
@@ -96,7 +101,7 @@ function getAutoAreaForItem(
 
 	return {
 		areaClassName,
-		areaDefinition: classNameToCssDefinition(areaClassName, { prefix })
+		areaDefinition: typeConfig.type === "liste" ? "" : classNameToCssDefinition(areaClassName, { prefix })
 	};
 }
 
@@ -111,11 +116,16 @@ function getCoordinatesByCapsuleType(
 		return { r: 1, c: 1 };
 	}
 
-	if (type === "ligne") {
+	if (type === "rangee") {
 		const cells = Math.max(grid.w, grid.h, 1);
 		const index0 = (((itemIndex - 1) % cells) + cells) % cells;
 		const orientation = grid.h === 1 ? "horizontal" : "vertical";
 		return orientation === "horizontal" ? { r: 1, c: index0 + 1 } : { r: index0 + 1, c: 1 };
+	}
+
+	if (type === "liste") {
+		// Classe informative seulement (aucune definition CSS associee pour l'instant).
+		return { r: itemIndex, c: 1 };
 	}
 
 	if (type === "grille") {

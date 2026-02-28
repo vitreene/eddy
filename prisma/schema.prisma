@@ -59,8 +59,7 @@ model Capsule {
   name                       String
   type                       String?
   grid                       String?
-  defaultItemIntroTransition String? @map("default_item_intro_transition")
-  defaultItemOutroTransition String? @map("default_item_outro_transition")
+  profil                     String?
 
   items         Item[]
   sceneCapsules SceneCapsule[]

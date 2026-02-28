@@ -113,8 +113,7 @@ export const CapsuleScalarFieldEnum = {
   name: 'name',
   type: 'type',
   grid: 'grid',
-  defaultItemIntroTransition: 'defaultItemIntroTransition',
-  defaultItemOutroTransition: 'defaultItemOutroTransition'
+  profil: 'profil'
 } as const
 
 export type CapsuleScalarFieldEnum = (typeof CapsuleScalarFieldEnum)[keyof typeof CapsuleScalarFieldEnum]

@@ -39,8 +39,7 @@ export type CapsuleMinAggregateOutputType = {
   name: string | null
   type: string | null
   grid: string | null
-  defaultItemIntroTransition: string | null
-  defaultItemOutroTransition: string | null
+  profil: string | null
 }
 
 export type CapsuleMaxAggregateOutputType = {
@@ -48,8 +47,7 @@ export type CapsuleMaxAggregateOutputType = {
   name: string | null
   type: string | null
   grid: string | null
-  defaultItemIntroTransition: string | null
-  defaultItemOutroTransition: string | null
+  profil: string | null
 }
 
 export type CapsuleCountAggregateOutputType = {
@@ -57,8 +55,7 @@ export type CapsuleCountAggregateOutputType = {
   name: number
   type: number
   grid: number
-  defaultItemIntroTransition: number
-  defaultItemOutroTransition: number
+  profil: number
   _all: number
 }
 
@@ -76,8 +73,7 @@ export type CapsuleMinAggregateInputType = {
   name?: true
   type?: true
   grid?: true
-  defaultItemIntroTransition?: true
-  defaultItemOutroTransition?: true
+  profil?: true
 }
 
 export type CapsuleMaxAggregateInputType = {
@@ -85,8 +81,7 @@ export type CapsuleMaxAggregateInputType = {
   name?: true
   type?: true
   grid?: true
-  defaultItemIntroTransition?: true
-  defaultItemOutroTransition?: true
+  profil?: true
 }
 
 export type CapsuleCountAggregateInputType = {
@@ -94,8 +89,7 @@ export type CapsuleCountAggregateInputType = {
   name?: true
   type?: true
   grid?: true
-  defaultItemIntroTransition?: true
-  defaultItemOutroTransition?: true
+  profil?: true
   _all?: true
 }
 
@@ -190,8 +184,7 @@ export type CapsuleGroupByOutputType = {
   name: string
   type: string | null
   grid: string | null
-  defaultItemIntroTransition: string | null
-  defaultItemOutroTransition: string | null
+  profil: string | null
   _count: CapsuleCountAggregateOutputType | null
   _avg: CapsuleAvgAggregateOutputType | null
   _sum: CapsuleSumAggregateOutputType | null
@@ -222,8 +215,7 @@ export type CapsuleWhereInput = {
   name?: Prisma.StringFilter<"Capsule"> | string
   type?: Prisma.StringNullableFilter<"Capsule"> | string | null
   grid?: Prisma.StringNullableFilter<"Capsule"> | string | null
-  defaultItemIntroTransition?: Prisma.StringNullableFilter<"Capsule"> | string | null
-  defaultItemOutroTransition?: Prisma.StringNullableFilter<"Capsule"> | string | null
+  profil?: Prisma.StringNullableFilter<"Capsule"> | string | null
   items?: Prisma.ItemListRelationFilter
   sceneCapsules?: Prisma.SceneCapsuleListRelationFilter
   itemTargets?: Prisma.ItemTargetListRelationFilter
@@ -236,8 +228,7 @@ export type CapsuleOrderByWithRelationInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrderInput | Prisma.SortOrder
   grid?: Prisma.SortOrderInput | Prisma.SortOrder
-  defaultItemIntroTransition?: Prisma.SortOrderInput | Prisma.SortOrder
-  defaultItemOutroTransition?: Prisma.SortOrderInput | Prisma.SortOrder
+  profil?: Prisma.SortOrderInput | Prisma.SortOrder
   items?: Prisma.ItemOrderByRelationAggregateInput
   sceneCapsules?: Prisma.SceneCapsuleOrderByRelationAggregateInput
   itemTargets?: Prisma.ItemTargetOrderByRelationAggregateInput
@@ -253,8 +244,7 @@ export type CapsuleWhereUniqueInput = Prisma.AtLeast<{
   name?: Prisma.StringFilter<"Capsule"> | string
   type?: Prisma.StringNullableFilter<"Capsule"> | string | null
   grid?: Prisma.StringNullableFilter<"Capsule"> | string | null
-  defaultItemIntroTransition?: Prisma.StringNullableFilter<"Capsule"> | string | null
-  defaultItemOutroTransition?: Prisma.StringNullableFilter<"Capsule"> | string | null
+  profil?: Prisma.StringNullableFilter<"Capsule"> | string | null
   items?: Prisma.ItemListRelationFilter
   sceneCapsules?: Prisma.SceneCapsuleListRelationFilter
   itemTargets?: Prisma.ItemTargetListRelationFilter
@@ -267,8 +257,7 @@ export type CapsuleOrderByWithAggregationInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrderInput | Prisma.SortOrder
   grid?: Prisma.SortOrderInput | Prisma.SortOrder
-  defaultItemIntroTransition?: Prisma.SortOrderInput | Prisma.SortOrder
-  defaultItemOutroTransition?: Prisma.SortOrderInput | Prisma.SortOrder
+  profil?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.CapsuleCountOrderByAggregateInput
   _avg?: Prisma.CapsuleAvgOrderByAggregateInput
   _max?: Prisma.CapsuleMaxOrderByAggregateInput
@@ -284,16 +273,14 @@ export type CapsuleScalarWhereWithAggregatesInput = {
   name?: Prisma.StringWithAggregatesFilter<"Capsule"> | string
   type?: Prisma.StringNullableWithAggregatesFilter<"Capsule"> | string | null
   grid?: Prisma.StringNullableWithAggregatesFilter<"Capsule"> | string | null
-  defaultItemIntroTransition?: Prisma.StringNullableWithAggregatesFilter<"Capsule"> | string | null
-  defaultItemOutroTransition?: Prisma.StringNullableWithAggregatesFilter<"Capsule"> | string | null
+  profil?: Prisma.StringNullableWithAggregatesFilter<"Capsule"> | string | null
 }
 
 export type CapsuleCreateInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutCapsuleInput
@@ -306,8 +293,7 @@ export type CapsuleUncheckedCreateInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutCapsuleInput
@@ -319,8 +305,7 @@ export type CapsuleUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUpdateManyWithoutCapsuleNestedInput
@@ -333,8 +318,7 @@ export type CapsuleUncheckedUpdateInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutCapsuleNestedInput
@@ -347,16 +331,14 @@ export type CapsuleCreateManyInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
 }
 
 export type CapsuleUpdateManyMutationInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CapsuleUncheckedUpdateManyInput = {
@@ -364,8 +346,7 @@ export type CapsuleUncheckedUpdateManyInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type CapsuleNullableScalarRelationFilter = {
@@ -378,8 +359,7 @@ export type CapsuleCountOrderByAggregateInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   grid?: Prisma.SortOrder
-  defaultItemIntroTransition?: Prisma.SortOrder
-  defaultItemOutroTransition?: Prisma.SortOrder
+  profil?: Prisma.SortOrder
 }
 
 export type CapsuleAvgOrderByAggregateInput = {
@@ -391,8 +371,7 @@ export type CapsuleMaxOrderByAggregateInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   grid?: Prisma.SortOrder
-  defaultItemIntroTransition?: Prisma.SortOrder
-  defaultItemOutroTransition?: Prisma.SortOrder
+  profil?: Prisma.SortOrder
 }
 
 export type CapsuleMinOrderByAggregateInput = {
@@ -400,8 +379,7 @@ export type CapsuleMinOrderByAggregateInput = {
   name?: Prisma.SortOrder
   type?: Prisma.SortOrder
   grid?: Prisma.SortOrder
-  defaultItemIntroTransition?: Prisma.SortOrder
-  defaultItemOutroTransition?: Prisma.SortOrder
+  profil?: Prisma.SortOrder
 }
 
 export type CapsuleSumOrderByAggregateInput = {
@@ -499,8 +477,7 @@ export type CapsuleCreateWithoutSceneInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutCapsuleInput
@@ -512,8 +489,7 @@ export type CapsuleUncheckedCreateWithoutSceneInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutCapsuleInput
@@ -540,8 +516,7 @@ export type CapsuleUpdateWithoutSceneInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUpdateManyWithoutCapsuleNestedInput
@@ -553,8 +528,7 @@ export type CapsuleUncheckedUpdateWithoutSceneInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutCapsuleNestedInput
@@ -565,8 +539,7 @@ export type CapsuleCreateWithoutSceneCapsulesInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutCapsuleInput
   scene?: Prisma.SceneCreateNestedOneWithoutCapsuleInput
@@ -578,8 +551,7 @@ export type CapsuleUncheckedCreateWithoutSceneCapsulesInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutCapsuleInput
   scene?: Prisma.SceneUncheckedCreateNestedOneWithoutCapsuleInput
@@ -606,8 +578,7 @@ export type CapsuleUpdateWithoutSceneCapsulesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUpdateManyWithoutCapsuleNestedInput
   scene?: Prisma.SceneUpdateOneWithoutCapsuleNestedInput
@@ -619,8 +590,7 @@ export type CapsuleUncheckedUpdateWithoutSceneCapsulesInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutCapsuleNestedInput
   scene?: Prisma.SceneUncheckedUpdateOneWithoutCapsuleNestedInput
@@ -631,8 +601,7 @@ export type CapsuleCreateWithoutItemsInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutCapsuleInput
   scene?: Prisma.SceneCreateNestedOneWithoutCapsuleInput
@@ -644,8 +613,7 @@ export type CapsuleUncheckedCreateWithoutItemsInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutCapsuleInput
   scene?: Prisma.SceneUncheckedCreateNestedOneWithoutCapsuleInput
@@ -672,8 +640,7 @@ export type CapsuleUpdateWithoutItemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUpdateManyWithoutCapsuleNestedInput
   scene?: Prisma.SceneUpdateOneWithoutCapsuleNestedInput
@@ -685,8 +652,7 @@ export type CapsuleUncheckedUpdateWithoutItemsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutCapsuleNestedInput
   scene?: Prisma.SceneUncheckedUpdateOneWithoutCapsuleNestedInput
@@ -697,8 +663,7 @@ export type CapsuleCreateWithoutContentsInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetCreateNestedManyWithoutCapsuleInput
@@ -710,8 +675,7 @@ export type CapsuleUncheckedCreateWithoutContentsInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutCapsuleInput
   itemTargets?: Prisma.ItemTargetUncheckedCreateNestedManyWithoutCapsuleInput
@@ -738,8 +702,7 @@ export type CapsuleUpdateWithoutContentsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUpdateManyWithoutCapsuleNestedInput
@@ -751,8 +714,7 @@ export type CapsuleUncheckedUpdateWithoutContentsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutCapsuleNestedInput
   itemTargets?: Prisma.ItemTargetUncheckedUpdateManyWithoutCapsuleNestedInput
@@ -763,8 +725,7 @@ export type CapsuleCreateWithoutItemTargetsInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleCreateNestedManyWithoutCapsuleInput
   scene?: Prisma.SceneCreateNestedOneWithoutCapsuleInput
@@ -776,8 +737,7 @@ export type CapsuleUncheckedCreateWithoutItemTargetsInput = {
   name: string
   type?: string | null
   grid?: string | null
-  defaultItemIntroTransition?: string | null
-  defaultItemOutroTransition?: string | null
+  profil?: string | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutCapsuleInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedCreateNestedManyWithoutCapsuleInput
   scene?: Prisma.SceneUncheckedCreateNestedOneWithoutCapsuleInput
@@ -804,8 +764,7 @@ export type CapsuleUpdateWithoutItemTargetsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUpdateManyWithoutCapsuleNestedInput
   scene?: Prisma.SceneUpdateOneWithoutCapsuleNestedInput
@@ -817,8 +776,7 @@ export type CapsuleUncheckedUpdateWithoutItemTargetsInput = {
   name?: Prisma.StringFieldUpdateOperationsInput | string
   type?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   grid?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemIntroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  defaultItemOutroTransition?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
+  profil?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutCapsuleNestedInput
   sceneCapsules?: Prisma.SceneCapsuleUncheckedUpdateManyWithoutCapsuleNestedInput
   scene?: Prisma.SceneUncheckedUpdateOneWithoutCapsuleNestedInput
@@ -888,8 +846,7 @@ export type CapsuleSelect<ExtArgs extends runtime.Types.Extensions.InternalArgs 
   name?: boolean
   type?: boolean
   grid?: boolean
-  defaultItemIntroTransition?: boolean
-  defaultItemOutroTransition?: boolean
+  profil?: boolean
   items?: boolean | Prisma.Capsule$itemsArgs<ExtArgs>
   sceneCapsules?: boolean | Prisma.Capsule$sceneCapsulesArgs<ExtArgs>
   itemTargets?: boolean | Prisma.Capsule$itemTargetsArgs<ExtArgs>
@@ -903,8 +860,7 @@ export type CapsuleSelectCreateManyAndReturn<ExtArgs extends runtime.Types.Exten
   name?: boolean
   type?: boolean
   grid?: boolean
-  defaultItemIntroTransition?: boolean
-  defaultItemOutroTransition?: boolean
+  profil?: boolean
 }, ExtArgs["result"]["capsule"]>
 
 export type CapsuleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetSelect<{
@@ -912,8 +868,7 @@ export type CapsuleSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.Exten
   name?: boolean
   type?: boolean
   grid?: boolean
-  defaultItemIntroTransition?: boolean
-  defaultItemOutroTransition?: boolean
+  profil?: boolean
 }, ExtArgs["result"]["capsule"]>
 
 export type CapsuleSelectScalar = {
@@ -921,11 +876,10 @@ export type CapsuleSelectScalar = {
   name?: boolean
   type?: boolean
   grid?: boolean
-  defaultItemIntroTransition?: boolean
-  defaultItemOutroTransition?: boolean
+  profil?: boolean
 }
 
-export type CapsuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "type" | "grid" | "defaultItemIntroTransition" | "defaultItemOutroTransition", ExtArgs["result"]["capsule"]>
+export type CapsuleOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "name" | "type" | "grid" | "profil", ExtArgs["result"]["capsule"]>
 export type CapsuleInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   items?: boolean | Prisma.Capsule$itemsArgs<ExtArgs>
   sceneCapsules?: boolean | Prisma.Capsule$sceneCapsulesArgs<ExtArgs>
@@ -951,8 +905,7 @@ export type $CapsulePayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     name: string
     type: string | null
     grid: string | null
-    defaultItemIntroTransition: string | null
-    defaultItemOutroTransition: string | null
+    profil: string | null
   }, ExtArgs["result"]["capsule"]>
   composites: {}
 }
@@ -1385,8 +1338,7 @@ export interface CapsuleFieldRefs {
   readonly name: Prisma.FieldRef<"Capsule", 'String'>
   readonly type: Prisma.FieldRef<"Capsule", 'String'>
   readonly grid: Prisma.FieldRef<"Capsule", 'String'>
-  readonly defaultItemIntroTransition: Prisma.FieldRef<"Capsule", 'String'>
-  readonly defaultItemOutroTransition: Prisma.FieldRef<"Capsule", 'String'>
+  readonly profil: Prisma.FieldRef<"Capsule", 'String'>
 }
     
 

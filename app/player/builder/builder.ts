@@ -250,10 +250,15 @@ function buildBehaviorByCapsuleId(snapshot: SceneComp): Record<number, BuilderCa
 
 	for (const capsule of Object.values(snapshot.capsules || {})) {
 		const config = getCapsuleTypeConfig(capsule.type);
+		const fixedSeconds =
+			typeof (capsule as any).itemDurationSec == "number" && Number.isFinite((capsule as any).itemDurationSec)
+				? Math.max(0.1, Number((capsule as any).itemDurationSec))
+				: config.runtime.time.defaultFixedSeconds;
+		const timeMode = (capsule as any).itemDurationMode === "fixed" ? "fixed" : config.runtime.time.mode;
 
 		behaviorByCapsuleId[capsule.id] = {
-			timeMode: config.runtime.time.mode,
-			fixedSeconds: config.runtime.time.defaultFixedSeconds,
+			timeMode,
+			fixedSeconds,
 			// Important policy variable:
 			// if false, resolver generates no default outro for children of this capsule type.
 			generateDefaultOutro: config.runtime.transitions.defaultOutroRef !== null

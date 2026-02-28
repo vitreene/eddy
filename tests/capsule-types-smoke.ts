@@ -35,8 +35,24 @@ function createContext(): SceneComp {
 			}
 		},
 		capsules: {
-			1: { id: 1, name: "main", type: null, grid: "ed-grid-w1-h1", itemIds: [100] },
-			2: { id: 2, name: "child", type: "carrousel", grid: "ed-grid-w1-h1", itemIds: [1, 2, 3] }
+			1: {
+				id: 1,
+				name: "main",
+				type: null,
+				grid: "ed-grid-w1-h1",
+				itemDurationMode: "auto",
+				itemDurationSec: null,
+				itemIds: [100]
+			},
+			2: {
+				id: 2,
+				name: "child",
+				type: "carrousel",
+				grid: "ed-grid-w1-h1",
+				itemDurationMode: "auto",
+				itemDurationSec: null,
+				itemIds: [1, 2, 3]
+			}
 		},
 		items: {
 			100: { id: 100, order: 1000, contentId: 900, capsuleId: 1, decorId: 10, visible: true, eventIds: [] },
@@ -78,7 +94,7 @@ const cases: Case[] = [
 		name: "capsule type registry exposes only selectable types",
 		run: () => {
 			const selectable = getSelectableCapsuleTypeConfigs().map((cfg) => cfg.type);
-			assert.deepEqual(selectable, ["carrousel", "ligne", "grille", "card"]);
+			assert.deepEqual(selectable, ["carrousel", "rangee", "liste", "grille", "card"]);
 		}
 	},
 	{

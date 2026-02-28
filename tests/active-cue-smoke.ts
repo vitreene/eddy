@@ -37,9 +37,33 @@ function createBaseContext(): SceneComp {
 			}
 		},
 		capsules: {
-			1: { id: 1, name: "main", type: null, grid: null, itemIds: [] },
-			2: { id: 2, name: "c2", type: null, grid: null, itemIds: [] },
-			3: { id: 3, name: "c3", type: null, grid: null, itemIds: [] }
+			1: {
+				id: 1,
+				name: "main",
+				type: null,
+				grid: null,
+				itemDurationMode: "auto",
+				itemDurationSec: null,
+				itemIds: []
+			},
+			2: {
+				id: 2,
+				name: "c2",
+				type: null,
+				grid: null,
+				itemDurationMode: "auto",
+				itemDurationSec: null,
+				itemIds: []
+			},
+			3: {
+				id: 3,
+				name: "c3",
+				type: null,
+				grid: null,
+				itemDurationMode: "auto",
+				itemDurationSec: null,
+				itemIds: []
+			}
 		},
 		items: {},
 		contents: {},
@@ -95,7 +119,15 @@ function addLeafItem(context: SceneComp, itemId: number, capsuleId: number) {
 }
 
 function addCapsuleWithThreeLeafItems(context: SceneComp, capsuleId: number) {
-	context.capsules[capsuleId] = { id: capsuleId, name: `c${capsuleId}`, type: null, grid: null, itemIds: [] };
+	context.capsules[capsuleId] = {
+		id: capsuleId,
+		name: `c${capsuleId}`,
+		type: null,
+		grid: null,
+		itemDurationMode: "auto",
+		itemDurationSec: null,
+		itemIds: []
+	};
 	addLeafItem(context, capsuleId * 100 + 1, capsuleId);
 	addLeafItem(context, capsuleId * 100 + 2, capsuleId);
 	addLeafItem(context, capsuleId * 100 + 3, capsuleId);

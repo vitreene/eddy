@@ -13,6 +13,7 @@ export interface EditableStyle {
 	borderColor?: string; // border
 	backgroundSize?: string;
 	backgroundRepeat?: string;
+	outline?: string;
 
 	/* SPACING */
 	padding?: string; // "10px"

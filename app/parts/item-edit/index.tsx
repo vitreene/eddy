@@ -190,6 +190,11 @@ function CapsuleEdit({
 			return;
 		}
 
+		if (nextType == CAPSULE_TYPES.LISTE) {
+			send({ type: "capsule-update", payload: { id: capsule.id, type: nextType, grid: "liste-vertical" } });
+			return;
+		}
+
 		send({ type: "capsule-update", payload: { id: capsule.id, type: nextType } });
 	};
 
@@ -198,6 +203,22 @@ function CapsuleEdit({
 		const size = orientation == "horizontal" ? { w: safeCells, h: 1 } : { w: 1, h: safeCells };
 		const { className } = gridWHClassName(size);
 		send({ type: "capsule-update", payload: { id: capsule.id, grid: className } });
+	};
+
+	const onChangeDurationMode = (mode: "auto" | "fixed") => {
+		send({ type: "capsule-update", payload: { id: capsule.id, itemDurationMode: mode } });
+	};
+
+	const onChangeDurationValue = (value: number) => {
+		const duration = Number.isFinite(value) && value > 0 ? Number(value) : null;
+		send({ type: "capsule-update", payload: { id: capsule.id, itemDurationSec: duration } });
+	};
+
+	const onChangeListOrientation = (orientation: "horizontal" | "vertical") => {
+		send({
+			type: "capsule-update",
+			payload: { id: capsule.id, grid: orientation == "horizontal" ? "liste-horizontal" : "liste-vertical" }
+		});
 	};
 
 	const onChangeDefaultTransition = (action: string, ref: string) => {
@@ -219,9 +240,17 @@ function CapsuleEdit({
 	const lineOrientation = gridValues.h == 1 ? "horizontal" : "vertical";
 	const lineCells = Math.max(gridValues.w, gridValues.h, 1);
 	const isCarousel = resolvedCapsuleType == CAPSULE_TYPES.CARROUSEL;
-	const isLine = resolvedCapsuleType == CAPSULE_TYPES.LIGNE;
+	const isLine = resolvedCapsuleType == CAPSULE_TYPES.RANGEE;
+	const isList = resolvedCapsuleType == CAPSULE_TYPES.LISTE;
 	const isGrid = resolvedCapsuleType == CAPSULE_TYPES.GRILLE;
 	const isCard = resolvedCapsuleType == CAPSULE_TYPES.CARD;
+	const listOrientation = capsule.grid?.includes("horizontal") ? "horizontal" : "vertical";
+	const supportsDurationMode = isCarousel || isLine || isGrid || isList;
+	const durationMode = (capsule as any).itemDurationMode === "fixed" ? "fixed" : "auto";
+	const durationValue =
+		typeof (capsule as any).itemDurationSec === "number" && Number.isFinite((capsule as any).itemDurationSec)
+			? Number((capsule as any).itemDurationSec)
+			: 2;
 	return (
 		<>
 			<form onBlur={onSubmit} className="mb-2">
@@ -253,7 +282,6 @@ function CapsuleEdit({
 				{isCarousel ? (
 					<div className="space-y-1">
 						<p>Grille forcee: 1 x 1</p>
-						<p className="text-muted-foreground">Mode temporel configurable a l'etape suivante.</p>
 					</div>
 				) : null}
 
@@ -279,7 +307,24 @@ function CapsuleEdit({
 								onChange={(e) => onChangeLineParams(lineOrientation, Number(e.currentTarget.value))}
 							/>
 						</div>
-						<p className="text-muted-foreground">Mode temporel configurable a l'etape suivante.</p>
+					</div>
+				) : null}
+
+				{isList ? (
+					<div className="space-y-2">
+						<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+							<label>Orientation</label>
+							<select
+								value={listOrientation}
+								onChange={(e) => onChangeListOrientation(e.currentTarget.value as "horizontal" | "vertical")}
+							>
+								<option value="horizontal">Horizontale</option>
+								<option value="vertical">Verticale</option>
+							</select>
+						</div>
+						<p className="text-muted-foreground">
+							Les items s'enchainent sans contrainte. Classes generees: liste-r1, liste-r2, ...
+						</p>
 					</div>
 				) : null}
 
@@ -291,6 +336,33 @@ function CapsuleEdit({
 					<p className="text-muted-foreground">
 						Card: configuration de base activee. Le composant visuel des areas sera ajoute dans une etape dediee.
 					</p>
+				) : null}
+
+				{supportsDurationMode ? (
+					<div className="mt-2 space-y-2 border-t border-stone-200 pt-2">
+						<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+							<label>Duree</label>
+							<select
+								value={durationMode}
+								onChange={(e) => onChangeDurationMode(e.currentTarget.value as "auto" | "fixed")}
+							>
+								<option value="auto">Duree auto</option>
+								<option value="fixed">Duree</option>
+							</select>
+						</div>
+						{durationMode === "fixed" ? (
+							<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+								<label>Valeur</label>
+								<input
+									type="number"
+									min={0.1}
+									step={0.1}
+									value={durationValue}
+									onChange={(e) => onChangeDurationValue(Number(e.currentTarget.value))}
+								/>
+							</div>
+						) : null}
+					</div>
 				) : null}
 			</div>
 
