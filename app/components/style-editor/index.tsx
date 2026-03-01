@@ -77,7 +77,7 @@ export const StyleEditor: React.FC<Props> = ({
 			)}
 			<div className="my-2 flex gap-4 border-b pb-2">
 				<SlotEditor value={value} onChange={onChange} />
-				<FlexMini value={value} onChange={onChange} />
+				<FlexMini contentType={content.type} value={value} onChange={onChange} />
 			</div>
 			{type == "typo" && (
 				<>
@@ -92,9 +92,9 @@ export const StyleEditor: React.FC<Props> = ({
 				</>
 			)}
 
-			{content.type === "img" && (
+			{(content.type === "img" || content.type === "sprite") && (
 				<div className="mb-4 flex items-center gap-2 border-b pb-3 text-xs">
-					<span className="text-muted-foreground">Mode image</span>
+					<span className="text-muted-foreground">Ajustement image</span>
 					<Button
 						type="button"
 						size="sm"

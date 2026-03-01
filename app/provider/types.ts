@@ -53,10 +53,11 @@ export type TreeMutationResponse = {
 };
 
 export interface ActiveState {
-	[key: string]: number | string | boolean | null;
+	[key: string]: number | string | boolean | HTMLElement | null;
 	main: number | null;
 
 	itemId: number | null;
+	node: HTMLElement | null;
 	contentId: number | null;
 	cue: number | null;
 	progress: number | null;

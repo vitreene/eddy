@@ -22,3 +22,7 @@
 	/* background-clip: content-box; */
 	background-origin: content-box;
 }
+
+.bg-picture {
+	min-width: 100%;
+}

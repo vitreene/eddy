@@ -101,41 +101,64 @@ function Telco({
 	onSeek: (progress: number, timeMs: number) => void;
 }) {
 	const [progress, setProgress] = useState<number>(0);
-	const [toggle, setToggle] = useState<boolean>(telco?.paused ?? true);
+	const [isPaused, setIsPaused] = useState<boolean>(true);
+	const pausedByUserRef = useRef(false);
+
+	useEffect(() => {
+		setIsPaused(telco?.paused ?? true);
+		pausedByUserRef.current = false;
+	}, [telco]);
 
 	function mouseMove(e: React.ChangeEvent<HTMLInputElement>): void {
 		const value = Number(e.currentTarget.value);
 		const p = (value * (telco?.duration || 0)) / 100;
 		const progression = p > 0 ? p : 0;
 		telco?.seek(progression);
+		setIsPaused(telco?.paused ?? true);
 		onSeek(value, progression);
 	}
 
 	useEffect(() => {
-		if (telco) {
-			toggle ? telco.pause() : telco.play();
-		}
-	}, [telco, toggle]);
-
-	useEffect(() => {
 		if (!telco) return;
 		const unsusbscribe = telco.susbscribe((self: Timeline) => {
-			setProgress(Math.round((self.currentTime / telco.duration) * 100));
+			const duration = telco.duration || 0;
+			const nextProgress = duration > 0 ? Math.round((self.currentTime / duration) * 100) : 0;
+			setProgress(nextProgress);
+			const ended = duration > 0 && self.currentTime >= duration;
+			setIsPaused(self.paused || ended);
 		});
 		return unsusbscribe;
 	}, [telco, setProgress]);
 
-	const togglePlay = () => setToggle((t) => !t);
+	const togglePlay = () => {
+		if (!telco) return;
+		if (telco.paused) {
+			telco.play();
+			setIsPaused(false);
+			pausedByUserRef.current = false;
+		} else {
+			telco.pause();
+			setIsPaused(true);
+			pausedByUserRef.current = true;
+		}
+	};
 	const replay = () => {
+		if (!telco) return;
 		telco?.replay();
-		setToggle(false);
+		setProgress(0);
+		if (pausedByUserRef.current) {
+			telco.pause();
+			setIsPaused(true);
+		} else {
+			setIsPaused(false);
+		}
 		onSeek(0, 0);
 	};
 
 	return (
 		<div id="telco" className="flex items-center gap-2 border border-stone-500 p-1">
 			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={togglePlay}>
-				{toggle ? <Play /> : <Pause />}
+				{isPaused ? <Play /> : <Pause />}
 			</button>
 			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={replay}>
 				<RotateCcwIcon />

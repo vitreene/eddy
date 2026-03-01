@@ -10,6 +10,7 @@ export interface EditableStyle {
 	/* COLORS */
 	color?: string; // text color
 	backgroundColor?: string; // bg
+	backgroundPosition?: string;
 	borderColor?: string; // border
 	backgroundSize?: string;
 	backgroundRepeat?: string;

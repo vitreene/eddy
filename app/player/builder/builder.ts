@@ -24,10 +24,11 @@ import { resolveCueWindows } from "@/player/visibility/resolve-cue-windows";
 import { getCueTimeAtPosition } from "@/player/visibility/custom-event-cue-mapping";
 import { getCapsuleTypeConfig, shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
+import { NON_ANIMATABLE_MANAGED_STYLE_KEYS } from "@/config/item-style-defaults";
 import { buildPlacementCss } from "@/player/capsule-layout/layout-css";
 
 import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor, ContentEvent } from "@/api/db";
-import { P, type ID } from "../types";
+import { P, type ClassNameAction, type ID } from "../types";
 import { SCENE_ID } from "../constants";
 import { SEP, DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { getMediaUrl } from "@/lib/media-url";
@@ -272,7 +273,8 @@ function buildBehaviorByCapsuleId(snapshot: SceneComp): Record<number, BuilderCa
 
 //STYLES
 function createStyle(snapshot: SceneComp, areas: string[], gridDefinitions: string[]) {
-	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${gridDefinitions.join("\n")}\n${areas.join("\n")}`.trim();
+	const staticStyleDefinitions = buildStaticStyleClassDefinitions(snapshot);
+	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${gridDefinitions.join("\n")}\n${areas.join("\n")}\n${staticStyleDefinitions.join("\n")}`.trim();
 }
 
 function joinNodeClassNames(...tokens: Array<string | null | undefined>): string {
@@ -297,8 +299,12 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 	const id = `capsule${SEP}${capsule.id}`;
 
 	if (capsule.id == snapshot.main) {
-		const className = joinNodeClassNames(capsule.grid, snapshot.decor?.className || "");
-		const style = snapshot.decor?.style;
+		const className = joinNodeClassNames(
+			capsule.grid,
+			snapshot.decor?.className || "",
+			getStaticStyleClassName(snapshot.decor?.style)
+		);
+		const style = getInlineStyle(snapshot.decor?.style);
 
 		return {
 			type: P.LIST,
@@ -321,6 +327,9 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		const decor = snapshot.decors[item.decorId] || { className: "", area: "", style: {} };
 		const parentId = `capsule${SEP}${item.capsuleId}`;
 		const actions: Record<string | number, any> = {};
+		const autoAreaClassName = additionalClassnames[item.id];
+		let previousClassDecor: DecorLike = decor;
+		let previousDynamicClassName = buildDynamicClassName(capsule.type, previousClassDecor, autoAreaClassName);
 
 		if (events) {
 			const orderedEvents = getOrderedEventsForItem(snapshot, events);
@@ -333,13 +342,26 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 
 				if (eventKind === "custom") {
 					const targetStyle = getDecorStyle(snapshot, ev.decorId);
+					const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
+					const nextDynamicClassName = buildDynamicClassName(capsule.type, targetDecor, autoAreaClassName);
+					const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
+					const layoutStyleChanged =
+						getStaticStyleClassName(previousClassDecor?.style) !== getStaticStyleClassName(targetDecor?.style);
+					const placementChanged =
+						getEffectiveAreaClassName(capsule.type, previousClassDecor?.area, autoAreaClassName) !==
+						getEffectiveAreaClassName(capsule.type, targetDecor?.area, autoAreaClassName);
 					const durationMs =
 						typeof ev.duration == "number" && Number.isFinite(ev.duration) && ev.duration > 0
 							? Math.round(ev.duration * 1000)
 							: Math.max(DEFAULT_DURATION, (entry.startMs ?? previousMs + DEFAULT_DURATION) - previousMs);
 					const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
-					actions[actionName] = { style: customStyle };
+					const customAction: Record<string, unknown> = { style: customStyle };
+					if (classNameDiff) customAction.className = classNameDiff;
+					if (placementChanged || layoutStyleChanged) customAction.move = true;
+					actions[actionName] = customAction;
 					previousStyleState = { ...previousStyleState, ...targetStyle };
+					previousClassDecor = targetDecor;
+					previousDynamicClassName = nextDynamicClassName;
 					if (entry.startMs !== null) previousMs = entry.startMs;
 					continue;
 				}
@@ -374,9 +396,10 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 				className: joinNodeClassNames(
 					capsule.grid,
 					decor.className || "",
+					getStaticStyleClassName(decor.style),
 					getEffectiveAreaClassName(capsule.type, decor.area, additionalClassnames[item.id])
 				),
-				style: { ...decor.style }
+				style: getInlineStyle(decor.style)
 			},
 			actions
 		};
@@ -414,6 +437,13 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 	const orderedEvents = getOrderedEventsForItem(snapshot, events || {});
 	let previousMs = 0;
 	let previousStyleState = { ...(decor.style || {}) } as Record<string, number | string>;
+	const autoAreaClassName = additionalClassnames[item.id];
+	let previousClassDecor: DecorLike = decor;
+	let previousDynamicClassName = buildDynamicClassName(
+		snapshot.capsules[item.capsuleId]?.type,
+		previousClassDecor,
+		autoAreaClassName
+	);
 	for (const entry of orderedEvents) {
 		const ev = entry.event;
 		const actionName = buildEventActionName(ev);
@@ -421,13 +451,34 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 
 		if (eventKind === "custom") {
 			const targetStyle = getDecorStyle(snapshot, ev.decorId);
+			const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
+			const nextDynamicClassName = buildDynamicClassName(
+				snapshot.capsules[item.capsuleId]?.type,
+				targetDecor,
+				autoAreaClassName
+			);
+			const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
+			const layoutStyleChanged =
+				getStaticStyleClassName(previousClassDecor?.style) !== getStaticStyleClassName(targetDecor?.style);
+			const placementChanged =
+				getEffectiveAreaClassName(
+					snapshot.capsules[item.capsuleId]?.type,
+					previousClassDecor?.area,
+					autoAreaClassName
+				) !==
+				getEffectiveAreaClassName(snapshot.capsules[item.capsuleId]?.type, targetDecor?.area, autoAreaClassName);
 			const durationMs =
 				typeof ev.duration == "number" && Number.isFinite(ev.duration) && ev.duration > 0
 					? Math.round(ev.duration * 1000)
 					: Math.max(DEFAULT_DURATION, (entry.startMs ?? previousMs + DEFAULT_DURATION) - previousMs);
 			const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
-			actions[actionName] = { style: customStyle };
+			const customAction: Record<string, unknown> = { style: customStyle };
+			if (classNameDiff) customAction.className = classNameDiff;
+			if (placementChanged || layoutStyleChanged) customAction.move = true;
+			actions[actionName] = customAction;
 			previousStyleState = { ...previousStyleState, ...targetStyle };
+			previousClassDecor = targetDecor;
+			previousDynamicClassName = nextDynamicClassName;
 			if (entry.startMs !== null) previousMs = entry.startMs;
 			continue;
 		}
@@ -454,13 +505,14 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 		...(move && { move }),
 		className: joinNodeClassNames(
 			decor?.className || "",
+			getStaticStyleClassName(decor?.style),
 			getEffectiveAreaClassName(
 				snapshot.capsules[item.capsuleId]?.type,
 				decor?.area,
 				additionalClassnames[item.id]
 			)
 		),
-		style: decor?.style
+		style: getInlineStyle(decor?.style)
 	};
 
 	const type = itemType[content.type as keyof typeof itemType];
@@ -478,34 +530,20 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 				},
 				actions
 			};
+		case P.SPRITE:
 		case P.IMG:
 			return {
 				type,
 				initial: {
 					...initial,
-					className: `bg-image ${initial.className || ""}`,
-					style: {
-						...initial.style,
-						backgroundImage: `url("${mediaSrc}")`
-					},
+					tag: "img",
+					className: `bg-picture ${initial.className || ""}`,
+					style: toImageStyle(initial.style, type == P.IMG ? "cover" : "contain"),
 					src: mediaSrc
 				},
 				actions
 			};
-		case P.SPRITE:
-			return {
-				type,
-				initial: {
-					...initial,
-					className: `bg-sprite ${initial.className || ""}`,
-					style: {
-						...initial.style,
-						backgroundImage: `url("${mediaSrc}")`
-					},
-					src: mediaSrc
-				},
-				actions
-			};
+
 		case P.TEXT:
 			return {
 				type,
@@ -523,6 +561,46 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 				actions
 			};
 	}
+}
+
+function toImageStyle(style: unknown, fallbackFit: "cover" | "contain"): Record<string, number | string> {
+	if (!style || typeof style != "object") return { objectFit: fallbackFit };
+
+	const source = style as Record<string, unknown>;
+	const next: Record<string, number | string> = {};
+
+	let hasObjectFit = false;
+
+	for (const [key, value] of Object.entries(source)) {
+		if (typeof value != "string" && typeof value != "number") continue;
+		if (key === "backgroundImage") continue;
+		if (key === "backgroundSize") {
+			const objectFit = mapBackgroundSizeToObjectFit(value);
+			if (objectFit) {
+				next.objectFit = objectFit;
+				hasObjectFit = true;
+			}
+			continue;
+		}
+		if (key === "backgroundPosition") {
+			next.objectPosition = String(value);
+			continue;
+		}
+		if (key === "backgroundRepeat") continue;
+		next[key] = value;
+	}
+
+	if (!hasObjectFit) next.objectFit = fallbackFit;
+
+	return next;
+}
+
+function mapBackgroundSizeToObjectFit(value: string | number): string | null {
+	if (typeof value == "number") return null;
+	const normalized = value.trim().toLowerCase();
+	if (normalized === "cover") return "cover";
+	if (normalized === "contain") return "contain";
+	return null;
 }
 
 function getTransitionPresetForEvent({
@@ -718,7 +796,11 @@ function getDecorStyle(
 	if (!decor || !decor.style || typeof decor.style != "object") return {};
 	const style = decor.style as Record<string, unknown>;
 	return Object.fromEntries(
-		Object.entries(style).filter(([, value]) => typeof value == "number" || typeof value == "string")
+		Object.entries(style).filter(([key, value]) => {
+			if (typeof value != "number" && typeof value != "string") return false;
+			if (STATIC_STYLE_CLASS_KEYS.has(key)) return false;
+			return true;
+		})
 	) as Record<string, number | string>;
 }
 
@@ -737,6 +819,135 @@ function buildStyleInterpolation(
 		}
 	}
 	return style;
+}
+
+type DecorLike = {
+	className?: string | null;
+	area?: string | null;
+	style?: unknown;
+};
+
+const STATIC_STYLE_CLASS_KEYS = new Set<string>(NON_ANIMATABLE_MANAGED_STYLE_KEYS.map((key) => String(key)));
+
+function getInlineStyle(style: unknown): Record<string, number | string> {
+	if (!style || typeof style != "object") return {};
+	const source = style as Record<string, unknown>;
+	return Object.fromEntries(
+		Object.entries(source).filter(([key, value]) => {
+			if (typeof value != "string" && typeof value != "number") return false;
+			if (STATIC_STYLE_CLASS_KEYS.has(key)) return false;
+			return true;
+		})
+	) as Record<string, number | string>;
+}
+
+function getStaticStyleClassName(style: unknown): string {
+	const entries = extractStaticStyleEntries(style);
+	if (!entries.length) return "";
+	const signature = entries.map(([key, value]) => `${key}:${value}`).join(";");
+	return `ed-static-${hashString(signature)}`;
+}
+
+function extractStaticStyleEntries(style: unknown): Array<[string, string | number]> {
+	if (!style || typeof style != "object") return [];
+	const source = style as Record<string, unknown>;
+	return Object.entries(source)
+		.filter(
+			([key, value]) =>
+				STATIC_STYLE_CLASS_KEYS.has(key) && (typeof value == "string" || typeof value == "number")
+		)
+		.sort(([a], [b]) => (a < b ? -1 : 1)) as Array<[string, string | number]>;
+}
+
+function buildStaticStyleClassDefinitions(snapshot: SceneComp): string[] {
+	const definitions = new Set<string>();
+	const allDecors = [
+		snapshot.decor as DecorLike | undefined,
+		...Object.values(snapshot.decors || {}).map((decor) => decor as DecorLike)
+	].filter(Boolean) as DecorLike[];
+
+	for (const decor of allDecors) {
+		const className = getStaticStyleClassName(decor.style);
+		if (!className) continue;
+		const declarations = buildStaticStyleDeclarations(decor.style);
+		if (!declarations.length) continue;
+		definitions.add(`.${className}{${declarations.join(";")}}`);
+	}
+
+	return [...definitions];
+}
+
+function buildStaticStyleDeclarations(style: unknown): string[] {
+	const entries = extractStaticStyleEntries(style);
+	const declarations: string[] = [];
+
+	for (const [key, value] of entries) {
+		if (key === "backgroundPosition") {
+			declarations.push(`background-position:${value}`);
+			declarations.push(`object-position:${value}`);
+			continue;
+		}
+		declarations.push(`${toKebabCase(key)}:${value}`);
+	}
+
+	return declarations;
+}
+
+function toKebabCase(value: string): string {
+	return value.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
+}
+
+function hashString(value: string): string {
+	let hash = 0;
+	for (let i = 0; i < value.length; i += 1) {
+		hash = (hash * 31 + value.charCodeAt(i)) | 0;
+	}
+	return Math.abs(hash).toString(36);
+}
+
+function getEventDecor(
+	snapshot: SceneComp,
+	decorId: number | null | undefined,
+	fallback: DecorLike
+): DecorLike {
+	if (!decorId) return fallback;
+	return (snapshot.decors?.[decorId] as DecorLike | undefined) || fallback;
+}
+
+function buildDynamicClassName(
+	capsuleType: string | null | undefined,
+	decor: DecorLike,
+	autoAreaClassName: string | null | undefined
+): string {
+	return joinNodeClassNames(
+		decor?.className || "",
+		getStaticStyleClassName(decor?.style),
+		getEffectiveAreaClassName(capsuleType, decor?.area, autoAreaClassName)
+	);
+}
+
+function buildClassNameDiff(previousClassName: string, nextClassName: string): ClassNameAction | undefined {
+	const previous = new Set(
+		previousClassName
+			.split(/\s+/)
+			.map((v) => v.trim())
+			.filter(Boolean)
+	);
+	const next = new Set(
+		nextClassName
+			.split(/\s+/)
+			.map((v) => v.trim())
+			.filter(Boolean)
+	);
+
+	const remove = [...previous].filter((token) => !next.has(token)).join(" ");
+	const add = [...next].filter((token) => !previous.has(token)).join(" ");
+	if (!remove && !add) return undefined;
+
+	return {
+		...(add ? { add } : {}),
+		...(remove ? { remove } : {})
+	};
 }
 
 type ActionStyle = Record<string, { from?: number | string; to: number | string; duration?: number }>;

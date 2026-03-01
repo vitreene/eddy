@@ -108,6 +108,52 @@ function getItemActionName(scene: ReturnType<typeof buildScene>, itemId: number,
 
 const cases: Case[] = [
 	{
+		name: "img uses native img tag and src mapping",
+		run: () => {
+			const context = createSceneBase();
+			context.decors[11].style = {
+				backgroundSize: "cover",
+				backgroundPosition: "right bottom",
+				backgroundRepeat: "no-repeat",
+				backgroundColor: "#ffffff"
+			};
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+
+			assert.equal(item1.initial.tag, "img");
+			assert.equal(typeof item1.initial.src, "string");
+			assert.equal(item1.initial.src.includes("a.jpg"), true);
+			assert.equal(item1.initial.style.backgroundImage, undefined);
+			assert.equal(item1.initial.style.backgroundSize, undefined);
+			assert.equal(item1.initial.style.backgroundPosition, undefined);
+			assert.equal(item1.initial.style.backgroundRepeat, undefined);
+			assert.equal(item1.initial.style.objectFit, "cover");
+			assert.equal(item1.initial.style.objectPosition, undefined);
+			assert.equal(item1.initial.className.includes("ed-static-"), true);
+			assert.equal(item1.initial.style.backgroundColor, "#ffffff");
+		}
+	},
+	{
+		name: "sprite defaults to contain object-fit",
+		run: () => {
+			const context = createSceneBase();
+			context.contents[1].type = "sprite" as any;
+			context.decors[11].style = {
+				backgroundPosition: "right bottom"
+			};
+
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+
+			assert.equal(item1.initial.tag, "img");
+			assert.equal(typeof item1.initial.src, "string");
+			assert.equal(item1.initial.src.includes("a.jpg"), true);
+			assert.equal(item1.initial.style.objectFit, "contain");
+			assert.equal(item1.initial.style.objectPosition, undefined);
+			assert.equal(item1.initial.className.includes("ed-static-"), true);
+		}
+	},
+	{
 		name: "auto distribution 3 items in capsule window",
 		run: () => {
 			const context = createSceneBase();

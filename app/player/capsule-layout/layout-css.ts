@@ -47,6 +47,23 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 		itemPlacementClassByItemId[item.id] = areaClassName;
 	}
 
+	for (const [itemIdRaw, eventsByAction] of Object.entries(snapshot.events || {})) {
+		const itemId = Number(itemIdRaw);
+		const item = snapshot.items[itemId];
+		if (!item) continue;
+		const capsule = snapshot.capsules[item.capsuleId];
+		if (!capsule) continue;
+		const capsuleType = getCapsuleTypeConfig(capsule.type).type;
+		if (!shouldCapsuleUseExplicitArea(capsuleType)) continue;
+
+		for (const event of Object.values(eventsByAction || {})) {
+			if (!event?.decorId) continue;
+			const eventDecor = snapshot.decors[event.decorId];
+			if (!eventDecor?.area) continue;
+			areas.add(classNameToCssDefinition(eventDecor.area));
+		}
+	}
+
 	const gridDefinitions = buildGridDefinitions(snapshot);
 
 	return {

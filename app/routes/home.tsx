@@ -70,6 +70,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 	useEffect(() => {
 		actorRef.send({ type: "init", payload: data.scene });
 	}, [actorRef, data.scene]);
+
 	// console.log("SCENE", scene);
 	return (
 		<main className="app-layout">

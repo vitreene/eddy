@@ -14,7 +14,7 @@ export function createScene(this: Player): void {
 	if (!this.render) return null;
 	const timeEvents = new Map<string, Set<number>>();
 	let positionMax = 0;
-	console.log("eventtimes", this.eventtimes);
+	// console.log("eventtimes", this.eventtimes);
 
 	this.eventtimes.forEach((event, position) => {
 		if (positionMax < position) positionMax = position;
@@ -26,7 +26,7 @@ export function createScene(this: Player): void {
 		});
 	});
 
-	console.log("timeEvents", timeEvents);
+	// console.log("timeEvents", timeEvents);
 
 	this.persos.forEach((perso) => {
 		if (!perso.initial.id) return;

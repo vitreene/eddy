@@ -7,11 +7,12 @@ import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import type { EditableStyle } from "./types";
 
 interface Props {
+	contentType: string;
 	value: EditableStyle;
 	onChange: (style: EditableStyle) => void;
 }
 
-export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
+export const FlexMini: React.FC<Props> = ({ contentType, value, onChange }) => {
 	const grid: [EditableStyle["justifySelf"], EditableStyle["alignSelf"]][] = [
 		["start", "start"],
 		["center", "start"],
@@ -24,6 +25,7 @@ export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
 		["end", "end"]
 	];
 	const NONE_INDEX = 10;
+	const isImageContent = contentType === "img" || contentType === "sprite";
 
 	const [selected, setSelected] = useState<number | null>(null);
 
@@ -55,11 +57,12 @@ export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
 		return "horizontal";
 	})();
 
-	const current = resolveSelfPosition(value);
+	const current = isImageContent ? resolveBackgroundPosition(value) : resolveSelfPosition(value);
 	const stretchEnabled =
 		orientation === "vertical" ? current.alignSelf === "stretch" : current.justifySelf === "stretch";
 
 	useEffect(() => {
+		if (isImageContent) return;
 		const normalized = normalizeStretchAxisForOrientation(current, orientation);
 		if (normalized.alignSelf === current.alignSelf && normalized.justifySelf === current.justifySelf) {
 			return;
@@ -79,7 +82,7 @@ export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
 			alignSelf: normalized.alignSelf,
 			placeSelf
 		});
-	}, [orientation, current.alignSelf, current.justifySelf]);
+	}, [isImageContent, orientation, current.alignSelf, current.justifySelf]);
 
 	useEffect(() => {
 		if (!current.justifySelf && !current.alignSelf) {
@@ -95,6 +98,28 @@ export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
 
 	const select = (i: number) => {
 		const [baseJustify, baseAlign] = i === NONE_INDEX ? ([undefined, undefined] as const) : grid[i];
+		if (isImageContent) {
+			const { justifySelf, alignSelf, placeSelf } = computeSelfPosition({
+				justifySelf: baseJustify,
+				alignSelf: baseAlign,
+				stretchEnabled: false,
+				orientation
+			});
+			const backgroundPosition =
+				baseJustify && baseAlign
+					? `${mapSelfToBackgroundX(baseJustify)} ${mapSelfToBackgroundY(baseAlign)}`
+					: undefined;
+			setSelected(i);
+			onChange({
+				...value,
+				backgroundPosition,
+				justifySelf,
+				alignSelf,
+				placeSelf
+			});
+			return;
+		}
+
 		const { justifySelf, alignSelf, placeSelf } = computeSelfPosition({
 			justifySelf: baseJustify,
 			alignSelf: baseAlign,
@@ -116,6 +141,7 @@ export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
 	};
 
 	const toggleStretch = () => {
+		if (isImageContent) return;
 		const fallbackJustify =
 			selected !== null && selected >= 0 && selected < grid.length
 				? grid[selected][0]
@@ -174,6 +200,7 @@ export const FlexMini: React.FC<Props> = ({ value, onChange }) => {
 					"mt-1 w-full rounded-xs border px-1 py-0.5 text-[10px]",
 					stretchEnabled ? "bg-blue-500 text-white" : "bg-muted hover:bg-accent"
 				)}
+				disabled={isImageContent}
 				onClick={toggleStretch}
 			>
 				Stretch {stretchEnabled ? "on" : "off"}
@@ -245,6 +272,43 @@ function resolveSelfPosition(value: EditableStyle) {
 		justifySelf: undefined,
 		alignSelf: undefined
 	};
+}
+
+function resolveBackgroundPosition(value: EditableStyle) {
+	if (typeof value.backgroundPosition === "string") {
+		const [x, y] = value.backgroundPosition.trim().split(/\s+/);
+		return {
+			justifySelf: mapBackgroundToSelf(x),
+			alignSelf: mapBackgroundToSelf(y)
+		};
+	}
+
+	return {
+		justifySelf: undefined,
+		alignSelf: undefined
+	};
+}
+
+function mapSelfToBackgroundX(value: EditableStyle["justifySelf"] | EditableStyle["alignSelf"]) {
+	if (value === "start") return "left";
+	if (value === "end") return "right";
+	return "center";
+}
+
+function mapSelfToBackgroundY(value: EditableStyle["justifySelf"] | EditableStyle["alignSelf"]) {
+	if (value === "start") return "top";
+	if (value === "end") return "bottom";
+	return "center";
+}
+
+function mapBackgroundToSelf(
+	value: string | undefined
+): EditableStyle["justifySelf"] | EditableStyle["alignSelf"] | undefined {
+	if (!value) return undefined;
+	if (value === "left" || value === "top") return "start";
+	if (value === "right" || value === "bottom") return "end";
+	if (value === "center") return "center";
+	return undefined;
 }
 
 function normalizeStretchAxisForOrientation(

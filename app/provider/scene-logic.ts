@@ -8,10 +8,13 @@ import { computeActiveCue } from "./active-cue";
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { findCssClassRule, mergeCssStrings } from "@/lib/merge-css-classes";
-import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO } from "@/config/constants";
+import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO, SEP } from "@/config/constants";
 import { normalizeTransitionRef } from "@/config/transitions";
 import { deriveEventKind, normalizeCustomEventDraft, type CustomEventPosition } from "@/config/custom-events";
-import { resolveClosestCuePointFromDelay } from "@/player/visibility/custom-event-cue-mapping";
+import {
+	getCueTimeAtPosition,
+	resolveClosestCuePointFromDelay
+} from "@/player/visibility/custom-event-cue-mapping";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -24,6 +27,7 @@ const active: ActiveState = {
 	main: null,
 
 	itemId: null,
+	node: null,
 	contentId: null,
 	cue: null,
 	progress: null,
@@ -254,22 +258,40 @@ export const sceneLogic = setup({
 								{ type: "commitTouchedOnSelectionSwitch" },
 								{ type: "resetTouchedOnSelectionSwitch" },
 								assign(({ context, event }) => {
-									const cue =
+									const itemChanged = "itemId" in event.payload && event.payload.itemId !== context.active.itemId;
+									const itemId = "itemId" in event.payload ? (event.payload.itemId ?? null) : context.active.itemId;
+									const nextNode =
+										"node" in event.payload
+											? (event.payload.node ?? null)
+											: "itemId" in event.payload
+												? resolveActiveItemNode(itemId)
+												: context.active.node;
+									const nextEvent =
+										"event" in event.payload
+											? (event.payload.event ?? null)
+											: itemChanged
+												? null
+												: context.active.event;
+
+									let cue =
 										"itemId" in event.payload
-											? event.payload.itemId
-												? computeActiveCue(context, event.payload.itemId)
+											? itemId
+												? computeActiveCue(context, itemId)
 												: null
 											: context.active.cue;
+
+									if (itemId && "event" in event.payload && nextEvent) {
+										const eventCue = computeCueForSelectedCustomEvent(context, itemId, nextEvent);
+										if (typeof eventCue == "number" && Number.isFinite(eventCue)) cue = eventCue;
+									}
 
 									return {
 										...context,
 										active: {
 											...context.active,
+											node: nextNode,
 											cue,
-											event:
-												"itemId" in event.payload && event.payload.itemId !== context.active.itemId
-													? null
-													: context.active.event,
+											event: nextEvent,
 											...event.payload
 										}
 									};
@@ -756,6 +778,11 @@ function getMutationActivePayload(output: TreeMutationResponse): Partial<ActiveS
 	};
 }
 
+function resolveActiveItemNode(itemId: number | null): HTMLElement | null {
+	if (!itemId || typeof document == "undefined") return null;
+	return document.getElementById(`item${SEP}${itemId}`);
+}
+
 async function executePersistTouchedCommits(
 	context: SceneComp & { active: ActiveState },
 	params: string[],
@@ -967,6 +994,42 @@ function seedCustomEventPlacement(
 		delay: computeDefaultCustomDelaySec(context, itemId),
 		position: null
 	};
+}
+
+function computeCueForSelectedCustomEvent(
+	context: SceneComp & { active: ActiveState },
+	itemId: number,
+	action: string
+): number | null {
+	const event = context.events[itemId]?.[action];
+	if (!event || deriveEventKind(event.action) !== "custom") return null;
+
+	const sceneContent =
+		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
+		Object.values(context.sceneContents || {})[0];
+	const cues = sceneContent?.events || [];
+	if (!cues.length) return null;
+
+	if (event.name) {
+		const cue = cues.find((entry) => entry.name == event.name);
+		if (!cue) return null;
+		const position = (event.position === "start" || event.position === "end" ? event.position : "middle") as
+			| "start"
+			| "middle"
+			| "end";
+		return getCueTimeAtPosition(cue, position);
+	}
+
+	if (typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0) {
+		const introName = context.events[itemId]?.[INTRO]?.name;
+		const introCue = introName ? cues.find((entry) => entry.name == introName) : null;
+		if (!introCue) return null;
+		const introStart = Number(introCue.start);
+		if (!Number.isFinite(introStart)) return null;
+		return introStart + event.delay;
+	}
+
+	return null;
 }
 
 function getTouchedParams(context: SceneComp & { active: ActiveState }): string[] {

@@ -7,10 +7,10 @@ import { createElements } from "./deps/create-elements";
 import { mixClassNames, setStaticChanges } from "./deps/static-changes";
 import { P } from "./types";
 import { getAbsoluteCoords, getTransform } from "./deps/utils";
+import { createFrameQueue, type FrameQueueController } from "./queue/frame-queue";
 
 import type { Change } from "./deps/static-changes";
 import type { ActionAtributes, ID, MapEvent, MediaStatus, Perso } from "./types";
-import { SCENE_ID } from "./constants";
 import { onUpdateStaticChanges } from "./deps/on-update";
 
 const tmDefaults = {
@@ -42,6 +42,10 @@ export class Player {
 	persoChanges = new Map<ID, Record<number, Change>>();
 	updatesTM = new PubSub<Timeline>();
 	onEnd: (tm: Timer) => void = () => {};
+	moveQueue!: FrameQueueController<
+		{ $el: HTMLElement; before: ReturnType<typeof getAbsoluteCoords> },
+		{ after: ReturnType<typeof getAbsoluteCoords>; px: number; py: number }
+	>;
 
 	telco: TelcoProps;
 
@@ -71,6 +75,11 @@ export class Player {
 	}
 
 	private init() {
+		this.moveQueue = createFrameQueue({
+			onError: (error, key, phase) => {
+				console.error("Move queue error", { key, phase, error });
+			}
+		});
 		this.timeLine = createTimeline(tmDefaults);
 		this.createElements();
 		this.initMedias();
@@ -126,6 +135,7 @@ export class Player {
 
 	private replay = () => {
 		this.timeLine.restart();
+		this.seekChanges(0);
 		this.seekMedias(0);
 		return this.timeLine;
 	};
@@ -138,13 +148,12 @@ export class Player {
 	};
 
 	private revert = () => {
+		this.moveQueue?.dispose();
 		this.timeLine.revert();
-		console.log("REVERT");
 		return this.timeLine;
 	};
 
 	private seek = (time: number) => {
-		console.log("SEEK", time);
 		this.timeLine.pause();
 		this.seekChanges(time);
 
@@ -168,14 +177,32 @@ export class Player {
 	private seekChanges(time: number) {
 		this.persoChanges.forEach((pcs, id) => {
 			const changes = [];
+			let lastParentMove: ID | null = null;
 
 			for (const [t, pc] of Object.entries(pcs)) {
-				if (Number(t) <= time) changes.push(pc.change);
-				else break;
+				if (Number(t) <= time) {
+					changes.push(pc.change);
+					if (typeof pc.change.move === "string") {
+						lastParentMove = pc.change.move;
+					}
+				} else break;
 			}
 			const change = changes.reduce((a, c) => ({ ...a, ...c }), {});
 
-			this._moveChange(id, change);
+			if (lastParentMove) {
+				const $el = this.$elements.get(id);
+				const $parent = this.$elements.get(lastParentMove);
+				if ($el && $parent && $el.parentElement !== $parent) {
+					$parent.appendChild($el);
+				}
+			}
+
+			if (typeof change.move === "string") {
+				this._moveChange(id, change);
+			} else if (change.move !== true) {
+				this._moveChange(id, change);
+			}
+			this._applyChanges(id, change);
 			this.applyMediaChanges(time, id, change);
 		});
 	}
@@ -196,11 +223,12 @@ export class Player {
 
 	_moveChange(id: ID, change: Partial<ActionAtributes>): JSAnimation | undefined {
 		const $el = this.$elements.get(id);
+		if (!$el) return undefined;
 
 		switch (typeof change.move) {
 			case "undefined": {
-				const parent = $el.parentElement;
-				if (parent && parent.id !== SCENE_ID) parent.removeChild($el);
+				// No explicit move instruction: keep current DOM parent.
+				// Removing here can detach valid items from capsule containers during seek/edit cycles.
 				break;
 			}
 			case "string":
@@ -219,27 +247,66 @@ export class Player {
 				const px = utils.get($el, "x", false);
 				const py = utils.get($el, "y", false);
 
-				const dx = old.x - nex.x;
-				const dy = old.y - nex.y;
-
-				const diff = getTransform($el).translate(-px, -py).invertSelf().transformPoint(new DOMPoint(dx, dy));
-
-				const transition = animate($el, {
-					x: { from: diff.x + px, to: 0 + px },
-					y: { from: diff.y + py, to: 0 + py },
-
-					width: { from: old.width, to: nex.width },
-					height: { from: old.height, to: nex.height },
-					autoplay: false,
-					duration: 1000,
-					composition: "none"
-				}).seek(0);
-
-				return transition;
+				return this._createMoveTransition($el, old, nex, px, py);
 			}
 			default:
 				break;
 		}
+	}
+
+	enqueueMoveTransition(params: {
+		key: string | number;
+		id: ID;
+		change: Partial<ActionAtributes>;
+		onTransition: (transition: JSAnimation) => void;
+	}) {
+		const { key, id, change, onTransition } = params;
+		this.moveQueue.enqueue({
+			key,
+			priority: 0,
+			readBeforeWrite: () => {
+				const $el = this.$elements.get(id);
+				if (!$el) throw new Error("Missing element for move transition");
+				return { $el, before: getAbsoluteCoords($el) };
+			},
+			applyWrite: ({ $el }) => {
+				this._applyChanges(id, change);
+			},
+			readAfterWrite: ({ $el }) => {
+				return {
+					after: getAbsoluteCoords($el),
+					px: Number(utils.get($el, "x", false)),
+					py: Number(utils.get($el, "y", false))
+				};
+			},
+			commit: ({ $el, before }, { after, px, py }) => {
+				const transition = this._createMoveTransition($el, before, after, px, py);
+				if (transition) onTransition(transition);
+			}
+		});
+	}
+
+	private _createMoveTransition(
+		$el: HTMLElement,
+		old: ReturnType<typeof getAbsoluteCoords>,
+		nex: ReturnType<typeof getAbsoluteCoords>,
+		px: number,
+		py: number
+	): JSAnimation | undefined {
+		const dx = old.x - nex.x;
+		const dy = old.y - nex.y;
+		if (dx === 0 && dy === 0 && old.width === nex.width && old.height === nex.height) return undefined;
+
+		const diff = getTransform($el).translate(-px, -py).invertSelf().transformPoint(new DOMPoint(dx, dy));
+		return animate($el, {
+			x: { from: diff.x + px, to: 0 + px },
+			y: { from: diff.y + py, to: 0 + py },
+			width: { from: old.width, to: nex.width },
+			height: { from: old.height, to: nex.height },
+			autoplay: false,
+			duration: 1000,
+			composition: "none"
+		}).seek(0);
 	}
 
 	// changes : src, media

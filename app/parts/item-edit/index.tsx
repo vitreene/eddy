@@ -50,6 +50,14 @@ export function EditItem() {
 
 	const decor = decorState.decor;
 	const editDecor = decorState.editDecor;
+	const activeCustomEventAction = SceneLogicContext.useSelector((state) => {
+		if (!item) return null;
+		const action = state.context.active.event;
+		if (!action) return null;
+		const ev = state.context.events[item.id]?.[action];
+		if (!ev) return null;
+		return deriveEventKind(ev.action) === "custom" ? action : null;
+	});
 
 	const capsule = SceneLogicContext.useSelector((state) => {
 		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
@@ -58,24 +66,25 @@ export function EditItem() {
 
 	const onStyleChange = useCallback(
 		(payload: EditableStyle) => {
-			if (!editDecor) return;
+			const targetDecor = activeCustomEventAction ? editDecor : decor;
+			if (!targetDecor) return;
 
 			const payloadStyleOnly = { ...payload };
-			const hasArea = Object.prototype.hasOwnProperty.call(payloadStyleOnly, "area");
-			const hasClassName = Object.prototype.hasOwnProperty.call(payloadStyleOnly, "className");
+			const hasArea = typeof payloadStyleOnly.area !== "undefined";
+			const hasClassName = typeof payloadStyleOnly.className !== "undefined";
 			if (hasArea) delete payloadStyleOnly.area;
 			if (hasClassName) delete payloadStyleOnly.className;
 
-			const baseStyle = applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content?.type);
+			const baseStyle = applyStyleDefaults((targetDecor.style as EditableStyle) ?? {}, content?.type);
 			const style = stripDefaultStyleValues({ ...baseStyle, ...payloadStyleOnly }, content?.type);
-			const area = hasArea ? payload.area : decor?.area;
-			const className = hasClassName ? payload.className : decor?.className;
+			const area = hasArea ? payload.area : targetDecor.area;
+			const className = hasClassName ? payload.className : targetDecor.className;
 
 			send({
 				type: "item-update",
 				payload: {
 					decor: {
-						...editDecor,
+						...targetDecor,
 						className: className ?? null,
 						area: area ?? null,
 						style
@@ -83,7 +92,7 @@ export function EditItem() {
 				}
 			});
 		},
-		[send, decor, editDecor, content?.type]
+		[send, decor, editDecor, content?.type, activeCustomEventAction]
 	);
 
 	const onResetStyle = useCallback(() => {

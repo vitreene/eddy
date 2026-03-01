@@ -21,6 +21,19 @@ export const MANAGED_ITEM_STYLE_KEYS: Array<keyof EditableStyle> = [
 	"className"
 ];
 
+// Managed keys that should not be interpolated as dynamic timeline style.
+// They are better represented as generated classes (layout/placement semantics).
+export const NON_ANIMATABLE_MANAGED_STYLE_KEYS: Array<keyof EditableStyle> = [
+	"justifySelf",
+	"alignSelf",
+	"placeSelf",
+	"backgroundPosition"
+];
+
+export const ANIMATABLE_MANAGED_STYLE_KEYS: Array<keyof EditableStyle> = MANAGED_ITEM_STYLE_KEYS.filter(
+	(key) => !NON_ANIMATABLE_MANAGED_STYLE_KEYS.includes(key) && key !== "area" && key !== "className"
+);
+
 export const DEFAULT_STYLE: EditableStyle = {
 	fontFamily: "Inter",
 	fontWeight: "normal",

@@ -31,6 +31,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 
 		this.persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
+
 			if (!change) return;
 
 			const $el = this.$elements.get(id);
@@ -39,13 +40,13 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 			if (change && transitions.has(change)) {
 				const transition = transitions.get(change)!;
 				const progress = getProgression(currentTime, change.curr!, change.curr! + 1000);
-
-				if (!(progress == 1 && transition.completed)) transition.progress = progress;
+				transition.progress = progress;
 			}
 
 			// update sets :
 			if (currentTime >= (change!.next ?? Infinity) || currentTime <= (change.curr! ?? 0)) {
 				const nextChange = setNextChange(currentTime, change, changes);
+
 				if (nextChange == null) return;
 
 				persoPositions.set(id, nextChange);
@@ -59,14 +60,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 					setters.set(id, utils.set($el, change.snapshot));
 				}
 
-				// console.log(
-				// 	nextChange.change?.move,
-				// 	transitions.has(nextChange),
-				// 	nextChange.change?.move && !transitions.has(nextChange)
-				// );
-
-				if (nextChange.change?.move && !transitions.has(nextChange)) {
-					// console.log("->perso->", this.persos.get(id));
+				if (typeof nextChange.change?.move === "boolean" && nextChange.change.move) {
 					nextChange.snapshot = {
 						x: utils.get($el, "x"),
 						y: utils.get($el, "y"),
@@ -74,9 +68,27 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						height: utils.get($el, "height")
 					};
 
-					const transition = this._moveChange(id, nextChange.change);
-					if (transition) transitions.set(nextChange, transition);
-				} else this._applyChanges(id, nextChange.change);
+					if (transitions.has(nextChange)) {
+						const existing = transitions.get(nextChange)!;
+						this._applyChanges(id, nextChange.change);
+						existing.progress = getProgression(currentTime, nextChange.curr!, nextChange.curr! + 1000);
+					} else {
+						this.enqueueMoveTransition({
+							key: `${String(id)}:${nextChange.curr ?? "start"}`,
+							id,
+							change: nextChange.change,
+							onTransition: (transition) => {
+								transitions.set(nextChange, transition);
+								transition.progress = getProgression(currentTime, nextChange.curr!, nextChange.curr! + 1000);
+							}
+						});
+					}
+				} else if (typeof nextChange.change?.move === "string") {
+					this._moveChange(id, nextChange.change);
+					this._applyChanges(id, nextChange.change);
+				} else {
+					this._applyChanges(id, nextChange.change);
+				}
 			}
 		});
 		return true;
