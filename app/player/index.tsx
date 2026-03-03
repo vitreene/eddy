@@ -1,14 +1,16 @@
 "use client";
 import React from "react";
-import { Timeline, Timer } from "animejs";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Timer } from "animejs";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Pause, RotateCcwIcon } from "lucide-react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
+import type { ActiveState } from "@/provider/types";
 
 import { preload } from "~/player/preload";
 import { Player, type TelcoProps } from "~/player/player";
-import { ROOT_SCENE_CLASSNAME, SCENE_ID } from "~/player/constants";
+import { SCENE_ID } from "~/player/constants";
+import { setPlayerNodeResolver } from "~/player/node-resolver";
 
 import playerCss from "~/player/player.css?inline";
 
@@ -20,67 +22,52 @@ export interface PlayerProps {
 	styles?: string;
 }
 
+type TelcoController = {
+	togglePlay: () => void;
+	rewind: () => void;
+	seek: (progress: number, timeMs: number) => void;
+	syncFromActive: (active: { action: string | null; cue: number | null }) => void;
+};
+
 const onEnd = (t: Timer) => console.log("PLAYER the end", t.duration, t);
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
 	const { send } = SceneLogicContext.useActorRef();
 	const sceneRef = useRef<HTMLDivElement>(null);
-	const initializedSceneRef = useRef<PlayerProps | null>(null);
-	const playerTelcoRef = useRef<TelcoProps | null>(null);
-	const buildTokenRef = useRef(0);
-	const [telco, setTelco] = useState<TelcoProps>(null);
+	const telcoRef = useRef<TelcoProps | null>(null);
+	const activeRef = useRef(active);
+	activeRef.current = active;
 
-	useEffect(() => {
-		if (initializedSceneRef.current === scene) return;
-		initializedSceneRef.current = scene;
-		buildTokenRef.current += 1;
-		const token = buildTokenRef.current;
+	const [duration, setDuration] = useState(0);
 
-		if (playerTelcoRef.current) {
-			playerTelcoRef.current.revert();
-			playerTelcoRef.current = null;
-			setTelco(null);
-		}
-
-		const { persos, events } = scene;
-
-		if (scene && typeof window !== "undefined") {
-			preload(persos).then((p) => {
-				if (token !== buildTokenRef.current) return;
-				if (p.size) {
-					const render: HTMLElement | null = sceneRef.current;
-					if (render) render.innerHTML = "";
-					const player = new Player({ render, persos: p, eventtimes: events, onEnd });
-					player.telco.seek((active.cue ?? 0) * 1000);
-					playerTelcoRef.current = player.telco;
-					setTelco(player.telco);
-				}
-			});
-		}
-	}, [scene, active.cue]);
-
-	useEffect(() => {
-		return () => {
-			buildTokenRef.current += 1;
-			if (playerTelcoRef.current) {
-				playerTelcoRef.current.revert();
-				playerTelcoRef.current = null;
-			}
-		};
-	}, []);
-
-	useEffect(() => {
-		if (!telco) return;
-		telco.seek((active.cue ?? 0) * 1000);
-	}, [active.cue, telco]);
-
-	const onProgressSeek = useCallback(
-		(progress: number, timeMs: number) => {
-			send({ type: "active-set", payload: { progress, cue: timeMs / 1000 } });
-		},
+	const telcoController = useMemo(
+		() =>
+			createTelcoController({
+				getTelco: () => telcoRef.current,
+				getActive: () => activeRef.current,
+				send
+			}),
 		[send]
 	);
+
+	useEffect(() => {
+		return initializePlayerRuntime({
+			scene,
+			sceneRef,
+			send,
+			getActiveItemId: () => activeRef.current.itemId,
+			getActivePlayback: () => ({ action: activeRef.current.action, cue: activeRef.current.cue }),
+			onTelcoReady: (telco) => {
+				telcoRef.current = telco;
+				setDuration(telco?.duration || 0);
+			}
+		});
+	}, [scene, send]);
+
+	useEffect(() => {
+		telcoController.syncFromActive({ action: active.action, cue: active.cue });
+	}, [active.action, active.cue, telcoController]);
 
 	const styles = `@scope{${playerCss} ${scene.styles}}`;
 
@@ -88,82 +75,191 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 		<>
 			<style>{styles}</style>
 			<div ref={sceneRef} id={SCENE_ID} className="aspect-video flex-1" />
-			<Telco telco={telco!} onSeek={onProgressSeek} />
+			<TelcoPanel
+				progress={active.progress ?? 0}
+				isPlaying={active.action === "play"}
+				duration={duration}
+				onTogglePlay={telcoController.togglePlay}
+				onRewind={telcoController.rewind}
+				onSeek={telcoController.seek}
+			/>
 		</>
 	);
 });
 
-function Telco({
-	telco,
-	onSeek
+function initializePlayerRuntime({
+	scene,
+	sceneRef,
+	send,
+	getActiveItemId,
+	getActivePlayback,
+	onTelcoReady
 }: {
-	telco?: TelcoProps;
-	onSeek: (progress: number, timeMs: number) => void;
+	scene: PlayerProps;
+	sceneRef: React.RefObject<HTMLDivElement | null>;
+	send: (event: { type: "active-set"; payload: Partial<ActiveState> }) => void;
+	getActiveItemId: () => number | null;
+	getActivePlayback: () => { action: string | null; cue: number | null };
+	onTelcoReady: (telco: TelcoProps | null) => void;
 }) {
-	const [progress, setProgress] = useState<number>(0);
-	const [isPaused, setIsPaused] = useState<boolean>(true);
-	const pausedByUserRef = useRef(false);
+	let cancelled = false;
+	let endedSent = false;
+	let player: Player | null = null;
 
-	useEffect(() => {
-		setIsPaused(telco?.paused ?? true);
-		pausedByUserRef.current = false;
-	}, [telco]);
+	preload(scene.persos).then((persos) => {
+		if (cancelled || !persos.size) return;
+		const render = sceneRef.current;
+		if (!render) return;
 
-	function mouseMove(e: React.ChangeEvent<HTMLInputElement>): void {
-		const value = Number(e.currentTarget.value);
-		const p = (value * (telco?.duration || 0)) / 100;
-		const progression = p > 0 ? p : 0;
-		telco?.seek(progression);
-		setIsPaused(telco?.paused ?? true);
-		onSeek(value, progression);
-	}
+		render.innerHTML = "";
+		player = new Player({
+			render,
+			persos,
+			eventtimes: scene.events,
+			onEnd,
+			onTimelineUpdate: (self, timelineDuration) => {
+				const progress = timelineDuration > 0 ? Math.round((self.currentTime / timelineDuration) * 100) : 0;
+				send({ type: "active-set", payload: { progress } });
 
-	useEffect(() => {
-		if (!telco) return;
-		const unsusbscribe = telco.susbscribe((self: Timeline) => {
-			const duration = telco.duration || 0;
-			const nextProgress = duration > 0 ? Math.round((self.currentTime / duration) * 100) : 0;
-			setProgress(nextProgress);
-			const ended = duration > 0 && self.currentTime >= duration;
-			setIsPaused(self.paused || ended);
+				const ended = timelineDuration > 0 && self.currentTime >= timelineDuration;
+				if (ended && !endedSent) {
+					endedSent = true;
+					send({ type: "active-set", payload: { action: "pause" } });
+				}
+				if (!ended) endedSent = false;
+			}
 		});
-		return unsusbscribe;
-	}, [telco, setProgress]);
 
-	const togglePlay = () => {
-		if (!telco) return;
-		if (telco.paused) {
-			telco.play();
-			setIsPaused(false);
-			pausedByUserRef.current = false;
+		setPlayerNodeResolver((nodeId) => player?.getNodeByNodeId(nodeId) ?? null);
+		const activeItemId = getActiveItemId();
+		if (activeItemId) send({ type: "active-set", payload: { itemId: activeItemId } });
+
+		const playback = getActivePlayback();
+		if (playback.action === "play") {
+			player.telco.play();
 		} else {
-			telco.pause();
-			setIsPaused(true);
-			pausedByUserRef.current = true;
+			player.telco.pause();
+			player.telco.seek((playback.cue ?? 0) * 1000);
+		}
+
+		onTelcoReady(player.telco);
+	});
+
+	return () => {
+		cancelled = true;
+		setPlayerNodeResolver(null);
+		player?.telco.revert();
+		player = null;
+		onTelcoReady(null);
+	};
+}
+
+function createTelcoController({
+	getTelco,
+	getActive,
+	send
+}: {
+	getTelco: () => TelcoProps | null;
+	getActive: () => {
+		action: string | null;
+		cue: number | null;
+		progress: number | null;
+	};
+	send: (event: { type: "active-set"; payload: Partial<ActiveState> }) => void;
+}): TelcoController {
+	return {
+		togglePlay: () => {
+			const telco = getTelco();
+			if (!telco) return;
+			const active = getActive();
+			const willPlay = active.action !== "play";
+			const shouldRestartFromZero = willPlay && typeof active.progress == "number" && active.progress >= 100;
+
+			if (shouldRestartFromZero) telco.seek(0);
+			if (willPlay) telco.play();
+			else telco.pause();
+
+			send({
+				type: "active-set",
+				payload: {
+					...(shouldRestartFromZero ? { progress: 0, cue: 0 } : {}),
+					action: willPlay ? "play" : "pause",
+					...(willPlay ? { itemId: null, node: null, contentId: null, event: null } : {})
+				}
+			});
+		},
+		rewind: () => {
+			const telco = getTelco();
+			if (!telco) return;
+			telco.seek(0);
+			send({ type: "active-set", payload: { action: "seek", progress: 0, cue: 0 } });
+		},
+		seek: (progress: number, timeMs: number) => {
+			const telco = getTelco();
+			if (!telco) return;
+			telco.seek(timeMs);
+			send({ type: "active-set", payload: { action: "seek", progress, cue: timeMs / 1000 } });
+		},
+		syncFromActive: (active) => {
+			const telco = getTelco();
+			if (!telco) return;
+
+			if (active.action === "play") {
+				telco.play();
+				return;
+			}
+
+			if (active.action === "pause") {
+				telco.pause();
+				return;
+			}
+
+			if (active.action === "seek") {
+				telco.pause();
+				telco.seek((active.cue ?? 0) * 1000);
+			}
 		}
 	};
-	const replay = () => {
-		if (!telco) return;
-		telco?.replay();
-		setProgress(0);
-		if (pausedByUserRef.current) {
-			telco.pause();
-			setIsPaused(true);
-		} else {
-			setIsPaused(false);
-		}
-		onSeek(0, 0);
+}
+
+function TelcoPanel({
+	progress,
+	isPlaying,
+	duration,
+	onTogglePlay,
+	onRewind,
+	onSeek
+}: {
+	progress: number;
+	isPlaying: boolean;
+	duration: number;
+	onTogglePlay: () => void;
+	onRewind: () => void;
+	onSeek: (progress: number, timeMs: number) => void;
+}) {
+	const onRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const nextProgress = Number(e.currentTarget.value);
+		const timeMs = ((duration || 0) * nextProgress) / 100;
+		onSeek(nextProgress, timeMs > 0 ? timeMs : 0);
 	};
 
 	return (
 		<div id="telco" className="flex items-center gap-2 border border-stone-500 p-1">
-			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={togglePlay}>
-				{isPaused ? <Play /> : <Pause />}
+			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={onTogglePlay}>
+				{isPlaying ? <Pause /> : <Play />}
 			</button>
-			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={replay}>
+			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={onRewind}>
 				<RotateCcwIcon />
 			</button>
-			<input type="range" min="0" max="100" step="1" value={progress} onChange={mouseMove} className="flex-1" />
+			<input
+				type="range"
+				min="0"
+				max="100"
+				step="1"
+				value={progress}
+				onChange={onRangeChange}
+				className="flex-1"
+			/>
 			<output>{progress}&nbsp;%</output>
 		</div>
 	);

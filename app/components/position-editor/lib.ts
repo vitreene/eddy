@@ -8,7 +8,7 @@ export const deg2rad = (d: number) => (d * Math.PI) / 180;
 // Convertit des radians en degres.
 export const rad2deg = (r: number) => (r * 180) / Math.PI;
 
-// Applique une rotation 2D a un vecteur/point autour de l'origine.
+// Applique une transformation angulaire 2D a un vecteur/point autour de l'origine.
 export function rotate(v: Pt, rad: number): Pt {
 	const c = Math.cos(rad);
 	const s = Math.sin(rad);
@@ -153,13 +153,13 @@ export function createPointerConverters() {
 	};
 }
 
-/** Decompose rotation + echelles d'une matrice (sans cisaillement). */
-// Extrait rotation/scaleX/scaleY d'une matrice affine sans skew.
-export function decomposeRotationScale(M: DOMMatrix): { rotation: number; scaleX: number; scaleY: number } {
+/** Decompose angle + echelles d'une matrice (sans cisaillement). */
+// Extrait rotate/scaleX/scaleY d'une matrice affine sans skew.
+export function decomposeRotateScale(M: DOMMatrix): { rotate: number; scaleX: number; scaleY: number } {
 	const scaleX = Math.hypot(M.a, M.b) || 1;
 	const scaleY = Math.hypot(M.c, M.d) || 1;
-	const rotation = rad2deg(Math.atan2(M.b, M.a));
-	return { rotation, scaleX, scaleY };
+	const rotate = rad2deg(Math.atan2(M.b, M.a));
+	return { rotate, scaleX, scaleY };
 }
 
 // Recalcule left/top CSS a partir d'une matrice et d'une origine locale.
@@ -189,9 +189,9 @@ export function readTransformPreserve(el: HTMLElement): ElementTransform {
 		const Me = getViewportMatrix(el);
 		const Mp = getViewportMatrix(parent);
 		const M = Mp.inverse().multiply(Me); // element local vers parent local
-		const { rotation, scaleX, scaleY } = decomposeRotationScale(M);
+		const { rotate, scaleX, scaleY } = decomposeRotateScale(M);
 		const { x, y } = extractCssLeftTopFromAffine(M, originLocal);
-		return { x, y, width, height, rotation, originX, originY, scaleX, scaleY };
+		return { x, y, width, height, rotate, originX, originY, scaleX, scaleY };
 	}
 
 	// Repli via styles uniquement (considere le transform initial de l'element)
@@ -199,7 +199,7 @@ export function readTransformPreserve(el: HTMLElement): ElementTransform {
 	let x = parsePx(cs.left) ?? el.offsetLeft ?? 0;
 	let y = parsePx(cs.top) ?? el.offsetTop ?? 0;
 
-	let rotation = 0;
+	let rotate = 0;
 	let scaleX = 1;
 	let scaleY = 1;
 
@@ -212,7 +212,7 @@ export function readTransformPreserve(el: HTMLElement): ElementTransform {
 			x += m.e;
 			y += m.f;
 
-			rotation = rad2deg(Math.atan2(m.b, m.a));
+			rotate = rad2deg(Math.atan2(m.b, m.a));
 			scaleX = Math.hypot(m.a, m.b) || 1;
 			scaleY = Math.hypot(m.c, m.d) || 1;
 		} catch {
@@ -220,19 +220,23 @@ export function readTransformPreserve(el: HTMLElement): ElementTransform {
 		}
 	}
 
-	return { x, y, width, height, rotation, originX, originY, scaleX, scaleY };
+	return { x, y, width, height, rotate, originX, originY, scaleX, scaleY };
 }
 
 // Ecrit la transformation dans le style inline (left/top/size/origin/transform).
-export function applyTransformPreserve(el: HTMLElement, t: ElementTransform) {
+export function applyTransformPreserve(
+	el: HTMLElement,
+	t: ElementTransform,
+	basePosition?: { x: number; y: number } | null
+) {
 	const s = el.style;
-	if (!s.position) s.position = "absolute";
-	s.left = `${t.x}px`;
-	s.top = `${t.y}px`;
 	s.width = `${t.width}px`;
 	s.height = `${t.height}px`;
 	s.transformOrigin = `${t.originX * 100}% ${t.originY * 100}%`;
-	s.transform = `rotate(${t.rotation}deg) scale(${t.scaleX}, ${t.scaleY})`;
+
+	const tx = t.x - (basePosition?.x ?? 0);
+	const ty = t.y - (basePosition?.y ?? 0);
+	s.transform = `translate(${tx}px, ${ty}px) rotate(${t.rotate}deg) scale(${t.scaleX}, ${t.scaleY})`;
 }
 
 // Indique quels axes/cotes sont impactes par une poignee de resize.
@@ -262,17 +266,17 @@ export function oppositeAnchorLocal(handle: ResizeHandle, w: number, h: number):
 	}
 }
 
-// Convertit un delta parent en delta local en inversant rotation et echelle.
+// Convertit un delta parent en delta local en inversant angle et echelle.
 export function parentDeltaToLocalDelta(start: ElementTransform, deltaParent: Pt): Pt {
-	const rad = deg2rad(start.rotation);
+	const rad = deg2rad(start.rotate);
 	const vr = rotate(deltaParent, -rad);
 	return { x: vr.x / start.scaleX, y: vr.y / start.scaleY };
 }
 
-// Convertit un point local vers l'espace parent avec origin/scale/rotation.
+// Convertit un point local vers l'espace parent avec origin/scale/rotate.
 export function localToParent(t: ElementTransform, pLocal: Pt): Pt {
 	const o = { x: t.originX * t.width, y: t.originY * t.height };
-	const rad = deg2rad(t.rotation);
+	const rad = deg2rad(t.rotate);
 	const v = { x: pLocal.x - o.x, y: pLocal.y - o.y };
 	const vs = { x: v.x * t.scaleX, y: v.y * t.scaleY };
 	const vr = rotate(vs, rad);
@@ -286,7 +290,7 @@ export function solveLeftTopForAnchor(
 	next: Omit<ElementTransform, "x" | "y">
 ): { x: number; y: number } {
 	const o = { x: next.originX * next.width, y: next.originY * next.height };
-	const rad = deg2rad(next.rotation);
+	const rad = deg2rad(next.rotate);
 	const v = { x: anchorLocal.x - o.x, y: anchorLocal.y - o.y };
 	const vs = { x: v.x * next.scaleX, y: v.y * next.scaleY };
 	const vr = rotate(vs, rad);
@@ -296,7 +300,7 @@ export function solveLeftTopForAnchor(
 /* Correctif de glisse du pivot */
 // Convertit un ElementTransform en affine 2D explicite (A + translation).
 export function affineFromTransform(t: ElementTransform): Affine2D {
-	const rad = deg2rad(t.rotation);
+	const rad = deg2rad(t.rotate);
 	const cos = Math.cos(rad);
 	const sin = Math.sin(rad);
 
@@ -339,11 +343,11 @@ export function leftTopFromFixedMatrix(M: Affine2D, originLocal: Pt): { x: numbe
 
 // Construit la matrice locale->parent a partir d'un ElementTransform.
 export function matrixFromElementTransform(t: ElementTransform): DOMMatrix {
-	const rad = deg2rad(t.rotation);
+	const rad = deg2rad(t.rotate);
 	const cos = Math.cos(rad);
 	const sin = Math.sin(rad);
 
-	// A = rotation * echelle
+	// A = angle * echelle
 	const a = cos * t.scaleX;
 	const b = sin * t.scaleX;
 	const c = -sin * t.scaleY;

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<menu id="content" title="">
+  <chap id="chapter1" title="chapter1_title">
+    <page id="page1" title="chapter1_page1_title" />
+  </chap>
+</menu>

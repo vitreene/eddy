@@ -80,6 +80,8 @@ export function VisualTransformEditor({
 
 	// Prevents re-applying transform right after initial DOM read.
 	const skipApplyOnceRef = useRef(false);
+	const basePositionRef = useRef<{ x: number; y: number } | null>(null);
+	const initRafRef = useRef<number | null>(null);
 
 	const setT = (next: ElementTransform) => {
 		if (!isControlled) setInternal(next);
@@ -89,15 +91,41 @@ export function VisualTransformEditor({
 	useLayoutEffect(() => {
 		if (!domOk || !active || !element) return;
 		const next = readTransformPreserve(element);
+		basePositionRef.current = { x: next.x, y: next.y };
 		if (!isControlled) setInternal(next);
 		onChange(next);
 		skipApplyOnceRef.current = true;
+
+		if (initRafRef.current != null) {
+			element.ownerDocument.defaultView?.cancelAnimationFrame(initRafRef.current);
+			initRafRef.current = null;
+		}
+
+		const win = element.ownerDocument.defaultView;
+		if (!win) return;
+
+		initRafRef.current = win.requestAnimationFrame(() => {
+			initRafRef.current = null;
+			if (!element.isConnected) return;
+			const measured = readTransformPreserve(element);
+			basePositionRef.current = { x: measured.x, y: measured.y };
+			if (!isControlled) setInternal(measured);
+			onChange(measured);
+			skipApplyOnceRef.current = true;
+		});
+
+		return () => {
+			if (initRafRef.current == null) return;
+			win.cancelAnimationFrame(initRafRef.current);
+			initRafRef.current = null;
+		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [domOk, active, element]);
 
 	// force re-measure for overlay matrix
 	// Incremented to force recomputing overlay matrix on viewport/layout changes.
 	const [nonce, setNonce] = useState(0);
+	const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
 
 	// Target portal root where the editing overlay is rendered.
 	const portalContainer = useMemo(() => {
@@ -105,6 +133,30 @@ export function VisualTransformEditor({
 		const doc = element.ownerDocument;
 		return overlayContainer ?? doc?.body ?? null;
 	}, [domOk, active, element, overlayContainer]);
+
+	useEffect(() => {
+		if (!domOk || !active || !element || !portalContainer) {
+			setPortalHost(null);
+			return;
+		}
+
+		const doc = element.ownerDocument;
+		const host = doc.createElement("div");
+		host.setAttribute("data-vte-overlay-host", "");
+		host.style.position = "absolute";
+		host.style.inset = "0";
+		host.style.pointerEvents = "none";
+		host.style.zIndex = "9999";
+		portalContainer.appendChild(host);
+		setPortalHost(host);
+
+		return () => {
+			setPortalHost((current) => (current === host ? null : current));
+			if (host.parentNode) {
+				host.parentNode.removeChild(host);
+			}
+		};
+	}, [domOk, active, element, portalContainer]);
 
 	// Frame matrix (local->viewport)
 	// Derived visual frame in viewport coordinates for handles and outlines.
@@ -134,6 +186,54 @@ export function VisualTransformEditor({
 		startXY?: { x: number; y: number };
 		fixedM?: Affine2D;
 	} | null>(null);
+
+	useEffect(() => {
+		if (!domOk || !active || !element || typeof ResizeObserver === "undefined") return;
+		const win = element.ownerDocument.defaultView;
+		if (!win) return;
+
+		let rafId: number | null = null;
+
+		const syncFromDom = () => {
+			if (rafId != null) return;
+			rafId = win.requestAnimationFrame(() => {
+				rafId = null;
+				if (!element.isConnected || dragRef.current) return;
+				const measured = readTransformPreserve(element);
+				if (
+					t &&
+					Math.abs(measured.width - t.width) < 0.5 &&
+					Math.abs(measured.height - t.height) < 0.5 &&
+					Math.abs(measured.x - t.x) < 0.5 &&
+					Math.abs(measured.y - t.y) < 0.5 &&
+					Math.abs(measured.rotate - t.rotate) < 0.1 &&
+					Math.abs(measured.scaleX - t.scaleX) < 0.01 &&
+					Math.abs(measured.scaleY - t.scaleY) < 0.01 &&
+					Math.abs(measured.originX - t.originX) < 0.001 &&
+					Math.abs(measured.originY - t.originY) < 0.001
+				) {
+					return;
+				}
+
+				basePositionRef.current = { x: measured.x, y: measured.y };
+				skipApplyOnceRef.current = true;
+				if (!isControlled) setInternal(measured);
+				onChange(measured);
+			});
+		};
+
+		const ro = new ResizeObserver(syncFromDom);
+		ro.observe(element);
+		syncFromDom();
+
+		return () => {
+			ro.disconnect();
+			if (rafId != null) {
+				win.cancelAnimationFrame(rafId);
+				rafId = null;
+			}
+		};
+	}, [domOk, active, element, t, isControlled, onChange]);
 
 	const beginDrag = (ev: { clientX: number; clientY: number }, mode: DragMode) => {
 		if (!domOk || !active || !t || !element || !offsetParent) return;
@@ -196,7 +296,7 @@ export function VisualTransformEditor({
 				const { x, y } = solveLeftTopForAnchor(anchorParent, anchorLocal, {
 					width: nextW,
 					height: nextH,
-					rotation: startT.rotation,
+					rotate: startT.rotate,
 					scaleX: startT.scaleX,
 					scaleY: startT.scaleY,
 					originX: startT.originX,
@@ -211,7 +311,7 @@ export function VisualTransformEditor({
 				const startAng = cur.startAngle!;
 				const ang = Math.atan2(curParent.y - pivot.y, curParent.x - pivot.x);
 				const delta = ang - startAng;
-				setT({ ...startT, rotation: startT.rotation + rad2deg(delta) });
+				setT({ ...startT, rotate: startT.rotate + rad2deg(delta) });
 			}
 
 			if (cur.mode.kind === "origin") {
@@ -241,12 +341,12 @@ export function VisualTransformEditor({
 	};
 
 	const overlay =
-		!domOk || !active || !element || !t || !portalContainer || !frame ? null : (
+		!domOk || !active || !element || !t || !portalHost || !frame ? null : (
 			<VisualTransformOverlay
 				className={className}
 				frame={frame}
 				t={t}
-				portalContainer={portalContainer}
+				portalContainer={portalHost}
 				onDragStart={beginDrag}
 			/>
 		);
@@ -260,6 +360,7 @@ export function VisualTransformEditor({
 			t={t}
 			offsetParent={offsetParent}
 			skipApplyOnceRef={skipApplyOnceRef}
+			basePositionRef={basePositionRef}
 			setNonce={setNonce}
 		>
 			{overlay}
@@ -275,6 +376,7 @@ type VisualTransformEditorDomEffectsProps = {
 	t: ElementTransform | null;
 	offsetParent: HTMLElement | null;
 	skipApplyOnceRef: React.MutableRefObject<boolean>;
+	basePositionRef: React.MutableRefObject<{ x: number; y: number } | null>;
 	setNonce: React.Dispatch<React.SetStateAction<number>>;
 	children: React.ReactNode;
 };
@@ -287,9 +389,23 @@ function VisualTransformEditorDomEffects({
 	t,
 	offsetParent,
 	skipApplyOnceRef,
+	basePositionRef,
 	setNonce,
 	children
 }: VisualTransformEditorDomEffectsProps) {
+	useEffect(() => {
+		if (!domOk || !active || !element) return;
+		const prevMinWidth = element.style.minWidth;
+		const prevMinHeight = element.style.minHeight;
+		element.style.minWidth = "0px";
+		element.style.minHeight = "0px";
+
+		return () => {
+			element.style.minWidth = prevMinWidth;
+			element.style.minHeight = prevMinHeight;
+		};
+	}, [domOk, active, element]);
+
 	// Applies the latest transform to the target element after drag/state updates.
 	useEffect(() => {
 		if (!domOk || !active || !applyToElement || !element || !t) return;
@@ -297,8 +413,8 @@ function VisualTransformEditorDomEffects({
 			skipApplyOnceRef.current = false;
 			return;
 		}
-		applyTransformPreserve(element, t);
-	}, [domOk, active, applyToElement, element, t, skipApplyOnceRef]);
+		applyTransformPreserve(element, t, basePositionRef.current);
+	}, [domOk, active, applyToElement, element, t, skipApplyOnceRef, basePositionRef]);
 
 	// Invalidates overlay frame when viewport or observed boxes change.
 	useEffect(() => {

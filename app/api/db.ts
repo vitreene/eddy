@@ -44,6 +44,7 @@ export interface ContentComp {
 export interface ItemComp extends Item {
 	contentId: number;
 	eventIds: number[];
+	nodeId?: string;
 }
 
 /* 

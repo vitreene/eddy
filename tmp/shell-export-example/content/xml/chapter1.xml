@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+  <page id="page1">
+    <default textSize="25" textColor="#000000" textAlign="left" />
+    <sequency duration="5.9">
+      <sound>/assets/1_7b_e.mp3</sound>
+      <img id="1" src="/assets/28970388742_2f75d527d6_z.jpg" cssClass="background-carousel-item">
+        <tween x="0" alpha="1" delay="0.4" time="0.5" />
+        <tween x="400" alpha="0" delay="1.3" time="0.5" />
+      </img>
+      <img id="2" src="/assets/28999069391_5893263112_z.jpg" cssClass="background-carousel-item">
+        <tween x="0" alpha="1" delay="3.4" time="0.5" />
+        <tween x="400" alpha="0" delay="5.4" time="0.5" />
+      </img>
+    </sequency>
+  </page>
+</data>

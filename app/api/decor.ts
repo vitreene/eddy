@@ -12,6 +12,22 @@ import {
 	type Decor
 } from "./db";
 
+const COMPONENT_TRANSFORM_DEBUG_KEYS = new Set([
+	"x",
+	"y",
+	"width",
+	"height",
+	"rotate",
+	"originX",
+	"originY",
+	"scaleX",
+	"scaleY"
+]);
+
+// Temporary debug switch mirrored server-side (safety net).
+// Remove this block when transform persistence is re-enabled.
+const DEBUG_SKIP_COMPONENT_TRANSFORM_PERSIST = true;
+
 export async function action({ request }: Route.ActionArgs) {
 	const contentType = request.headers.get("content-type") || "";
 	if (contentType.includes("application/json")) {
@@ -56,7 +72,12 @@ function normalizeDecorPayload(
 	capsuleType: string | null
 ): Partial<Decor> {
 	const rawStyle = (decorData.style as Record<string, unknown>) ?? {};
-	const styleWithoutDebug = Object.fromEntries(Object.entries(rawStyle).filter(([key]) => key !== "outline"));
+	const styleWithoutDebug = Object.fromEntries(
+		Object.entries(rawStyle).filter(
+			([key]) =>
+				key !== "outline" && (!DEBUG_SKIP_COMPONENT_TRANSFORM_PERSIST || !COMPONENT_TRANSFORM_DEBUG_KEYS.has(key))
+		)
+	);
 
 	return {
 		...decorData,

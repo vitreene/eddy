@@ -126,6 +126,33 @@ export const StyleEditor: React.FC<Props> = ({
 				/>
 				<label>outline</label>
 			</div>
+
+			<TransformDebug value={value} />
 		</div>
 	);
 };
+
+function TransformDebug({ value }: { value: EditableStyle }) {
+	const data = {
+		x: toDebugNumber(value.x),
+		y: toDebugNumber(value.y),
+		width: toDebugNumber(value.width),
+		height: toDebugNumber(value.height),
+		rotate: toDebugNumber(value.rotate),
+		originX: toDebugNumber(value.originX),
+		originY: toDebugNumber(value.originY),
+		scaleX: toDebugNumber(value.scaleX),
+		scaleY: toDebugNumber(value.scaleY)
+	};
+
+	return (
+		<div className="mt-2 rounded border border-stone-300 p-2 text-[11px]">
+			<p className="mb-1 font-medium">TransformItem props</p>
+			<pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
+		</div>
+	);
+}
+
+function toDebugNumber(value: unknown): number | null {
+	return typeof value == "number" && Number.isFinite(value) ? value : null;
+}

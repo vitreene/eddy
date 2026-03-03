@@ -28,6 +28,17 @@ export interface EditableStyle {
 	alignSelf?: "start" | "center" | "end" | "stretch";
 	placeSelf?: string;
 
+	/* TRANSFORM */
+	x?: number | string;
+	y?: number | string;
+	width?: number | string;
+	height?: number | string;
+	rotate?: number;
+	originX?: number;
+	originY?: number;
+	scaleX?: number;
+	scaleY?: number;
+
 	/* EXTRA */
 	area?: string;
 	className?: string;

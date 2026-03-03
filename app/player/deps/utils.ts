@@ -2,14 +2,15 @@ import type { Change } from "./static-changes";
 
 export function getAbsoluteCoords($el: HTMLElement) {
 	const coords = { x: 0, y: 0 };
+	const rect = $el.getBoundingClientRect();
 
 	traverse($el);
 	const res = coords;
 	return {
 		x: res.x,
 		y: res.y,
-		width: $el.offsetWidth,
-		height: $el.offsetHeight
+		width: rect.width,
+		height: rect.height
 	};
 
 	function traverse(element: HTMLElement) {

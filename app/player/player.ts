@@ -29,7 +29,7 @@ export interface TelcoProps {
 	readonly duration: number;
 	readonly paused: boolean;
 
-	susbscribe: (up: Subscribed<Timeline>) => () => void;
+	subscribe: (up: Subscribed<Timeline>) => () => void;
 }
 
 export class Player {
@@ -42,6 +42,7 @@ export class Player {
 	persoChanges = new Map<ID, Record<number, Change>>();
 	updatesTM = new PubSub<Timeline>();
 	onEnd: (tm: Timer) => void = () => {};
+	onTimelineUpdate?: (self: Timeline, duration: number) => void;
 	moveQueue!: FrameQueueController<
 		{ $el: HTMLElement; before: ReturnType<typeof getAbsoluteCoords> },
 		{ after: ReturnType<typeof getAbsoluteCoords>; px: number; py: number }
@@ -53,18 +54,21 @@ export class Player {
 		render,
 		persos,
 		eventtimes,
-		onEnd
+		onEnd,
+		onTimelineUpdate
 	}: {
 		render: HTMLElement | null;
 		persos: Map<ID, Perso>;
 		eventtimes: MapEvent;
 		onEnd?: (tm: Timer) => void;
+		onTimelineUpdate?: (self: Timeline, duration: number) => void;
 	}) {
 		if (!render) throw new Error("Le player ne peut etre rendu.");
 		this.render = render;
 		this.persos = persos;
 		this.eventtimes = eventtimes;
 		if (typeof onEnd === "function") this.onEnd = onEnd;
+		if (typeof onTimelineUpdate === "function") this.onTimelineUpdate = onTimelineUpdate;
 		this.createElements = createElements.bind(this);
 		this.initMedias = initMedias.bind(this);
 		this.setStaticChanges = setStaticChanges.bind(this);
@@ -99,7 +103,10 @@ export class Player {
 	private setStaticChanges!: () => void;
 	private createScene!: () => void;
 	private onBeforeUpdateTM() {
-		this.timeLine.onBeforeUpdate = (self: Timeline) => this.updatesTM.forEach((up) => up(self));
+		this.timeLine.onBeforeUpdate = (self: Timeline) => {
+			this.updatesTM.forEach((up) => up(self));
+			this.onTimelineUpdate?.(self, this.timeLine.duration || 0);
+		};
 	}
 
 	private initTelco = () => {
@@ -119,7 +126,7 @@ export class Player {
 			get paused() {
 				return paused();
 			},
-			susbscribe: (up: Subscribed<Timeline>) => this.updatesTM.subscribe(up)
+			subscribe: (up: Subscribed<Timeline>) => this.updatesTM.subscribe(up)
 		};
 	};
 
@@ -217,7 +224,7 @@ export class Player {
 			$el.textContent = change.content;
 		}
 		if (change.attr) {
-			Object.entries(change.attr).forEach(([value, key]) => $el.setAttribute(key, value));
+			Object.entries(change.attr).forEach(([key, value]) => $el.setAttribute(key, value));
 		}
 	}
 
@@ -269,7 +276,7 @@ export class Player {
 				if (!$el) throw new Error("Missing element for move transition");
 				return { $el, before: getAbsoluteCoords($el) };
 			},
-			applyWrite: ({ $el }) => {
+			applyWrite: () => {
 				this._applyChanges(id, change);
 			},
 			readAfterWrite: ({ $el }) => {
@@ -293,6 +300,7 @@ export class Player {
 		px: number,
 		py: number
 	): JSAnimation | undefined {
+		console.log("_createMoveTransition", $el, old, nex, px, py);
 		const dx = old.x - nex.x;
 		const dy = old.y - nex.y;
 		if (dx === 0 && dy === 0 && old.width === nex.width && old.height === nex.height) return undefined;
@@ -340,6 +348,11 @@ export class Player {
 				$video.pause();
 			}
 		}
+	}
+
+	getNodeByNodeId(nodeId: string | null | undefined): HTMLElement | null {
+		if (!nodeId) return null;
+		return this.$elements.get(nodeId) ?? null;
 	}
 }
 

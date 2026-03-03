@@ -6,7 +6,7 @@ export type ElementTransform = {
 	y: number;
 	width: number;
 	height: number;
-	rotation: number; // deg
+	rotate: number; // deg
 	originX: number; // 0..1
 	originY: number; // 0..1
 	scaleX: number;

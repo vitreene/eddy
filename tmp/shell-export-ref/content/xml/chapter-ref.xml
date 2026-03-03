@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<data>
+  <page id="page1">
+    <default textSize="25" textColor="#000000" textAlign="left" />
+    <sequency duration="3.8">
+      <img id="img-0" src="/images/001.jpg" cssClass="ikono" x="-100%" alpha="0">
+        <tween x="0" alpha="1" time="0.5" />
+        <tween y="100%" alpha="0" delay="1" time="0.8" />
+      </img>
+      <img id="img-1" src="/images/002.jpg" cssClass="ikono" x="-100%" alpha="0">
+        <tween x="0" alpha="1" delay="1" time="0.5" />
+        <tween y="100%" alpha="0" delay="2" time="0.8" />
+      </img>
+      <img id="img-2" src="/images/003.jpg" cssClass="ikono" x="-100%" alpha="0">
+        <tween x="0" alpha="1" delay="2" time="0.5" />
+        <tween y="100%" alpha="0" delay="3" time="0.8" />
+      </img>
+      <video id="vid-1" src="/images/decollage.mp4" cssStyle="background-color:red" />
+      <lottie id="lot-1" src="/images/animation-1748191725447.json" cssStyle="background-color:blue" />
+    </sequency>
+  </page>
+</data>

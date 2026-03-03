@@ -26,11 +26,12 @@ import { getCapsuleTypeConfig, shouldCapsuleUseExplicitArea } from "@/config/cap
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import { NON_ANIMATABLE_MANAGED_STYLE_KEYS } from "@/config/item-style-defaults";
 import { buildPlacementCss } from "@/player/capsule-layout/layout-css";
+import { buildNodeId } from "@/player/node-id";
 
 import type { SceneComp, CapsuleComp, ItemComp, TextTime, Decor, ContentEvent } from "@/api/db";
 import { P, type ClassNameAction, type ID } from "../types";
 import { SCENE_ID } from "../constants";
-import { SEP, DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
+import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { getMediaUrl } from "@/lib/media-url";
 
 import type { PlayerProps } from "..";
@@ -296,7 +297,7 @@ function getEffectiveAreaClassName(
 
 //CAPSULES
 function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClassnames: Record<ID, string>) {
-	const id = `capsule${SEP}${capsule.id}`;
+	const id = buildNodeId("capsule", capsule.id);
 
 	if (capsule.id == snapshot.main) {
 		const className = joinNodeClassNames(
@@ -325,7 +326,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		if (!item) return null;
 		const events = snapshot.events[item.id];
 		const decor = snapshot.decors[item.decorId] || { className: "", area: "", style: {} };
-		const parentId = `capsule${SEP}${item.capsuleId}`;
+		const parentId = buildNodeId("capsule", item.capsuleId);
 		const actions: Record<string | number, any> = {};
 		const autoAreaClassName = additionalClassnames[item.id];
 		let previousClassDecor: DecorLike = decor;
@@ -334,7 +335,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		if (events) {
 			const orderedEvents = getOrderedEventsForItem(snapshot, events);
 			let previousMs = 0;
-			let previousStyleState = { ...(decor.style || {}) } as Record<string, number | string>;
+			let previousStyleState = getInlineStyle(decor.style);
 			for (const entry of orderedEvents) {
 				const ev = entry.event;
 				const actionName = buildEventActionName(ev);
@@ -429,14 +430,14 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 	if (content.type == "capsule") return null;
 	const events = snapshot.events[item.id];
 	const decor = snapshot.decors[item.decorId] || { className: "", area: "", style: {} };
-	const parentId = `capsule${SEP}${item.capsuleId}`;
-	const id = `item${SEP}${item.id}`;
+	const parentId = buildNodeId("capsule", item.capsuleId);
+	const id = item.nodeId || buildNodeId("item", item.id);
 
 	const actions: Record<string | number, any> = {};
 
 	const orderedEvents = getOrderedEventsForItem(snapshot, events || {});
 	let previousMs = 0;
-	let previousStyleState = { ...(decor.style || {}) } as Record<string, number | string>;
+	let previousStyleState = getInlineStyle(decor.style);
 	const autoAreaClassName = additionalClassnames[item.id];
 	let previousClassDecor: DecorLike = decor;
 	let previousDynamicClassName = buildDynamicClassName(
@@ -793,15 +794,8 @@ function getDecorStyle(
 ): Record<string, number | string> {
 	if (!decorId) return {};
 	const decor = snapshot.decors?.[decorId];
-	if (!decor || !decor.style || typeof decor.style != "object") return {};
-	const style = decor.style as Record<string, unknown>;
-	return Object.fromEntries(
-		Object.entries(style).filter(([key, value]) => {
-			if (typeof value != "number" && typeof value != "string") return false;
-			if (STATIC_STYLE_CLASS_KEYS.has(key)) return false;
-			return true;
-		})
-	) as Record<string, number | string>;
+	if (!decor) return {};
+	return getInlineStyle(decor.style);
 }
 
 function buildStyleInterpolation(
@@ -832,13 +826,46 @@ const STATIC_STYLE_CLASS_KEYS = new Set<string>(NON_ANIMATABLE_MANAGED_STYLE_KEY
 function getInlineStyle(style: unknown): Record<string, number | string> {
 	if (!style || typeof style != "object") return {};
 	const source = style as Record<string, unknown>;
-	return Object.fromEntries(
+	const filtered = Object.fromEntries(
 		Object.entries(source).filter(([key, value]) => {
 			if (typeof value != "string" && typeof value != "number") return false;
 			if (STATIC_STYLE_CLASS_KEYS.has(key)) return false;
 			return true;
 		})
 	) as Record<string, number | string>;
+
+	const normalized: Record<string, number | string> = { ...filtered };
+
+	if (typeof normalized.width == "number" && Number.isFinite(normalized.width)) {
+		normalized.width = `${normalized.width}px`;
+	}
+	if (typeof normalized.height == "number" && Number.isFinite(normalized.height)) {
+		normalized.height = `${normalized.height}px`;
+	}
+
+	const hasOriginX = typeof normalized.originX != "undefined";
+	const hasOriginY = typeof normalized.originY != "undefined";
+	if (hasOriginX || hasOriginY) {
+		const originX = hasOriginX ? normalizeOriginToken(normalized.originX) : "50%";
+		const originY = hasOriginY ? normalizeOriginToken(normalized.originY) : "50%";
+		normalized.transformOrigin = `${originX} ${originY}`;
+		delete normalized.originX;
+		delete normalized.originY;
+	}
+
+	return normalized;
+}
+
+function normalizeOriginToken(value: string | number): string {
+	if (typeof value == "number") {
+		if (value >= 0 && value <= 1) return `${value * 100}%`;
+		return `${value}px`;
+	}
+	const trimmed = value.trim();
+	if (!trimmed) return "50%";
+	const numeric = Number(trimmed);
+	if (Number.isFinite(numeric) && numeric >= 0 && numeric <= 1) return `${numeric * 100}%`;
+	return trimmed;
 }
 
 function getStaticStyleClassName(style: unknown): string {
