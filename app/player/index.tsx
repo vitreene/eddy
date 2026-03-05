@@ -217,6 +217,11 @@ function createTelcoController({
 			if (active.action === "seek") {
 				telco.pause();
 				telco.seek((active.cue ?? 0) * 1000);
+				if (typeof window != "undefined") {
+					window.requestAnimationFrame(() => {
+						send({ type: "active-set", payload: {} });
+					});
+				}
 			}
 		}
 	};

@@ -59,7 +59,11 @@ export function getNodeVisibilityWindow(context: SceneComp, itemId: number): Vis
 	const introCue = findSceneCueByName(context, introEvent?.name);
 	const outroCue = findSceneCueByName(context, outroEvent?.name);
 
-	const explicitStartSec = introCue ? introCue.start + DEFAULT_DURATION_SEC : null;
+	const introDurationSec =
+		typeof introEvent?.duration == "number" && Number.isFinite(introEvent.duration) && introEvent.duration > 0
+			? introEvent.duration
+			: DEFAULT_DURATION_SEC;
+	const explicitStartSec = introCue ? introCue.start + introDurationSec : null;
 	const explicitEndSec = outroCue ? outroCue.end : null;
 	const derivedWindows = deriveItemVisibilityWindows(context);
 	const derivedWindow = derivedWindows.get(itemId) || null;

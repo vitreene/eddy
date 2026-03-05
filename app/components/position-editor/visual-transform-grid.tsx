@@ -1,16 +1,22 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 
-import type { ElementTransform, Pt } from "./lib.types";
+import type { Affine2D, ElementTransform, Pt } from "./lib.types";
 import {
+	affineFromTransform,
 	canUseDOM,
+	clamp,
 	createPointerConverters,
 	getOffsetParent,
 	getViewportMatrix,
+	leftTopFromFixedMatrix,
+	localToParent,
 	matrixFromElementTransform,
 	parentDeltaToLocalDelta,
+	parentToLocalFixed,
 	rad2deg,
-	readTransformPreserve
+	readTransformPreserve,
+	solveLeftTopForAnchor
 } from "./lib";
 
 type Props = {
@@ -29,7 +35,12 @@ type Props = {
 	className?: string;
 };
 
-type DragMode = { kind: "move" } | { kind: "rotate" } | { kind: "resize-se" } | { kind: "cell-snap" };
+type DragMode =
+	| { kind: "move" }
+	| { kind: "rotate" }
+	| { kind: "resize-se" }
+	| { kind: "cell-snap" }
+	| { kind: "origin" };
 
 type GridGeometry = {
 	colStarts: number[];
@@ -54,10 +65,7 @@ export function ItemTransformEditor({
 	const domOk = useMemo(() => canUseDOM(element), [element]);
 	const ptr = useMemo(() => createPointerConverters(), []);
 
-	const offsetParent = useMemo(() => {
-		if (!element) return null;
-		return getOffsetParent(element);
-	}, [element]);
+	const offsetParent = element ? getOffsetParent(element) : null;
 
 	const skipApplyOnceRef = useRef(false);
 	const basePositionRef = useRef<{ x: number; y: number } | null>(null);
@@ -137,10 +145,25 @@ export function ItemTransformEditor({
 		if (!domOk || !active || !element || !offsetParent || !t) return null;
 
 		const parentToViewport = getViewportMatrix(offsetParent);
-		const localToParent = matrixFromElementTransform(t);
-		const localToViewport = parentToViewport.multiply(localToParent);
+		const displayWidth = Math.max(1, t.width * Math.abs(t.scaleX));
+		const displayHeight = Math.max(1, t.height * Math.abs(t.scaleY));
+		const pivotParent = {
+			x: t.x + t.originX * t.width,
+			y: t.y + t.originY * t.height
+		};
+		const frameTransform = {
+			...t,
+			width: displayWidth,
+			height: displayHeight,
+			x: pivotParent.x - t.originX * displayWidth,
+			y: pivotParent.y - t.originY * displayHeight,
+			scaleX: 1,
+			scaleY: 1
+		};
+		const localToParentMatrix = matrixFromElementTransform(frameTransform);
+		const localToViewport = parentToViewport.multiply(localToParentMatrix);
 
-		return { w: t.width, h: t.height, M: localToViewport };
+		return { w: displayWidth, h: displayHeight, M: localToViewport };
 	}, [domOk, active, element, offsetParent, t]);
 
 	useEffect(() => {
@@ -154,8 +177,9 @@ export function ItemTransformEditor({
 		startT: ElementTransform;
 		pivotParent?: Pt;
 		startAngle?: number;
-		aspect?: number;
+		anchorTopLeftParent?: Pt;
 		grid?: GridGeometry | null;
+		fixedM?: Affine2D;
 	} | null>(null);
 
 	useEffect(() => {
@@ -206,12 +230,16 @@ export function ItemTransformEditor({
 			);
 		}
 
-		if (mode.kind === "resize-se") {
-			dragState.aspect = startT.height === 0 ? 1 : startT.width / startT.height;
-		}
-
 		if (mode.kind === "cell-snap") {
 			dragState.grid = readParentGridGeometry(offsetParent);
+		}
+
+		if (mode.kind === "resize-se") {
+			dragState.anchorTopLeftParent = localToParent(startT, { x: 0, y: 0 });
+		}
+
+		if (mode.kind === "origin") {
+			dragState.fixedM = affineFromTransform(startT);
 		}
 
 		dragRef.current = dragState;
@@ -251,21 +279,55 @@ export function ItemTransformEditor({
 				};
 				const deltaLocal = parentDeltaToLocalDelta(startT, deltaParent);
 
-				let nextW = startT.width + deltaLocal.x;
-				let nextH = startT.height + deltaLocal.y;
+				let nextScaleX = (startT.width + deltaLocal.x) / Math.max(1, startT.width);
+				let nextScaleY = (startT.height + deltaLocal.y) / Math.max(1, startT.height);
 
 				if (!e.shiftKey) {
-					const aspect = current.aspect || 1;
-					const byWidth = nextW / (startT.width || 1);
-					const byHeight = nextH / (startT.height || 1);
-					const scale = Math.max(byWidth, byHeight);
-					nextW = startT.width * scale;
-					nextH = nextW / aspect;
+					const uniformScale = Math.max(nextScaleX, nextScaleY);
+					nextScaleX = uniformScale;
+					nextScaleY = uniformScale;
 				}
 
-				nextW = Math.max(minWidth, nextW);
-				nextH = Math.max(minHeight, nextH);
-				setT({ ...startT, width: nextW, height: nextH });
+				const minScaleX = minWidth / Math.max(1, startT.width);
+				const minScaleY = minHeight / Math.max(1, startT.height);
+				nextScaleX = Math.max(minScaleX, nextScaleX);
+				nextScaleY = Math.max(minScaleY, nextScaleY);
+
+				const anchorParent = current.anchorTopLeftParent || localToParent(startT, { x: 0, y: 0 });
+				const nextGeom = {
+					width: startT.width,
+					height: startT.height,
+					rotate: startT.rotate,
+					scaleX: nextScaleX,
+					scaleY: nextScaleY,
+					originX: startT.originX,
+					originY: startT.originY
+				};
+				const { x, y } = solveLeftTopForAnchor(anchorParent, { x: 0, y: 0 }, nextGeom);
+
+				setT({
+					...startT,
+					x,
+					y,
+					scaleX: nextScaleX,
+					scaleY: nextScaleY,
+					originX: startT.originX,
+					originY: startT.originY
+				});
+				return;
+			}
+
+			if (current.mode.kind === "origin") {
+				const M = current.fixedM!;
+				const pLocal = parentToLocalFixed(M, curParent);
+
+				const nextOriginX = clamp(pLocal.x / startT.width, 0, 1);
+				const nextOriginY = clamp(pLocal.y / startT.height, 0, 1);
+
+				const o = { x: nextOriginX * startT.width, y: nextOriginY * startT.height };
+				const { x, y } = leftTopFromFixedMatrix(M, o);
+
+				setT({ ...startT, x, y, originX: nextOriginX, originY: nextOriginY });
 				return;
 			}
 
@@ -304,6 +366,7 @@ export function ItemTransformEditor({
 			<VisualTransformGridOverlay
 				className={className}
 				frame={frame}
+				t={t}
 				onDragStart={beginDrag}
 				portalContainer={portalHost}
 			/>
@@ -351,21 +414,6 @@ function VisualTransformGridDomEffects({
 	setNonce,
 	children
 }: DomEffectsProps) {
-	// Important: the edited target can carry strict min-size presets.
-	// We neutralize them only while the editor is active so width/height drag remains predictable.
-	useEffect(() => {
-		if (!domOk || !active || !element) return;
-		const prevMinWidth = element.style.minWidth;
-		const prevMinHeight = element.style.minHeight;
-		element.style.minWidth = "0px";
-		element.style.minHeight = "0px";
-
-		return () => {
-			element.style.minWidth = prevMinWidth;
-			element.style.minHeight = prevMinHeight;
-		};
-	}, [domOk, active, element]);
-
 	// Important: apply live transform directly in px to avoid cqi runtime drift.
 	useEffect(() => {
 		if (!domOk || !active || !applyToElement || !element || !t) return;
@@ -402,11 +450,12 @@ function VisualTransformGridDomEffects({
 type OverlayProps = {
 	className?: string;
 	frame: { w: number; h: number; M: DOMMatrix };
+	t: ElementTransform;
 	onDragStart: (ev: { clientX: number; clientY: number }, mode: DragMode) => void;
 	portalContainer: HTMLElement;
 };
 
-function VisualTransformGridOverlay({ className, frame, onDragStart, portalContainer }: OverlayProps) {
+function VisualTransformGridOverlay({ className, frame, t, onDragStart, portalContainer }: OverlayProps) {
 	const { w, h, M } = frame;
 
 	const frameStyle: React.CSSProperties = {
@@ -444,7 +493,7 @@ function VisualTransformGridOverlay({ className, frame, onDragStart, portalConta
 				<div
 					style={{
 						position: "absolute",
-						left: "50%",
+						left: `${t.originX * 100}%`,
 						top: -26,
 						width: 14,
 						height: 14,
@@ -466,7 +515,7 @@ function VisualTransformGridOverlay({ className, frame, onDragStart, portalConta
 				<div
 					style={{
 						position: "absolute",
-						left: "50%",
+						left: `${t.originX * 100}%`,
 						top: -14,
 						width: 2,
 						height: 14,
@@ -474,6 +523,51 @@ function VisualTransformGridOverlay({ className, frame, onDragStart, portalConta
 						background: "rgba(37,99,235,0.8)"
 					}}
 				/>
+
+				<div
+					style={{
+						position: "absolute",
+						left: `${t.originX * 100}%`,
+						top: `${t.originY * 100}%`,
+						width: 14,
+						height: 14,
+						transform: "translate(-50%, -50%)",
+						borderRadius: 999,
+						background: "rgba(16,185,129,0.95)",
+						boxShadow: "0 1px 6px rgba(0,0,0,0.25)",
+						pointerEvents: "auto",
+						cursor: "move"
+					}}
+					onPointerDown={(e) => {
+						if (e.button !== 0) return;
+						e.preventDefault();
+						e.stopPropagation();
+						onDragStart(e, { kind: "origin" });
+					}}
+				>
+					<div
+						style={{
+							position: "absolute",
+							left: "50%",
+							top: "50%",
+							width: 8,
+							height: 2,
+							background: "white",
+							transform: "translate(-50%, -50%)"
+						}}
+					/>
+					<div
+						style={{
+							position: "absolute",
+							left: "50%",
+							top: "50%",
+							width: 2,
+							height: 8,
+							background: "white",
+							transform: "translate(-50%, -50%)"
+						}}
+					/>
+				</div>
 
 				<div
 					style={{

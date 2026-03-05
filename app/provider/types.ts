@@ -63,6 +63,9 @@ export interface ActiveState {
 	progress: number | null;
 	action: string | null;
 	event: string | null;
+	sequenceTouched: boolean;
+	sequenceFlushToken: number;
+	sequenceFlushReason: string | null;
 	eventTouched: boolean;
 	decorTouched: boolean;
 	themeTouched: boolean;

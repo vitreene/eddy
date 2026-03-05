@@ -9,7 +9,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 type EditTransformProps = {
 	onCommit: (
 		transform: ElementTransform,
-		mode: "move" | "rotate" | "resize-se" | "cell-snap",
+		mode: "move" | "rotate" | "resize-se" | "cell-snap" | "origin",
 		meta: { translateX: number; translateY: number }
 	) => void;
 };

@@ -12,16 +12,24 @@ import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind, normalizeCustomEventDraft, type CustomEventPosition } from "@/config/custom-events";
 import { getPlayerNode } from "@/player/node-resolver";
 import {
+	clearSequenceFlushRequest,
+	isSequenceAction,
+	markSequenceTouched,
+	requestSequenceFlush,
+	type SequenceFlushReason
+} from "./scene-reload-policy";
+import {
 	computeCueForSelectedCustomEvent,
 	executePersistTouchedCommits,
 	getMutationActivePayload,
 	getTouchedParams,
 	hasOwn,
+	mergeDecorStylePatch,
 	nextCustomAction,
 	seedCustomEventPlacement,
-	withGeneratedItemNodeIds,
 	withItemNodeIds
 } from "./scene-logic.helpers";
+import { initializeSceneContext } from "./scene-logic.init";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -40,6 +48,9 @@ const active: ActiveState = {
 	progress: null,
 	action: null,
 	event: null,
+	sequenceTouched: false,
+	sequenceFlushToken: 0,
+	sequenceFlushReason: null,
 	eventTouched: false,
 	decorTouched: false,
 	themeTouched: false
@@ -65,6 +76,8 @@ export const sceneLogic = setup({
 			| { type: "init"; payload: SceneComp }
 			| { type: "persist-touched" }
 			| { type: "active-set"; payload: Partial<ActiveState> }
+			| { type: "sequence-flush-request"; payload?: { reason?: SequenceFlushReason; force?: boolean } }
+			| { type: "sequence-flush-consumed"; payload?: { token?: number } }
 			| { type: "commit"; payload: Partial<ActiveState> }
 			| { type: "reset-active" }
 			| { type: "end-edit" }
@@ -214,7 +227,7 @@ export const sceneLogic = setup({
 			on: {
 				init: {
 					actions: assign(({ event }) => {
-						return { active, ...withGeneratedItemNodeIds(event.payload) };
+						return initializeSceneContext(event.payload, active);
 					}),
 					target: "#scene.edit"
 				}
@@ -224,6 +237,12 @@ export const sceneLogic = setup({
 		edit: {
 			type: "parallel",
 			initial: "active",
+			on: {
+				init: {
+					target: "#scene.edit",
+					actions: assign(({ context, event }) => initializeSceneContext(event.payload, context.active))
+				}
+			},
 			states: {
 				autosave: {
 					initial: "clean",
@@ -297,27 +316,65 @@ export const sceneLogic = setup({
 													: context.active.node;
 									const nextEvent =
 										"event" in payload ? (payload.event ?? null) : itemChanged ? null : context.active.event;
+									const sequenceActionFromPayload =
+										"action" in payload && typeof payload.action == "string" ? payload.action : null;
+									const shouldKeepCueOnSequenceDeselection =
+										"itemId" in payload && payload.itemId == null && isSequenceAction(sequenceActionFromPayload);
 
 									let cue =
-										"itemId" in payload ? (itemId ? computeActiveCue(context, itemId) : null) : context.active.cue;
+										"itemId" in payload
+											? shouldKeepCueOnSequenceDeselection
+												? context.active.cue
+												: itemId
+													? computeActiveCue(context, itemId)
+													: null
+											: context.active.cue;
 
 									if (itemId && "event" in payload && nextEvent) {
 										const eventCue = computeCueForSelectedCustomEvent(context, itemId, nextEvent);
 										if (typeof eventCue == "number" && Number.isFinite(eventCue)) cue = eventCue;
 									}
 
+									let nextActive = {
+										...context.active,
+										node: nextNode,
+										cue,
+										event: nextEvent,
+										...payload
+									};
+
+									const nextAction = typeof nextActive.action == "string" ? nextActive.action : null;
+									if (isSequenceAction(nextAction) && nextActive.sequenceTouched) {
+										nextActive = requestSequenceFlush(nextActive, "sequence-action");
+									}
+
 									return {
 										...context,
-										active: {
-											...context.active,
-											node: nextNode,
-											cue,
-											event: nextEvent,
-											...payload
-										}
+										active: nextActive
 									};
 								})
 							]
+						},
+						"sequence-flush-request": {
+							actions: assign(({ context, event }) => {
+								const shouldFlush = event.payload?.force || context.active.sequenceTouched;
+								if (!shouldFlush) return context;
+								const reason = event.payload?.reason || "manual";
+								return {
+									...context,
+									active: requestSequenceFlush(context.active, reason)
+								};
+							})
+						},
+						"sequence-flush-consumed": {
+							actions: assign(({ context, event }) => {
+								const expectedToken = Number(event.payload?.token);
+								if (expectedToken && expectedToken !== context.active.sequenceFlushToken) return context;
+								return {
+									...context,
+									active: clearSequenceFlushRequest(context.active)
+								};
+							})
 						},
 						commit: {
 							actions: [
@@ -348,7 +405,7 @@ export const sceneLogic = setup({
 									};
 
 									const active = {
-										...context.active,
+										...markSequenceTouched(context.active),
 										capsuleTouched: true
 									};
 
@@ -386,8 +443,6 @@ export const sceneLogic = setup({
 							actions: [
 								assign(({ context, event }) => {
 									const { decor, ...payload } = event.payload;
-									console.log({ decor });
-
 									if (!decor) return context;
 									const decorId = decor.id;
 									const itemId = context.active.itemId!;
@@ -404,14 +459,11 @@ export const sceneLogic = setup({
 										},
 										decors: {
 											...context.decors,
-											[decorId]: {
-												...context.decors?.[decorId],
-												...decor
-											}
+											[decorId]: mergeDecorStylePatch(context.decors?.[decorId], decor)
 										},
 
 										active: {
-											...context.active,
+											...markSequenceTouched(context.active),
 											decorTouched: true
 										}
 									};
@@ -485,7 +537,8 @@ export const sceneLogic = setup({
 											...current,
 											...event.payload
 										}
-									}
+									},
+									active: markSequenceTouched(context.active)
 								};
 							})
 						},
@@ -507,7 +560,7 @@ export const sceneLogic = setup({
 											}
 										},
 										active: {
-											...context.active,
+											...markSequenceTouched(context.active),
 											eventTouched: true
 										}
 									};
@@ -556,7 +609,7 @@ export const sceneLogic = setup({
 											}
 										},
 										active: {
-											...context.active,
+											...markSequenceTouched(context.active),
 											event: action,
 											eventTouched: true
 										}
@@ -601,7 +654,7 @@ export const sceneLogic = setup({
 											}
 										},
 										active: {
-											...context.active,
+											...markSequenceTouched(context.active),
 											eventTouched: true
 										}
 									};
@@ -632,7 +685,7 @@ export const sceneLogic = setup({
 											[itemId]: nextEvents
 										},
 										active: {
-											...context.active,
+											...markSequenceTouched(context.active),
 											event: context.active.event === event.payload.action ? null : context.active.event,
 											eventTouched: true
 										}
@@ -648,7 +701,8 @@ export const sceneLogic = setup({
 									contents: {
 										...context.contents,
 										[event.payload.id]: event.payload
-									}
+									},
+									active: markSequenceTouched(context.active)
 								};
 							})
 						}
@@ -670,7 +724,7 @@ export const sceneLogic = setup({
 									};
 
 									const active = {
-										...context.active,
+										...markSequenceTouched(context.active),
 										themeTouched: true
 									};
 
@@ -708,7 +762,12 @@ export const sceneLogic = setup({
 										assign(({ context, event }) => {
 											const { capsules, items, moved } = reorderElements(context, event.payload);
 											if (moved) updateOrder(moved);
-											return { ...context, capsules, items };
+											return {
+												...context,
+												capsules,
+												items,
+												active: markSequenceTouched(context.active)
+											};
 										})
 									]
 								}
@@ -724,11 +783,19 @@ export const sceneLogic = setup({
 									actions: [
 										assign(({ context, event }) => {
 											const nextContext = applyTreeMutation(context, event.output as TreeMutationResponse);
-											return { ...nextContext, items: withItemNodeIds(nextContext.items) };
+											return {
+												...nextContext,
+												items: withItemNodeIds(nextContext.items),
+												active: markSequenceTouched(nextContext.active)
+											};
 										}),
 										raise(({ event }) => ({
 											type: "active-set",
 											payload: getMutationActivePayload(event.output as TreeMutationResponse)
+										})),
+										raise(() => ({
+											type: "sequence-flush-request",
+											payload: { reason: "tree-mutation", force: true }
 										})),
 										raise(({ event }) => ({
 											type: "commit",
@@ -748,17 +815,24 @@ export const sceneLogic = setup({
 								src: "capsuleReorder",
 								onDone: {
 									target: "#scene.edit",
-									actions: assign(({ context, event }) => {
-										if (event.output == "no-reorder") return context;
-										const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
-										const items = reorders.map((r) => ({
-											[r.id]: { ...context.items[r.id], order: r.order }
-										}));
-										return {
-											...context,
-											items: Object.assign({}, context.items, ...items)
-										};
-									})
+									actions: [
+										assign(({ context, event }) => {
+											if (event.output == "no-reorder") return context;
+											const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
+											const items = reorders.map((r) => ({
+												[r.id]: { ...context.items[r.id], order: r.order }
+											}));
+											return {
+												...context,
+												items: Object.assign({}, context.items, ...items),
+												active: markSequenceTouched(context.active)
+											};
+										}),
+										raise(() => ({
+											type: "sequence-flush-request",
+											payload: { reason: "tree-mutation", force: true }
+										}))
+									]
 								}
 							}
 						}

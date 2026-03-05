@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import type { Route } from "./+types/home";
 
 import { PlayerRunner, type PlayerProps } from "~/player";
@@ -36,8 +36,6 @@ interface HomeProps {
 }
 
 export default function Home({ loaderData }: Route.ComponentProps) {
-	console.log("**** HOME : loaderData ", loaderData);
-
 	return (
 		<SceneLogicContext.Provider>
 			<AppLayout data={loaderData} />
@@ -51,28 +49,25 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 		events: new Map(),
 		styles: ""
 	});
-	const previousSceneStateRef = useRef<SceneComp | null>(null);
 
 	const actorRef = SceneLogicContext.useActorRef();
-	useEffect(() => {
-		const subscription = actorRef.subscribe((snapshot) => {
-			const { active, ...state } = snapshot.context;
-			if (!Object.keys(state).length) return;
-			if (active.decorTouched) return;
-			if (!hasSceneDataChanged(previousSceneStateRef.current, state)) return;
-
-			previousSceneStateRef.current = state;
-			setScene(buildScene(state));
-		});
-
-		return () => subscription.unsubscribe();
-	}, [actorRef]);
+	const sequenceFlushToken = SceneLogicContext.useSelector(
+		(state) => Number(state.context.active.sequenceFlushToken) || 0
+	);
 
 	useEffect(() => {
 		actorRef.send({ type: "init", payload: data.scene });
 	}, [actorRef, data.scene]);
 
-	// console.log("SCENE", scene);
+	useEffect(() => {
+		if (!sequenceFlushToken) return;
+		const snapshot = actorRef.getSnapshot();
+		const { active, ...state } = snapshot.context;
+		if (!Object.keys(state).length) return;
+		setScene(buildScene(state));
+		actorRef.send({ type: "sequence-flush-consumed", payload: { token: sequenceFlushToken } });
+	}, [actorRef, sequenceFlushToken]);
+
 	return (
 		<main className="app-layout">
 			<section className="base-layout layout-menu">
@@ -100,19 +95,3 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 		</main>
 	);
 });
-
-function hasSceneDataChanged(previous: SceneComp | null, next: SceneComp): boolean {
-	if (!previous) return true;
-	return (
-		previous.id !== next.id ||
-		previous.title !== next.title ||
-		previous.main !== next.main ||
-		previous.events !== next.events ||
-		previous.sceneContents !== next.sceneContents ||
-		previous.capsules !== next.capsules ||
-		previous.items !== next.items ||
-		previous.contents !== next.contents ||
-		previous.decors !== next.decors ||
-		previous.theme !== next.theme
-	);
-}

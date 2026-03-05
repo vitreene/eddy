@@ -73,10 +73,7 @@ export function VisualTransformEditor({
 	const ptr = useMemo(() => createPointerConverters(), []);
 
 	// Layout reference used to project local coordinates into the parent space.
-	const offsetParent = useMemo(() => {
-		if (!element) return null;
-		return getOffsetParent(element);
-	}, [element]);
+	const offsetParent = element ? getOffsetParent(element) : null;
 
 	// Prevents re-applying transform right after initial DOM read.
 	const skipApplyOnceRef = useRef(false);
@@ -393,19 +390,6 @@ function VisualTransformEditorDomEffects({
 	setNonce,
 	children
 }: VisualTransformEditorDomEffectsProps) {
-	useEffect(() => {
-		if (!domOk || !active || !element) return;
-		const prevMinWidth = element.style.minWidth;
-		const prevMinHeight = element.style.minHeight;
-		element.style.minWidth = "0px";
-		element.style.minHeight = "0px";
-
-		return () => {
-			element.style.minWidth = prevMinWidth;
-			element.style.minHeight = prevMinHeight;
-		};
-	}, [domOk, active, element]);
-
 	// Applies the latest transform to the target element after drag/state updates.
 	useEffect(() => {
 		if (!domOk || !active || !applyToElement || !element || !t) return;

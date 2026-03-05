@@ -61,10 +61,9 @@ function createNode(perso: Perso) {
 				}
 				styleForAnime[styleKey] = styleValue as string | number;
 			}
-			// if (styleForAnime.height) styleForAnime.height = `${styleForAnime.height}px`;
+
 			if (Object.keys(styleForAnime).length) {
 				utils.set($el, styleForAnime);
-				console.log($el, styleForAnime);
 			}
 		}
 		if (k == "className")

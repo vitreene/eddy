@@ -291,6 +291,37 @@ export function getTouchedParams(context: SceneComp & { active: ActiveState }): 
 	return params;
 }
 
+export function mergeDecorStylePatch(currentDecor: Decor | undefined, incomingDecor: Decor): Decor {
+	const baseDecor = currentDecor || incomingDecor;
+	const nextDecor: Decor = {
+		...baseDecor,
+		...incomingDecor
+	};
+
+	if (incomingDecor.style === null) {
+		nextDecor.style = {};
+		return nextDecor;
+	}
+
+	if (!incomingDecor.style || typeof incomingDecor.style !== "object") {
+		return nextDecor;
+	}
+
+	const currentStyle =
+		currentDecor?.style && typeof currentDecor.style === "object"
+			? { ...(currentDecor.style as Record<string, unknown>) }
+			: {};
+	const patchStyle = incomingDecor.style as Record<string, unknown>;
+
+	for (const [key, value] of Object.entries(patchStyle)) {
+		if (typeof value === "undefined" || value === null) delete currentStyle[key];
+		else currentStyle[key] = value;
+	}
+
+	nextDecor.style = currentStyle;
+	return nextDecor;
+}
+
 export function getItemFromCapsule(
 	capsuleId: number | null | undefined,
 	context: SceneComp & { active: ActiveState }
