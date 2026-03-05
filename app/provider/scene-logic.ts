@@ -189,19 +189,16 @@ export const sceneLogic = setup({
 				body: formData
 			});
 		},
-		deleteCustomEvent: async ({ context }, params: { action: string }) => {
-			const itemId = context.active.itemId;
-			if (!itemId) return;
-			const eventId = context.events[itemId]?.[params.action]?.id;
-			if (!eventId) return;
+		deleteCustomEvent: async (_, params: { itemId: number; eventId: number }) => {
+			if (!params?.itemId || !params?.eventId) return;
 
-			void fetch(`/api/content/${itemId}`, {
+			void fetch(`/api/content/${params.itemId}`, {
 				method: "DELETE",
 				headers: {
 					Accept: "application/json",
 					"Content-Type": "application/json"
 				},
-				body: JSON.stringify({ eventId })
+				body: JSON.stringify({ eventId: params.eventId })
 			});
 		}
 	},
@@ -343,6 +340,21 @@ export const sceneLogic = setup({
 										...payload
 									};
 
+									if (itemId && "event" in payload && nextEvent) {
+										const selectedEvent = context.events[itemId]?.[nextEvent];
+										if (
+											selectedEvent &&
+											deriveEventKind(selectedEvent.action) === "custom" &&
+											typeof cue == "number" &&
+											Number.isFinite(cue)
+										) {
+											nextActive = {
+												...nextActive,
+												action: "seek"
+											};
+										}
+									}
+
 									const nextAction = typeof nextActive.action == "string" ? nextActive.action : null;
 									if (isSequenceAction(nextAction) && nextActive.sequenceTouched) {
 										nextActive = requestSequenceFlush(nextActive, "sequence-action");
@@ -432,10 +444,15 @@ export const sceneLogic = setup({
 												...current,
 												visible: event.payload.visible
 											}
-										}
+										},
+										active: markSequenceTouched(context.active)
 									};
 								}),
-								{ type: "persistItemVisibility", params: ({ event }) => event.payload }
+								{ type: "persistItemVisibility", params: ({ event }) => event.payload },
+								raise(() => ({
+									type: "sequence-flush-request",
+									payload: { reason: "tree-mutation", force: true }
+								}))
 							]
 						},
 						"item-update": {
@@ -664,6 +681,18 @@ export const sceneLogic = setup({
 						},
 						"custom-event-delete": {
 							actions: [
+								{
+									type: "deleteCustomEvent",
+									params: ({ context, event }) => {
+										const itemId = context.active.itemId;
+										if (!itemId) return { itemId: 0, eventId: 0 };
+										const eventId = context.events[itemId]?.[event.payload.action]?.id;
+										return {
+											itemId,
+											eventId: typeof eventId == "number" ? eventId : 0
+										};
+									}
+								},
 								assign(({ context, event }) => {
 									const itemId = context.active.itemId;
 									if (!itemId) return context;
@@ -690,8 +719,7 @@ export const sceneLogic = setup({
 											eventTouched: true
 										}
 									};
-								}),
-								{ type: "deleteCustomEvent", params: ({ event }) => ({ action: event.payload.action }) }
+								})
 							]
 						},
 						"content-add": {

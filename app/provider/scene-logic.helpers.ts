@@ -1,5 +1,5 @@
 import { findCssClassRule } from "@/lib/merge-css-classes";
-import { INTRO, OUTRO } from "@/config/constants";
+import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { normalizeTransitionRef } from "@/config/transitions";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import {
@@ -260,6 +260,11 @@ export function computeCueForSelectedCustomEvent(
 	const cues = sceneContent?.events || [];
 	if (!cues.length) return null;
 
+	const seekTailSec =
+		typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0
+			? event.delay
+			: DEFAULT_DURATION / 1000;
+
 	if (event.name) {
 		const cue = cues.find((entry) => entry.name == event.name);
 		if (!cue) return null;
@@ -267,7 +272,7 @@ export function computeCueForSelectedCustomEvent(
 			| "start"
 			| "middle"
 			| "end";
-		return getCueTimeAtPosition(cue, position);
+		return getCueTimeAtPosition(cue, position) + seekTailSec;
 	}
 
 	if (typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0) {
@@ -276,7 +281,7 @@ export function computeCueForSelectedCustomEvent(
 		if (!introCue) return null;
 		const introStart = Number(introCue.start);
 		if (!Number.isFinite(introStart)) return null;
-		return introStart + event.delay;
+		return introStart + event.delay + seekTailSec;
 	}
 
 	return null;

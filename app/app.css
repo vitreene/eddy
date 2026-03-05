@@ -213,6 +213,22 @@ body {
 	color: aliceblue;
 	transform: scale(1.25);
 }
+
+.vte-reposition-cell {
+	box-sizing: border-box;
+	padding: 6px;
+	cursor: crosshair;
+	background: rgba(255, 255, 255, 0.8);
+	background-clip: content-box;
+	outline: 1px dashed rgba(255, 255, 255, 1);
+	opacity: 0.8;
+}
+
+.vte-reposition-cell.vte-reposition-cell-active {
+	background: rgba(255, 255, 255, 1);
+	opacity: 1;
+}
+
 .color-0 {
 	background-color: aliceblue;
 }

@@ -3,6 +3,7 @@ import { useCallback, useMemo } from "react";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { applyStyleDefaults, getDefaultStyleForContentType } from "@/config/item-style-defaults";
 import { deriveEventKind } from "@/config/custom-events";
+import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { SCENE_ID } from "@/player/constants";
 
 import { CapsuleEdit } from "./capsule-edit";
@@ -92,6 +93,9 @@ export function EditItem() {
 		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
 		return undefined;
 	});
+	const parentCapsule = SceneLogicContext.useSelector((state) =>
+		item ? state.context.capsules[item.capsuleId] : undefined
+	);
 
 	const onStyleChange = useCallback(
 		(payload: EditableStyle) => {
@@ -200,10 +204,62 @@ export function EditItem() {
 		(
 			transform: ElementTransform,
 			mode: "move" | "rotate" | "resize-se" | "cell-snap" | "origin",
-			meta: { translateX: number; translateY: number }
+			meta: {
+				translateX: number;
+				translateY: number;
+				cell?: { row: number; col: number };
+				reorderIndex?: number;
+			}
 		) => {
 			const targetDecor = activeCustomEventAction ? editDecor : decor;
 			if (!targetDecor) return;
+
+			if (mode === "cell-snap") {
+				const capsuleType = resolveCapsuleType(parentCapsule?.type);
+
+				if (capsuleType === CAPSULE_TYPES.LISTE && item) {
+					if (targetDecor.area) {
+						applyClassTokenPatch(activeNode, targetDecor.area ?? null, null);
+						send({
+							type: "item-update",
+							payload: {
+								decor: {
+									id: targetDecor.id,
+									area: null
+								} as Decor
+							}
+						});
+					}
+
+					if (typeof meta.reorderIndex === "number") {
+						send({
+							type: "tree-move-item",
+							payload: {
+								sourceId: item.id,
+								targetCapsuleId: item.capsuleId,
+								insertionIndex: meta.reorderIndex
+							}
+						});
+					}
+					return;
+				}
+
+				if (meta.cell) {
+					const nextArea = `cell-r${meta.cell.row}-c${meta.cell.col}`;
+					applyClassTokenPatch(activeNode, targetDecor.area ?? null, nextArea);
+					send({
+						type: "item-update",
+						payload: {
+							decor: {
+								id: targetDecor.id,
+								area: nextArea
+							} as Decor
+						}
+					});
+				}
+				return;
+			}
+
 			const currentStyle = ((targetDecor.style as EditableStyle) ?? {}) as Record<string, unknown>;
 
 			const candidate: EditableStyle = {
@@ -225,7 +281,7 @@ export function EditItem() {
 
 			onStyleChange(payload);
 		},
-		[onStyleChange, activeCustomEventAction, editDecor, decor]
+		[onStyleChange, activeCustomEventAction, editDecor, decor, parentCapsule?.type, item, send]
 	);
 
 	if (!item) return null;

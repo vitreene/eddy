@@ -2,6 +2,15 @@ import type { Route } from "../+types/root";
 import { addEventToContent, removeCustomEventFromContent, type TextTime, updateContent } from "./db";
 import { deriveEventKind } from "@/config/custom-events";
 
+export function shouldPersistEventPayload(action: string, texttime: TextTime | null | undefined): boolean {
+	if (!texttime) return false;
+	const kind = deriveEventKind(action);
+	if (kind !== "custom") return true;
+	const hasName = typeof texttime?.name == "string" && texttime.name.trim().length > 0;
+	const hasDelay = typeof (texttime as any)?.delay == "number";
+	return hasName || hasDelay;
+}
+
 export async function action({ request, params }: Route.ActionArgs) {
 	const { id } = params;
 	if (!id) return { ok: false };
@@ -41,16 +50,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 
 	const events = await Promise.all(
 		Object.entries(data)
-			.filter(([action, texttime]) => {
-				if (!texttime) return false;
-				const kind = deriveEventKind(action);
-				if (kind !== "custom") {
-					return typeof texttime?.name == "string" && texttime.name.trim().length > 0;
-				}
-				const hasName = typeof texttime?.name == "string" && texttime.name.trim().length > 0;
-				const hasDelay = typeof (texttime as any)?.delay == "number";
-				return hasName || hasDelay;
-			})
+			.filter(([action, texttime]) => shouldPersistEventPayload(action, texttime))
 			.map(([action, texttime]) =>
 				addEventToContent({
 					action,
