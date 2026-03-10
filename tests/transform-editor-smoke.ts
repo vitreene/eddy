@@ -4,6 +4,7 @@ import type { ElementTransform } from "@/components/position-editor/lib.types";
 import {
 	type TransformEditorMachineInput,
 	buildFrame,
+	mergeTransformFromInput,
 	transformEditorMachine
 } from "@/components/position-editor/transform-editor.machine";
 import { TransformEditorDomService } from "@/components/position-editor/transform-editor.service";
@@ -107,6 +108,32 @@ const frame = buildFrame(
 	null
 );
 assert(frame === null, "buildFrame should return null without offsetParent");
+
+const merged = mergeTransformFromInput(
+	{
+		x: 100,
+		y: 200,
+		width: 300,
+		height: 150,
+		rotate: 10,
+		scaleX: 2,
+		scaleY: 0.8,
+		originX: 0,
+		originY: 0
+	},
+	{
+		x: 25,
+		y: -12,
+		originX: 0.5,
+		originY: 0.5,
+		scaleX: 1,
+		scaleY: 1
+	}
+);
+
+assert(merged.x === 100 && merged.y === 200, "measured translation should stay runtime-driven");
+assert(merged.originX === 0.5 && merged.originY === 0.5, "input transform should override measured origin");
+assert(merged.scaleX === 1 && merged.scaleY === 1, "input transform should override measured scale");
 
 actor.stop();
 

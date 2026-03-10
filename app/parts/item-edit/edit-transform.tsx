@@ -10,6 +10,7 @@ import type { ElementTransform } from "@/components/position-editor/lib.types";
 import { SceneLogicContext } from "@/provider/scene-logic";
 
 type EditTransformProps = {
+	value?: Partial<ElementTransform>;
 	onCommit: (
 		transform: ElementTransform,
 		mode: "move" | "rotate" | "resize-se" | "cell-snap" | "origin",
@@ -22,7 +23,7 @@ type EditTransformProps = {
 	) => void;
 };
 
-export function EditTransform({ onCommit }: EditTransformProps) {
+export function EditTransform({ value, onCommit }: EditTransformProps) {
 	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
 	const item = SceneLogicContext.useSelector((state) =>
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
@@ -85,6 +86,7 @@ export function EditTransform({ onCommit }: EditTransformProps) {
 		<ItemTransformEditor
 			element={activeNode}
 			active={Boolean(activeNode)}
+			value={value}
 			onCommit={onCommit}
 			snapParentId={snapParentId}
 			snapGrid={snapGrid}

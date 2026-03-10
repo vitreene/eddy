@@ -24,7 +24,7 @@ export type TransformEditorMachineInput = {
 	snapParentElement?: HTMLElement | null;
 	snapParentId?: string | null;
 	snapGrid?: SnapGridSpec | null;
-	value?: ElementTransform;
+	value?: Partial<ElementTransform>;
 	applyToElement?: boolean;
 	minWidth?: number;
 	minHeight?: number;
@@ -54,6 +54,21 @@ type Ev =
 	| { type: "transform.resync"; transform: ElementTransform; base: { x: number; y: number } }
 	| { type: "drag.start"; mode: DragMode; clientX: number; clientY: number }
 	| { type: "drag.end" };
+
+export function mergeTransformFromInput(
+	measured: ElementTransform,
+	inputValue: Partial<ElementTransform> | null | undefined
+): ElementTransform {
+	if (!inputValue) return measured;
+	const next = { ...measured };
+	for (const key of ["rotate", "originX", "originY", "scaleX", "scaleY"] as const) {
+		const value = inputValue[key];
+		if (typeof value == "number" && Number.isFinite(value)) {
+			next[key] = value;
+		}
+	}
+	return next;
+}
 
 export const transformEditorMachine = createMachine(
 	{
@@ -111,7 +126,8 @@ export const transformEditorMachine = createMachine(
 				const domOk = canUseDOM(input.element);
 				const offsetParent = input.element ? getOffsetParent(input.element) : null;
 				const elementReady = domOk && active && input.element ? isElementRenderable(input.element) : false;
-				const t = elementReady && input.element ? readTransformPreserve(input.element) : null;
+				const measured = elementReady && input.element ? readTransformPreserve(input.element) : null;
+				const t = measured ? mergeTransformFromInput(measured, input.value) : null;
 				const basePosition =
 					elementReady && input.element && t ? getBasePositionWithoutTranslate(input.element, t) : null;
 				const portalHost =
@@ -192,24 +208,25 @@ export function buildFrame(
 ): { w: number; h: number; M: DOMMatrix } | null {
 	if (!t || !offsetParent) return null;
 	const parentToViewport = getViewportMatrix(offsetParent);
-	const displayWidth = Math.max(1, t.width * Math.abs(t.scaleX));
-	const displayHeight = Math.max(1, t.height * Math.abs(t.scaleY));
-	const pivotParent = {
-		x: t.x + t.originX * t.width,
-		y: t.y + t.originY * t.height
-	};
-	const frameTransform = {
-		...t,
-		width: displayWidth,
-		height: displayHeight,
-		x: pivotParent.x - t.originX * displayWidth,
-		y: pivotParent.y - t.originY * displayHeight,
-		scaleX: 1,
-		scaleY: 1
-	};
-	const localToParentMatrix = matrixFromElementTransform(frameTransform);
+	const localToParentMatrix = matrixFromElementTransform(t);
 	const localToViewport = parentToViewport.multiply(localToParentMatrix);
-	return { w: displayWidth, h: displayHeight, M: localToViewport };
+
+	const scaleX = Math.hypot(localToViewport.a, localToViewport.b) || 1;
+	const scaleY = Math.hypot(localToViewport.c, localToViewport.d) || 1;
+
+	const noScaleMatrix = new DOMMatrix([
+		localToViewport.a / scaleX,
+		localToViewport.b / scaleX,
+		localToViewport.c / scaleY,
+		localToViewport.d / scaleY,
+		localToViewport.e,
+		localToViewport.f
+	]);
+
+	const displayWidth = Math.max(1, t.width * scaleX);
+	const displayHeight = Math.max(1, t.height * scaleY);
+
+	return { w: displayWidth, h: displayHeight, M: noScaleMatrix };
 }
 
 function isElementRenderable(element: HTMLElement): boolean {

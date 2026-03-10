@@ -59,6 +59,40 @@ function getNeutralTransformValue(key: string): number | null {
 	return null;
 }
 
+function toFiniteNumber(value: unknown): number | null {
+	if (typeof value == "number" && Number.isFinite(value)) return value;
+	if (typeof value == "string") {
+		const parsed = Number.parseFloat(value);
+		if (Number.isFinite(parsed)) return parsed;
+	}
+	return null;
+}
+
+function getTransformValueFromStyle(style: EditableStyle | null | undefined): Partial<ElementTransform> {
+	const source = applyStyleDefaults(style) as Record<string, unknown>;
+	const x = toFiniteNumber(source.x);
+	const y = toFiniteNumber(source.y);
+	const width = toFiniteNumber(source.width);
+	const height = toFiniteNumber(source.height);
+	const rotate = toFiniteNumber(source.rotate);
+	const originX = toFiniteNumber(source.originX) ?? 0.5;
+	const originY = toFiniteNumber(source.originY) ?? 0.5;
+	const scaleX = toFiniteNumber(source.scaleX);
+	const scaleY = toFiniteNumber(source.scaleY);
+
+	return {
+		...(x != null ? { x } : {}),
+		...(y != null ? { y } : {}),
+		...(width != null ? { width } : {}),
+		...(height != null ? { height } : {}),
+		...(rotate != null ? { rotate } : {}),
+		...(originX != null ? { originX } : {}),
+		...(originY != null ? { originY } : {}),
+		...(scaleX != null ? { scaleX } : {}),
+		...(scaleY != null ? { scaleY } : {})
+	};
+}
+
 export function EditItem() {
 	const { send } = SceneLogicContext.useActorRef();
 
@@ -315,10 +349,11 @@ export function EditItem() {
 	);
 
 	if (!item) return null;
+	const transformValue = getTransformValueFromStyle(decor?.style as EditableStyle | undefined);
 
 	return (
 		<>
-			<EditTransform onCommit={onTransformCommit} />
+			<EditTransform value={transformValue} onCommit={onTransformCommit} />
 			{capsule ? (
 				<CapsuleEdit
 					content={content}

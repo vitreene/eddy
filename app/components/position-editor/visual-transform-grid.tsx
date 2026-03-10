@@ -18,7 +18,7 @@ type Props = {
 	snapParentElement?: HTMLElement | null;
 	snapParentId?: string | null;
 	snapGrid?: SnapGridSpec | null;
-	value?: ElementTransform;
+	value?: Partial<ElementTransform>;
 	applyToElement?: boolean;
 	minWidth?: number;
 	minHeight?: number;
