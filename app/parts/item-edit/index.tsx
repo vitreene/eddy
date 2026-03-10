@@ -10,6 +10,7 @@ import { CapsuleEdit } from "./capsule-edit";
 import { EditTransform } from "./edit-transform";
 import { ItemEditPanel } from "./item-edit-panel";
 import { applyLiveStyleOnNode } from "./live-node-style";
+import { applyClassTokenPatch } from "./live-node-classes";
 import { mergeDecorChain, resolveDecorBeforeCustomEvent } from "./item-edit.helpers";
 
 import type { Content, Decor, SceneComp } from "@/api/db";
@@ -56,24 +57,6 @@ function getNeutralTransformValue(key: string): number | null {
 	if (key === "x" || key === "y" || key === "rotate") return 0;
 	if (key === "scaleX" || key === "scaleY") return 1;
 	return null;
-}
-
-function applyClassTokenPatch(
-	node: HTMLElement | null,
-	previousValue: string | null,
-	nextValue: string | null
-) {
-	if (!node) return;
-	const previousTokens = (previousValue || "")
-		.split(" ")
-		.map((token) => token.trim())
-		.filter(Boolean);
-	const nextTokens = (nextValue || "")
-		.split(" ")
-		.map((token) => token.trim())
-		.filter(Boolean);
-	if (previousTokens.length) node.classList.remove(...previousTokens);
-	if (nextTokens.length) node.classList.add(...nextTokens);
 }
 
 export function EditItem() {

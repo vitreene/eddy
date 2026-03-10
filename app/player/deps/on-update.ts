@@ -65,7 +65,9 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						x: utils.get($el, "x"),
 						y: utils.get($el, "y"),
 						width: utils.get($el, "width"),
-						height: utils.get($el, "height")
+						height: utils.get($el, "height"),
+						originX: utils.get($el, "originX"),
+						originY: utils.get($el, "originY")
 					};
 
 					if (transitions.has(nextChange)) {

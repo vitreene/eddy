@@ -301,12 +301,23 @@ export class Player {
 		px: number,
 		py: number
 	): JSAnimation | undefined {
-		console.log("_createMoveTransition", $el, old, nex, px, py);
+		const isItem53 = $el.id === "item__53";
+		if (isItem53) {
+			console.log("[move:item_53] input", { old, nex, px, py });
+		}
 		const dx = old.x - nex.x;
 		const dy = old.y - nex.y;
-		if (dx === 0 && dy === 0 && old.width === nex.width && old.height === nex.height) return undefined;
+		if (dx === 0 && dy === 0 && old.width === nex.width && old.height === nex.height) {
+			if (isItem53) {
+				console.log("[move:item_53] skip", { dx, dy, old, nex, px, py });
+			}
+			return undefined;
+		}
 
 		const diff = getTransform($el).translate(-px, -py).invertSelf().transformPoint(new DOMPoint(dx, dy));
+		if (isItem53) {
+			console.log("[move:item_53] transition", { dx, dy, diff, old, nex, px, py });
+		}
 		return animate($el, {
 			x: { from: diff.x + px, to: 0 + px },
 			y: { from: diff.y + py, to: 0 + py },

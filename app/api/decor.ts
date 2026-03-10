@@ -57,10 +57,31 @@ function normalizeDecorPayload(
 ): Partial<Decor> {
 	const rawStyle = (decorData.style as Record<string, unknown>) ?? {};
 	const styleWithoutDebug = Object.fromEntries(Object.entries(rawStyle).filter(([key]) => key !== "outline"));
+	const roundedStyle = normalizeTransformPrecisionForPersist(styleWithoutDebug);
 
 	return {
 		...decorData,
 		area: shouldCapsuleUseExplicitArea(capsuleType) ? (decorData.area ?? null) : null,
-		style: stripDefaultStyleValues(styleWithoutDebug, contentType ?? undefined)
+		style: stripDefaultStyleValues(roundedStyle, contentType ?? undefined)
 	};
+}
+
+function normalizeTransformPrecisionForPersist(style: Record<string, unknown>): Record<string, unknown> {
+	const next = { ...style };
+
+	for (const key of ["x", "y", "rotate"] as const) {
+		const value = next[key];
+		if (typeof value !== "number" || !Number.isFinite(value)) continue;
+		const rounded = Math.round(value);
+		next[key] = Object.is(rounded, -0) ? 0 : rounded;
+	}
+
+	for (const key of ["originX", "originY", "scaleX", "scaleY"] as const) {
+		const value = next[key];
+		if (typeof value !== "number" || !Number.isFinite(value)) continue;
+		const rounded = Math.round(value * 100) / 100;
+		next[key] = Object.is(rounded, -0) ? 0 : rounded;
+	}
+
+	return next;
 }

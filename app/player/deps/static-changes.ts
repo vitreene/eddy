@@ -12,6 +12,8 @@ export interface Change {
 		y: number | string;
 		width: number | string;
 		height: number | string;
+		originX?: number | string;
+		originY?: number | string;
 	};
 	change: Partial<ActionAtributes>;
 }

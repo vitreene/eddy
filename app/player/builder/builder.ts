@@ -329,12 +329,14 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 		const parentId = buildNodeId("capsule", item.capsuleId);
 		const actions: Record<string | number, any> = {};
 		const autoAreaClassName = additionalClassnames[item.id];
+		let initialDecorState: DecorLike = decor;
 		let previousClassDecor: DecorLike = decor;
 		let previousDynamicClassName = buildDynamicClassName(capsule.type, previousClassDecor, autoAreaClassName);
 
 		if (events) {
 			const orderedEvents = getOrderedEventsForItem(snapshot, events);
 			let previousMs = 0;
+			let lastScheduledStartMs: number | null = null;
 			let previousStyleState = getInlineStyle(decor.style);
 			for (const entry of orderedEvents) {
 				const ev = entry.event;
@@ -345,6 +347,18 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 					const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
 					const targetStyle = getInlineStyle(targetDecor.style);
 					const nextDynamicClassName = buildDynamicClassName(capsule.type, targetDecor, autoAreaClassName);
+					const scheduledStartMs = previousMs;
+					const hasPreviousScheduledAction =
+						lastScheduledStartMs !== null && lastScheduledStartMs < scheduledStartMs;
+					const hasTransitionWindow = entry.startMs !== null && entry.startMs > previousMs;
+					if (!hasTransitionWindow || !hasPreviousScheduledAction) {
+						initialDecorState = targetDecor;
+						previousStyleState = { ...previousStyleState, ...targetStyle };
+						previousClassDecor = targetDecor;
+						previousDynamicClassName = nextDynamicClassName;
+						if (entry.startMs !== null) previousMs = entry.startMs;
+						continue;
+					}
 					const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
 					const layoutStyleChanged =
 						getStaticStyleClassName(previousClassDecor?.style) !== getStaticStyleClassName(targetDecor?.style);
@@ -357,6 +371,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 					if (classNameDiff) customAction.className = classNameDiff;
 					if (placementChanged || layoutStyleChanged) customAction.move = true;
 					actions[actionName] = customAction;
+					lastScheduledStartMs = scheduledStartMs;
 					previousStyleState = { ...previousStyleState, ...targetStyle };
 					previousClassDecor = targetDecor;
 					previousDynamicClassName = nextDynamicClassName;
@@ -371,6 +386,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 				} else {
 					actions[actionName] = { style: actionStyle };
 				}
+				if (entry.startMs !== null) lastScheduledStartMs = entry.startMs;
 				if (entry.startMs !== null) previousMs = entry.startMs;
 			}
 		} else {
@@ -393,11 +409,11 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 				id,
 				className: joinNodeClassNames(
 					capsule.grid,
-					decor.className || "",
-					getStaticStyleClassName(decor.style),
-					getEffectiveAreaClassName(capsule.type, decor.area, additionalClassnames[item.id])
+					initialDecorState.className || "",
+					getStaticStyleClassName(initialDecorState.style),
+					getEffectiveAreaClassName(capsule.type, initialDecorState.area, additionalClassnames[item.id])
 				),
-				style: getInlineStyle(decor.style)
+				style: getInlineStyle(initialDecorState.style)
 			},
 			actions
 		};
@@ -434,8 +450,10 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 
 	const orderedEvents = getOrderedEventsForItem(snapshot, events || {});
 	let previousMs = 0;
+	let lastScheduledStartMs: number | null = null;
 	let previousStyleState = getInlineStyle(decor.style);
 	const autoAreaClassName = additionalClassnames[item.id];
+	let initialDecorState: DecorLike = decor;
 	let previousClassDecor: DecorLike = decor;
 	let previousDynamicClassName = buildDynamicClassName(
 		snapshot.capsules[item.capsuleId]?.type,
@@ -455,6 +473,18 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 				targetDecor,
 				autoAreaClassName
 			);
+			const scheduledStartMs = previousMs;
+			const hasPreviousScheduledAction =
+				lastScheduledStartMs !== null && lastScheduledStartMs < scheduledStartMs;
+			const hasTransitionWindow = entry.startMs !== null && entry.startMs > previousMs;
+			if (!hasTransitionWindow || !hasPreviousScheduledAction) {
+				initialDecorState = targetDecor;
+				previousStyleState = { ...previousStyleState, ...targetStyle };
+				previousClassDecor = targetDecor;
+				previousDynamicClassName = nextDynamicClassName;
+				if (entry.startMs !== null) previousMs = entry.startMs;
+				continue;
+			}
 			const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
 			const layoutStyleChanged =
 				getStaticStyleClassName(previousClassDecor?.style) !== getStaticStyleClassName(targetDecor?.style);
@@ -471,6 +501,7 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 			if (classNameDiff) customAction.className = classNameDiff;
 			if (placementChanged || layoutStyleChanged) customAction.move = true;
 			actions[actionName] = customAction;
+			lastScheduledStartMs = scheduledStartMs;
 			previousStyleState = { ...previousStyleState, ...targetStyle };
 			previousClassDecor = targetDecor;
 			previousDynamicClassName = nextDynamicClassName;
@@ -485,6 +516,7 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 		} else {
 			actions[actionName] = { style: actionStyle };
 		}
+		if (entry.startMs !== null) lastScheduledStartMs = entry.startMs;
 		if (entry.startMs !== null) previousMs = entry.startMs;
 	}
 
@@ -499,15 +531,15 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 		tag,
 		...(move && { move }),
 		className: joinNodeClassNames(
-			decor?.className || "",
-			getStaticStyleClassName(decor?.style),
+			initialDecorState.className || "",
+			getStaticStyleClassName(initialDecorState.style),
 			getEffectiveAreaClassName(
 				snapshot.capsules[item.capsuleId]?.type,
-				decor?.area,
+				initialDecorState.area,
 				additionalClassnames[item.id]
 			)
 		),
-		style: getInlineStyle(decor?.style)
+		style: getInlineStyle(initialDecorState.style)
 	};
 
 	const type = itemType[content.type as keyof typeof itemType];
