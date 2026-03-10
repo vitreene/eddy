@@ -342,8 +342,8 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 				const eventKind = deriveEventKind(ev.action);
 
 				if (eventKind === "custom") {
-					const targetStyle = getDecorStyle(snapshot, ev.decorId);
 					const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
+					const targetStyle = getInlineStyle(targetDecor.style);
 					const nextDynamicClassName = buildDynamicClassName(capsule.type, targetDecor, autoAreaClassName);
 					const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
 					const layoutStyleChanged =
@@ -351,10 +351,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 					const placementChanged =
 						getEffectiveAreaClassName(capsule.type, previousClassDecor?.area, autoAreaClassName) !==
 						getEffectiveAreaClassName(capsule.type, targetDecor?.area, autoAreaClassName);
-					const durationMs =
-						typeof ev.duration == "number" && Number.isFinite(ev.duration) && ev.duration > 0
-							? Math.round(ev.duration * 1000)
-							: Math.max(DEFAULT_DURATION, (entry.startMs ?? previousMs + DEFAULT_DURATION) - previousMs);
+					const durationMs = Math.max(0, (entry.startMs ?? previousMs) - previousMs);
 					const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
 					const customAction: Record<string, unknown> = { style: customStyle };
 					if (classNameDiff) customAction.className = classNameDiff;
@@ -451,8 +448,8 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 		const eventKind = deriveEventKind(ev.action);
 
 		if (eventKind === "custom") {
-			const targetStyle = getDecorStyle(snapshot, ev.decorId);
 			const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
+			const targetStyle = getInlineStyle(targetDecor.style);
 			const nextDynamicClassName = buildDynamicClassName(
 				snapshot.capsules[item.capsuleId]?.type,
 				targetDecor,
@@ -468,10 +465,7 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 					autoAreaClassName
 				) !==
 				getEffectiveAreaClassName(snapshot.capsules[item.capsuleId]?.type, targetDecor?.area, autoAreaClassName);
-			const durationMs =
-				typeof ev.duration == "number" && Number.isFinite(ev.duration) && ev.duration > 0
-					? Math.round(ev.duration * 1000)
-					: Math.max(DEFAULT_DURATION, (entry.startMs ?? previousMs + DEFAULT_DURATION) - previousMs);
+			const durationMs = Math.max(0, (entry.startMs ?? previousMs) - previousMs);
 			const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
 			const customAction: Record<string, unknown> = { style: customStyle };
 			if (classNameDiff) customAction.className = classNameDiff;
@@ -687,19 +681,23 @@ function mapEvents(snapshot: SceneComp) {
 	for (const item of Object.values(snapshot.items || {})) {
 		const events = snapshot.events[item.id] || {};
 		const orderedEvents = getOrderedEventsForItem(snapshot, events);
+		let previousMs = 0;
 		for (const entry of orderedEvents) {
 			const ev = entry.event;
 			if (entry.startMs === null) continue;
 			if (entry.startMs > lastCue) lastCue = entry.startMs;
+			const kind = deriveEventKind(ev.action);
+			const scheduledStart = kind === "custom" ? previousMs : entry.startMs;
 
 			const mapped = {
 				name: buildEventActionName(ev),
-				start: entry.startMs
+				start: scheduledStart
 			};
 
-			const existing = map.get(entry.startMs) || [];
+			const existing = map.get(scheduledStart) || [];
 			existing.push(mapped);
-			map.set(entry.startMs, existing);
+			map.set(scheduledStart, existing);
+			previousMs = entry.startMs;
 		}
 	}
 	map.set(lastCue - DEFAULT_DURATION, [{ name: OUTRO, start: lastCue - DEFAULT_DURATION }]);
@@ -720,13 +718,10 @@ function getOrderedEventsForItem(
 		Object.values(snapshot.sceneContents)[0];
 	const cues = sceneContent?.events || [];
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-	const introCue = events[INTRO]?.name ? cueByName.get(events[INTRO]!.name || "") : null;
-	const outroCue = events[OUTRO]?.name ? cueByName.get(events[OUTRO]!.name || "") : null;
-
 	const result: OrderedEvent[] = [];
 	for (const event of Object.values(events || {})) {
 		if (!event) continue;
-		const startMs = resolveEventStartMs(event, cueByName, introCue || null, outroCue || null);
+		const startMs = resolveEventStartMs(event, cueByName);
 		result.push({ event, startMs });
 	}
 
@@ -738,12 +733,7 @@ function getOrderedEventsForItem(
 	});
 }
 
-function resolveEventStartMs(
-	event: ContentEvent,
-	cueByName: Map<string, TextTime>,
-	introCue: TextTime | null,
-	outroCue: TextTime | null
-): number | null {
+function resolveEventStartMs(event: ContentEvent, cueByName: Map<string, TextTime>): number | null {
 	const kind = deriveEventKind(event.action);
 	if (kind === "outro") {
 		const cue = event.name ? cueByName.get(event.name) : null;
@@ -764,15 +754,6 @@ function resolveEventStartMs(
 		return Math.round(getCueTimeAtPosition(cue, position) * 1000);
 	}
 
-	if (typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0 && introCue) {
-		const windowStart = Number(introCue.start);
-		const windowEnd = outroCue ? Number(outroCue.end) : Number.POSITIVE_INFINITY;
-		if (!Number.isFinite(windowStart)) return null;
-		const target = windowStart + event.delay;
-		const bounded = Number.isFinite(windowEnd) ? Math.min(target, windowEnd) : target;
-		return Math.round(Math.max(windowStart, bounded) * 1000);
-	}
-
 	return null;
 }
 
@@ -788,22 +769,15 @@ function buildEventActionName(event: ContentEvent): string {
 	return `${label}-${event.action}`;
 }
 
-function getDecorStyle(
-	snapshot: SceneComp,
-	decorId: number | null | undefined
-): Record<string, number | string> {
-	if (!decorId) return {};
-	const decor = snapshot.decors?.[decorId];
-	if (!decor) return {};
-	return getInlineStyle(decor.style);
-}
-
 function buildStyleInterpolation(
 	fromStyle: Record<string, number | string>,
 	toStyle: Record<string, number | string>,
 	durationMs: number
 ): ActionStyle {
 	const style: ActionStyle = {};
+	const hasTransformLikeChange = ["rotate", "scale", "scaleX", "scaleY", "skewX", "skewY"].some(
+		(key) => typeof toStyle[key] != "undefined" || typeof fromStyle[key] != "undefined"
+	);
 	for (const [key, to] of Object.entries(toStyle)) {
 		const from = fromStyle[key];
 		if (typeof from == "undefined" || from === to) {
@@ -811,6 +785,14 @@ function buildStyleInterpolation(
 		} else {
 			style[key] = { from, to, duration: durationMs };
 		}
+	}
+
+	if (
+		hasTransformLikeChange &&
+		typeof toStyle.transformOrigin == "undefined" &&
+		typeof fromStyle.transformOrigin == "undefined"
+	) {
+		style.transformOrigin = { to: "50% 50%", duration: durationMs };
 	}
 	return style;
 }
@@ -938,7 +920,31 @@ function getEventDecor(
 	fallback: DecorLike
 ): DecorLike {
 	if (!decorId) return fallback;
-	return (snapshot.decors?.[decorId] as DecorLike | undefined) || fallback;
+	const incoming = (snapshot.decors?.[decorId] as DecorLike | undefined) || null;
+	if (!incoming) return fallback;
+	if (isNeutralDecor(incoming)) return fallback;
+
+	const mergedStyle = {
+		...(fallback.style && typeof fallback.style == "object" ? (fallback.style as Record<string, unknown>) : {}),
+		...(incoming.style && typeof incoming.style == "object" ? (incoming.style as Record<string, unknown>) : {})
+	};
+
+	return {
+		...fallback,
+		...incoming,
+		className: incoming.className ?? fallback.className,
+		area: incoming.area ?? fallback.area,
+		style: mergedStyle
+	};
+}
+
+function isNeutralDecor(decor: DecorLike): boolean {
+	const hasClass = typeof decor.className == "string" && decor.className.trim().length > 0;
+	const hasArea = typeof decor.area == "string" && decor.area.trim().length > 0;
+	const hasStyle = Boolean(
+		decor.style && typeof decor.style == "object" && Object.keys(decor.style as Record<string, unknown>).length
+	);
+	return !hasClass && !hasArea && !hasStyle;
 }
 
 function buildDynamicClassName(

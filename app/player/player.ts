@@ -8,6 +8,7 @@ import { mixClassNames, setStaticChanges } from "./deps/static-changes";
 import { P } from "./types";
 import { getAbsoluteCoords, getTransform } from "./deps/utils";
 import { createFrameQueue, type FrameQueueController } from "./queue/frame-queue";
+import { DEFAULT_DURATION } from "../config/constants";
 
 import type { Change } from "./deps/static-changes";
 import type { ActionAtributes, ID, MapEvent, MediaStatus, Perso } from "./types";
@@ -312,7 +313,7 @@ export class Player {
 			width: { from: old.width, to: nex.width },
 			height: { from: old.height, to: nex.height },
 			autoplay: false,
-			duration: 1000,
+			duration: DEFAULT_DURATION,
 			composition: "none"
 		}).seek(0);
 	}

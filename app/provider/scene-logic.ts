@@ -355,8 +355,8 @@ export const sceneLogic = setup({
 										}
 									}
 
-									const nextAction = typeof nextActive.action == "string" ? nextActive.action : null;
-									if (isSequenceAction(nextAction) && nextActive.sequenceTouched) {
+									const shouldFlushFromPayload = isSequenceAction(sequenceActionFromPayload);
+									if (shouldFlushFromPayload && nextActive.sequenceTouched) {
 										nextActive = requestSequenceFlush(nextActive, "sequence-action");
 									}
 

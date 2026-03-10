@@ -25,7 +25,7 @@ const COMPONENT_TRANSFORM_DEBUG_KEYS = new Set([
 
 // Temporary debug switch: when true, transform keys are not persisted.
 // Remove this block when transform persistence is re-enabled.
-const DEBUG_SKIP_COMPONENT_TRANSFORM_PERSIST = true;
+const DEBUG_SKIP_COMPONENT_TRANSFORM_PERSIST = false;
 
 function serializeCapsuleTransition(value: unknown, action: "intro" | "outro"): string {
 	if (!value) return "";
@@ -252,18 +252,32 @@ export function computeCueForSelectedCustomEvent(
 	action: string
 ): number | null {
 	const event = context.events[itemId]?.[action];
-	if (!event || deriveEventKind(event.action) !== "custom") return null;
+	if (!event) return null;
 
 	const sceneContent =
 		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
 		Object.values(context.sceneContents || {})[0];
 	const cues = sceneContent?.events || [];
 	if (!cues.length) return null;
-
-	const seekTailSec =
-		typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0
-			? event.delay
+	const transitionDurationSec =
+		typeof event.duration == "number" && Number.isFinite(event.duration) && event.duration > 0
+			? event.duration
 			: DEFAULT_DURATION / 1000;
+
+	if (event.action === INTRO && event.name) {
+		const cue = cues.find((entry) => entry.name == event.name);
+		if (!cue) return null;
+		return getCueTimeAtPosition(cue, "start") + transitionDurationSec;
+	}
+
+	if (event.action === OUTRO && event.name) {
+		const cue = cues.find((entry) => entry.name == event.name);
+		if (!cue) return null;
+		const outroEnd = getCueTimeAtPosition(cue, "end");
+		return Math.max(getCueTimeAtPosition(cue, "start"), outroEnd - transitionDurationSec);
+	}
+
+	if (deriveEventKind(event.action) !== "custom") return null;
 
 	if (event.name) {
 		const cue = cues.find((entry) => entry.name == event.name);
@@ -272,16 +286,7 @@ export function computeCueForSelectedCustomEvent(
 			| "start"
 			| "middle"
 			| "end";
-		return getCueTimeAtPosition(cue, position) + seekTailSec;
-	}
-
-	if (typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0) {
-		const introName = context.events[itemId]?.[INTRO]?.name;
-		const introCue = introName ? cues.find((entry) => entry.name == introName) : null;
-		if (!introCue) return null;
-		const introStart = Number(introCue.start);
-		if (!Number.isFinite(introStart)) return null;
-		return introStart + event.delay + seekTailSec;
+		return getCueTimeAtPosition(cue, position);
 	}
 
 	return null;

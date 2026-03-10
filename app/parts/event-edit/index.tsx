@@ -19,6 +19,16 @@ const positionName = {
 	end: "fin"
 };
 
+function resolveEventLabel(
+	cues: Array<{ name: string; text: string }>,
+	cueName: string | null | undefined
+): string {
+	if (!cueName) return "(sans repere)";
+	const cue = cues.find((entry) => entry.name === cueName);
+	if (!cue) return cueName;
+	return cue.text || cue.name;
+}
+
 export function EditEvent() {
 	const item = SceneLogicContext.useSelector((state) => {
 		if (state.context.active.itemId) return state.context.items[state.context.active.itemId];
@@ -32,13 +42,19 @@ export function EditEvent() {
 		(state) => state.context.active.event as string | null
 	);
 	const activeEvent = activeEventAction ? events?.[activeEventAction] || null : null;
+	const cues = SceneLogicContext.useSelector((state) => {
+		const sceneContent =
+			Object.values(state.context.sceneContents).find((sc) => sc.sceneId == state.context.id) ||
+			Object.values(state.context.sceneContents)[0];
+		return sceneContent?.events || [];
+	});
 
 	if (!item) return null;
 	return (
 		<section className="flex gap-4">
 			<ContentInfos key={item.id} item={item} />
 			<div className="flex flex-col gap-2">
-				<EventParams event={activeEvent} events={events} />
+				<EventParams event={activeEvent} events={events} cues={cues} />
 				<Rubber />
 			</div>
 		</section>
@@ -47,10 +63,12 @@ export function EditEvent() {
 
 function EventParams({
 	event,
-	events
+	events,
+	cues
 }: {
 	event: ContentEvent | null;
 	events: Record<string, ContentEvent | undefined> | null;
+	cues: Array<{ name: string; text: string }>;
 }) {
 	const { send } = SceneLogicContext.useActorRef();
 	const kind = event ? deriveEventKind(event.action) : null;
@@ -65,6 +83,7 @@ function EventParams({
 	const delay = typeof event.delay === "number" ? Number(event.delay) : "";
 	const duration = typeof event.duration === "number" ? Number(event.duration) : "";
 	const position = (event.position as "start" | "middle" | "end" | null) ?? "middle";
+	const eventLabel = resolveEventLabel(cues, event.name);
 
 	const onUpdateCustom = (payload: {
 		name?: string | null;
@@ -83,13 +102,10 @@ function EventParams({
 		<div className="flex justify-start gap-4 rounded border p-2 text-xs">
 			{kind === "custom" ? (
 				<>
-					<input
-						type="text"
-						value={event.name || ""}
-						onChange={(e) => onUpdateCustom({ name: e.currentTarget.value, delay: null })}
-						className="h-7 max-w-48 min-w-0 flex-1 rounded border border-stone-300 px-2 text-xs"
-						placeholder="Nom de l'event"
-					/>
+					<div className="flex min-w-40 items-center gap-2 rounded border border-stone-300 px-2">
+						<span className="text-[10px] text-stone-500 uppercase">Label</span>
+						<span className="truncate">{eventLabel}</span>
+					</div>
 
 					<div className="flex items-center gap-2">
 						<label>Délai</label>
@@ -195,6 +211,12 @@ function ClearEvents() {
 function ContentInfos({ item }: { item: ItemComp }) {
 	const events = SceneLogicContext.useSelector((state) => state.context.events[item.id]);
 	const activeEvent = SceneLogicContext.useSelector((state) => state.context.active.event as string | null);
+	const cues = SceneLogicContext.useSelector((state) => {
+		const sceneContent =
+			Object.values(state.context.sceneContents).find((sc) => sc.sceneId == state.context.id) ||
+			Object.values(state.context.sceneContents)[0];
+		return sceneContent?.events || [];
+	});
 	const sceneLogic = SceneLogicContext.useActorRef();
 
 	const orderedEvents = [
@@ -228,7 +250,7 @@ function ContentInfos({ item }: { item: ItemComp }) {
 			</div>
 			<div className="rounded border p-1">
 				{orderedEvents.map((event) => (
-					<MediaEventTransition key={event.action} event={event} activeEvent={activeEvent} />
+					<MediaEventTransition key={event.action} event={event} activeEvent={activeEvent} cues={cues} />
 				))}
 			</div>
 		</div>
@@ -238,10 +260,12 @@ function ContentInfos({ item }: { item: ItemComp }) {
 // action == marker
 function MediaEventTransition({
 	event,
-	activeEvent
+	activeEvent,
+	cues
 }: {
 	event: Partial<ContentEvent> & { action: string };
 	activeEvent: string | null;
+	cues: Array<{ name: string; text: string }>;
 }) {
 	const sceneLogic = SceneLogicContext.useActorRef();
 	const isCustom = deriveEventKind(event.action) === "custom";
@@ -256,7 +280,8 @@ function MediaEventTransition({
 		sceneLogic.send({ type: "custom-event-delete", payload: { action: event.action } });
 	};
 
-	const label = event.name || event.action;
+	const label =
+		deriveEventKind(event.action) === "custom" ? resolveEventLabel(cues, event.name) : event.action;
 
 	return (
 		<div

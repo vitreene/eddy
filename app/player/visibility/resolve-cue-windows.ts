@@ -1,4 +1,5 @@
 import type { ContentEvent, ItemComp, SceneComp, TextTime } from "@/api/db";
+import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
 
 type Window = { start: number; end: number };
@@ -242,12 +243,17 @@ export function resolveCueWindows(
 
 				if (!baseEvents[item.id]) baseEvents[item.id] = {};
 				const currentEvents = baseEvents[item.id];
+				const hasCustomEvents = Object.values(currentEvents).some(
+					(event) => Boolean(event) && deriveEventKind(event!.action) === "custom"
+				);
+				const introStartSec = hasCustomEvents ? capsuleStart : appliedWindow.start;
+				const outroEndSec = hasCustomEvents ? capsuleEnd : appliedWindow.end;
 
 				if (generateMissingEvents && !currentEvents[INTRO]) {
 					currentEvents[INTRO] = createGeneratedEvent({
 						itemId: item.id,
 						action: INTRO,
-						name: ensureCueAtTime(appliedWindow.start, `${hintPrefix}_intro`, cueMode)
+						name: ensureCueAtTime(introStartSec, `${hintPrefix}_intro`, cueMode)
 					});
 				}
 
@@ -255,7 +261,7 @@ export function resolveCueWindows(
 					currentEvents[OUTRO] = createGeneratedEvent({
 						itemId: item.id,
 						action: OUTRO,
-						name: ensureCueAtTime(appliedWindow.end, `${hintPrefix}_outro`, cueMode)
+						name: ensureCueAtTime(outroEndSec, `${hintPrefix}_outro`, cueMode)
 					});
 				}
 

@@ -20,6 +20,44 @@ function sameStyleValue(a: unknown, b: unknown): boolean {
 	return Object.is(a, b);
 }
 
+function roundToInt(value: number): number {
+	const rounded = Math.round(value);
+	return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+function roundToTwoDecimals(value: number): number {
+	const rounded = Math.round(value * 100) / 100;
+	return Object.is(rounded, -0) ? 0 : rounded;
+}
+
+function normalizeTransformPrecision(payload: EditableStyle): EditableStyle {
+	const normalized: EditableStyle = { ...payload };
+	const intKeys: Array<keyof EditableStyle> = ["x", "y", "rotate"];
+	const twoDecimalKeys: Array<keyof EditableStyle> = ["originX", "originY", "scaleX", "scaleY"];
+
+	for (const key of intKeys) {
+		const value = normalized[key];
+		if (typeof value == "number" && Number.isFinite(value)) {
+			normalized[key] = roundToInt(value) as any;
+		}
+	}
+
+	for (const key of twoDecimalKeys) {
+		const value = normalized[key];
+		if (typeof value == "number" && Number.isFinite(value)) {
+			normalized[key] = roundToTwoDecimals(value) as any;
+		}
+	}
+
+	return normalized;
+}
+
+function getNeutralTransformValue(key: string): number | null {
+	if (key === "x" || key === "y" || key === "rotate") return 0;
+	if (key === "scaleX" || key === "scaleY") return 1;
+	return null;
+}
+
 function applyClassTokenPatch(
 	node: HTMLElement | null,
 	previousValue: string | null,
@@ -99,17 +137,19 @@ export function EditItem() {
 
 	const onStyleChange = useCallback(
 		(payload: EditableStyle) => {
+			const normalizedPayload = normalizeTransformPrecision(payload);
 			const targetDecor = activeCustomEventAction ? editDecor : decor;
 			if (!targetDecor) return;
+			const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as Record<string, unknown>;
 
-			const payloadStyleOnly = { ...payload };
+			const payloadStyleOnly = { ...normalizedPayload };
 			const hasArea = typeof payloadStyleOnly.area !== "undefined";
 			const hasClassName = typeof payloadStyleOnly.className !== "undefined";
 			if (hasArea) delete payloadStyleOnly.area;
 			if (hasClassName) delete payloadStyleOnly.className;
 
 			const currentPersistedStyle = ((targetDecor.style as EditableStyle) ?? {}) as Record<string, unknown>;
-			const currentUiStyle = applyStyleDefaults(currentPersistedStyle as EditableStyle, content?.type);
+			const currentUiStyle = applyStyleDefaults(effectiveCurrentStyle as EditableStyle, content?.type);
 			const defaults = getDefaultStyleForContentType(content?.type) as Record<string, unknown>;
 			const stylePatch: EditableStyle = {};
 			const liveStylePatch: EditableStyle = {};
@@ -120,21 +160,27 @@ export function EditItem() {
 				if (sameStyleValue(incomingValue, baselineValue)) continue;
 
 				const defaultValue = defaults[key];
-				const nextValue = sameStyleValue(incomingValue, defaultValue) ? null : incomingValue;
+				const neutralTransformValue = getNeutralTransformValue(key);
+				const shouldDropAsDefault =
+					sameStyleValue(incomingValue, defaultValue) ||
+					(typeof neutralTransformValue == "number" && sameStyleValue(incomingValue, neutralTransformValue));
+				const nextValue = shouldDropAsDefault ? null : incomingValue;
 				const previousValue = currentPersistedStyle[key];
 				if (sameStyleValue(nextValue, previousValue)) continue;
 				(stylePatch as Record<string, unknown>)[key] = nextValue;
 				(liveStylePatch as Record<string, unknown>)[key] = incomingValue;
 			}
 
-			const nextArea = hasArea ? (payload.area ?? null) : (targetDecor.area ?? null);
-			const nextClassName = hasClassName ? (payload.className ?? null) : (targetDecor.className ?? null);
+			const nextArea = hasArea ? (normalizedPayload.area ?? null) : (targetDecor.area ?? null);
+			const nextClassName = hasClassName
+				? (normalizedPayload.className ?? null)
+				: (targetDecor.className ?? null);
 			const areaChanged = hasArea && !sameStyleValue(nextArea, targetDecor.area ?? null);
 			const classNameChanged = hasClassName && !sameStyleValue(nextClassName, targetDecor.className ?? null);
 			if (!Object.keys(stylePatch).length && !areaChanged && !classNameChanged) return;
 
 			applyLiveStyleOnNode(activeNode, liveStylePatch, {
-				currentStyle: currentPersistedStyle as EditableStyle
+				currentStyle: effectiveCurrentStyle as EditableStyle
 			});
 			if (classNameChanged) {
 				applyClassTokenPatch(activeNode, targetDecor.className ?? null, nextClassName);
@@ -261,8 +307,9 @@ export function EditItem() {
 			}
 
 			const currentStyle = ((targetDecor.style as EditableStyle) ?? {}) as Record<string, unknown>;
+			const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as Record<string, unknown>;
 
-			const candidate: EditableStyle = {
+			const candidate = normalizeTransformPrecision({
 				x: meta.translateX,
 				y: meta.translateY,
 				rotate: transform.rotate,
@@ -270,11 +317,11 @@ export function EditItem() {
 				originY: transform.originY,
 				scaleX: transform.scaleX,
 				scaleY: transform.scaleY
-			};
+			});
 
 			const payload: EditableStyle = {};
 			for (const [key, value] of Object.entries(candidate)) {
-				if (sameStyleValue(currentStyle[key], value)) continue;
+				if (sameStyleValue(effectiveCurrentStyle[key], value)) continue;
 				(payload as Record<string, unknown>)[key] = value;
 			}
 			if (!Object.keys(payload).length) return;
