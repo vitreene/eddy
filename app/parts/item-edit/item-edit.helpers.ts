@@ -27,6 +27,51 @@ export function resolveDecorBeforeCustomEvent(
 	return resolved;
 }
 
+/**
+ * Resolve effective decor at selected event action time.
+ * - intro: base item decor
+ * - custom: base + previous customs + current custom decor
+ * - outro: base + all custom decors (state right before outro transition)
+ */
+export function resolveDecorAtEventAction(
+	context: SceneComp,
+	itemId: number,
+	action: string | null | undefined,
+	itemDecor: Decor | undefined
+): Decor | undefined {
+	// Contract lock:
+	// - INTRO => base decor
+	// - CUSTOM => base + previous customs + current custom
+	// - OUTRO => base + all customs (state right before outro transition)
+	// Keep tests in `item-edit-decor-resolution-smoke.ts` aligned with any changes.
+	if (!action) return itemDecor;
+	if (action === INTRO) return itemDecor;
+
+	const events = context.events[itemId] || {};
+	const orderedCustomEvents = getOrderedCustomEvents(context, events);
+	if (!orderedCustomEvents.length) return itemDecor;
+
+	if (action === OUTRO) {
+		let resolved = itemDecor;
+		for (const entry of orderedCustomEvents) {
+			if (!entry.event.decorId) continue;
+			const eventDecor = context.decors[entry.event.decorId];
+			if (!eventDecor) continue;
+			resolved = mergeDecorChain(resolved, eventDecor);
+		}
+		return resolved;
+	}
+
+	const currentEvent = events[action];
+	if (!currentEvent || deriveEventKind(currentEvent.action) !== "custom") return itemDecor;
+
+	const baseBeforeCurrent = resolveDecorBeforeCustomEvent(context, itemId, action, itemDecor);
+	if (!currentEvent.decorId) return baseBeforeCurrent;
+	const currentDecor = context.decors[currentEvent.decorId];
+	if (!currentDecor) return baseBeforeCurrent;
+	return mergeDecorChain(baseBeforeCurrent, currentDecor);
+}
+
 export function mergeDecorChain(base: Decor | undefined, override: Decor | undefined): Decor | undefined {
 	if (!base) return override;
 	if (!override) return base;

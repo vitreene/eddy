@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 
 import { applyLiveStyleOnNode } from "../app/parts/item-edit/live-node-style";
-import { applyClassTokenPatch } from "../app/parts/item-edit/live-node-classes";
+import {
+	applyAreaClassPatch,
+	applyClassTokenPatch,
+	ensureLiveAreaClassDefinition
+} from "../app/parts/item-edit/live-node-classes";
 
 type FakeStyle = Record<string, any> & {
 	setProperty: (key: string, value: string) => void;
@@ -15,6 +19,7 @@ class FakeHTMLElement {}
 function createFakeNode() {
 	const classTokens = new Set<string>();
 	const styleStore: Record<string, string> = {};
+	const styleNodes = new Map<string, any>();
 	const style: FakeStyle = {
 		setProperty: (key: string, value: string) => {
 			styleStore[key] = value;
@@ -22,6 +27,19 @@ function createFakeNode() {
 		removeProperty: (key: string) => {
 			delete styleStore[key];
 		}
+	};
+
+	const head = {
+		appendChild: (node: any) => {
+			if (node?.id) styleNodes.set(node.id, node);
+		}
+	};
+
+	const ownerDocument = {
+		defaultView: {},
+		head,
+		getElementById: (id: string) => styleNodes.get(id) || null,
+		createElement: (tag: string) => ({ tagName: tag.toUpperCase(), id: "", textContent: "" })
 	};
 
 	const node: any = {
@@ -37,10 +55,23 @@ function createFakeNode() {
 		offsetLeft: 0,
 		offsetTop: 0,
 		offsetParent: null,
-		ownerDocument: { defaultView: {} }
+		ownerDocument
 	};
 
-	return { node, styleStore, classTokens };
+	Object.defineProperty(node, "className", {
+		get() {
+			return Array.from(classTokens).join(" ");
+		},
+		set(value: string) {
+			classTokens.clear();
+			for (const token of String(value || "")
+				.split(/\s+/)
+				.filter(Boolean))
+				classTokens.add(token);
+		}
+	});
+
+	return { node, styleStore, classTokens, styleNodes };
 }
 
 function installComputedStyleMock() {
@@ -171,6 +202,25 @@ try {
 		assert.equal(classTokens.has("new"), true);
 		assert.equal(classTokens.has("badge"), true);
 		console.log("OK: slot/class patches are applied immediately on classList");
+	}
+
+	{
+		const { node, classTokens } = createFakeNode();
+		node.className = "foo cell_auto_grille-r2-c2";
+		applyAreaClassPatch(node, null, "cell-r1-c1");
+		assert.equal(classTokens.has("cell_auto_grille-r2-c2"), false);
+		assert.equal(classTokens.has("cell-r1-c1"), true);
+		assert.equal(classTokens.has("foo"), true);
+		console.log("OK: explicit area patch removes auto-placement tokens");
+	}
+
+	{
+		const { node, styleNodes } = createFakeNode();
+		ensureLiveAreaClassDefinition(node, "cell-r2-c3");
+		const styleEl = styleNodes.get("eddy-live-area-definitions");
+		assert.ok(styleEl);
+		assert.equal(String(styleEl.textContent || "").includes(".cell-r2-c3{"), true);
+		console.log("OK: live area css definition is injected for immediate slot move");
 	}
 
 	console.log("item edit live smoke: all checks passed");

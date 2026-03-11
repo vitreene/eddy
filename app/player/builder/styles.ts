@@ -99,6 +99,13 @@ function normalizeOriginToken(value: string | number): string {
 
 /**
  * Build deterministic generated class name for non-animatable style keys.
+ *
+ * Naming contract:
+ * - prefix: `ed-static-`
+ * - suffix: base36 hash of the normalized static style signature
+ *
+ * Example: `ed-static-josgry`
+ * (`josgry` is a hash suffix, not a semantic label)
  */
 export function getStaticStyleClassName(style: unknown): string {
 	const entries = extractStaticStyleEntries(style);

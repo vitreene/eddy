@@ -1,4 +1,5 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useMachine } from "@xstate/react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { applyStyleDefaults, getDefaultStyleForContentType } from "@/config/item-style-defaults";
@@ -11,10 +12,18 @@ import { CapsuleEdit } from "./capsule-edit";
 import { EditTransform } from "./edit-transform";
 import { ItemEditPanel } from "./item-edit-panel";
 import { applyLiveStyleOnNode } from "./live-node-style";
-import { applyClassTokenPatch } from "./live-node-classes";
-import { mergeDecorChain, resolveDecorBeforeCustomEvent } from "./item-edit.helpers";
+import {
+	applyAreaClassPatch,
+	applyClassTokenPatch,
+	ensureLiveAreaClassDefinition
+} from "./live-node-classes";
+import { resolveDecorAtEventAction } from "./item-edit.helpers";
 import { buildDefaultTransitionEventPatch, getCustomEventActions } from "./item-edit.reset";
 import { buildResetTransformStyle } from "./item-edit.transform";
+import { buildAutoPlacementLockPatch, readAutoPlacementSnapshot } from "./item-edit.auto-placement";
+import { buildEditableVisualState, projectEditableVisualStateToNode } from "./editable-visual-state";
+import { editorSyncMachine } from "./editor-sync.machine";
+import { computeCueForSelectedCustomEvent } from "@/provider/scene-logic.helpers";
 
 import type { Content, Decor, SceneComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
@@ -62,40 +71,6 @@ function getNeutralTransformValue(key: string): number | null {
 	return null;
 }
 
-function toFiniteNumber(value: unknown): number | null {
-	if (typeof value == "number" && Number.isFinite(value)) return value;
-	if (typeof value == "string") {
-		const parsed = Number.parseFloat(value);
-		if (Number.isFinite(parsed)) return parsed;
-	}
-	return null;
-}
-
-function getTransformValueFromStyle(style: EditableStyle | null | undefined): Partial<ElementTransform> {
-	const source = applyStyleDefaults(style) as Record<string, unknown>;
-	const x = toFiniteNumber(source.x);
-	const y = toFiniteNumber(source.y);
-	const width = toFiniteNumber(source.width);
-	const height = toFiniteNumber(source.height);
-	const rotate = toFiniteNumber(source.rotate);
-	const originX = toFiniteNumber(source.originX) ?? 0.5;
-	const originY = toFiniteNumber(source.originY) ?? 0.5;
-	const scaleX = toFiniteNumber(source.scaleX);
-	const scaleY = toFiniteNumber(source.scaleY);
-
-	return {
-		...(x != null ? { x } : {}),
-		...(y != null ? { y } : {}),
-		...(width != null ? { width } : {}),
-		...(height != null ? { height } : {}),
-		...(rotate != null ? { rotate } : {}),
-		...(originX != null ? { originX } : {}),
-		...(originY != null ? { originY } : {}),
-		...(scaleX != null ? { scaleX } : {}),
-		...(scaleY != null ? { scaleY } : {})
-	};
-}
-
 export function EditItem() {
 	const { send } = SceneLogicContext.useActorRef();
 
@@ -120,32 +95,27 @@ export function EditItem() {
 		if (!ev) return null;
 		return deriveEventKind(ev.action) === "custom" ? action : null;
 	});
-	const activeCustomEvent = activeCustomEventAction
-		? eventsByItem[item?.id || 0]?.[activeCustomEventAction]
-		: null;
+	const activeEventAction = SceneLogicContext.useSelector((state) => state.context.active.event ?? null);
+	const activeCueSec = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
+	const activePlaybackAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
 
 	const { decor, editDecor } = useMemo(() => {
 		if (!item) return { decor: undefined as Decor | undefined, editDecor: undefined as Decor | undefined };
-		if (
-			!activeCustomEvent ||
-			deriveEventKind(activeCustomEvent.action) !== "custom" ||
-			!activeCustomEvent.decorId
-		) {
-			return { decor: itemDecor, editDecor: itemDecor };
-		}
+		const context = { id: sceneId, events: eventsByItem, decors, sceneContents } as SceneComp;
+		const selectedAction = activeEventAction;
+		const resolvedDecor = resolveDecorAtEventAction(context, item.id, selectedAction, itemDecor);
 
-		const eventDecor = decors[activeCustomEvent.decorId];
-		if (!eventDecor) return { decor: itemDecor, editDecor: undefined };
+		const selectedEvent = selectedAction ? eventsByItem[item.id]?.[selectedAction] : null;
+		const selectedEventDecor =
+			selectedEvent && deriveEventKind(selectedEvent.action) === "custom" && selectedEvent.decorId
+				? decors[selectedEvent.decorId]
+				: itemDecor;
 
-		const baseBeforeEvent = resolveDecorBeforeCustomEvent(
-			{ id: sceneId, events: eventsByItem, decors, sceneContents } as SceneComp,
-			item.id,
-			activeCustomEvent.action,
-			itemDecor
-		);
-
-		return { decor: mergeDecorChain(baseBeforeEvent, eventDecor), editDecor: eventDecor };
-	}, [item, itemDecor, activeCustomEvent, decors, eventsByItem, sceneContents, sceneId]);
+		return {
+			decor: resolvedDecor,
+			editDecor: selectedEventDecor || itemDecor
+		};
+	}, [item, itemDecor, activeEventAction, decors, eventsByItem, sceneContents, sceneId]);
 
 	const capsule = SceneLogicContext.useSelector((state) => {
 		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
@@ -206,7 +176,8 @@ export function EditItem() {
 				applyClassTokenPatch(activeNode, targetDecor.className ?? null, nextClassName);
 			}
 			if (areaChanged) {
-				applyClassTokenPatch(activeNode, targetDecor.area ?? null, nextArea);
+				ensureLiveAreaClassDefinition(activeNode, nextArea);
+				applyAreaClassPatch(activeNode, targetDecor.area ?? null, nextArea);
 			}
 
 			send({
@@ -291,6 +262,86 @@ export function EditItem() {
 		[content]
 	);
 
+	const editableVisualState = useMemo(() => {
+		if (!item) return null;
+		return buildEditableVisualState({
+			itemId: item.id,
+			eventAction: activeEventAction,
+			cueSec: activeCueSec,
+			decor
+		});
+	}, [item, activeEventAction, activeCueSec, decor]);
+
+	const selectedEventCueSec = SceneLogicContext.useSelector((state) => {
+		const itemId = state.context.active.itemId;
+		const action = state.context.active.event;
+		if (!itemId || !action) return null;
+		return computeCueForSelectedCustomEvent(state.context as any, itemId, action);
+	});
+
+	const desiredEditorSyncKey = editableVisualState
+		? [
+				editableVisualState.itemId,
+				editableVisualState.eventAction ?? "",
+				editableVisualState.decorId ?? "",
+				editableVisualState.area ?? "",
+				editableVisualState.className ?? "",
+				JSON.stringify(editableVisualState.style || {})
+			].join("|")
+		: "";
+
+	const itemRef = useRef(item);
+	const activeNodeRef = useRef(activeNode);
+	useEffect(() => {
+		itemRef.current = item;
+		activeNodeRef.current = activeNode;
+	}, [item, activeNode]);
+
+	const [syncState, syncSend] = useMachine(editorSyncMachine, {
+		input: {
+			onSeek: (request) => {
+				const currentItem = itemRef.current;
+				if (!currentItem || !request.selectedEventAction) return;
+				send({
+					type: "active-set",
+					payload: {
+						itemId: currentItem.id,
+						contentId: currentItem.contentId,
+						event: request.selectedEventAction,
+						action: "seek",
+						cue: request.selectedEventCueSec
+					}
+				});
+			},
+			onProject: (request) => {
+				if (!request.selectedEventAction) return;
+				projectEditableVisualStateToNode(activeNodeRef.current, request.visualState);
+			}
+		}
+	});
+
+	useEffect(() => {
+		syncSend({
+			type: "sync.request",
+			payload: {
+				syncKey: desiredEditorSyncKey,
+				visualState: editableVisualState,
+				selectedEventAction: activeEventAction,
+				selectedEventCueSec,
+				activeCueSec,
+				activeAction: activePlaybackAction
+			}
+		});
+	}, [
+		syncSend,
+		desiredEditorSyncKey,
+		editableVisualState,
+		activeEventAction,
+		selectedEventCueSec,
+		activeCueSec,
+		activePlaybackAction
+	]);
+
 	const onTransformCommit = useCallback(
 		(
 			transform: ElementTransform,
@@ -304,6 +355,29 @@ export function EditItem() {
 		) => {
 			const targetDecor = activeCustomEventAction ? editDecor : decor;
 			if (!targetDecor) return;
+			const placementSnapshot = readAutoPlacementSnapshot(activeNode);
+			if (placementSnapshot) {
+				const lockPatch = buildAutoPlacementLockPatch({
+					capsuleType: parentCapsule?.type,
+					targetDecor,
+					snapshot: placementSnapshot
+				});
+				if (lockPatch) {
+					// Important: do not patch live classes here.
+					// During transform commit, changing placement classes before applying
+					// the transform payload can shift the measured base and create visual drift.
+					// Persist first; runtime rebuild applies the locked placement consistently.
+					send({
+						type: "item-update",
+						payload: {
+							decor: {
+								id: targetDecor.id,
+								...lockPatch
+							} as Decor
+						}
+					});
+				}
+			}
 
 			if (mode === "cell-snap") {
 				const capsuleType = resolveCapsuleType(parentCapsule?.type);
@@ -337,7 +411,8 @@ export function EditItem() {
 
 				if (meta.cell) {
 					const nextArea = `cell-r${meta.cell.row}-c${meta.cell.col}`;
-					applyClassTokenPatch(activeNode, targetDecor.area ?? null, nextArea);
+					ensureLiveAreaClassDefinition(activeNode, nextArea);
+					applyAreaClassPatch(activeNode, targetDecor.area ?? null, nextArea);
 					send({
 						type: "item-update",
 						payload: {
@@ -373,19 +448,26 @@ export function EditItem() {
 
 			onStyleChange(payload);
 		},
-		[onStyleChange, activeCustomEventAction, editDecor, decor, parentCapsule?.type, item, send]
+		[onStyleChange, activeCustomEventAction, editDecor, decor, parentCapsule?.type, item, send, activeNode]
 	);
 
 	const onResetTransform = useCallback(() => {
 		onStyleChange(buildResetTransformStyle());
 	}, [onStyleChange]);
 
+	const editorSyncKey = activeCustomEventAction ? syncState.context.projectedSyncKey : desiredEditorSyncKey;
+
 	if (!item) return null;
-	const transformValue = getTransformValueFromStyle(decor?.style as EditableStyle | undefined);
+	const transformValue = editableVisualState?.transform ?? {};
 
 	return (
 		<>
-			<EditTransform value={transformValue} onResetTransform={onResetTransform} onCommit={onTransformCommit} />
+			<EditTransform
+				value={transformValue}
+				editorSyncKey={editorSyncKey}
+				onResetTransform={onResetTransform}
+				onCommit={onTransformCommit}
+			/>
 			{capsule ? (
 				<CapsuleEdit
 					content={content}

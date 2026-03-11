@@ -33,3 +33,38 @@
 
 - Apres toute modif de seed custom-event, verifier explicitement la condition de persistance (`name` ou `delay`) pour eviter des creations visibles en UI mais non en base.
 - Ajouter un test qui couvre le mode degrade (pas de cues exploitables) avec fallback persistable.
+
+## 2026-03-11 — Eviter le drift pendant commit transform
+
+- Ne pas appliquer de patch de classes de placement en live au milieu d'un `transform commit` : cela change la base mesuree (`readTransformPreserve`) et peut decaler la position affichee vs editee.
+- Pour le lock auto-placement sur transform: persister le patch decor, puis laisser le runtime reappliquer de facon stable.
+
+## 2026-03-11 — Classes area live: eviter les conflits
+
+- Quand une `area` explicite est appliquee en live, supprimer les classes de placement auto (`cell_auto_*`, `liste-rN`) en meme temps; sinon l'ordre CSS peut conserver l'ancien placement visuel.
+- Ne pas supposer que `decor.area` prime automatiquement en live tant que l'etat de classes du node n'est pas nettoye.
+
+## 2026-03-11 — Selection custom et frame FLIP
+
+- Pour l'edition d'un custom-event, la cible visuelle attendue est souvent l'etat pre-FLIP; seeker exactement au keyframe affiche la premiere frame de transition, pas l'etat precedent.
+- Regle: pour la selection custom uniquement, utiliser une ancre `keyframe - 1ms` (bornee a 0) afin d'aligner la vue editeur avec l'etat attendu.
+
+## 2026-03-11 — Edit comme source de verite
+
+- En mode edit custom-event, si le DOM live et l'etat edit divergent, appliquer explicitement l'etat d'edition sur le node (au minimum `area`) au changement de selection.
+- Ne pas supposer qu'un seek timeline suffit toujours pour refléter l'etat edite au pixel pres.
+
+## 2026-03-11 — Unifier cadre de selection et DOM
+
+- Si l'UI d'edition applique des patches live sur le node (`class`/`style`), le cadre de selection doit re-mesurer le DOM sur ces mutations; sinon il suit un etat stale.
+- Regle: une seule geometrie de reference a l'ecran — celle du DOM courant — et le cadre derive de cette mesure via resync.
+
+## 2026-03-11 — DOM resync: fallback, pas source nominale
+
+- Le circuit `MutationObserver -> resync` peut debloquer rapidement, mais ne doit pas devenir la source de verite de l'edition.
+- Preferer un etat derive unique (`EditableVisualState`) pousse vers l'edit, le cadre et le DOM.
+
+## 2026-03-11 — Hooks et orchestration
+
+- Ne jamais introduire un hook apres un retour conditionnel (`if (!item) return null`) : verifier l'ordre des hooks apres chaque refactor.
+- Pour les chaines multi-etapes (seek -> projection -> frame), preferer une machine dediee plutot que des effets React implicites.

@@ -53,3 +53,15 @@
 
 - **Simplicity First**: Make every change as simple as possible. Impact minimal code.
 - **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
+
+## React / Architecture Rules
+
+- Use React only for editor DOM rendering concerns. Do not move player business logic into React components.
+- Keep business logic in plain functions/classes; keep app-level state in `scene-logic`.
+- Minimize `use*` hooks usage. Prefer deterministic pure helpers and explicit data flow.
+- If hooks are used, validate Rules of Hooks every time:
+  - no hook inside conditionals/loops/nested functions
+  - stable call order between renders
+- After hook changes, always check for potential infinite loops (effects/memos that trigger cascading updates).
+- For editor-view synchronization, prefer model-driven projection over DOM-observer-driven logic.
+- Do not add new rules to `AGENTS.md` unless the user explicitly asks for it.

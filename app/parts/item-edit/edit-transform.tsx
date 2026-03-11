@@ -12,6 +12,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 
 type EditTransformProps = {
 	value?: Partial<ElementTransform>;
+	editorSyncKey?: string;
 	onResetTransform: () => void;
 	onCommit: (
 		transform: ElementTransform,
@@ -25,7 +26,7 @@ type EditTransformProps = {
 	) => void;
 };
 
-export function EditTransform({ value, onResetTransform, onCommit }: EditTransformProps) {
+export function EditTransform({ value, editorSyncKey, onResetTransform, onCommit }: EditTransformProps) {
 	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
 	const item = SceneLogicContext.useSelector((state) =>
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
@@ -113,7 +114,7 @@ export function EditTransform({ value, onResetTransform, onCommit }: EditTransfo
 				onCommit={onCommit}
 				snapParentId={snapParentId}
 				snapGrid={snapGrid}
-				syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}`}
+				syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
 				overlayContainer={overlayContainer}
 			/>
 		</>

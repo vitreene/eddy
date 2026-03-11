@@ -7,6 +7,7 @@ import type { ContentEvent, SceneComp, TextTime } from "@/api/db";
 import { findSceneCueByName, getAssuredVisibleCue } from "./active-cue";
 
 const DEFAULT_DURATION_SEC = DEFAULT_DURATION / 1000;
+const CUSTOM_SELECTION_PRE_FLIP_SEC = 0.001;
 
 /**
  * Resolve the seek cue for event selection.
@@ -20,20 +21,65 @@ export function resolveSelectedEventCueSec(
 	itemId: number,
 	action: string
 ): number | null {
+	// Contract lock:
+	// - INTRO selection anchors on visible start (or explicit intro anchor)
+	// - CUSTOM selection anchors pre-FLIP
+	// - OUTRO selection anchors on outro start (end - duration), including implicit outro
+	// Keep tests in `event-selection-auto-fallback-smoke.ts` and
+	// `custom-event-preflip-selection-smoke.ts` aligned with any changes here.
 	const event = context.events?.[itemId]?.[action];
-	if (!event) return null;
+	const assured = getAssuredVisibleCue(context, itemId);
+
+	if (!event) {
+		if (!Number.isFinite(assured.window.startSec) || !Number.isFinite(assured.window.endSec)) return null;
+		if (assured.window.startSec > assured.window.endSec) return null;
+		if (action === OUTRO) {
+			const outroImplicit = resolveImplicitOutroStartSec(assured.window.endSec, DEFAULT_DURATION_SEC);
+			debugEventSelection(
+				itemId,
+				action,
+				"implicit-outro-missing-event",
+				assured.window.startSec,
+				assured.window.endSec,
+				outroImplicit
+			);
+			return clampSec(outroImplicit, assured.window.startSec, assured.window.endSec);
+		}
+		if (action === INTRO) return assured.window.startSec;
+		return null;
+	}
 
 	const anchorSec = resolveEventAnchorSec(context, itemId, event);
-	const assured = getAssuredVisibleCue(context, itemId);
 
 	if (!Number.isFinite(assured.window.startSec) || !Number.isFinite(assured.window.endSec)) {
 		return Number.isFinite(anchorSec) ? anchorSec : null;
 	}
 
 	if (assured.window.startSec > assured.window.endSec) return null;
-	if (!Number.isFinite(anchorSec)) return assured.window.startSec;
+	if (!Number.isFinite(anchorSec)) {
+		if (event.action === OUTRO) {
+			const outroImplicit = resolveImplicitOutroStartSec(
+				assured.window.endSec,
+				resolveTransitionDurationSec(event)
+			);
+			debugEventSelection(
+				itemId,
+				action,
+				"implicit-outro-no-anchor",
+				assured.window.startSec,
+				assured.window.endSec,
+				outroImplicit
+			);
+			return clampSec(outroImplicit, assured.window.startSec, assured.window.endSec);
+		}
+		return assured.window.startSec;
+	}
 
-	return clampSec(anchorSec, assured.window.startSec, assured.window.endSec);
+	const resolved = clampSec(anchorSec, assured.window.startSec, assured.window.endSec);
+	if (itemId === 55 && action === OUTRO) {
+		debugEventSelection(itemId, action, "explicit", assured.window.startSec, assured.window.endSec, resolved);
+	}
+	return resolved;
 }
 
 /**
@@ -52,7 +98,7 @@ export function resolveEventAnchorSec(
 		const cue = findSceneCueByName(context, event.name);
 		if (!cue) return null;
 		const position = normalizeCustomPosition(event.position);
-		return getCueTimeAtPosition(cue, position);
+		return toPreFlipAnchor(getCueTimeAtPosition(cue, position));
 	}
 
 	if (typeof event.delay === "number" && Number.isFinite(event.delay) && event.delay >= 0) {
@@ -60,7 +106,7 @@ export function resolveEventAnchorSec(
 		if (!introEvent) return null;
 		const introAnchor = resolveIntroAnchorSec(context, introEvent);
 		if (!Number.isFinite(introAnchor)) return null;
-		return introAnchor + event.delay;
+		return toPreFlipAnchor(introAnchor + event.delay);
 	}
 
 	return null;
@@ -75,7 +121,8 @@ function resolveIntroAnchorSec(context: SceneComp, event: ContentEvent): number 
 function resolveOutroAnchorSec(context: SceneComp, event: ContentEvent): number | null {
 	const cue = findSceneCueByName(context, event.name);
 	if (!cue) return null;
-	return cue.end;
+	const durationSec = resolveTransitionDurationSec(event);
+	return cue.end - durationSec;
 }
 
 function resolveTransitionDurationSec(event: ContentEvent): number {
@@ -93,6 +140,39 @@ function clampSec(value: number, min: number, max: number): number {
 	if (value < min) return min;
 	if (value > max) return max;
 	return value;
+}
+
+function resolveImplicitOutroStartSec(outroEndSec: number, durationSec: number): number {
+	if (!Number.isFinite(outroEndSec)) return outroEndSec;
+	const safeDuration = Number.isFinite(durationSec) && durationSec > 0 ? durationSec : DEFAULT_DURATION_SEC;
+	return Math.max(0, outroEndSec - safeDuration);
+}
+
+function debugEventSelection(
+	itemId: number,
+	action: string,
+	mode: string,
+	windowStartSec: number,
+	windowEndSec: number,
+	resolvedCueSec: number
+) {
+	if (itemId !== 55) return;
+	console.log("[editor-sync][event-selection]", {
+		itemId,
+		action,
+		mode,
+		windowStartSec,
+		windowEndSec,
+		resolvedCueSec
+	});
+}
+
+/**
+ * Shift custom selection anchor just before keyframe to expose pre-FLIP state.
+ */
+function toPreFlipAnchor(keyframeSec: number): number {
+	if (!Number.isFinite(keyframeSec)) return keyframeSec;
+	return Math.max(0, keyframeSec - CUSTOM_SELECTION_PRE_FLIP_SEC);
 }
 
 export function resolveSceneCueByName(
