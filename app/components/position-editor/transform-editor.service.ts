@@ -79,6 +79,23 @@ type StartDragInput = {
 	onEnd: () => void;
 };
 
+export function computeNextResizeScale({
+	startScale,
+	startSize,
+	deltaLocal,
+	minSize
+}: {
+	startScale: number;
+	startSize: number;
+	deltaLocal: number;
+	minSize: number;
+}): number {
+	const baseSize = Math.max(1, startSize);
+	const rawScale = startScale * ((startSize + deltaLocal) / baseSize);
+	const minScale = minSize / baseSize;
+	return Math.max(minScale, rawScale);
+}
+
 export class TransformEditorDomService {
 	private portalHost: HTMLElement | null = null;
 	private portalContainer: HTMLElement | null = null;
@@ -238,15 +255,23 @@ export class TransformEditorDomService {
 					y: curParent.y - dragState.startPointerParent.y
 				};
 				const deltaLocal = parentDeltaToLocalDelta(startT, deltaParent);
-				let nextScaleX = (startT.width + deltaLocal.x) / Math.max(1, startT.width);
-				let nextScaleY = (startT.height + deltaLocal.y) / Math.max(1, startT.height);
+				let nextScaleX = computeNextResizeScale({
+					startScale: startT.scaleX,
+					startSize: startT.width,
+					deltaLocal: deltaLocal.x,
+					minSize: minWidth
+				});
+				let nextScaleY = computeNextResizeScale({
+					startScale: startT.scaleY,
+					startSize: startT.height,
+					deltaLocal: deltaLocal.y,
+					minSize: minHeight
+				});
 				if (!e.shiftKey) {
 					const uniformScale = Math.max(nextScaleX, nextScaleY);
 					nextScaleX = uniformScale;
 					nextScaleY = uniformScale;
 				}
-				nextScaleX = Math.max(minWidth / Math.max(1, startT.width), nextScaleX);
-				nextScaleY = Math.max(minHeight / Math.max(1, startT.height), nextScaleY);
 				const anchorParent = dragState.anchorTopLeftParent || localToParent(startT, { x: 0, y: 0 });
 				const { x, y } = solveLeftTopForAnchor(
 					anchorParent,

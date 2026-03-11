@@ -7,7 +7,10 @@ import {
 	mergeTransformFromInput,
 	transformEditorMachine
 } from "@/components/position-editor/transform-editor.machine";
-import { TransformEditorDomService } from "@/components/position-editor/transform-editor.service";
+import {
+	computeNextResizeScale,
+	TransformEditorDomService
+} from "@/components/position-editor/transform-editor.service";
 
 function assert(condition: unknown, message: string) {
 	if (!condition) throw new Error(message);
@@ -134,6 +137,22 @@ const merged = mergeTransformFromInput(
 assert(merged.x === 100 && merged.y === 200, "measured translation should stay runtime-driven");
 assert(merged.originX === 0.5 && merged.originY === 0.5, "input transform should override measured origin");
 assert(merged.scaleX === 1 && merged.scaleY === 1, "input transform should override measured scale");
+
+const resizeScaleNoDelta = computeNextResizeScale({
+	startScale: 2,
+	startSize: 200,
+	deltaLocal: 0,
+	minSize: 8
+});
+assert(resizeScaleNoDelta === 2, "resize should start from current scale when no pointer delta");
+
+const resizeScaleWithGrowth = computeNextResizeScale({
+	startScale: 2,
+	startSize: 200,
+	deltaLocal: 50,
+	minSize: 8
+});
+assert(resizeScaleWithGrowth === 2.5, "resize should apply local growth on top of current scale");
 
 actor.stop();
 
