@@ -97,11 +97,16 @@ export interface ClassNameAction {
 	remove?: string;
 }
 
+export interface AutoMoveAction {
+	mode: "auto";
+	clearTransforms?: boolean;
+}
+
 export interface ActionAtributes {
 	attr: Record<string, string>;
 	style: AnimationParams;
 	className: string | ClassNameAction;
-	move: boolean | string;
+	move: boolean | string | AutoMoveAction;
 	content: string;
 	src: string;
 	media: Media;

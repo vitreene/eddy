@@ -1,6 +1,10 @@
 import type { SceneComp, TextTime } from "@/api/db";
 import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
+import { deriveEventKind } from "@/config/custom-events";
+import { buildCapsuleBehaviorById } from "@/player/visibility/capsule-behavior";
+import { applyVisibilityRules } from "@/player/visibility/apply-visibility-rules";
 import { resolveCueWindows } from "@/player/visibility/resolve-cue-windows";
+import { getCueTimeAtPosition } from "@/player/visibility/custom-event-cue-mapping";
 
 export type VisibilityWindow = {
 	startSec: number;
@@ -180,7 +184,18 @@ export function getAssuredVisibleCue(context: SceneComp, itemId: number): SafeCu
 // Contract: return the earliest time where the selected item is guaranteed visible,
 // after intersecting its own window with all ancestor capsule host-item windows.
 export function computeActiveCue(context: SceneComp, itemId: number): number | null {
-	return getAssuredVisibleCue(context, itemId).cueSec;
+	const assured = getAssuredVisibleCue(context, itemId);
+	const itemEvents = context.events?.[itemId] ?? {};
+	const hasExplicitIntro = Boolean(itemEvents[INTRO]?.name);
+
+	if (!hasExplicitIntro) {
+		const firstCustomCue = getFirstCustomCueSec(context, itemId);
+		if (typeof firstCustomCue == "number" && Number.isFinite(firstCustomCue)) {
+			return Math.max(assured.window.startSec, firstCustomCue);
+		}
+	}
+
+	return assured.cueSec;
 }
 
 function clampSec(value: number, min: number, max: number): number {
@@ -191,7 +206,9 @@ function clampSec(value: number, min: number, max: number): number {
 }
 
 function deriveItemVisibilityWindows(context: SceneComp): Map<number, VisibilityWindow> {
-	const resolved = resolveCueWindows(context, { generateMissingEvents: false });
+	const runtimeSnapshot = applyVisibilityRules(context);
+	const behaviorByCapsuleId = buildCapsuleBehaviorById(runtimeSnapshot);
+	const resolved = resolveCueWindows(runtimeSnapshot, { generateMissingEvents: true, behaviorByCapsuleId });
 	const result = new Map<number, VisibilityWindow>();
 
 	for (const [itemId, cueWindow] of resolved.cueWindowsByItemId.entries()) {
@@ -202,4 +219,25 @@ function deriveItemVisibilityWindows(context: SceneComp): Map<number, Visibility
 	}
 
 	return result;
+}
+
+function getFirstCustomCueSec(context: SceneComp, itemId: number): number | null {
+	const eventMap = context.events?.[itemId] ?? {};
+	let first: number | null = null;
+
+	for (const event of Object.values(eventMap)) {
+		if (!event || deriveEventKind(event.action) !== "custom") continue;
+		if (!event.name) continue;
+		const cue = findSceneCueByName(context, event.name);
+		if (!cue) continue;
+		const position =
+			event.position === "start" || event.position === "end" || event.position === "middle"
+				? event.position
+				: "middle";
+		const cueSec = getCueTimeAtPosition(cue, position);
+		if (!Number.isFinite(cueSec)) continue;
+		if (first === null || cueSec < first) first = cueSec;
+	}
+
+	return first;
 }

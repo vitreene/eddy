@@ -38,6 +38,7 @@ Objectif: utiliser `scene-logic` comme source métier unique pour les transforms
 - [ ] **Limiter le player aux calculs implicites runtime**
   - Grid auto / reflow / move implicite: calcul runtime autorisé
   - Interdire la réinjection de ces valeurs dans `decor`
+  - Progression: extraction de procédures partagées runtime (`applyVisibilityRules`, `buildCapsuleBehaviorById`) réutilisées par builder + active-cue
 
 ## Phase 4 — Nettoyage des points de divergence
 

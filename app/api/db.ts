@@ -934,7 +934,9 @@ export async function addEventToContent({
 	const normalizedName = typeof name == "string" && name.trim().length ? name.trim() : null;
 	const normalizedRef =
 		eventKind === "custom"
-			? null
+			? typeof ref == "string" && ref.trim().length
+				? ref.trim()
+				: null
 			: normalizeTransitionRef(
 					typeof ref == "string" && ref.trim().length
 						? ref.trim()

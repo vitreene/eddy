@@ -5,6 +5,7 @@ import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { getValuesFromGridName } from "@/lib/utils";
 import { SCENE_ID } from "@/player/constants";
 import { buildNodeId } from "@/player/node-id";
+import { getAssuredVisibleCue } from "@/provider/active-cue";
 
 import type { ElementTransform } from "@/components/position-editor/lib.types";
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -33,6 +34,14 @@ export function EditTransform({ value, onCommit }: EditTransformProps) {
 	);
 	const activeCue = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
 	const activeAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
+	const isVisibleAtActiveCue = SceneLogicContext.useSelector((state) => {
+		const itemId = state.context.active.itemId;
+		if (!itemId) return false;
+		const cue = state.context.active.cue;
+		if (typeof cue != "number" || !Number.isFinite(cue)) return true;
+		const { window } = getAssuredVisibleCue(state.context, itemId);
+		return cue >= window.startSec && cue <= window.endSec;
+	});
 	const sequenceFlushToken = SceneLogicContext.useSelector(
 		(state) => Number(state.context.active.sequenceFlushToken) || 0
 	);
@@ -41,6 +50,8 @@ export function EditTransform({ value, onCommit }: EditTransformProps) {
 		if (!activeNode) return null;
 		return activeNode.ownerDocument.getElementById(SCENE_ID);
 	}, [activeNode]);
+
+	const isTransformEditorActive = Boolean(activeNode) && isVisibleAtActiveCue;
 
 	const snapParentId = useMemo(() => {
 		if (!item) return null;
@@ -85,7 +96,7 @@ export function EditTransform({ value, onCommit }: EditTransformProps) {
 	return (
 		<ItemTransformEditor
 			element={activeNode}
-			active={Boolean(activeNode)}
+			active={isTransformEditorActive}
 			value={value}
 			onCommit={onCommit}
 			snapParentId={snapParentId}

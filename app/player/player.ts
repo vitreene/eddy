@@ -10,6 +10,10 @@ import { getAbsoluteCoords, getTransform } from "./deps/utils";
 import { createFrameQueue, type FrameQueueController } from "./queue/frame-queue";
 import { DEFAULT_DURATION } from "../config/constants";
 
+function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: boolean } {
+	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
+}
+
 import type { Change } from "./deps/static-changes";
 import type { ActionAtributes, ID, MapEvent, MediaStatus, Perso } from "./types";
 import { onUpdateStaticChanges } from "./deps/on-update";
@@ -207,7 +211,7 @@ export class Player {
 
 			if (typeof change.move === "string") {
 				this._moveChange(id, change);
-			} else if (change.move !== true) {
+			} else if (change.move !== true && !isAutoMove(change.move)) {
 				this._moveChange(id, change);
 			}
 			this._applyChanges(id, change);
@@ -255,7 +259,18 @@ export class Player {
 				const px = utils.get($el, "x", false);
 				const py = utils.get($el, "y", false);
 
-				return this._createMoveTransition($el, old, nex, px, py);
+				return this._createMoveTransition($el, old, nex, px, py, undefined);
+			}
+			case "object": {
+				if (!isAutoMove(change.move)) break;
+				const old = getAbsoluteCoords($el);
+				this._applyChanges(id, change);
+				const nex = getAbsoluteCoords($el);
+
+				const px = Number(utils.get($el, "x", false));
+				const py = Number(utils.get($el, "y", false));
+
+				return this._createMoveTransition($el, old, nex, px, py, change.move);
 			}
 			default:
 				break;
@@ -288,7 +303,14 @@ export class Player {
 				};
 			},
 			commit: ({ $el, before }, { after, px, py }) => {
-				const transition = this._createMoveTransition($el, before, after, px, py);
+				const transition = this._createMoveTransition(
+					$el,
+					before,
+					after,
+					px,
+					py,
+					isAutoMove(change.move) ? change.move : undefined
+				);
 				if (transition) onTransition(transition);
 			}
 		});
@@ -299,7 +321,8 @@ export class Player {
 		old: ReturnType<typeof getAbsoluteCoords>,
 		nex: ReturnType<typeof getAbsoluteCoords>,
 		px: number,
-		py: number
+		py: number,
+		moveOptions?: { mode: "auto"; clearTransforms?: boolean }
 	): JSAnimation | undefined {
 		const isItem53 = $el.id === "item__53";
 		if (isItem53) {
@@ -318,7 +341,7 @@ export class Player {
 		if (isItem53) {
 			console.log("[move:item_53] transition", { dx, dy, diff, old, nex, px, py });
 		}
-		return animate($el, {
+		const animationParams: Parameters<typeof animate>[1] = {
 			x: { from: diff.x + px, to: 0 + px },
 			y: { from: diff.y + py, to: 0 + py },
 			width: { from: old.width, to: nex.width },
@@ -326,7 +349,15 @@ export class Player {
 			autoplay: false,
 			duration: DEFAULT_DURATION,
 			composition: "none"
-		}).seek(0);
+		};
+		if (moveOptions?.clearTransforms) {
+			animationParams.rotate = { from: Number(utils.get($el, "rotate", false)), to: 0 };
+			animationParams.scaleX = { from: Number(utils.get($el, "scaleX", false)), to: 1 };
+			animationParams.scaleY = { from: Number(utils.get($el, "scaleY", false)), to: 1 };
+			animationParams.originX = { from: Number(utils.get($el, "originX", false)), to: 0.5 };
+			animationParams.originY = { from: Number(utils.get($el, "originY", false)), to: 0.5 };
+		}
+		return animate($el, animationParams).seek(0);
 	}
 
 	// changes : src, media

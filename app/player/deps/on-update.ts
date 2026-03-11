@@ -6,6 +6,17 @@ import type { ID } from "../types";
 import type { Player } from "../player";
 import type { Change } from "./static-changes";
 
+function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: boolean } {
+	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
+}
+
+function getMoveModeLabel(move: unknown): string {
+	if (typeof move === "string") return "reparent";
+	if (typeof move === "boolean") return move ? "legacy-auto" : "none";
+	if (isAutoMove(move)) return move.clearTransforms ? "auto+clear" : "auto";
+	return "none";
+}
+
 export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean {
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, JSAnimation>();
@@ -60,7 +71,20 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 					setters.set(id, utils.set($el, change.snapshot));
 				}
 
-				if (typeof nextChange.change?.move === "boolean" && nextChange.change.move) {
+				if (
+					(typeof nextChange.change?.move === "boolean" && nextChange.change.move) ||
+					isAutoMove(nextChange.change?.move)
+				) {
+					if (id === "item__53") {
+						console.log("[item_53][player] transition-mode", {
+							curr: nextChange.curr,
+							next: nextChange.next,
+							mode: getMoveModeLabel(nextChange.change?.move),
+							hasStyleX: typeof (nextChange.change?.style as any)?.x !== "undefined",
+							hasStyleY: typeof (nextChange.change?.style as any)?.y !== "undefined",
+							hasClassName: typeof nextChange.change?.className !== "undefined"
+						});
+					}
 					nextChange.snapshot = {
 						x: utils.get($el, "x"),
 						y: utils.get($el, "y"),
@@ -86,9 +110,29 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						});
 					}
 				} else if (typeof nextChange.change?.move === "string") {
+					if (id === "item__53") {
+						console.log("[item_53][player] transition-mode", {
+							curr: nextChange.curr,
+							next: nextChange.next,
+							mode: getMoveModeLabel(nextChange.change?.move),
+							hasStyleX: typeof (nextChange.change?.style as any)?.x !== "undefined",
+							hasStyleY: typeof (nextChange.change?.style as any)?.y !== "undefined",
+							hasClassName: typeof nextChange.change?.className !== "undefined"
+						});
+					}
 					this._moveChange(id, nextChange.change);
 					this._applyChanges(id, nextChange.change);
 				} else {
+					if (id === "item__53") {
+						console.log("[item_53][player] transition-mode", {
+							curr: nextChange.curr,
+							next: nextChange.next,
+							mode: getMoveModeLabel(nextChange.change?.move),
+							hasStyleX: typeof (nextChange.change?.style as any)?.x !== "undefined",
+							hasStyleY: typeof (nextChange.change?.style as any)?.y !== "undefined",
+							hasClassName: typeof nextChange.change?.className !== "undefined"
+						});
+					}
 					this._applyChanges(id, nextChange.change);
 				}
 			}

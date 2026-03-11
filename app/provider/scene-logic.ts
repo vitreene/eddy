@@ -9,7 +9,13 @@ import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } f
 import type { Theme } from "prisma/generated/prisma/client";
 import { mergeCssStrings } from "@/lib/merge-css-classes";
 import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO } from "@/config/constants";
-import { deriveEventKind, normalizeCustomEventDraft, type CustomEventPosition } from "@/config/custom-events";
+import {
+	deriveEventKind,
+	normalizeCustomEventDraft,
+	parseCustomEventAutoOptions,
+	serializeCustomEventAutoOptions,
+	type CustomEventPosition
+} from "@/config/custom-events";
 import { getPlayerNode } from "@/player/node-resolver";
 import {
 	clearSequenceFlushRequest,
@@ -94,6 +100,8 @@ export const sceneLogic = setup({
 						delay?: number | null;
 						duration?: number | null;
 						position?: CustomEventPosition | null;
+						auto?: boolean;
+						clearTransforms?: boolean;
 					};
 			  }
 			| {
@@ -104,6 +112,8 @@ export const sceneLogic = setup({
 						delay?: number | null;
 						duration?: number | null;
 						position?: CustomEventPosition | null;
+						auto?: boolean;
+						clearTransforms?: boolean;
 					};
 			  }
 			| { type: "custom-event-delete"; payload: { action: string } }
@@ -601,7 +611,10 @@ export const sceneLogic = setup({
 										delay: event.payload?.delay ?? seeded.delay,
 										duration: event.payload?.duration ?? null,
 										position: event.payload?.position ?? seeded.position,
-										ref: null
+										ref: serializeCustomEventAutoOptions({
+											auto: event.payload?.auto,
+											clearTransforms: event.payload?.clearTransforms
+										})
 									});
 
 									const customEvent = {
@@ -609,7 +622,7 @@ export const sceneLogic = setup({
 										action,
 										itemId,
 										name: normalized.name,
-										ref: null,
+										ref: normalized.ref,
 										delay: normalized.delay,
 										duration: normalized.duration,
 										position: normalized.position,
@@ -649,7 +662,14 @@ export const sceneLogic = setup({
 										delay: hasOwn(event.payload, "delay") ? event.payload.delay : (current as any).delay,
 										duration: hasOwn(event.payload, "duration") ? event.payload.duration : (current as any).duration,
 										position: hasOwn(event.payload, "position") ? event.payload.position : (current as any).position,
-										ref: null
+										ref: serializeCustomEventAutoOptions({
+											auto: hasOwn(event.payload, "auto")
+												? event.payload.auto
+												: parseCustomEventAutoOptions(current.ref).auto,
+											clearTransforms: hasOwn(event.payload, "clearTransforms")
+												? event.payload.clearTransforms
+												: parseCustomEventAutoOptions(current.ref).clearTransforms
+										})
 									} as Parameters<typeof normalizeCustomEventDraft>[0];
 
 									const normalized = normalizeCustomEventDraft(nextDraft);
@@ -663,7 +683,7 @@ export const sceneLogic = setup({
 												[event.payload.action]: {
 													...current,
 													name: normalized.name,
-													ref: null,
+													ref: normalized.ref,
 													delay: normalized.delay,
 													duration: normalized.duration,
 													position: normalized.position

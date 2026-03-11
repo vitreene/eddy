@@ -21,9 +21,15 @@ note, au fur et a mesure des solutions trouvées, plusieurs conflits ptentiels d
 
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
 import { resolveCueWindows } from "@/player/visibility/resolve-cue-windows";
+import { buildCapsuleBehaviorById } from "@/player/visibility/capsule-behavior";
+import { applyVisibilityRules as applyRuntimeVisibilityRules } from "@/player/visibility/apply-visibility-rules";
 import { getCueTimeAtPosition } from "@/player/visibility/custom-event-cue-mapping";
-import { getCapsuleTypeConfig, shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
-import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
+import { shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
+import {
+	deriveEventKind,
+	parseCustomEventAutoOptions,
+	type CustomEventPosition
+} from "@/config/custom-events";
 import { NON_ANIMATABLE_MANAGED_STYLE_KEYS } from "@/config/item-style-defaults";
 import { buildPlacementCss } from "@/player/capsule-layout/layout-css";
 import { buildNodeId } from "@/player/node-id";
@@ -44,7 +50,7 @@ export function buildScene(snapshot: SceneComp): PlayerProps & { styles?: string
 	// 2) derived timing/events resolution
 	// 3) timeline and CSS generation
 	// 4) perso graph creation
-	const visibilityFilteredSnapshot = applyVisibilityRules(snapshot);
+	const visibilityFilteredSnapshot = applyRuntimeVisibilityRules(snapshot);
 	const derivedSnapshot = applyCapsuleDefaultItemEvents(visibilityFilteredSnapshot);
 	const events = mapEvents(derivedSnapshot);
 	const { areas, itemPlacementClassByItemId, gridDefinitions } = buildPlacementCss(derivedSnapshot);
@@ -222,7 +228,7 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 
 	// behaviorByCapsuleId centralizes per-capsule runtime policy used by resolver.
 	// It is the extension point for future capsule types (line/grid/card).
-	const behaviorByCapsuleId = buildBehaviorByCapsuleId(snapshot);
+	const behaviorByCapsuleId = buildCapsuleBehaviorById(snapshot);
 
 	const resolved = resolveCueWindows(snapshot, {
 		generateMissingEvents: true,
@@ -241,35 +247,6 @@ function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 		events: resolved.resolvedEvents,
 		sceneContents: clonedSceneContents
 	};
-}
-
-type BuilderCapsuleBehavior = {
-	timeMode: "distributed" | "fixed";
-	fixedSeconds: number;
-	generateDefaultOutro: boolean;
-};
-
-function buildBehaviorByCapsuleId(snapshot: SceneComp): Record<number, BuilderCapsuleBehavior> {
-	const behaviorByCapsuleId: Record<number, BuilderCapsuleBehavior> = {};
-
-	for (const capsule of Object.values(snapshot.capsules || {})) {
-		const config = getCapsuleTypeConfig(capsule.type);
-		const fixedSeconds =
-			typeof (capsule as any).itemDurationSec == "number" && Number.isFinite((capsule as any).itemDurationSec)
-				? Math.max(0.1, Number((capsule as any).itemDurationSec))
-				: config.runtime.time.defaultFixedSeconds;
-		const timeMode = (capsule as any).itemDurationMode === "fixed" ? "fixed" : config.runtime.time.mode;
-
-		behaviorByCapsuleId[capsule.id] = {
-			timeMode,
-			fixedSeconds,
-			// Important policy variable:
-			// if false, resolver generates no default outro for children of this capsule type.
-			generateDefaultOutro: config.runtime.transitions.defaultOutroRef !== null
-		};
-	}
-
-	return behaviorByCapsuleId;
 }
 
 //STYLES
@@ -349,7 +326,7 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 					const nextDynamicClassName = buildDynamicClassName(capsule.type, targetDecor, autoAreaClassName);
 					const scheduledStartMs = previousMs;
 					const hasPreviousScheduledAction =
-						lastScheduledStartMs !== null && lastScheduledStartMs < scheduledStartMs;
+						lastScheduledStartMs !== null && lastScheduledStartMs <= scheduledStartMs;
 					const hasTransitionWindow = entry.startMs !== null && entry.startMs > previousMs;
 					if (!hasTransitionWindow || !hasPreviousScheduledAction) {
 						initialDecorState = targetDecor;
@@ -365,14 +342,40 @@ function createCapsule(capsule: CapsuleComp, snapshot: SceneComp, additionalClas
 					const placementChanged =
 						getEffectiveAreaClassName(capsule.type, previousClassDecor?.area, autoAreaClassName) !==
 						getEffectiveAreaClassName(capsule.type, targetDecor?.area, autoAreaClassName);
+					const positionStyleChanged = hasPositionStyleDelta(previousStyleState, targetStyle);
+					const autoMoveOptions = parseCustomEventAutoOptions(ev.ref);
+					const autoMoveRequested =
+						hasTransitionWindow && (placementChanged || (autoMoveOptions.auto && positionStyleChanged));
 					const durationMs = Math.max(0, (entry.startMs ?? previousMs) - previousMs);
-					const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
+					const targetStyleForInterpolation =
+						autoMoveRequested && autoMoveOptions.clearTransforms
+							? {
+									...targetStyle,
+									rotate: 0,
+									scaleX: 1,
+									scaleY: 1,
+									originX: 0.5,
+									originY: 0.5
+								}
+							: targetStyle;
+					const customStyle = buildStyleInterpolation(previousStyleState, targetStyleForInterpolation, durationMs);
+					if (autoMoveRequested) {
+						delete customStyle.x;
+						delete customStyle.y;
+						delete customStyle.width;
+						delete customStyle.height;
+					}
 					const customAction: Record<string, unknown> = { style: customStyle };
 					if (classNameDiff) customAction.className = classNameDiff;
-					if (placementChanged || layoutStyleChanged) customAction.move = true;
+					if (autoMoveRequested || layoutStyleChanged) {
+						customAction.move =
+							autoMoveRequested && autoMoveOptions.clearTransforms
+								? { mode: "auto", clearTransforms: true }
+								: { mode: "auto" };
+					}
 					actions[actionName] = customAction;
 					lastScheduledStartMs = scheduledStartMs;
-					previousStyleState = { ...previousStyleState, ...targetStyle };
+					previousStyleState = { ...previousStyleState, ...targetStyleForInterpolation };
 					previousClassDecor = targetDecor;
 					previousDynamicClassName = nextDynamicClassName;
 					if (entry.startMs !== null) previousMs = entry.startMs;
@@ -445,6 +448,7 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 	const decor = snapshot.decors[item.decorId] || { className: "", area: "", style: {} };
 	const parentId = buildNodeId("capsule", item.capsuleId);
 	const id = item.nodeId || buildNodeId("item", item.id);
+	const debugItem53 = item.id === 53;
 
 	const actions: Record<string | number, any> = {};
 
@@ -475,9 +479,19 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 			);
 			const scheduledStartMs = previousMs;
 			const hasPreviousScheduledAction =
-				lastScheduledStartMs !== null && lastScheduledStartMs < scheduledStartMs;
+				lastScheduledStartMs !== null && lastScheduledStartMs <= scheduledStartMs;
 			const hasTransitionWindow = entry.startMs !== null && entry.startMs > previousMs;
 			if (!hasTransitionWindow || !hasPreviousScheduledAction) {
+				if (debugItem53) {
+					console.log("[item_53][builder] folded-to-initial", {
+						action: ev.action,
+						name: ev.name,
+						startMs: entry.startMs,
+						previousMs,
+						hasTransitionWindow,
+						hasPreviousScheduledAction
+					});
+				}
 				initialDecorState = targetDecor;
 				previousStyleState = { ...previousStyleState, ...targetStyle };
 				previousClassDecor = targetDecor;
@@ -495,14 +509,54 @@ function createItems(item: ItemComp, snapshot: SceneComp, additionalClassnames: 
 					autoAreaClassName
 				) !==
 				getEffectiveAreaClassName(snapshot.capsules[item.capsuleId]?.type, targetDecor?.area, autoAreaClassName);
+			const positionStyleChanged = hasPositionStyleDelta(previousStyleState, targetStyle);
+			const autoMoveOptions = parseCustomEventAutoOptions(ev.ref);
+			const autoMoveRequested =
+				hasTransitionWindow && (placementChanged || (autoMoveOptions.auto && positionStyleChanged));
 			const durationMs = Math.max(0, (entry.startMs ?? previousMs) - previousMs);
-			const customStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
+			const targetStyleForInterpolation =
+				autoMoveRequested && autoMoveOptions.clearTransforms
+					? {
+							...targetStyle,
+							rotate: 0,
+							scaleX: 1,
+							scaleY: 1,
+							originX: 0.5,
+							originY: 0.5
+						}
+					: targetStyle;
+			const customStyle = buildStyleInterpolation(previousStyleState, targetStyleForInterpolation, durationMs);
+			if (autoMoveRequested) {
+				delete customStyle.x;
+				delete customStyle.y;
+				delete customStyle.width;
+				delete customStyle.height;
+			}
 			const customAction: Record<string, unknown> = { style: customStyle };
 			if (classNameDiff) customAction.className = classNameDiff;
-			if (placementChanged || layoutStyleChanged) customAction.move = true;
+			if (autoMoveRequested || layoutStyleChanged) {
+				customAction.move =
+					autoMoveRequested && autoMoveOptions.clearTransforms
+						? { mode: "auto", clearTransforms: true }
+						: { mode: "auto" };
+			}
+			if (debugItem53) {
+				console.log("[item_53][builder] custom-action", {
+					action: ev.action,
+					name: ev.name,
+					startMs: entry.startMs,
+					previousMs,
+					autoMoveRequested,
+					move: customAction.move ?? null,
+					hasX: typeof (customStyle as any).x !== "undefined",
+					hasY: typeof (customStyle as any).y !== "undefined",
+					hasWidth: typeof (customStyle as any).width !== "undefined",
+					hasHeight: typeof (customStyle as any).height !== "undefined"
+				});
+			}
 			actions[actionName] = customAction;
 			lastScheduledStartMs = scheduledStartMs;
-			previousStyleState = { ...previousStyleState, ...targetStyle };
+			previousStyleState = { ...previousStyleState, ...targetStyleForInterpolation };
 			previousClassDecor = targetDecor;
 			previousDynamicClassName = nextDynamicClassName;
 			if (entry.startMs !== null) previousMs = entry.startMs;
@@ -827,6 +881,17 @@ function buildStyleInterpolation(
 		style.transformOrigin = { to: "50% 50%", duration: durationMs };
 	}
 	return style;
+}
+
+function hasPositionStyleDelta(
+	fromStyle: Record<string, number | string>,
+	toStyle: Record<string, number | string>
+): boolean {
+	for (const key of ["x", "y", "width", "height"] as const) {
+		if (typeof fromStyle[key] == "undefined" && typeof toStyle[key] == "undefined") continue;
+		if (fromStyle[key] !== toStyle[key]) return true;
+	}
+	return false;
 }
 
 type DecorLike = {

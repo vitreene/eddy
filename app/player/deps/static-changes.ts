@@ -73,7 +73,10 @@ suivant, à deplcer après test.
 						change.media.offset = offset;
 					}
 
-					const newChange = { ...((actionChanges[position]?.change as object) || {}), ...change };
+					const newChange = mergeActionChangesAtSamePosition(
+						((actionChanges[position]?.change as Partial<ActionAtributes>) || {}) as Partial<ActionAtributes>,
+						change as Partial<ActionAtributes>
+					);
 					if (Object.keys(newChange).length) {
 						positions.add(position);
 						actionChanges[position] = { change: newChange };
@@ -112,6 +115,21 @@ suivant, à deplcer après test.
 
 		this.persoChanges.set(id, changes);
 	});
+}
+
+function mergeActionChangesAtSamePosition(
+	base: Partial<ActionAtributes>,
+	incoming: Partial<ActionAtributes>
+): Partial<ActionAtributes> {
+	const merged: Partial<ActionAtributes> = { ...base, ...incoming };
+
+	const baseMove = base.move;
+	const incomingMove = incoming.move;
+	if (typeof baseMove === "string" && typeof incomingMove !== "string") {
+		merged.move = baseMove;
+	}
+
+	return merged;
 }
 
 /**
