@@ -5,7 +5,7 @@ import { INTRO, OUTRO } from "@/config/constants";
 import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
 import { deriveEventKind } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
-import { resolveClosestCuePointFromDelay } from "@/player/visibility/custom-event-cue-mapping";
+import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 

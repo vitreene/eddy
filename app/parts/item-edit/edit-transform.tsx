@@ -3,8 +3,8 @@ import { useMemo } from "react";
 import { ItemTransformEditor } from "@/components/position-editor/visual-transform-grid";
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { getValuesFromGridName } from "@/lib/utils";
-import { SCENE_ID } from "@/player/constants";
-import { buildNodeId } from "@/player/node-id";
+import { SCENE_ID } from "@/scene-runtime/constants";
+import { buildNodeId } from "@/scene-runtime/node-id";
 import { getAssuredVisibleCue } from "@/provider/active-cue";
 
 import type { ElementTransform } from "@/components/position-editor/lib.types";

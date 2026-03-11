@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 
 import type { SceneComp } from "../app/api/db";
-import { buildScene } from "../app/player/builder/builder";
+import { buildScene } from "../app/player/builder";
 import {
 	resolveClosestCuePointFromDelay,
 	resolveDelayFromCuePoint
-} from "../app/player/visibility/custom-event-cue-mapping";
+} from "../app/scene-runtime/visibility/custom-event-cue-mapping";
 
 type Case = { name: string; run: () => void };
 

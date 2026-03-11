@@ -1,10 +1,10 @@
 import type { SceneComp, TextTime } from "@/api/db";
 import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind } from "@/config/custom-events";
-import { buildCapsuleBehaviorById } from "@/player/visibility/capsule-behavior";
-import { applyVisibilityRules } from "@/player/visibility/apply-visibility-rules";
-import { resolveCueWindows } from "@/player/visibility/resolve-cue-windows";
-import { getCueTimeAtPosition } from "@/player/visibility/custom-event-cue-mapping";
+import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
+import { applyVisibilityRules } from "@/scene-runtime/visibility/apply-visibility-rules";
+import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
+import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 
 export type VisibilityWindow = {
 	startSec: number;

@@ -7,7 +7,7 @@ import {
 	parseCardTemplateAreas,
 	resolveCapsuleType
 } from "../app/config/capsule-types";
-import { resolveCueWindows } from "../app/player/visibility/resolve-cue-windows";
+import { resolveCueWindows } from "../app/scene-runtime/visibility/resolve-cue-windows";
 
 type Case = { name: string; run: () => void };
 

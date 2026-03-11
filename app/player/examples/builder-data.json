@@ -1,0 +1,167 @@
+{
+	"persos": [
+		{
+			"type": "IMG",
+			"initial": {
+				"id": 1,
+				"className": "background-carousel-item",
+				"src": "/assets/28970388742_2f75d527d6_z.jpg"
+			},
+			"actions": {
+				"1_1_intro": {
+					"move": "list",
+					"style": {
+						"x": {
+							"from": -400,
+							"to": 0
+						},
+						"opacity": {
+							"from": 0,
+							"to": 1
+						}
+					}
+				},
+				"1_1_outro": {
+					"style": {
+						"x": {
+							"from": 0,
+							"to": 400
+						},
+						"opacity": {
+							"from": 1,
+							"to": 0
+						}
+					}
+				}
+			},
+			"media": {
+				"/assets/28970388742_2f75d527d6_z.jpg": {
+					"img": {},
+					"src": "http://localhost:5173/assets/28970388742_2f75d527d6_z.jpg",
+					"width": 640,
+					"height": 416,
+					"ratio": 1.5384615384615385
+				}
+			}
+		},
+		{
+			"type": "IMG",
+			"initial": {
+				"id": 2,
+				"className": "background-carousel-item",
+				"src": "/assets/28999069391_5893263112_z.jpg"
+			},
+			"actions": {
+				"1_2_intro": {
+					"move": "list",
+					"style": {
+						"x": {
+							"from": -400,
+							"to": 0
+						},
+						"opacity": {
+							"from": 0,
+							"to": 1
+						}
+					}
+				},
+				"1_2_outro": {
+					"style": {
+						"x": {
+							"from": 0,
+							"to": 400
+						},
+						"opacity": {
+							"from": 1,
+							"to": 0
+						}
+					}
+				}
+			},
+			"media": {
+				"/assets/28999069391_5893263112_z.jpg": {
+					"img": {},
+					"src": "http://localhost:5173/assets/28999069391_5893263112_z.jpg",
+					"width": 640,
+					"height": 421,
+					"ratio": 1.520190023752969
+				}
+			}
+		},
+		{
+			"type": "VIDEO",
+			"initial": {
+				"id": 3,
+				"src": "/assets/1_7b_e.mp3",
+				"attr": {
+					"controls": "true"
+				}
+			},
+			"actions": {
+				"go": {
+					"move": "root-scene",
+					"media": {
+						"action": "play",
+						"changeAt": 0,
+						"offset": 0
+					}
+				}
+			},
+			"media": {}
+		},
+		{
+			"type": "LIST",
+			"initial": {
+				"tag": "div",
+				"id": "root-scene",
+				"className": "container-grid",
+				"style": {
+					"position": "relative",
+					"backgroundColor": "lch(50% 72 50 / 0.5)",
+					"duration": 1e-11,
+					"composition": 1
+				}
+			},
+			"actions": {
+				"root-scene": true,
+				"go": {
+					"style": {
+						"backgroundColor": {
+							"to": "lch(56% 64 263 / 1)"
+						},
+						"duration": 1500
+					}
+				}
+			}
+		},
+		{
+			"type": "LIST",
+			"initial": {
+				"tag": "div",
+				"id": "list",
+				"className": "background-carousel",
+				"move": "root-scene"
+			},
+			"actions": {
+				"list": true
+			}
+		}
+	],
+	"events": {
+		"0": {
+			"name": "go"
+		},
+		"400": {
+			"name": "1_1_intro"
+		},
+		"1300": {
+			"name": "1_1_outro"
+		},
+		"3400": {
+			"name": "1_2_intro"
+		},
+		"5400": {
+			"name": "1_2_outro"
+		}
+	}
+}

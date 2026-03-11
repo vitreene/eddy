@@ -9,7 +9,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { getAllContents, getScene, getScenes, type Content, type SceneComp, type SceneRef } from "@/api/db";
 import { SceneTreeView } from "@/parts/scene-tree";
 import { EditItem } from "@/parts/item-edit";
-import { buildScene } from "@/player/builder/builder";
+import { buildScene } from "@/player/builder";
 import { DemoTransformEditor } from "@/components/position-editor/exemple";
 
 // import * as scene02 from "../demos/scenes/scene-02";

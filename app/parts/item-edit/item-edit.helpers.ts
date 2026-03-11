@@ -1,6 +1,6 @@
 import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
-import { getCueTimeAtPosition } from "@/player/visibility/custom-event-cue-mapping";
+import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 
 import type { ContentEvent, Decor, SceneComp, TextTime } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";

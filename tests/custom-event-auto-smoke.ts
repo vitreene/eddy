@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { buildScene } from "../app/player/builder/builder";
+import { buildScene } from "../app/player/builder";
 import { parseCustomEventAutoOptions, serializeCustomEventAutoOptions } from "../app/config/custom-events";
 
 const encoded = serializeCustomEventAutoOptions({ auto: true, clearTransforms: true });

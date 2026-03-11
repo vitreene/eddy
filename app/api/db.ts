@@ -11,7 +11,7 @@ import type {
 	Decor as DecorDB
 } from "prisma/generated/prisma/client";
 import type { EditableStyle } from "@/components/style-editor/types";
-import { ROOT } from "@/player/constants";
+import { ROOT } from "@/scene-runtime/constants";
 import {
 	DEFAULT_TRANSITION_BY_ACTION,
 	normalizeTransitionAction,

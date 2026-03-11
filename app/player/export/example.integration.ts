@@ -1,6 +1,6 @@
 import { resolve } from "node:path";
 
-import builderData from "@/player/builder/data.json";
+import builderData from "@/player/examples/builder-data.json";
 import { buildShellXmlBundleFromBuilder, writeBundleToDisk } from "@/player/export";
 
 export async function runShellXmlExportExample() {

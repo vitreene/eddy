@@ -4,7 +4,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { applyStyleDefaults, getDefaultStyleForContentType } from "@/config/item-style-defaults";
 import { deriveEventKind } from "@/config/custom-events";
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
-import { SCENE_ID } from "@/player/constants";
+import { SCENE_ID } from "@/scene-runtime/constants";
 
 import { CapsuleEdit } from "./capsule-edit";
 import { EditTransform } from "./edit-transform";

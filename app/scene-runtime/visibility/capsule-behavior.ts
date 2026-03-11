@@ -3,6 +3,9 @@ import { getCapsuleTypeConfig } from "@/config/capsule-types";
 import type { SceneComp } from "@/api/db";
 import type { ResolveCueWindowsCapsuleBehavior } from "./resolve-cue-windows";
 
+/**
+ * Build per-capsule timing behavior used by cue window resolution.
+ */
 export function buildCapsuleBehaviorById(
 	snapshot: SceneComp
 ): Record<number, ResolveCueWindowsCapsuleBehavior> {

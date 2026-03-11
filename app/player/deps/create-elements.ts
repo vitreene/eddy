@@ -1,7 +1,7 @@
 import { utils } from "animejs";
 
 import { P } from "../types";
-import { SCENE_ID, ROOT } from "../constants";
+import { SCENE_ID, ROOT } from "@/scene-runtime/constants";
 
 import type { Player } from "../player";
 import type { Perso, Initial, PersoMediaDef } from "../types";

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 
-import { buildScene } from "../app/player/builder/builder";
+import { buildScene } from "../app/player/builder";
 
 const scene: any = {
 	id: 1,

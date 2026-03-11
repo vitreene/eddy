@@ -29,6 +29,9 @@ const DEFAULT_CAPSULE_BEHAVIOR: ResolveCueWindowsCapsuleBehavior = {
 	generateDefaultOutro: true
 };
 
+/**
+ * Resolve intro/outro windows for every item and optionally generate missing events.
+ */
 export function resolveCueWindows(
 	snapshot: SceneComp,
 	options: ResolveCueWindowsOptions = {}
@@ -289,6 +292,9 @@ export function resolveCueWindows(
 	return { resolvedEvents: baseEvents, resolvedSceneContentEvents, cueWindowsByItemId, cueByName };
 }
 
+/**
+ * Compute full scene time bounds from cue list.
+ */
 function getSceneBoundsFromCues(cues: TextTime[]): { start: number; end: number } {
 	let end = 0;
 	for (const cue of cues) {
@@ -298,6 +304,9 @@ function getSceneBoundsFromCues(cues: TextTime[]): { start: number; end: number 
 	return { start: 0, end };
 }
 
+/**
+ * Build synthetic event payload used for generated intro/outro anchors.
+ */
 function createGeneratedEvent({
 	itemId,
 	action,

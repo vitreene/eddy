@@ -16,7 +16,7 @@ import {
 	serializeCustomEventAutoOptions,
 	type CustomEventPosition
 } from "@/config/custom-events";
-import { getPlayerNode } from "@/player/node-resolver";
+import { getPlayerNode } from "@/scene-runtime/node-resolver";
 import {
 	clearSequenceFlushRequest,
 	isSequenceAction,

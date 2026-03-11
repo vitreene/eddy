@@ -20,6 +20,9 @@ export function readCardAreasContract(_capsule: CapsuleComp): string[] {
 	return parseCardTemplateAreas(_capsule.grid);
 }
 
+/**
+ * Build placement CSS and per-item auto area classes for the scene snapshot.
+ */
 export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 	const areas = new Set<string>();
 	const itemPlacementClassByItemId: Record<number, string> = {};
@@ -73,6 +76,9 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 	};
 }
 
+/**
+ * Build unique grid class definitions required by visible capsules.
+ */
 function buildGridDefinitions(snapshot: SceneComp): string[] {
 	const definitions = new Set<string>();
 
@@ -94,6 +100,9 @@ function buildGridDefinitions(snapshot: SceneComp): string[] {
 	return [...definitions];
 }
 
+/**
+ * Compute auto area class and optional css definition for one item slot.
+ */
 function getAutoAreaForItem(
 	capsule: CapsuleComp,
 	itemIndex: number
@@ -122,6 +131,9 @@ function getAutoAreaForItem(
 	};
 }
 
+/**
+ * Compute row/column coordinates according to capsule type rules.
+ */
 function getCoordinatesByCapsuleType(
 	capsule: CapsuleComp,
 	itemIndex: number,
@@ -159,6 +171,9 @@ function getCoordinatesByCapsuleType(
 	return computeLegacyCompatibleGridCoordinates(itemIndex, grid.w, grid.h);
 }
 
+/**
+ * Preserve legacy grid coordinate formula for backward compatibility.
+ */
 function computeLegacyCompatibleGridCoordinates(
 	index: number,
 	w: number,

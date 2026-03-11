@@ -5,8 +5,8 @@ import { deriveEventKind, type CustomEventPosition } from "@/config/custom-event
 import {
 	getCueTimeAtPosition,
 	resolveClosestCuePointFromDelay
-} from "@/player/visibility/custom-event-cue-mapping";
-import { buildNodeId } from "@/player/node-id";
+} from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { buildNodeId } from "@/scene-runtime/node-id";
 
 import type { Decor, ContentEvent, ItemComp, SceneComp } from "@/api/db";
 import type { ActiveState, TreeMutationResponse } from "./types";

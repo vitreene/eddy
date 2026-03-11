@@ -7,6 +7,9 @@ export type CuePointMatch = {
 	timeSec: number;
 };
 
+/**
+ * Find the closest cue point for a delay measured from intro start.
+ */
 export function resolveClosestCuePointFromDelay(params: {
 	cues: TextTime[];
 	introName: string | null | undefined;
@@ -45,6 +48,9 @@ export function resolveClosestCuePointFromDelay(params: {
 	return best;
 }
 
+/**
+ * Convert a cue point selection into delay from intro start.
+ */
 export function resolveDelayFromCuePoint(params: {
 	cues: TextTime[];
 	introName: string | null | undefined;
@@ -73,6 +79,9 @@ export function resolveDelayFromCuePoint(params: {
 	return Math.max(0, boundedTime - introStart);
 }
 
+/**
+ * Read cue time at start/middle/end position.
+ */
 export function getCueTimeAtPosition(cue: TextTime, position: CustomEventPosition): number {
 	const start = Number(cue.start);
 	const end = Number(cue.end);

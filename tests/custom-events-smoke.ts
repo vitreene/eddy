@@ -6,7 +6,7 @@ import { buildUniqueCustomEventName, normalizeCustomEventDraft } from "../app/co
 import {
 	resolveClosestCuePointFromDelay,
 	resolveDelayFromCuePoint
-} from "../app/player/visibility/custom-event-cue-mapping";
+} from "../app/scene-runtime/visibility/custom-event-cue-mapping";
 import { sceneLogic } from "../app/provider/scene-logic";
 
 type Case = { name: string; run: () => void };

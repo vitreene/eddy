@@ -1,5 +1,8 @@
 import type { SceneComp } from "@/api/db";
 
+/**
+ * Build a runtime-ready snapshot by removing hidden items and unreachable capsules.
+ */
 export function applyVisibilityRules(snapshot: SceneComp): SceneComp {
 	if (!snapshot?.items || !snapshot?.capsules || !snapshot?.contents) return snapshot;
 
@@ -40,6 +43,9 @@ export function applyVisibilityRules(snapshot: SceneComp): SceneComp {
 	};
 }
 
+/**
+ * Discover capsules reachable from main capsule through visible capsule-content items.
+ */
 function collectReachableVisibleCapsuleIds(snapshot: SceneComp, visibleItemIds: Set<number>): Set<number> {
 	const visibleCapsuleIds = new Set<number>();
 	if (!snapshot.main) return visibleCapsuleIds;
@@ -67,6 +73,9 @@ function collectReachableVisibleCapsuleIds(snapshot: SceneComp, visibleItemIds: 
 	return visibleCapsuleIds;
 }
 
+/**
+ * Build capsuleId -> host itemId map for parent visibility propagation.
+ */
 function buildCapsuleHostItemMap(snapshot: SceneComp): Record<number, number> {
 	const map: Record<number, number> = {};
 	for (const item of Object.values(snapshot.items || {})) {
@@ -78,6 +87,9 @@ function buildCapsuleHostItemMap(snapshot: SceneComp): Record<number, number> {
 	return map;
 }
 
+/**
+ * Evaluate effective visibility for an item, including host capsule item chain.
+ */
 function isItemEffectivelyVisible(
 	itemId: number,
 	snapshot: SceneComp,

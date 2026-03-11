@@ -9,8 +9,8 @@ import type { ActiveState } from "@/provider/types";
 
 import { preload } from "~/player/preload";
 import { Player, type TelcoProps } from "~/player/player";
-import { SCENE_ID } from "~/player/constants";
-import { setPlayerNodeResolver } from "~/player/node-resolver";
+import { SCENE_ID } from "@/scene-runtime/constants";
+import { setPlayerNodeResolver } from "@/scene-runtime/node-resolver";
 
 import playerCss from "~/player/player.css?inline";
 
@@ -130,7 +130,7 @@ function initializePlayerRuntime({
 			}
 		});
 
-		setPlayerNodeResolver((nodeId) => player?.getNodeByNodeId(nodeId) ?? null);
+		setPlayerNodeResolver((nodeId: string) => player?.getNodeByNodeId(nodeId) ?? null);
 		const activeItemId = getActiveItemId();
 		if (activeItemId) send({ type: "active-set", payload: { itemId: activeItemId } });
 
