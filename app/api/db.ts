@@ -749,10 +749,32 @@ export async function createItemFromExistingContent(input: CreateItemFromContent
 
 export async function deleteItemOnly(itemId: number) {
 	return await prisma.$transaction(async (tx) => {
+		const eventDecorIds = (
+			await tx.event.findMany({
+				where: { itemId },
+				select: { decorId: true }
+			})
+		)
+			.map((event) => event.decorId)
+			.filter((id): id is number => typeof id === "number");
+
 		await tx.event.deleteMany({ where: { itemId } });
 		const deleted = await tx.item.delete({ where: { id: itemId } });
-		if (deleted.decorId) {
-			await tx.decor.deleteMany({ where: { id: deleted.decorId } });
+
+		const decorIds = [
+			...new Set([...(deleted.decorId ? [deleted.decorId] : []), ...eventDecorIds].filter(Boolean))
+		];
+		if (decorIds.length) {
+			await tx.decor.deleteMany({
+				where: {
+					id: { in: decorIds },
+					scenes: { none: {} },
+					sceneContents: { none: {} },
+					items: { none: {} },
+					events: { none: {} },
+					bases: { none: {} }
+				}
+			});
 		}
 
 		const remaining = await tx.item.findMany({
@@ -805,6 +827,15 @@ export async function deleteCapsuleBranch(input: { itemId: number; capsuleId: nu
 			)
 		];
 
+		const eventDecorIds = (
+			await tx.event.findMany({
+				where: { itemId: { in: itemIds } },
+				select: { decorId: true }
+			})
+		)
+			.map((event) => event.decorId)
+			.filter((id): id is number => typeof id === "number");
+
 		await tx.event.deleteMany({ where: { itemId: { in: itemIds } } });
 		await tx.item.deleteMany({ where: { id: { in: itemIds } } });
 
@@ -821,8 +852,18 @@ export async function deleteCapsuleBranch(input: { itemId: number; capsuleId: nu
 			await tx.content.deleteMany({ where: { id: { in: contentIdsToDelete } } });
 		}
 
-		if (decorIds.length) {
-			await tx.decor.deleteMany({ where: { id: { in: decorIds } } });
+		const allDecorIds = [...new Set([...decorIds, ...eventDecorIds])];
+		if (allDecorIds.length) {
+			await tx.decor.deleteMany({
+				where: {
+					id: { in: allDecorIds },
+					scenes: { none: {} },
+					sceneContents: { none: {} },
+					items: { none: {} },
+					events: { none: {} },
+					bases: { none: {} }
+				}
+			});
 		}
 
 		await tx.sceneCapsule.deleteMany({
@@ -835,7 +876,7 @@ export async function deleteCapsuleBranch(input: { itemId: number; capsuleId: nu
 			capsuleIds: capsuleIdsToDelete,
 			itemIds,
 			contentIds: contentIdsToDelete,
-			decorIds,
+			decorIds: allDecorIds,
 			eventItemIds: itemIds
 		};
 	});
