@@ -75,8 +75,7 @@ function resolveIntroAnchorSec(context: SceneComp, event: ContentEvent): number 
 function resolveOutroAnchorSec(context: SceneComp, event: ContentEvent): number | null {
 	const cue = findSceneCueByName(context, event.name);
 	if (!cue) return null;
-	const transitionDurationSec = resolveTransitionDurationSec(event);
-	return Math.max(cue.start, cue.end - transitionDurationSec);
+	return cue.end;
 }
 
 function resolveTransitionDurationSec(event: ContentEvent): number {

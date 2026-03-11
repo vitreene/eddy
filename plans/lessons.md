@@ -17,3 +17,19 @@
 
 - Quand un overlay se desolidarise au scroll, tester d'abord l'hypothese de positionnement (`fixed` vs `absolute`) avant d'ajouter des listeners/invalidations supplementaires.
 - Eviter l'over-engineering sur le recalcul frame tant qu'un correctif CSS structurel simple n'a pas ete valide.
+
+## 2026-03-11 — Timeline keyframe vs runtime
+
+- Toujours distinguer `keyframe` (etat attendu a un instant) et `runtime start` (moment de declenchement animation).
+- Ne pas reutiliser une seule variable temporelle pour les deux concepts: cela cree des collisions intro/custom.
+- Formaliser ce contrat dans des fonctions dediees avant de modifier le player ou la selection UI.
+
+## 2026-03-11 — Seed custom event sur seek
+
+- Lors du seed custom-event, le "nearest" doit etre borne par la fenetre intro/outro de l'item; sinon un cue hors fenetre peut etre selectionne et paraitre incoherent.
+- Garder un fallback global seulement en dernier recours, jamais comme priorite principale.
+
+## 2026-03-11 — Verifier persistance apres seed
+
+- Apres toute modif de seed custom-event, verifier explicitement la condition de persistance (`name` ou `delay`) pour eviter des creations visibles en UI mais non en base.
+- Ajouter un test qui couvre le mode degrade (pas de cues exploitables) avec fallback persistable.

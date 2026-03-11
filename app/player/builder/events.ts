@@ -8,7 +8,8 @@ import { buildCustomTweenActionName, buildEventActionName } from "./lib";
 
 type OrderedEvent = {
 	event: ContentEvent;
-	startMs: number | null;
+	keyframeMs: number | null;
+	runtimeStartMs: number | null;
 };
 
 /**
@@ -26,15 +27,15 @@ export function mapEvents(snapshot: SceneComp) {
 	for (const item of Object.values(snapshot.items || {})) {
 		const events = snapshot.events[item.id] || {};
 		const orderedEvents = getOrderedEventsForItem(snapshot, events);
-		let previousMs = 0;
+		let previousKeyframeMs = 0;
 		for (const entry of orderedEvents) {
 			const ev = entry.event;
-			if (entry.startMs === null) continue;
-			if (entry.startMs > lastCue) lastCue = entry.startMs;
+			if (entry.keyframeMs === null || entry.runtimeStartMs === null) continue;
+			if (entry.keyframeMs > lastCue) lastCue = entry.keyframeMs;
 			const kind = deriveEventKind(ev.action);
 
 			if (kind === "custom") {
-				const tweenStart = previousMs;
+				const tweenStart = previousKeyframeMs;
 				const tweenMapped = {
 					name: buildCustomTweenActionName(ev),
 					start: tweenStart
@@ -45,22 +46,22 @@ export function mapEvents(snapshot: SceneComp) {
 
 				const keyframeMapped = {
 					name: buildEventActionName(ev),
-					start: entry.startMs
+					start: entry.keyframeMs
 				};
-				const keyframeExisting = map.get(entry.startMs) || [];
+				const keyframeExisting = map.get(entry.keyframeMs) || [];
 				keyframeExisting.push(keyframeMapped);
-				map.set(entry.startMs, keyframeExisting);
+				map.set(entry.keyframeMs, keyframeExisting);
 			} else {
 				const mapped = {
 					name: buildEventActionName(ev),
-					start: entry.startMs
+					start: entry.runtimeStartMs
 				};
 
-				const existing = map.get(entry.startMs) || [];
+				const existing = map.get(entry.runtimeStartMs) || [];
 				existing.push(mapped);
-				map.set(entry.startMs, existing);
+				map.set(entry.runtimeStartMs, existing);
 			}
-			previousMs = entry.startMs;
+			previousKeyframeMs = entry.keyframeMs;
 		}
 	}
 	map.set(lastCue - DEFAULT_DURATION, [{ name: OUTRO, start: lastCue - DEFAULT_DURATION }]);
@@ -82,14 +83,15 @@ export function getOrderedEventsForItem(
 	const result: OrderedEvent[] = [];
 	for (const event of Object.values(events || {})) {
 		if (!event) continue;
-		const startMs = resolveEventStartMs(event, cueByName);
-		result.push({ event, startMs });
+		const timing = resolveEventTiming(event, cueByName);
+		result.push({ event, keyframeMs: timing.keyframeMs, runtimeStartMs: timing.runtimeStartMs });
 	}
 
 	return result.toSorted((a, b) => {
-		if (a.startMs === null && b.startMs !== null) return 1;
-		if (a.startMs !== null && b.startMs === null) return -1;
-		if (a.startMs !== null && b.startMs !== null && a.startMs !== b.startMs) return a.startMs - b.startMs;
+		if (a.keyframeMs === null && b.keyframeMs !== null) return 1;
+		if (a.keyframeMs !== null && b.keyframeMs === null) return -1;
+		if (a.keyframeMs !== null && b.keyframeMs !== null && a.keyframeMs !== b.keyframeMs)
+			return a.keyframeMs - b.keyframeMs;
 		return actionRank(a.event.action) - actionRank(b.event.action);
 	});
 }
@@ -118,28 +120,52 @@ export function getTransitionPresetForEvent({
 /**
  * Decode event start time from cue mapping and event kind.
  */
-function resolveEventStartMs(event: ContentEvent, cueByName: Map<string, TextTime>): number | null {
+/**
+ * Resolve keyframe time and runtime trigger time for one event.
+ * - intro keyframe = end of intro transition, runtime = keyframe - duration
+ * - outro keyframe = cue end, runtime = keyframe
+ * - custom keyframe = cue position (or null), runtime = keyframe
+ */
+function resolveEventTiming(
+	event: ContentEvent,
+	cueByName: Map<string, TextTime>
+): { keyframeMs: number | null; runtimeStartMs: number | null } {
 	const kind = deriveEventKind(event.action);
 	if (kind === "outro") {
 		const cue = event.name ? cueByName.get(event.name) : null;
-		if (!cue) return null;
-		return Math.round(Number(cue.end) * 1000);
+		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
+		const keyframeMs = Math.round(Number(cue.end) * 1000);
+		return { keyframeMs, runtimeStartMs: keyframeMs };
 	}
 
 	if (kind === "intro") {
 		const cue = event.name ? cueByName.get(event.name) : null;
-		if (!cue) return null;
-		return Math.round(Number(cue.start) * 1000);
+		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
+		const durationMs = resolveTransitionDurationMs(event);
+		const introStartMs = Math.round(Number(cue.start) * 1000);
+		const keyframeMs = introStartMs + durationMs;
+		return {
+			keyframeMs,
+			runtimeStartMs: Math.max(0, keyframeMs - durationMs)
+		};
 	}
 
 	if (event.name) {
 		const cue = cueByName.get(event.name);
-		if (!cue) return null;
+		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
 		const position = (event.position || "middle") as CustomEventPosition;
-		return Math.round(getCueTimeAtPosition(cue, position) * 1000);
+		const keyframeMs = Math.round(getCueTimeAtPosition(cue, position) * 1000);
+		return { keyframeMs, runtimeStartMs: keyframeMs };
 	}
 
-	return null;
+	return { keyframeMs: null, runtimeStartMs: null };
+}
+
+function resolveTransitionDurationMs(event: ContentEvent): number {
+	if (typeof event.duration === "number" && Number.isFinite(event.duration) && event.duration > 0) {
+		return Math.round(event.duration * 1000);
+	}
+	return DEFAULT_DURATION;
 }
 
 /**

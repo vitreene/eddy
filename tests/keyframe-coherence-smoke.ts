@@ -110,20 +110,20 @@ assert.equal(typeof key2.style, "undefined", "custom-2 keyframe must not carry s
 assert.equal(typeof key2.className, "object", "custom-2 keyframe should carry className diff");
 assert.equal(typeof key2.move, "object", "custom-2 keyframe should carry move:auto");
 
-const at500Raw = built.events.get(500);
+const at1000Raw = built.events.get(1000);
 const at2000Raw = built.events.get(2000);
 const at4000Raw = built.events.get(4000);
-const at500 = Array.isArray(at500Raw) ? at500Raw : at500Raw ? [at500Raw] : [];
+const at1000 = Array.isArray(at1000Raw) ? at1000Raw : at1000Raw ? [at1000Raw] : [];
 const at2000 = Array.isArray(at2000Raw) ? at2000Raw : at2000Raw ? [at2000Raw] : [];
 const at4000 = Array.isArray(at4000Raw) ? at4000Raw : at4000Raw ? [at4000Raw] : [];
 
 assert.equal(
-	at500.some((entry: any) => entry.name === "cue-a-custom-1__tween"),
+	at1000.some((entry: any) => entry.name === "cue-a-custom-1__tween"),
 	true,
 	"custom-1 tween marker should start at previous keyframe"
 );
 assert.equal(
-	at500.some((entry: any) => entry.name === "cue-a-custom-1"),
+	at1000.some((entry: any) => entry.name === "cue-a-custom-1"),
 	false,
 	"custom-1 keyframe marker must not fire at previous keyframe"
 );

@@ -7,6 +7,7 @@ import {
 	resolveClosestCuePointFromDelay,
 	resolveDelayFromCuePoint
 } from "../app/scene-runtime/visibility/custom-event-cue-mapping";
+import { shouldPersistEventPayload } from "../app/api/content";
 import { sceneLogic } from "../app/provider/scene-logic";
 
 type Case = { name: string; run: () => void };
@@ -100,6 +101,27 @@ const cases: Case[] = [
 		}
 	},
 	{
+		name: "cue mapping prefers in-bounds point around seek",
+		run: () => {
+			const cues = [
+				{ name: "before", text: "", start: 0.2, end: 0.45 } as any,
+				{ name: "intro", text: "", start: 0.5, end: 0.66 } as any,
+				{ name: "next", text: "", start: 1.2, end: 1.4 } as any,
+				{ name: "outro", text: "", start: 3, end: 3.2 } as any
+			];
+
+			const point = resolveClosestCuePointFromDelay({
+				cues,
+				introName: "intro",
+				outroName: "outro",
+				delaySec: 0
+			});
+
+			assert.equal(point?.name, "intro");
+			assert.equal(point?.position, "start");
+		}
+	},
+	{
 		name: "sceneLogic create/update/delete custom event",
 		run: () => {
 			const actor = createActor(sceneLogic, { input: createSceneBase() });
@@ -130,6 +152,55 @@ const cases: Case[] = [
 			const afterDelete = actor.getSnapshot().context;
 			assert.equal(Boolean(afterDelete.events[10]["custom-1"]), false);
 			assert.equal(afterDelete.active.event, null);
+
+			actor.stop();
+		}
+	},
+	{
+		name: "sceneLogic custom create snaps to nearest in-bounds cue at seek",
+		run: () => {
+			const base = createSceneBase();
+			(base.sceneContents[1] as any).events = [
+				{ name: "before-intro", text: "", start: 1.6, end: 1.9 },
+				{ name: "intro-cue", text: "", start: 2, end: 2 },
+				{ name: "middle-cue", text: "", start: 4, end: 6 },
+				{ name: "outro-cue", text: "", start: 8, end: 8 }
+			] as any;
+
+			const actor = createActor(sceneLogic, { input: base });
+			actor.start();
+			actor.send({ type: "init", payload: base });
+			actor.send({ type: "active-set", payload: { itemId: 10, contentId: 100, cue: 2 } });
+			actor.send({ type: "custom-event-create", payload: {} });
+
+			const created = actor.getSnapshot().context.events[10]["custom-1"] as any;
+			assert.ok(created);
+			assert.equal(created.name, "intro-cue");
+			assert.equal(created.position, "start");
+			assert.equal(created.delay, null);
+
+			actor.stop();
+		}
+	},
+	{
+		name: "sceneLogic custom create keeps payload persistable without cue mapping",
+		run: () => {
+			const base = createSceneBase();
+			(base.sceneContents[1] as any).events = [];
+			(base.events[10] as any).intro.name = null;
+			(base.events[10] as any).outro.name = null;
+
+			const actor = createActor(sceneLogic, { input: base });
+			actor.start();
+			actor.send({ type: "init", payload: base });
+			actor.send({ type: "active-set", payload: { itemId: 10, contentId: 100, cue: null } });
+			actor.send({ type: "custom-event-create", payload: {} });
+
+			const created = actor.getSnapshot().context.events[10]["custom-1"] as any;
+			assert.ok(created);
+			assert.equal(created.name, null);
+			assert.equal(created.delay, 0);
+			assert.equal(shouldPersistEventPayload(created.action, created), true);
 
 			actor.stop();
 		}

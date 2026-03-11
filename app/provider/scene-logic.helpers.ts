@@ -2,7 +2,10 @@ import { findCssClassRule } from "@/lib/merge-css-classes";
 import { INTRO, OUTRO } from "@/config/constants";
 import { normalizeTransitionRef } from "@/config/transitions";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
-import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import {
+	getCueTimeAtPosition,
+	resolveClosestCuePointFromDelay
+} from "@/scene-runtime/visibility/custom-event-cue-mapping";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { resolveSelectedEventCueSec } from "./event-selection-cue";
 
@@ -209,6 +212,18 @@ export function seedCustomEventPlacement(
 	context: SceneComp & { active: ActiveState },
 	itemId: number
 ): { name: string | null; delay: number | null; position: CustomEventPosition | null } {
+	const nearest = resolveNearestCuePointFromSeek(context, itemId);
+	if (nearest) return { name: nearest.name, delay: null, position: nearest.position };
+
+	const fallbackDelay = computeDefaultCustomDelaySec(context, itemId);
+	return { name: null, delay: fallbackDelay ?? 0, position: null };
+}
+
+function resolveNearestCuePointFromSeek(
+	context: SceneComp & { active: ActiveState },
+	itemId: number
+): { name: string; position: CustomEventPosition } | null {
+	// Resolve nearest cue point around current seek; prefer points within intro/outro bounds.
 	const itemEvents = context.events[itemId] || {};
 	const introName = itemEvents[INTRO]?.name;
 	const outroName = itemEvents[OUTRO]?.name;
@@ -216,32 +231,57 @@ export function seedCustomEventPlacement(
 		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
 		Object.values(context.sceneContents || {})[0];
 	const cues = sceneContent?.events || [];
+	if (!cues.length) return null;
 
-	if (introName && outroName && cues.length) {
-		const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-		const introCue = cueByName.get(introName);
-		if (introCue) {
-			const introStart = Number(introCue.start);
-			const baseDelay = computeDefaultCustomDelaySec(context, itemId);
-			const activeDelay =
-				typeof context.active.cue == "number" &&
-				Number.isFinite(context.active.cue) &&
-				Number.isFinite(introStart)
-					? Math.max(0, context.active.cue - introStart)
-					: baseDelay;
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+	const introCue = introName ? cueByName.get(introName) : null;
+	const outroCue = outroName ? cueByName.get(outroName) : null;
 
-			const point = resolveClosestCuePointFromDelay({
-				cues,
-				introName,
-				outroName,
-				delaySec: activeDelay
-			});
+	const introStart = introCue ? Number(introCue.start) : Number.NaN;
+	const outroEnd = outroCue ? Number(outroCue.end) : Number.NaN;
+	const hasBounds = Number.isFinite(introStart) && Number.isFinite(outroEnd) && outroEnd >= introStart;
 
-			if (point) return { name: point.name, delay: null, position: point.position };
+	const activeCueSec = context.active.cue;
+	const targetSec =
+		typeof activeCueSec == "number" && Number.isFinite(activeCueSec)
+			? activeCueSec
+			: hasBounds
+				? introStart + (outroEnd - introStart) / 2
+				: Number(cues[0]?.start) || 0;
+
+	let bestInBounds: { name: string; position: CustomEventPosition; time: number } | null = null;
+	let bestAny: { name: string; position: CustomEventPosition; time: number } | null = null;
+
+	for (const cue of cues) {
+		for (const position of ["start", "middle", "end"] as const) {
+			const time = getCueTimeAtPosition(cue, position);
+			if (!Number.isFinite(time)) continue;
+			const candidate = { name: cue.name, position: position as CustomEventPosition, time };
+			if (!bestAny || Math.abs(candidate.time - targetSec) < Math.abs(bestAny.time - targetSec)) {
+				bestAny = candidate;
+			}
+			if (hasBounds && (time < introStart || time > outroEnd)) continue;
+			if (!bestInBounds || Math.abs(candidate.time - targetSec) < Math.abs(bestInBounds.time - targetSec)) {
+				bestInBounds = candidate;
+			}
 		}
 	}
 
-	return { name: null, delay: computeDefaultCustomDelaySec(context, itemId), position: null };
+	if (bestInBounds) return { name: bestInBounds.name, position: bestInBounds.position };
+	if (bestAny) return { name: bestAny.name, position: bestAny.position };
+
+	if (introName && outroName) {
+		const delay = computeDefaultCustomDelaySec(context, itemId);
+		const point = resolveClosestCuePointFromDelay({
+			cues,
+			introName,
+			outroName,
+			delaySec: delay
+		});
+		if (point) return { name: point.name, position: point.position };
+	}
+
+	return null;
 }
 
 export function computeCueForSelectedCustomEvent(

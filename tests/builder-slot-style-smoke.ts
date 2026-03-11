@@ -91,21 +91,25 @@ assert.equal(
 	"cell-r1-c1",
 	"custom keyframe should remove previous slot class"
 );
-const rawEventsAt500 = built.events.get(500);
+const rawEventsAt1000 = built.events.get(1000);
 const rawEventsAt2000 = built.events.get(2000);
-const eventsAt500 = Array.isArray(rawEventsAt500) ? rawEventsAt500 : rawEventsAt500 ? [rawEventsAt500] : [];
+const eventsAt1000 = Array.isArray(rawEventsAt1000)
+	? rawEventsAt1000
+	: rawEventsAt1000
+		? [rawEventsAt1000]
+		: [];
 const eventsAt2000 = Array.isArray(rawEventsAt2000)
 	? rawEventsAt2000
 	: rawEventsAt2000
 		? [rawEventsAt2000]
 		: [];
 assert.equal(
-	eventsAt500.some((entry: any) => entry.name === "cue-step-custom-1__tween"),
+	eventsAt1000.some((entry: any) => entry.name === "cue-step-custom-1__tween"),
 	true,
-	"custom tween marker should be scheduled at previous keyframe time"
+	"custom tween marker should be scheduled at previous keyframe end"
 );
 assert.equal(
-	eventsAt500.some((entry: any) => entry.name === "cue-step-custom-1"),
+	eventsAt1000.some((entry: any) => entry.name === "cue-step-custom-1"),
 	false,
 	"custom keyframe marker must not run at previous keyframe time"
 );

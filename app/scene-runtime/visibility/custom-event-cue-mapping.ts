@@ -32,20 +32,29 @@ export function resolveClosestCuePointFromDelay(params: {
 	const boundedTarget = Number.isFinite(outroEnd)
 		? Math.min(Math.max(introStart + delaySec, introStart), outroEnd)
 		: introStart + delaySec;
+	const bounds = {
+		minSec: introStart,
+		maxSec: Number.isFinite(outroEnd) ? outroEnd : Number.POSITIVE_INFINITY
+	};
 
-	let best: CuePointMatch | null = null;
+	let bestInBounds: CuePointMatch | null = null;
+	let bestAny: CuePointMatch | null = null;
 	for (const cue of cues) {
 		for (const position of ["start", "middle", "end"] as const) {
 			const timeSec = getCueTimeAtPosition(cue, position);
 			if (!Number.isFinite(timeSec)) continue;
-			const distance = Math.abs(timeSec - boundedTarget);
-			if (!best || distance < Math.abs(best.timeSec - boundedTarget)) {
-				best = { name: cue.name, position, timeSec };
+			const match = { name: cue.name, position, timeSec } as CuePointMatch;
+			if (isBetterCuePointMatch(bestAny, match, boundedTarget)) {
+				bestAny = match;
+			}
+			if (!isCuePointWithinBounds(timeSec, bounds.minSec, bounds.maxSec)) continue;
+			if (isBetterCuePointMatch(bestInBounds, match, boundedTarget)) {
+				bestInBounds = match;
 			}
 		}
 	}
 
-	return best;
+	return bestInBounds ?? bestAny;
 }
 
 /**
@@ -90,4 +99,27 @@ export function getCueTimeAtPosition(cue: TextTime, position: CustomEventPositio
 	if (position == "start") return start;
 	if (position == "end") return safeEnd;
 	return start + (safeEnd - start) / 2;
+}
+
+/**
+ * Decide whether a candidate cue point is a better nearest match.
+ */
+function isBetterCuePointMatch(
+	current: CuePointMatch | null,
+	candidate: CuePointMatch,
+	targetSec: number
+): boolean {
+	if (!current) return true;
+	return Math.abs(candidate.timeSec - targetSec) < Math.abs(current.timeSec - targetSec);
+}
+
+/**
+ * Check if a cue point is inside the intro/outro bounded interval.
+ */
+function isCuePointWithinBounds(timeSec: number, minSec: number, maxSec: number): boolean {
+	if (!Number.isFinite(timeSec)) return false;
+	if (!Number.isFinite(minSec)) return true;
+	if (timeSec < minSec) return false;
+	if (Number.isFinite(maxSec) && timeSec > maxSec) return false;
+	return true;
 }

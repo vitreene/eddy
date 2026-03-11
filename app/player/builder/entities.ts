@@ -234,7 +234,7 @@ function buildTimedActions(input: {
 
 	if (events) {
 		const orderedEvents = getOrderedEventsForItem(snapshot, events);
-		let previousMs = 0;
+		let previousKeyframeMs = 0;
 		let lastScheduledStartMs: number | null = null;
 		let previousStyleState = getInlineStyle(baseDecor.style);
 
@@ -247,18 +247,18 @@ function buildTimedActions(input: {
 				const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
 				const targetStyle = getInlineStyle(targetDecor.style);
 				const nextDynamicClassName = buildDynamicClassName(capsuleType, targetDecor, autoAreaClassName);
-				const scheduledStartMs = previousMs;
+				const scheduledStartMs = previousKeyframeMs;
 				const hasPreviousScheduledAction =
 					lastScheduledStartMs !== null && lastScheduledStartMs <= scheduledStartMs;
-				const hasTransitionWindow = entry.startMs !== null && entry.startMs > previousMs;
+				const hasTransitionWindow = entry.keyframeMs !== null && entry.keyframeMs > previousKeyframeMs;
 
 				if (!hasTransitionWindow || !hasPreviousScheduledAction) {
 					if (debugLabel) {
 						console.log(`[${debugLabel}][builder] folded-to-initial`, {
 							action: ev.action,
 							name: ev.name,
-							startMs: entry.startMs,
-							previousMs,
+							keyframeMs: entry.keyframeMs,
+							previousKeyframeMs,
 							hasTransitionWindow,
 							hasPreviousScheduledAction
 						});
@@ -267,7 +267,7 @@ function buildTimedActions(input: {
 					previousStyleState = { ...previousStyleState, ...targetStyle };
 					previousClassDecor = targetDecor;
 					previousDynamicClassName = nextDynamicClassName;
-					if (entry.startMs !== null) previousMs = entry.startMs;
+					if (entry.keyframeMs !== null) previousKeyframeMs = entry.keyframeMs;
 					continue;
 				}
 
@@ -282,7 +282,7 @@ function buildTimedActions(input: {
 				const autoMoveRequested =
 					hasTransitionWindow && (placementChanged || (autoMoveOptions.auto && positionStyleChanged));
 
-				const durationMs = Math.max(0, (entry.startMs ?? previousMs) - previousMs);
+				const durationMs = Math.max(0, (entry.keyframeMs ?? previousKeyframeMs) - previousKeyframeMs);
 				const targetStyleForInterpolation =
 					autoMoveRequested && autoMoveOptions.clearTransforms
 						? {
@@ -317,8 +317,8 @@ function buildTimedActions(input: {
 					console.log(`[${debugLabel}][builder] custom-action`, {
 						action: ev.action,
 						name: ev.name,
-						startMs: entry.startMs,
-						previousMs,
+						keyframeMs: entry.keyframeMs,
+						previousKeyframeMs,
 						autoMoveRequested,
 						move: keyframeAction.move ?? null,
 						hasX: typeof (customStyle as any).x !== "undefined",
@@ -338,7 +338,7 @@ function buildTimedActions(input: {
 				previousStyleState = { ...previousStyleState, ...targetStyleForInterpolation };
 				previousClassDecor = targetDecor;
 				previousDynamicClassName = nextDynamicClassName;
-				if (entry.startMs !== null) previousMs = entry.startMs;
+				if (entry.keyframeMs !== null) previousKeyframeMs = entry.keyframeMs;
 				continue;
 			}
 
@@ -346,8 +346,8 @@ function buildTimedActions(input: {
 			const actionStyle = getActionStyle(preset.style);
 			if (ev.action == INTRO) actions[actionName] = { style: actionStyle, move: parentId };
 			else actions[actionName] = { style: actionStyle };
-			if (entry.startMs !== null) lastScheduledStartMs = entry.startMs;
-			if (entry.startMs !== null) previousMs = entry.startMs;
+			if (entry.runtimeStartMs !== null) lastScheduledStartMs = entry.runtimeStartMs;
+			if (entry.keyframeMs !== null) previousKeyframeMs = entry.keyframeMs;
 		}
 	} else {
 		actions[INTRO] = {
