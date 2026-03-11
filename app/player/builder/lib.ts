@@ -8,6 +8,10 @@ export function buildEventActionName(event: ContentEvent): string {
 	return `${label}-${event.action}`;
 }
 
+export function buildCustomTweenActionName(event: ContentEvent): string {
+	return `${buildEventActionName(event)}__tween`;
+}
+
 /**
  * Style shape used by builder-generated action interpolations.
  */

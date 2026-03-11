@@ -7,7 +7,7 @@ import { getMediaUrl } from "@/lib/media-url";
 import type { CapsuleComp, ContentEvent, ItemComp, SceneComp } from "@/api/db";
 import { P, type ID } from "../types";
 import { SCENE_ID } from "@/scene-runtime/constants";
-import { buildEventActionName } from "./lib";
+import { buildCustomTweenActionName, buildEventActionName } from "./lib";
 import { getOrderedEventsForItem, getTransitionPresetForEvent } from "./events";
 import {
 	buildClassNameDiff,
@@ -302,10 +302,12 @@ function buildTimedActions(input: {
 					delete customStyle.height;
 				}
 
-				const customAction: Record<string, unknown> = { style: customStyle };
-				if (classNameDiff) customAction.className = classNameDiff;
+				const tweenActionName = buildCustomTweenActionName(ev);
+				const tweenAction: Record<string, unknown> = { style: customStyle };
+				const keyframeAction: Record<string, unknown> = {};
+				if (classNameDiff) keyframeAction.className = classNameDiff;
 				if (autoMoveRequested || layoutStyleChanged) {
-					customAction.move =
+					keyframeAction.move =
 						autoMoveRequested && autoMoveOptions.clearTransforms
 							? { mode: "auto", clearTransforms: true }
 							: { mode: "auto" };
@@ -318,7 +320,7 @@ function buildTimedActions(input: {
 						startMs: entry.startMs,
 						previousMs,
 						autoMoveRequested,
-						move: customAction.move ?? null,
+						move: keyframeAction.move ?? null,
 						hasX: typeof (customStyle as any).x !== "undefined",
 						hasY: typeof (customStyle as any).y !== "undefined",
 						hasWidth: typeof (customStyle as any).width !== "undefined",
@@ -326,7 +328,12 @@ function buildTimedActions(input: {
 					});
 				}
 
-				actions[actionName] = customAction;
+				if (Object.keys(customStyle).length) {
+					actions[tweenActionName] = tweenAction;
+				}
+				if (Object.keys(keyframeAction).length) {
+					actions[actionName] = keyframeAction;
+				}
 				lastScheduledStartMs = scheduledStartMs;
 				previousStyleState = { ...previousStyleState, ...targetStyleForInterpolation };
 				previousClassDecor = targetDecor;

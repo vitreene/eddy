@@ -12,6 +12,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 
 type EditTransformProps = {
 	value?: Partial<ElementTransform>;
+	onResetTransform: () => void;
 	onCommit: (
 		transform: ElementTransform,
 		mode: "move" | "rotate" | "resize-se" | "cell-snap" | "origin",
@@ -24,7 +25,7 @@ type EditTransformProps = {
 	) => void;
 };
 
-export function EditTransform({ value, onCommit }: EditTransformProps) {
+export function EditTransform({ value, onResetTransform, onCommit }: EditTransformProps) {
 	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
 	const item = SceneLogicContext.useSelector((state) =>
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
@@ -94,15 +95,27 @@ export function EditTransform({ value, onCommit }: EditTransformProps) {
 	}, [parentCapsule]);
 
 	return (
-		<ItemTransformEditor
-			element={activeNode}
-			active={isTransformEditorActive}
-			value={value}
-			onCommit={onCommit}
-			snapParentId={snapParentId}
-			snapGrid={snapGrid}
-			syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}`}
-			overlayContainer={overlayContainer}
-		/>
+		<>
+			<div className="mb-2 flex justify-end">
+				<button
+					type="button"
+					onClick={onResetTransform}
+					disabled={!isTransformEditorActive}
+					className="inline-flex h-7 items-center rounded border border-stone-300 px-2 text-xs hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					Reset transform
+				</button>
+			</div>
+			<ItemTransformEditor
+				element={activeNode}
+				active={isTransformEditorActive}
+				value={value}
+				onCommit={onCommit}
+				snapParentId={snapParentId}
+				snapGrid={snapGrid}
+				syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}`}
+				overlayContainer={overlayContainer}
+			/>
+		</>
 	);
 }

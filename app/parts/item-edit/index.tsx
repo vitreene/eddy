@@ -4,6 +4,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { applyStyleDefaults, getDefaultStyleForContentType } from "@/config/item-style-defaults";
 import { deriveEventKind } from "@/config/custom-events";
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
+import { INTRO, OUTRO } from "@/config/constants";
 import { SCENE_ID } from "@/scene-runtime/constants";
 
 import { CapsuleEdit } from "./capsule-edit";
@@ -12,6 +13,8 @@ import { ItemEditPanel } from "./item-edit-panel";
 import { applyLiveStyleOnNode } from "./live-node-style";
 import { applyClassTokenPatch } from "./live-node-classes";
 import { mergeDecorChain, resolveDecorBeforeCustomEvent } from "./item-edit.helpers";
+import { buildDefaultTransitionEventPatch, getCustomEventActions } from "./item-edit.reset";
+import { buildResetTransformStyle } from "./item-edit.transform";
 
 import type { Content, Decor, SceneComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
@@ -222,7 +225,22 @@ export function EditItem() {
 	);
 
 	const onResetStyle = useCallback(() => {
-		if (!editDecor) return;
+		if (!item || !editDecor) return;
+		const itemEvents = eventsByItem[item.id] || null;
+		const customActions = getCustomEventActions(itemEvents);
+		for (const action of customActions) {
+			send({ type: "custom-event-delete", payload: { action } });
+		}
+
+		send({
+			type: "events-update",
+			payload: buildDefaultTransitionEventPatch(INTRO, itemEvents?.[INTRO])
+		});
+		send({
+			type: "events-update",
+			payload: buildDefaultTransitionEventPatch(OUTRO, itemEvents?.[OUTRO])
+		});
+
 		if (activeNode) {
 			activeNode.removeAttribute("style");
 		}
@@ -237,7 +255,17 @@ export function EditItem() {
 				} as Decor
 			}
 		});
-	}, [send, editDecor, activeNode]);
+
+		send({
+			type: "active-set",
+			payload: {
+				itemId: item.id,
+				contentId: item.contentId,
+				event: INTRO,
+				action: "seek"
+			}
+		});
+	}, [send, item, editDecor, eventsByItem, activeNode]);
 
 	const onTextChange = useCallback(
 		(inner: string) => {
@@ -348,12 +376,16 @@ export function EditItem() {
 		[onStyleChange, activeCustomEventAction, editDecor, decor, parentCapsule?.type, item, send]
 	);
 
+	const onResetTransform = useCallback(() => {
+		onStyleChange(buildResetTransformStyle());
+	}, [onStyleChange]);
+
 	if (!item) return null;
 	const transformValue = getTransformValueFromStyle(decor?.style as EditableStyle | undefined);
 
 	return (
 		<>
-			<EditTransform value={transformValue} onCommit={onTransformCommit} />
+			<EditTransform value={transformValue} onResetTransform={onResetTransform} onCommit={onTransformCommit} />
 			{capsule ? (
 				<CapsuleEdit
 					content={content}

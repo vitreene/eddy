@@ -90,7 +90,7 @@ function VisualTransformGridOverlay({
 }: OverlayProps) {
 	const { w, h, M } = frame;
 	const frameStyle: React.CSSProperties = {
-		position: "fixed",
+		position: "absolute",
 		left: 0,
 		top: 0,
 		width: w,
@@ -102,7 +102,7 @@ function VisualTransformGridOverlay({
 	};
 
 	return createPortal(
-		<div className={className} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
+		<div className={className} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
 			<div style={{ ...frameStyle, display: hidden ? "none" : "block" }}>
 				<div
 					style={{

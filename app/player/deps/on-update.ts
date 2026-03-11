@@ -5,6 +5,7 @@ import type { Timeline, JSAnimation } from "animejs";
 import type { ID } from "../types";
 import type { Player } from "../player";
 import type { Change } from "./static-changes";
+import { DEFAULT_DURATION } from "@/config/constants";
 
 function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: boolean } {
 	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
@@ -50,7 +51,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 			// update transition
 			if (change && transitions.has(change)) {
 				const transition = transitions.get(change)!;
-				const progress = getProgression(currentTime, change.curr!, change.curr! + 1000);
+				const progress = resolveChangeProgress(currentTime, change);
 				transition.progress = progress;
 			}
 
@@ -97,7 +98,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 					if (transitions.has(nextChange)) {
 						const existing = transitions.get(nextChange)!;
 						this._applyChanges(id, nextChange.change);
-						existing.progress = getProgression(currentTime, nextChange.curr!, nextChange.curr! + 1000);
+						existing.progress = resolveChangeProgress(currentTime, nextChange);
 					} else {
 						this.enqueueMoveTransition({
 							key: `${String(id)}:${nextChange.curr ?? "start"}`,
@@ -105,7 +106,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 							change: nextChange.change,
 							onTransition: (transition) => {
 								transitions.set(nextChange, transition);
-								transition.progress = getProgression(currentTime, nextChange.curr!, nextChange.curr! + 1000);
+								transition.progress = resolveChangeProgress(currentTime, nextChange);
 							}
 						});
 					}
@@ -139,4 +140,15 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 		});
 		return true;
 	};
+}
+
+export function resolveTransitionEnd(change: Change): number {
+	if (typeof change.next === "number" && Number.isFinite(change.next) && change.next > change.curr!) {
+		return change.next;
+	}
+	return (change.curr || 0) + DEFAULT_DURATION;
+}
+
+export function resolveChangeProgress(currentTime: number, change: Change): number {
+	return getProgression(currentTime, change.curr!, resolveTransitionEnd(change));
 }

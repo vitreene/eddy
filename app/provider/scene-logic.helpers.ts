@@ -1,12 +1,10 @@
 import { findCssClassRule } from "@/lib/merge-css-classes";
-import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
+import { INTRO, OUTRO } from "@/config/constants";
 import { normalizeTransitionRef } from "@/config/transitions";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
-import {
-	getCueTimeAtPosition,
-	resolveClosestCuePointFromDelay
-} from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 import { buildNodeId } from "@/scene-runtime/node-id";
+import { resolveSelectedEventCueSec } from "./event-selection-cue";
 
 import type { Decor, ContentEvent, ItemComp, SceneComp } from "@/api/db";
 import type { ActiveState, TreeMutationResponse } from "./types";
@@ -27,7 +25,7 @@ const COMPONENT_TRANSFORM_DEBUG_KEYS = new Set([
 // Remove this block when transform persistence is re-enabled.
 const DEBUG_SKIP_COMPONENT_TRANSFORM_PERSIST = false;
 
-function serializeCapsuleTransition(value: unknown, action: "intro" | "outro"): string {
+function serializeCapsuleTransition(value: unknown, action: typeof INTRO | typeof OUTRO): string {
 	if (!value) return "";
 
 	if (typeof value == "string") {
@@ -119,8 +117,8 @@ export async function executePersistTouchedCommits(
 		const capsuleRecord = capsule as Record<string, unknown>;
 		delete capsule.itemIds;
 
-		const introSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemIntroTransition, "intro");
-		const outroSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemOutroTransition, "outro");
+		const introSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemIntroTransition, INTRO);
+		const outroSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemOutroTransition, OUTRO);
 
 		const formData = new FormData();
 		Object.entries(capsule).forEach(([k, v]: [string, unknown]) => {
@@ -251,45 +249,7 @@ export function computeCueForSelectedCustomEvent(
 	itemId: number,
 	action: string
 ): number | null {
-	const event = context.events[itemId]?.[action];
-	if (!event) return null;
-
-	const sceneContent =
-		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
-		Object.values(context.sceneContents || {})[0];
-	const cues = sceneContent?.events || [];
-	if (!cues.length) return null;
-	const transitionDurationSec =
-		typeof event.duration == "number" && Number.isFinite(event.duration) && event.duration > 0
-			? event.duration
-			: DEFAULT_DURATION / 1000;
-
-	if (event.action === INTRO && event.name) {
-		const cue = cues.find((entry) => entry.name == event.name);
-		if (!cue) return null;
-		return getCueTimeAtPosition(cue, "start") + transitionDurationSec;
-	}
-
-	if (event.action === OUTRO && event.name) {
-		const cue = cues.find((entry) => entry.name == event.name);
-		if (!cue) return null;
-		const outroEnd = getCueTimeAtPosition(cue, "end");
-		return Math.max(getCueTimeAtPosition(cue, "start"), outroEnd - transitionDurationSec);
-	}
-
-	if (deriveEventKind(event.action) !== "custom") return null;
-
-	if (event.name) {
-		const cue = cues.find((entry) => entry.name == event.name);
-		if (!cue) return null;
-		const position = (event.position === "start" || event.position === "end" ? event.position : "middle") as
-			| "start"
-			| "middle"
-			| "end";
-		return getCueTimeAtPosition(cue, position);
-	}
-
-	return null;
+	return resolveSelectedEventCueSec(context, itemId, action);
 }
 
 export function getTouchedParams(context: SceneComp & { active: ActiveState }): string[] {

@@ -4,7 +4,7 @@ import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 
 import type { ContentEvent, ItemComp, SceneComp, TextTime, CapsuleComp } from "@/api/db";
-import { buildEventActionName } from "./lib";
+import { buildCustomTweenActionName, buildEventActionName } from "./lib";
 
 type OrderedEvent = {
 	event: ContentEvent;
@@ -32,16 +32,34 @@ export function mapEvents(snapshot: SceneComp) {
 			if (entry.startMs === null) continue;
 			if (entry.startMs > lastCue) lastCue = entry.startMs;
 			const kind = deriveEventKind(ev.action);
-			const scheduledStart = kind === "custom" ? previousMs : entry.startMs;
 
-			const mapped = {
-				name: buildEventActionName(ev),
-				start: scheduledStart
-			};
+			if (kind === "custom") {
+				const tweenStart = previousMs;
+				const tweenMapped = {
+					name: buildCustomTweenActionName(ev),
+					start: tweenStart
+				};
+				const tweenExisting = map.get(tweenStart) || [];
+				tweenExisting.push(tweenMapped);
+				map.set(tweenStart, tweenExisting);
 
-			const existing = map.get(scheduledStart) || [];
-			existing.push(mapped);
-			map.set(scheduledStart, existing);
+				const keyframeMapped = {
+					name: buildEventActionName(ev),
+					start: entry.startMs
+				};
+				const keyframeExisting = map.get(entry.startMs) || [];
+				keyframeExisting.push(keyframeMapped);
+				map.set(entry.startMs, keyframeExisting);
+			} else {
+				const mapped = {
+					name: buildEventActionName(ev),
+					start: entry.startMs
+				};
+
+				const existing = map.get(entry.startMs) || [];
+				existing.push(mapped);
+				map.set(entry.startMs, existing);
+			}
 			previousMs = entry.startMs;
 		}
 	}

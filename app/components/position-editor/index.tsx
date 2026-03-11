@@ -437,7 +437,7 @@ function VisualTransformOverlay({ className, frame, t, portalContainer, onDragSt
 
 	// Overlay placement style derived from local->viewport affine matrix.
 	const frameStyle: React.CSSProperties = {
-		position: "fixed",
+		position: "absolute",
 		left: 0,
 		top: 0,
 		width: w,
@@ -462,7 +462,7 @@ function VisualTransformOverlay({ className, frame, t, portalContainer, onDragSt
 	};
 
 	const overlay = (
-		<div className={className} style={{ position: "fixed", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
+		<div className={className} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
 			<div
 				style={frameStyle}
 				onPointerDown={(e) => {

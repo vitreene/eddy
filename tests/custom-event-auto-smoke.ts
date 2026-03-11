@@ -93,15 +93,18 @@ const built = buildScene(scene);
 const item = built.persos.find((p: any) => p?.initial?.id === "item__10");
 assert.ok(item, "item__10 should be present");
 
-const action = item.actions["cue-step-2-custom-2"] as any;
-assert.ok(action, "custom auto action should exist");
-assert.deepEqual(action.move, { mode: "auto", clearTransforms: true });
+const keyframeAction = item.actions["cue-step-2-custom-2"] as any;
+assert.ok(keyframeAction, "custom auto keyframe action should exist");
+assert.deepEqual(keyframeAction.move, { mode: "auto", clearTransforms: true });
+
+const tweenAction = item.actions["cue-step-2-custom-2__tween"] as any;
+assert.ok(tweenAction, "custom auto tween action should exist");
 assert.equal(
-	typeof action.style.x,
+	typeof tweenAction.style.x,
 	"undefined",
 	"x interpolation must be removed from style when auto move is used"
 );
-assert.equal(action.style.scaleX?.to, 1, "clearTransforms should reset scaleX to 1");
-assert.equal(action.style.scaleY?.to, 1, "clearTransforms should reset scaleY to 1");
+assert.equal(tweenAction.style.scaleX?.to, 1, "clearTransforms should reset scaleX to 1");
+assert.equal(tweenAction.style.scaleY?.to, 1, "clearTransforms should reset scaleY to 1");
 
 console.log("custom event auto smoke: all checks passed");

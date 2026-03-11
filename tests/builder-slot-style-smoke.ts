@@ -73,13 +73,46 @@ assert.equal(styles.includes(".cell-r2-c2{"), true, "slot class .cell-r2-c2 must
 
 const customAction = item.actions["cue-step-custom-1"] as any;
 const initialClassName = String(item.initial?.className || "");
-const actionAddsClass = customAction?.className?.add === "cell-r2-c2";
-const initialHasClass = initialClassName.split(" ").includes("cell-r2-c2");
+const initialClasses = initialClassName.split(/\s+/).filter(Boolean);
 
 assert.equal(
-	actionAddsClass || initialHasClass,
+	initialClasses.includes("cell-r1-c1"),
 	true,
-	"slot class should be applied either in initial className or custom action className"
+	"initial class should keep base slot before custom keyframe"
+);
+assert.equal(
+	initialClasses.includes("cell-r2-c2"),
+	false,
+	"initial class must not preload custom keyframe slot"
+);
+assert.equal(customAction?.className?.add, "cell-r2-c2", "custom keyframe should add target slot class");
+assert.equal(
+	customAction?.className?.remove,
+	"cell-r1-c1",
+	"custom keyframe should remove previous slot class"
+);
+const rawEventsAt500 = built.events.get(500);
+const rawEventsAt2000 = built.events.get(2000);
+const eventsAt500 = Array.isArray(rawEventsAt500) ? rawEventsAt500 : rawEventsAt500 ? [rawEventsAt500] : [];
+const eventsAt2000 = Array.isArray(rawEventsAt2000)
+	? rawEventsAt2000
+	: rawEventsAt2000
+		? [rawEventsAt2000]
+		: [];
+assert.equal(
+	eventsAt500.some((entry: any) => entry.name === "cue-step-custom-1__tween"),
+	true,
+	"custom tween marker should be scheduled at previous keyframe time"
+);
+assert.equal(
+	eventsAt500.some((entry: any) => entry.name === "cue-step-custom-1"),
+	false,
+	"custom keyframe marker must not run at previous keyframe time"
+);
+assert.equal(
+	eventsAt2000.some((entry: any) => entry.name === "cue-step-custom-1"),
+	true,
+	"custom keyframe marker should run at custom event time"
 );
 
 console.log("builder slot style smoke: all checks passed");
