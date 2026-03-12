@@ -5,6 +5,7 @@ import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitio
 import { INTRO, OUTRO } from "@/config/constants";
 import { applyStyleDefaults } from "@/config/item-style-defaults";
 import { CAPSULE_TYPES, getSelectableCapsuleTypeConfigs, resolveCapsuleType } from "@/config/capsule-types";
+import { CAPSULE_GRID_PRESETS, SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/config/capsule-presets";
 import { getValuesFromGridName } from "@/lib/utils";
 
 import type { CapsuleComp, Content, Decor } from "@/api/db";
@@ -142,8 +143,9 @@ function CapsuleGridTypeSelector({
 	const isList = resolvedCapsuleType == CAPSULE_TYPES.LISTE;
 	const isGrid = resolvedCapsuleType == CAPSULE_TYPES.GRILLE;
 	const isCard = resolvedCapsuleType == CAPSULE_TYPES.CARD;
+	const isPosition = resolvedCapsuleType == CAPSULE_TYPES.POSITION;
 	const listOrientation = capsule.grid?.includes("horizontal") ? "horizontal" : "vertical";
-	const supportsDurationMode = isCarousel || isLine || isGrid || isList;
+	const supportsDurationMode = isCarousel || isLine || isGrid || isList || isPosition;
 	const durationMode = (capsule as any).itemDurationMode === "fixed" ? "fixed" : "auto";
 	const durationValue =
 		typeof (capsule as any).itemDurationSec === "number" && Number.isFinite((capsule as any).itemDurationSec)
@@ -165,7 +167,17 @@ function CapsuleGridTypeSelector({
 			onUpdate({ type: nextType, grid: "liste-vertical" });
 			return;
 		}
+		if (nextType == CAPSULE_TYPES.POSITION) {
+			onUpdate({ type: nextType, grid: CAPSULE_GRID_PRESETS.scene });
+			return;
+		}
 		onUpdate({ type: nextType });
+	};
+
+	const onChangePositionGrid = (nextCols: number, nextRows: number) => {
+		const cols = Math.max(1, Math.floor(nextCols || 1));
+		const rows = Math.max(1, Math.floor(nextRows || 1));
+		onUpdate({ grid: `ed-grid-w${cols}-h${rows}` });
 	};
 
 	const onChangeLineParams = (orientation: "horizontal" | "vertical", cells: number) => {
@@ -256,6 +268,35 @@ function CapsuleGridTypeSelector({
 				<p className="text-muted-foreground">
 					Card: configuration de base activee. Le composant visuel des areas sera ajoute dans une etape dediee.
 				</p>
+			) : null}
+			{isPosition ? (
+				<div className="space-y-2">
+					<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+						<label>Colonnes</label>
+						<input
+							type="number"
+							min={1}
+							max={500}
+							value={gridValues.w || SCENE_GRID_WIDTH}
+							onChange={(e) =>
+								onChangePositionGrid(Number(e.currentTarget.value), gridValues.h || SCENE_GRID_HEIGHT)
+							}
+						/>
+					</div>
+					<div className="grid grid-cols-[80px_1fr] items-center gap-2">
+						<label>Lignes</label>
+						<input
+							type="number"
+							min={1}
+							max={500}
+							value={gridValues.h || SCENE_GRID_HEIGHT}
+							onChange={(e) => onChangePositionGrid(gridValues.w || SCENE_GRID_WIDTH, Number(e.currentTarget.value))}
+						/>
+					</div>
+					<p className="text-muted-foreground">
+						Mode position: move cellule + span. Preset scene par defaut: {SCENE_GRID_WIDTH} x {SCENE_GRID_HEIGHT}.
+					</p>
+				</div>
 			) : null}
 			{supportsDurationMode ? (
 				<div className="mt-2 space-y-2 border-t border-stone-200 pt-2">

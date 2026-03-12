@@ -3,6 +3,7 @@ export const CAPSULE_TYPES = {
 	RANGEE: "rangee",
 	LISTE: "liste",
 	GRILLE: "grille",
+	POSITION: "position",
 	CARD: "card",
 	LEGACY: "legacy"
 } as const;
@@ -16,6 +17,7 @@ export type CapsuleKnownType =
 	| (typeof CAPSULE_TYPES)["RANGEE"]
 	| (typeof CAPSULE_TYPES)["LISTE"]
 	| (typeof CAPSULE_TYPES)["GRILLE"]
+	| (typeof CAPSULE_TYPES)["POSITION"]
 	| (typeof CAPSULE_TYPES)["CARD"];
 
 export type CapsuleResolvedType = CapsuleKnownType | (typeof CAPSULE_TYPES)["LEGACY"];
@@ -274,6 +276,55 @@ const CAPSULE_TYPE_REGISTRY: Record<CapsuleResolvedType, CapsuleTypeConfig> = {
 			}
 		}
 	},
+	[CAPSULE_TYPES.POSITION]: {
+		type: CAPSULE_TYPES.POSITION,
+		label: "Position",
+		description: "Placement fin sur grille avec move par cellule et redimensionnement par span.",
+		ui: {
+			selectable: true,
+			params: [
+				{
+					name: "rows",
+					type: "number",
+					defaultValue: 90,
+					min: 1,
+					max: 500,
+					step: 1
+				},
+				{
+					name: "cols",
+					type: "number",
+					defaultValue: 160,
+					min: 1,
+					max: 500,
+					step: 1
+				},
+				{
+					name: "timeMode",
+					type: "enum",
+					defaultValue: "distributed",
+					options: ["distributed", "fixed"]
+				},
+				{
+					name: "fixedSeconds",
+					type: "number",
+					defaultValue: FIXED_SECONDS_DEFAULT,
+					min: 1,
+					max: 60,
+					step: 0.5
+				}
+			]
+		},
+		runtime: {
+			time: { mode: "distributed", defaultFixedSeconds: FIXED_SECONDS_DEFAULT },
+			transitions: { defaultIntroRef: "fade", defaultOutroRef: null },
+			layout: {
+				kind: "grid",
+				grid: { mode: "parametric", rows: "n", cols: "n" },
+				reloop: true
+			}
+		}
+	},
 	[CAPSULE_TYPES.CARD]: {
 		type: CAPSULE_TYPES.CARD,
 		label: "Card",
@@ -323,6 +374,7 @@ export function isCapsuleKnownType(value: string | null | undefined): value is C
 		value === CAPSULE_TYPES.RANGEE ||
 		value === CAPSULE_TYPES.LISTE ||
 		value === CAPSULE_TYPES.GRILLE ||
+		value === CAPSULE_TYPES.POSITION ||
 		value === CAPSULE_TYPES.CARD
 	);
 }
@@ -345,6 +397,7 @@ export function getSelectableCapsuleTypeConfigs(): CapsuleTypeConfig[] {
 		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.RANGEE],
 		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.LISTE],
 		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.GRILLE],
+		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.POSITION],
 		CAPSULE_TYPE_REGISTRY[CAPSULE_TYPES.CARD]
 	];
 }

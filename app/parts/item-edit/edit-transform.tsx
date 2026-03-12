@@ -1,39 +1,52 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
-import { ItemTransformEditor } from "@/components/position-editor/visual-transform-grid";
+import {
+	ItemTransformEditorPosition,
+	ItemTransformEditorTransform
+} from "@/components/position-editor/visual-transform-grid";
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { getValuesFromGridName } from "@/lib/utils";
 import { SCENE_ID } from "@/scene-runtime/constants";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { getAssuredVisibleCue } from "@/provider/active-cue";
+import { createTransformController } from "./item-edit.transform-controller";
 
 import type { ElementTransform } from "@/components/position-editor/lib.types";
 import { SceneLogicContext } from "@/provider/scene-logic";
+import type { Decor, ItemComp } from "@/api/db";
+import type { EditableStyle } from "@/components/style-editor/types";
 
 type EditTransformProps = {
 	value?: Partial<ElementTransform>;
 	editorSyncKey?: string;
-	onResetTransform: () => void;
-	onCommit: (
-		transform: ElementTransform,
-		mode: "move" | "rotate" | "resize-se" | "cell-snap" | "origin",
-		meta: {
-			translateX: number;
-			translateY: number;
-			cell?: { row: number; col: number };
-			reorderIndex?: number;
-		}
-	) => void;
+	decor?: Decor;
+	editDecor?: Decor;
+	activeCustomEventAction: string | null;
+	onStyleChange: (payload: EditableStyle) => void;
+	onDecorUpdate: (payload: { id: number; area?: string | null; className?: string | null }) => void;
+	onTreeMove: (payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => void;
+	item?: ItemComp;
+	parentCapsuleType?: string | null;
+	activeNode: HTMLElement | null;
 };
 
-export function EditTransform({ value, editorSyncKey, onResetTransform, onCommit }: EditTransformProps) {
-	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
-	const item = SceneLogicContext.useSelector((state) =>
-		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
-	);
-	const parentCapsule = SceneLogicContext.useSelector((state) =>
-		item ? state.context.capsules[item.capsuleId] : undefined
-	);
+export function EditTransform({
+	value,
+	editorSyncKey,
+	decor,
+	editDecor,
+	activeCustomEventAction,
+	onStyleChange,
+	onDecorUpdate,
+	onTreeMove,
+	item,
+	parentCapsuleType,
+	activeNode
+}: EditTransformProps) {
+	const parentCapsule = SceneLogicContext.useSelector((state) => {
+		if (!item) return undefined;
+		return state.context.capsules[item.capsuleId];
+	});
 	const activeCue = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
 	const activeAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
 	const isVisibleAtActiveCue = SceneLogicContext.useSelector((state) => {
@@ -54,6 +67,7 @@ export function EditTransform({ value, editorSyncKey, onResetTransform, onCommit
 	}, [activeNode]);
 
 	const isTransformEditorActive = Boolean(activeNode) && isVisibleAtActiveCue;
+	const [editorMode, setEditorMode] = useState<"transform" | "position">("position");
 
 	const snapParentId = useMemo(() => {
 		if (!item) return null;
@@ -95,28 +109,99 @@ export function EditTransform({ value, editorSyncKey, onResetTransform, onCommit
 		};
 	}, [parentCapsule]);
 
+	const supportsPositionMode = snapGrid?.kind === "grid";
+	const effectiveEditorMode = supportsPositionMode ? editorMode : "transform";
+
+	const transformController = useMemo(
+		() =>
+			createTransformController({
+				decor,
+				editDecor,
+				activeCustomEventAction,
+				parentCapsuleType,
+				item,
+				activeNode,
+				onStyleChange,
+				onDecorUpdate,
+				onTreeMove
+			}),
+		[
+			decor,
+			editDecor,
+			activeCustomEventAction,
+			parentCapsuleType,
+			item,
+			activeNode,
+			onStyleChange,
+			onDecorUpdate,
+			onTreeMove
+		]
+	);
+
+	useEffect(() => {
+		transformController.onTransformModeChange(effectiveEditorMode);
+	}, [effectiveEditorMode, transformController]);
+
 	return (
 		<>
 			<div className="mb-2 flex justify-end">
+				<div className="mr-auto flex items-center gap-4 text-xs">
+					<label className="inline-flex items-center gap-1">
+						<input
+							type="radio"
+							name="item-editor-mode"
+							value="transform"
+							checked={editorMode === "transform"}
+							onChange={() => setEditorMode("transform")}
+						/>
+						Transform
+					</label>
+					<label className="inline-flex items-center gap-1">
+						<input
+							type="radio"
+							name="item-editor-mode"
+							value="position"
+							checked={editorMode === "position"}
+							disabled={!supportsPositionMode}
+							onChange={() => setEditorMode("position")}
+						/>
+						Position
+					</label>
+				</div>
 				<button
 					type="button"
-					onClick={onResetTransform}
-					disabled={!isTransformEditorActive}
+					onClick={transformController.onResetTransform}
+					disabled={!isTransformEditorActive || editorMode === "position"}
 					className="inline-flex h-7 items-center rounded border border-stone-300 px-2 text-xs hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Reset transform
 				</button>
 			</div>
-			<ItemTransformEditor
-				element={activeNode}
-				active={isTransformEditorActive}
-				value={value}
-				onCommit={onCommit}
-				snapParentId={snapParentId}
-				snapGrid={snapGrid}
-				syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
-				overlayContainer={overlayContainer}
-			/>
+			{effectiveEditorMode === "position" ? (
+				<ItemTransformEditorPosition
+					element={activeNode}
+					active={isTransformEditorActive}
+					onCommit={(mode, meta) => transformController.onPositionCommit(mode, meta)}
+					snapParentId={snapParentId}
+					snapGrid={snapGrid}
+					syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
+					overlayContainer={overlayContainer}
+				/>
+			) : (
+				<ItemTransformEditorTransform
+					element={activeNode}
+					active={isTransformEditorActive}
+					value={value}
+					onCommit={(transform, mode, meta) => {
+						if (mode === "resize-grid-se") return;
+						transformController.onTransformCommit(transform, mode, meta);
+					}}
+					snapParentId={snapParentId}
+					snapGrid={snapGrid}
+					syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
+					overlayContainer={overlayContainer}
+				/>
+			)}
 		</>
 	);
 }

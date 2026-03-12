@@ -4,7 +4,7 @@ import { useMachine } from "@xstate/react";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { applyStyleDefaults, getDefaultStyleForContentType } from "@/config/item-style-defaults";
 import { deriveEventKind } from "@/config/custom-events";
-import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
+import { CAPSULE_TYPES } from "@/config/capsule-types";
 import { INTRO, OUTRO } from "@/config/constants";
 import { SCENE_ID } from "@/scene-runtime/constants";
 
@@ -19,15 +19,12 @@ import {
 } from "./live-node-classes";
 import { resolveDecorAtEventAction } from "./item-edit.helpers";
 import { buildDefaultTransitionEventPatch, getCustomEventActions } from "./item-edit.reset";
-import { buildResetTransformStyle } from "./item-edit.transform";
-import { buildAutoPlacementLockPatch, readAutoPlacementSnapshot } from "./item-edit.auto-placement";
 import { buildEditableVisualState, projectEditableVisualStateToNode } from "./editable-visual-state";
 import { editorSyncMachine } from "./editor-sync.machine";
 import { computeCueForSelectedCustomEvent } from "@/provider/scene-logic.helpers";
 
 import type { Content, Decor, SceneComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
-import type { ElementTransform } from "@/components/position-editor/lib.types";
 
 function sameStyleValue(a: unknown, b: unknown): boolean {
 	return Object.is(a, b);
@@ -342,118 +339,24 @@ export function EditItem() {
 		activePlaybackAction
 	]);
 
-	const onTransformCommit = useCallback(
-		(
-			transform: ElementTransform,
-			mode: "move" | "rotate" | "resize-se" | "cell-snap" | "origin",
-			meta: {
-				translateX: number;
-				translateY: number;
-				cell?: { row: number; col: number };
-				reorderIndex?: number;
-			}
-		) => {
-			const targetDecor = activeCustomEventAction ? editDecor : decor;
-			if (!targetDecor) return;
-			const placementSnapshot = readAutoPlacementSnapshot(activeNode);
-			if (placementSnapshot) {
-				const lockPatch = buildAutoPlacementLockPatch({
-					capsuleType: parentCapsule?.type,
-					targetDecor,
-					snapshot: placementSnapshot
-				});
-				if (lockPatch) {
-					// Important: do not patch live classes here.
-					// During transform commit, changing placement classes before applying
-					// the transform payload can shift the measured base and create visual drift.
-					// Persist first; runtime rebuild applies the locked placement consistently.
-					send({
-						type: "item-update",
-						payload: {
-							decor: {
-								id: targetDecor.id,
-								...lockPatch
-							} as Decor
-						}
-					});
+	const onDecorUpdate = useCallback(
+		(payload: { id: number; area?: string | null; className?: string | null }) => {
+			send({
+				type: "item-update",
+				payload: {
+					decor: payload as Decor
 				}
-			}
-
-			if (mode === "cell-snap") {
-				const capsuleType = resolveCapsuleType(parentCapsule?.type);
-
-				if (capsuleType === CAPSULE_TYPES.LISTE && item) {
-					if (targetDecor.area) {
-						applyClassTokenPatch(activeNode, targetDecor.area ?? null, null);
-						send({
-							type: "item-update",
-							payload: {
-								decor: {
-									id: targetDecor.id,
-									area: null
-								} as Decor
-							}
-						});
-					}
-
-					if (typeof meta.reorderIndex === "number") {
-						send({
-							type: "tree-move-item",
-							payload: {
-								sourceId: item.id,
-								targetCapsuleId: item.capsuleId,
-								insertionIndex: meta.reorderIndex
-							}
-						});
-					}
-					return;
-				}
-
-				if (meta.cell) {
-					const nextArea = `cell-r${meta.cell.row}-c${meta.cell.col}`;
-					ensureLiveAreaClassDefinition(activeNode, nextArea);
-					applyAreaClassPatch(activeNode, targetDecor.area ?? null, nextArea);
-					send({
-						type: "item-update",
-						payload: {
-							decor: {
-								id: targetDecor.id,
-								area: nextArea
-							} as Decor
-						}
-					});
-				}
-				return;
-			}
-
-			const currentStyle = ((targetDecor.style as EditableStyle) ?? {}) as Record<string, unknown>;
-			const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as Record<string, unknown>;
-
-			const candidate = normalizeTransformPrecision({
-				x: meta.translateX,
-				y: meta.translateY,
-				rotate: transform.rotate,
-				originX: transform.originX,
-				originY: transform.originY,
-				scaleX: transform.scaleX,
-				scaleY: transform.scaleY
 			});
-
-			const payload: EditableStyle = {};
-			for (const [key, value] of Object.entries(candidate)) {
-				if (sameStyleValue(effectiveCurrentStyle[key], value)) continue;
-				(payload as Record<string, unknown>)[key] = value;
-			}
-			if (!Object.keys(payload).length) return;
-
-			onStyleChange(payload);
 		},
-		[onStyleChange, activeCustomEventAction, editDecor, decor, parentCapsule?.type, item, send, activeNode]
+		[send]
 	);
 
-	const onResetTransform = useCallback(() => {
-		onStyleChange(buildResetTransformStyle());
-	}, [onStyleChange]);
+	const onTreeMove = useCallback(
+		(payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => {
+			send({ type: "tree-move-item", payload });
+		},
+		[send]
+	);
 
 	const editorSyncKey = activeCustomEventAction ? syncState.context.projectedSyncKey : desiredEditorSyncKey;
 
@@ -465,8 +368,15 @@ export function EditItem() {
 			<EditTransform
 				value={transformValue}
 				editorSyncKey={editorSyncKey}
-				onResetTransform={onResetTransform}
-				onCommit={onTransformCommit}
+				decor={decor}
+				editDecor={editDecor}
+				activeCustomEventAction={activeCustomEventAction}
+				onStyleChange={onStyleChange}
+				onDecorUpdate={onDecorUpdate}
+				onTreeMove={onTreeMove}
+				item={item}
+				parentCapsuleType={parentCapsule?.type}
+				activeNode={activeNode}
 			/>
 			{capsule ? (
 				<CapsuleEdit

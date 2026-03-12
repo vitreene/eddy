@@ -95,6 +95,22 @@ export function classNameToCssDefinition(className: string, opts?: ParseAreaOpti
 	return `.${className}{${cssBody};}`;
 }
 
+export function gridPlacementClassNameToCssDefinition(className: string): string | null {
+	const token = className.trim();
+	if (!token) return null;
+	if (token === "cell-span-fill") {
+		return `.cell-span-fill{grid-row:1 / -1;grid-column:1 / -1;}`;
+	}
+	const match = /^cell-span-r(\d+)-c(\d+)-rs(\d+)-cs(\d+)$/.exec(token);
+	if (!match) return null;
+	const row = Number(match[1]);
+	const col = Number(match[2]);
+	const rowSpan = Number(match[3]);
+	const colSpan = Number(match[4]);
+	if (!row || !col || !rowSpan || !colSpan) return null;
+	return `.${token}{grid-row:${row} / span ${rowSpan};grid-column:${col} / span ${colSpan};}`;
+}
+
 function cssObjectToClass(styles: Record<string, string | number>): string {
 	const toKebab = (s: string) => s.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`);
 

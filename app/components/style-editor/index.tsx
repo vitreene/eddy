@@ -81,9 +81,9 @@ export const StyleEditor: React.FC<Props> = ({
 			</div>
 			{type == "typo" && (
 				<>
-					<div className="aspect-video w-full overflow-hidden">
+					{/* <div className="aspect-video w-full overflow-hidden">
 						<PreviewMini value={value} />
-					</div>
+					</div> */}
 					<div className="flex flex-col gap-4">
 						<p className="text-sm">Typographie</p>
 						<FontMini value={value.fontFamily} onChange={(v) => update("fontFamily", v)} />

@@ -44,7 +44,12 @@ export function applyLiveStyleOnNode(
 ) {
 	if (!node || !style) return;
 
-	const hasTransformPatch = LIVE_TRANSFORM_KEYS.some((key) => hasOwn(style, key));
+	const hasTransformPatch = LIVE_TRANSFORM_KEYS.some(
+		(key) =>
+			hasOwn(style, key) &&
+			style[key as keyof EditableStyle] !== null &&
+			style[key as keyof EditableStyle] !== undefined
+	);
 	if (hasTransformPatch) {
 		const current = readTransformPreserve(node);
 		const currentStyle = (options?.currentStyle || {}) as Record<string, unknown>;

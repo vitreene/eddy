@@ -4,7 +4,12 @@ import {
 	parseCardTemplateAreas,
 	shouldCapsuleUseExplicitArea
 } from "@/config/capsule-types";
-import { classNameToCssDefinition, getValuesFromGridName, gridClassNameToCssDefinition } from "@/lib/utils";
+import {
+	classNameToCssDefinition,
+	getValuesFromGridName,
+	gridClassNameToCssDefinition,
+	gridPlacementClassNameToCssDefinition
+} from "@/lib/utils";
 
 type PlacementResult = {
 	areas: string[];
@@ -32,6 +37,10 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 		const capsule = snapshot.capsules[item.capsuleId];
 		if (!capsule) continue;
 		const capsuleType = getCapsuleTypeConfig(capsule.type).type;
+		collectPlacementClassDefinitions(areas, decor?.className);
+		if (hasGridPlacementClass(decor?.className)) {
+			continue;
+		}
 
 		if (decor?.area && shouldCapsuleUseExplicitArea(capsuleType)) {
 			areas.add(classNameToCssDefinition(decor.area));
@@ -62,6 +71,7 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 		for (const event of Object.values(eventsByAction || {})) {
 			if (!event?.decorId) continue;
 			const eventDecor = snapshot.decors[event.decorId];
+			collectPlacementClassDefinitions(areas, eventDecor?.className);
 			if (!eventDecor?.area) continue;
 			areas.add(classNameToCssDefinition(eventDecor.area));
 		}
@@ -74,6 +84,30 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 		itemPlacementClassByItemId,
 		gridDefinitions
 	};
+}
+
+function collectPlacementClassDefinitions(target: Set<string>, className: string | null | undefined) {
+	if (!className) return;
+	const tokens = className
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	for (const token of tokens) {
+		const definition = gridPlacementClassNameToCssDefinition(token);
+		if (definition) target.add(definition);
+	}
+}
+
+function hasGridPlacementClass(className: string | null | undefined): boolean {
+	if (!className) return false;
+	const tokens = className
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	for (const token of tokens) {
+		if (gridPlacementClassNameToCssDefinition(token)) return true;
+	}
+	return false;
 }
 
 /**
@@ -157,7 +191,7 @@ function getCoordinatesByCapsuleType(
 		return { r: itemIndex, c: 1 };
 	}
 
-	if (type === "grille") {
+	if (type === "grille" || type === "position") {
 		const cols = Math.max(grid.w, 1);
 		const rows = Math.max(grid.h, 1);
 		const total = cols * rows;

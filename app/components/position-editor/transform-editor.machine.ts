@@ -31,6 +31,8 @@ export type TransformEditorMachineInput = {
 	overlayContainer?: HTMLElement | null;
 	className?: string;
 	syncToken?: string | number | null;
+	disableLiveTransform?: boolean;
+	alwaysResyncOnCommit?: boolean;
 };
 
 type Ctx = {
@@ -179,7 +181,8 @@ export const transformEditorMachine = createMachine(
 					onResyncTransform: (transform, base) => self.send({ type: "transform.resync", transform, base }),
 					onOverlayHidden: (hidden) => self.send({ type: "overlay.hide", hidden }),
 					onCommit: (transform, mode, meta) => input.onCommit(transform, mode, meta),
-					onEnd: () => self.send({ type: "drag.end" })
+					onEnd: () => self.send({ type: "drag.end" }),
+					alwaysResyncOnCommit: input.alwaysResyncOnCommit
 				});
 
 				self.send({ type: "drag.session", active: started });
@@ -193,6 +196,7 @@ export const transformEditorMachine = createMachine(
 			},
 			applyLiveTransform: ({ context }) => {
 				if (!context.isDragging) return;
+				if (context.input.disableLiveTransform) return;
 				context.input.service.applyTransformLive(context.input.element, context.t, context.basePosition, {
 					applyToElement: context.input.applyToElement ?? true,
 					hidden: context.hideOverlayFrame

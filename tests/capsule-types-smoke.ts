@@ -94,7 +94,7 @@ const cases: Case[] = [
 		name: "capsule type registry exposes only selectable types",
 		run: () => {
 			const selectable = getSelectableCapsuleTypeConfigs().map((cfg) => cfg.type);
-			assert.deepEqual(selectable, ["carrousel", "rangee", "liste", "grille", "card"]);
+			assert.deepEqual(selectable, ["carrousel", "rangee", "liste", "grille", "position", "card"]);
 		}
 	},
 	{

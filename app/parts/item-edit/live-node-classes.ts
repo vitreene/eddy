@@ -1,9 +1,22 @@
-import { classNameToCssDefinition } from "@/lib/utils";
+import { classNameToCssDefinition, gridPlacementClassNameToCssDefinition } from "@/lib/utils";
 
 const LIVE_AREA_STYLE_ID = "eddy-live-area-definitions";
 const AUTO_AREA_TOKEN_RE = /^cell_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+$/i;
 const EXPLICIT_AREA_TOKEN_RE = /^cell-r\d+-c\d+$/i;
 const LIST_AREA_TOKEN_RE = /^liste-r\d+$/i;
+
+export function clearPlacementAreaTokens(node: HTMLElement | null) {
+	if (!node) return;
+	const tokens = String(node.className || "")
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean)
+		.filter(
+			(token) =>
+				AUTO_AREA_TOKEN_RE.test(token) || EXPLICIT_AREA_TOKEN_RE.test(token) || LIST_AREA_TOKEN_RE.test(token)
+		);
+	if (tokens.length) node.classList.remove(...tokens);
+}
 
 export function applyClassTokenPatch(
 	node: HTMLElement | null,
@@ -34,15 +47,7 @@ export function applyAreaClassPatch(
 ) {
 	if (!node) return;
 	if (nextArea && EXPLICIT_AREA_TOKEN_RE.test(nextArea)) {
-		const tokens = String(node.className || "")
-			.split(/\s+/)
-			.map((token) => token.trim())
-			.filter(Boolean)
-			.filter(
-				(token) =>
-					AUTO_AREA_TOKEN_RE.test(token) || EXPLICIT_AREA_TOKEN_RE.test(token) || LIST_AREA_TOKEN_RE.test(token)
-			);
-		if (tokens.length) node.classList.remove(...tokens);
+		clearPlacementAreaTokens(node);
 		node.classList.add(nextArea);
 		return;
 	}
@@ -78,5 +83,31 @@ export function ensureLiveAreaClassDefinition(node: HTMLElement | null, areaClas
 		styleEl.textContent = `${styleEl.textContent || ""}\n${definition}`.trim();
 	} catch {
 		// ignore invalid area tokens
+	}
+}
+
+export function ensureLivePlacementClassDefinitions(node: HTMLElement | null, className: string | null) {
+	if (!node || !className) return;
+	const doc = node.ownerDocument;
+	const head = doc?.head;
+	if (!head) return;
+
+	let styleEl = doc.getElementById(LIVE_AREA_STYLE_ID) as HTMLStyleElement | null;
+	if (!styleEl) {
+		styleEl = doc.createElement("style");
+		styleEl.id = LIVE_AREA_STYLE_ID;
+		head.appendChild(styleEl);
+	}
+
+	const tokens = className
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	for (const token of tokens) {
+		const marker = `.${token}{`;
+		if ((styleEl.textContent || "").includes(marker)) continue;
+		const definition = gridPlacementClassNameToCssDefinition(token);
+		if (!definition) continue;
+		styleEl.textContent = `${styleEl.textContent || ""}\n${definition}`.trim();
 	}
 }

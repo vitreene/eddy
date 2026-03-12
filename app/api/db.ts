@@ -18,6 +18,8 @@ import {
 	normalizeTransitionRef
 } from "@/config/transitions";
 import { CAPSULE_TYPES } from "@/config/capsule-types";
+import { CAPSULE_GRID_PRESETS, POSITION_FULL_SPAN_CLASS } from "@/config/capsule-presets";
+import { resolveCapsuleType } from "@/config/capsule-types";
 import { deriveEventKind } from "@/config/custom-events";
 
 export type { Content, ContentEvent };
@@ -179,7 +181,8 @@ export async function createScene(title: string) {
 		const mainCapsule = await tx.capsule.create({
 			data: {
 				name: "__MAIN__",
-				grid: ROOT
+				grid: `${CAPSULE_GRID_PRESETS.scene} ${ROOT}`,
+				type: CAPSULE_TYPES.POSITION
 			}
 		});
 
@@ -668,7 +671,7 @@ type CreateItemFromContentInput = {
 export async function createTextItemInCapsule(input: CreateTextItemInput) {
 	return await prisma.$transaction(async (tx) => {
 		const order = await getInsertionOrder(tx, input.capsuleId, input.afterItemId);
-		const decor = await tx.decor.create({ data: {} });
+		const decor = await tx.decor.create({ data: await getInitialDecorForCapsule(tx, input.capsuleId) });
 		const content = await tx.content.create({
 			data: {
 				type: "text",
@@ -714,7 +717,9 @@ export async function createCapsuleItem(input: CreateCapsuleItemInput) {
 			}
 		});
 
-		const decor = await tx.decor.create({ data: {} });
+		const decor = await tx.decor.create({
+			data: await getInitialDecorForCapsule(tx, input.destinationCapsuleId)
+		});
 
 		const order = await getInsertionOrder(tx, input.destinationCapsuleId, input.afterItemId);
 		const item = await tx.item.create({
@@ -733,7 +738,7 @@ export async function createCapsuleItem(input: CreateCapsuleItemInput) {
 export async function createItemFromExistingContent(input: CreateItemFromContentInput) {
 	return await prisma.$transaction(async (tx) => {
 		const order = await getInsertionOrder(tx, input.capsuleId, input.afterItemId);
-		const decor = await tx.decor.create({ data: {} });
+		const decor = await tx.decor.create({ data: await getInitialDecorForCapsule(tx, input.capsuleId) });
 		const item = await tx.item.create({
 			data: {
 				order,
@@ -937,6 +942,15 @@ async function getInsertionOrder(tx: any, capsuleId: number, afterItemId?: numbe
 	const next = items[index + 1];
 	if (!next) return current.order + STEP;
 	return Math.floor(current.order + (next.order - current.order) / 2);
+}
+
+async function getInitialDecorForCapsule(tx: any, capsuleId: number): Promise<Partial<DecorDB>> {
+	const capsule = await tx.capsule.findUnique({ where: { id: capsuleId }, select: { type: true } });
+	if (resolveCapsuleType(capsule?.type) !== CAPSULE_TYPES.POSITION) return {};
+	return {
+		area: "cell-r1-c1",
+		className: POSITION_FULL_SPAN_CLASS
+	};
 }
 
 /* export async function additemToCapsule(data: { order: number; capsuleId: number }) {

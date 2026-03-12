@@ -229,6 +229,16 @@ body {
 	opacity: 1;
 }
 
+.vte-reposition-super-cell {
+	background: rgba(255, 255, 255, 0.25);
+	outline: 1px dashed rgba(255, 255, 255, 0.75);
+}
+
+.vte-reposition-fine-cell {
+	padding: 2px;
+	background: rgba(255, 255, 255, 0.75);
+}
+
 .color-0 {
 	background-color: aliceblue;
 }

@@ -68,3 +68,15 @@
 
 - Ne jamais introduire un hook apres un retour conditionnel (`if (!item) return null`) : verifier l'ordre des hooks apres chaque refactor.
 - Pour les chaines multi-etapes (seek -> projection -> frame), preferer une machine dediee plutot que des effets React implicites.
+
+## 2026-03-11 — Discipline Plan Mode (check-in obligatoire)
+
+- Quand AGENTS impose le plan mode, ne jamais coder juste apres avoir ecrit le plan : faire un message de check-in explicite a l'utilisateur avant la premiere modification de code.
+- Ajouter un garde-fou personnel avant tout `apply_patch`: verifier une mini-checklist `Plan ecrit ?` + `Check-in fait ?`; si non, stopper et faire le check-in.
+- En cas d'ambiguite entre "agir sans poser de questions" et regle locale AGENTS, la regle locale prime pour le flux (ici: check-in avant implementation).
+
+## 2026-03-12 — Separation stricte transform vs position
+
+- Ne jamais faire transiter `ElementTransform` dans le circuit `position` (props, machine, service, commit): utiliser des types de commit distincts.
+- Eviter les unions de modes qui laissent passer des metadonnees transform dans la branche position; preferer des callbacks differencies (`onTransformCommit` / `onPositionCommit`).
+- Si un composant est declare comme `position`, il ne doit construire que des donnees grille (`cell`, `gridPlacement`, `reorderIndex`) et rien d'autre.
