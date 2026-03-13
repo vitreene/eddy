@@ -533,6 +533,46 @@ export async function getAllContents() {
 	});
 }
 
+export async function upsertSceneContentCues(input: {
+	sceneId: number;
+	contentId: number;
+	cues: TextTime[];
+}) {
+	const normalizedCues = normalizeSceneContentCues(input.cues);
+
+	return await prisma.$transaction(async (tx) => {
+		const existing = await tx.sceneContent.findFirst({
+			where: { sceneId: input.sceneId },
+			orderBy: [{ order: "asc" }, { id: "asc" }]
+		});
+
+		if (existing) {
+			return tx.sceneContent.update({
+				where: { id: existing.id },
+				data: {
+					contentId: input.contentId,
+					events: JSON.stringify(normalizedCues)
+				}
+			});
+		}
+
+		const maxOrder = await tx.sceneContent.findFirst({
+			where: { sceneId: input.sceneId },
+			orderBy: { order: "desc" },
+			select: { order: true }
+		});
+
+		return tx.sceneContent.create({
+			data: {
+				sceneId: input.sceneId,
+				contentId: input.contentId,
+				order: (maxOrder?.order || 0) + 1000,
+				events: JSON.stringify(normalizedCues)
+			}
+		});
+	});
+}
+
 export async function getcontents(sceneId: number) {
 	/* 
 	- prendre toutes les capsules e la scene
@@ -560,6 +600,50 @@ export async function getcontents(sceneId: number) {
 	});
 	const contents = capsule?.items.flatMap((el) => el.content.items.map((i) => i.content)) ?? [];
 	return contents;
+}
+
+function normalizeSceneContentCues(cues: TextTime[]): TextTime[] {
+	const seen = new Set<string>();
+	return (Array.isArray(cues) ? cues : [])
+		.map((cue, index) => {
+			const nameCandidate = typeof cue?.name == "string" ? cue.name.trim() : "";
+			const name = nameCandidate || `whisper-${String(index + 1).padStart(4, "0")}`;
+			const text = typeof cue?.text == "string" ? cue.text.trim() : "";
+			const start = normalizeCueSec(cue?.start);
+			const endCandidate = normalizeCueSec(cue?.end);
+			const end = endCandidate >= start ? endCandidate : start;
+			const uniqueName = dedupeCueName(name, seen);
+
+			return {
+				name: uniqueName,
+				text,
+				start,
+				end
+			};
+		})
+		.filter((cue) => cue.text.length > 0)
+		.sort((a, b) => a.start - b.start);
+}
+
+function normalizeCueSec(value: unknown): number {
+	if (typeof value != "number" || !Number.isFinite(value) || value < 0) return 0;
+	return Number(value.toFixed(3));
+}
+
+function dedupeCueName(base: string, seen: Set<string>): string {
+	if (!seen.has(base)) {
+		seen.add(base);
+		return base;
+	}
+
+	let suffix = 2;
+	let next = `${base}-${suffix}`;
+	while (seen.has(next)) {
+		suffix += 1;
+		next = `${base}-${suffix}`;
+	}
+	seen.add(next);
+	return next;
 }
 
 // CAPSULE
@@ -1018,16 +1102,10 @@ export async function addEventToContent({
 
 		const currentDecorId = targetById?.decorId ?? existingByNaturalKey?.decorId ?? null;
 		let resolvedDecorId: number | null = null;
-
-		if (eventKind === "custom") {
-			if (typeof decorId == "number" && Number.isFinite(decorId)) {
-				resolvedDecorId = decorId;
-			} else if (typeof currentDecorId == "number") {
-				resolvedDecorId = currentDecorId;
-			} else {
-				const createdDecor = await tx.decor.create({ data: {} });
-				resolvedDecorId = createdDecor.id;
-			}
+		if (typeof decorId == "number" && Number.isFinite(decorId)) {
+			resolvedDecorId = decorId;
+		} else if (typeof currentDecorId == "number") {
+			resolvedDecorId = currentDecorId;
 		}
 
 		const data = {

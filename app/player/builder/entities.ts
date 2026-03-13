@@ -1,6 +1,6 @@
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
 import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
-import { deriveEventKind, parseCustomEventAutoOptions } from "@/config/custom-events";
+import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { getMediaUrl } from "@/lib/media-url";
 
@@ -17,6 +17,7 @@ import {
 	getEffectiveAreaClassName,
 	getEventDecor,
 	getInlineStyle,
+	hasPlacementClassDelta,
 	getStaticStyleClassName,
 	hasPositionStyleDelta,
 	joinNodeClassNames,
@@ -86,7 +87,7 @@ export function createCapsuleRenderable(
 	const events = snapshot.events[item.id];
 	const decor = snapshot.decors[item.decorId] || { className: "", area: "", style: {} };
 	const parentId = buildNodeId("capsule", item.capsuleId);
-	const autoAreaClassName = additionalClassnames[item.id];
+	const autoLayoutAreaClassName = additionalClassnames[item.id];
 
 	const { actions, initialDecorState } = buildTimedActions({
 		snapshot,
@@ -95,7 +96,7 @@ export function createCapsuleRenderable(
 		baseDecor: decor,
 		parentId,
 		capsuleType: capsule.type,
-		autoAreaClassName,
+		autoLayoutAreaClassName,
 		debugLabel: null
 	});
 
@@ -143,7 +144,7 @@ export function createItemRenderable(
 		baseDecor: decor,
 		parentId,
 		capsuleType: snapshot.capsules[item.capsuleId]?.type,
-		autoAreaClassName: additionalClassnames[item.id],
+		autoLayoutAreaClassName: additionalClassnames[item.id],
 		debugLabel: item.id === 53 ? "item_53" : null
 	});
 
@@ -223,17 +224,24 @@ function buildTimedActions(input: {
 	baseDecor: DecorLike;
 	parentId: string;
 	capsuleType: string | null | undefined;
-	autoAreaClassName: string | null | undefined;
+	autoLayoutAreaClassName: string | null | undefined;
 	debugLabel: string | null;
 }): TimedActionBuildResult {
-	const { snapshot, item, events, baseDecor, parentId, capsuleType, autoAreaClassName, debugLabel } = input;
+	const { snapshot, item, events, baseDecor, parentId, capsuleType, autoLayoutAreaClassName, debugLabel } =
+		input;
 	const actions: Record<string | number, any> = {};
 	let initialDecorState: DecorLike = baseDecor;
 	let previousClassDecor: DecorLike = baseDecor;
-	let previousDynamicClassName = buildDynamicClassName(capsuleType, previousClassDecor, autoAreaClassName);
+	let previousDynamicClassName = buildDynamicClassName(
+		capsuleType,
+		previousClassDecor,
+		autoLayoutAreaClassName
+	);
 
 	if (events) {
 		const orderedEvents = getOrderedEventsForItem(snapshot, events);
+		const hasExplicitIntroEvent = Boolean(events[INTRO]);
+		let firstCustomHandled = false;
 		let previousKeyframeMs = 0;
 		let lastScheduledStartMs: number | null = null;
 		let previousStyleState = getInlineStyle(baseDecor.style);
@@ -244,9 +252,13 @@ function buildTimedActions(input: {
 			const eventKind = deriveEventKind(ev.action);
 
 			if (eventKind === "custom") {
-				const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
+				const useItemDecorForThisCustom = !hasExplicitIntroEvent && !firstCustomHandled;
+				firstCustomHandled = true;
+				const targetDecor = useItemDecorForThisCustom
+					? previousClassDecor
+					: getEventDecor(snapshot, ev.decorId, previousClassDecor);
 				const targetStyle = getInlineStyle(targetDecor.style);
-				const nextDynamicClassName = buildDynamicClassName(capsuleType, targetDecor, autoAreaClassName);
+				const nextDynamicClassName = buildDynamicClassName(capsuleType, targetDecor, autoLayoutAreaClassName);
 				const scheduledStartMs = previousKeyframeMs;
 				const hasPreviousScheduledAction =
 					lastScheduledStartMs !== null && lastScheduledStartMs <= scheduledStartMs;
@@ -274,13 +286,18 @@ function buildTimedActions(input: {
 				const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
 				const layoutStyleChanged =
 					getStaticStyleClassName(previousClassDecor?.style) !== getStaticStyleClassName(targetDecor?.style);
+				const placementClassChanged = hasPlacementClassDelta(
+					previousClassDecor?.className,
+					targetDecor?.className
+				);
 				const placementChanged =
-					getEffectiveAreaClassName(capsuleType, previousClassDecor?.area, autoAreaClassName) !==
-					getEffectiveAreaClassName(capsuleType, targetDecor?.area, autoAreaClassName);
+					getEffectiveAreaClassName(capsuleType, previousClassDecor?.area, autoLayoutAreaClassName) !==
+					getEffectiveAreaClassName(capsuleType, targetDecor?.area, autoLayoutAreaClassName);
 				const positionStyleChanged = hasPositionStyleDelta(previousStyleState, targetStyle);
-				const autoMoveOptions = parseCustomEventAutoOptions(ev.ref);
+				const autoMoveOptions = parseCustomEventMoveOptions(ev.ref);
 				const autoMoveRequested =
-					hasTransitionWindow && (placementChanged || (autoMoveOptions.auto && positionStyleChanged));
+					hasTransitionWindow &&
+					(placementChanged || placementClassChanged || (autoMoveOptions.autoMove && positionStyleChanged));
 
 				const durationMs = Math.max(0, (entry.keyframeMs ?? previousKeyframeMs) - previousKeyframeMs);
 				const targetStyleForInterpolation =
@@ -344,8 +361,41 @@ function buildTimedActions(input: {
 
 			const preset = getTransitionPresetForEvent({ snapshot, item, event: ev });
 			const actionStyle = getActionStyle(preset.style);
-			if (ev.action == INTRO) actions[actionName] = { style: actionStyle, move: parentId };
-			else actions[actionName] = { style: actionStyle };
+			const transitionAction: Record<string, unknown> =
+				ev.action == INTRO ? { style: actionStyle, move: parentId } : { style: actionStyle };
+
+			if (ev.decorId && ev.action !== INTRO) {
+				const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
+				const targetStyle = getInlineStyle(targetDecor.style);
+				const nextDynamicClassName = buildDynamicClassName(capsuleType, targetDecor, autoLayoutAreaClassName);
+				const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
+				const placementClassChanged = hasPlacementClassDelta(
+					previousClassDecor?.className,
+					targetDecor?.className
+				);
+				const placementChanged =
+					getEffectiveAreaClassName(capsuleType, previousClassDecor?.area, autoLayoutAreaClassName) !==
+					getEffectiveAreaClassName(capsuleType, targetDecor?.area, autoLayoutAreaClassName);
+				const positionStyleChanged = hasPositionStyleDelta(previousStyleState, targetStyle);
+				const hasTransitionWindow = entry.keyframeMs !== null && entry.keyframeMs > previousKeyframeMs;
+				const hasPreviousScheduledAction =
+					lastScheduledStartMs !== null && lastScheduledStartMs <= previousKeyframeMs;
+
+				if (!hasTransitionWindow || !hasPreviousScheduledAction) {
+					initialDecorState = targetDecor;
+				} else {
+					if (classNameDiff) transitionAction.className = classNameDiff;
+					if (placementChanged || placementClassChanged || positionStyleChanged) {
+						transitionAction.move = { mode: "auto" };
+					}
+				}
+
+				previousStyleState = { ...previousStyleState, ...targetStyle };
+				previousClassDecor = targetDecor;
+				previousDynamicClassName = nextDynamicClassName;
+			}
+
+			actions[actionName] = transitionAction;
 			if (entry.runtimeStartMs !== null) lastScheduledStartMs = entry.runtimeStartMs;
 			if (entry.keyframeMs !== null) previousKeyframeMs = entry.keyframeMs;
 		}

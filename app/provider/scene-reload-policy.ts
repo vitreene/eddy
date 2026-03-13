@@ -14,14 +14,19 @@ export function isSequenceAction(action: string | null | undefined): boolean {
 	return action === "play" || action === "rewind" || action === "seek";
 }
 
-export function requestSequenceFlush(active: ActiveState, reason: SequenceFlushReason): ActiveState {
+export function requestSequenceFlush(
+	active: ActiveState,
+	reason: SequenceFlushReason,
+	options?: { preserveSelection?: boolean }
+): ActiveState {
 	const currentToken = Number(active.sequenceFlushToken) || 0;
+	const preserveSelection = Boolean(options?.preserveSelection);
 	return {
 		...active,
-		itemId: null,
-		node: null,
-		contentId: null,
-		event: null,
+		itemId: preserveSelection ? active.itemId : null,
+		node: preserveSelection ? active.node : null,
+		contentId: preserveSelection ? active.contentId : null,
+		event: preserveSelection ? active.event : null,
 		sequenceTouched: false,
 		sequenceFlushReason: reason,
 		sequenceFlushToken: currentToken + 1

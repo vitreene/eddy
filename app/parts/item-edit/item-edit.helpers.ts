@@ -45,9 +45,14 @@ export function resolveDecorAtEventAction(
 	// - OUTRO => base + all customs (state right before outro transition)
 	// Keep tests in `item-edit-decor-resolution-smoke.ts` aligned with any changes.
 	if (!action) return itemDecor;
-	if (action === INTRO) return itemDecor;
 
 	const events = context.events[itemId] || {};
+	if (action === INTRO) {
+		const introEvent = events[action];
+		if (!introEvent?.decorId) return itemDecor;
+		return mergeDecorChain(itemDecor, context.decors[introEvent.decorId]);
+	}
+
 	const orderedCustomEvents = getOrderedCustomEvents(context, events);
 	if (!orderedCustomEvents.length) return itemDecor;
 
@@ -58,6 +63,10 @@ export function resolveDecorAtEventAction(
 			const eventDecor = context.decors[entry.event.decorId];
 			if (!eventDecor) continue;
 			resolved = mergeDecorChain(resolved, eventDecor);
+		}
+		const outroEvent = events[action];
+		if (outroEvent?.decorId) {
+			resolved = mergeDecorChain(resolved, context.decors[outroEvent.decorId]);
 		}
 		return resolved;
 	}

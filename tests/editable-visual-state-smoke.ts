@@ -89,9 +89,9 @@ try {
 	assert.equal(state.area, "cell-r1-c1");
 
 	const { node, classTokens } = createFakeNode();
-	node.className = "cell_auto_grille-r2-c2";
+	node.className = "cell_layout_auto_grille-r2-c2";
 	projectEditableVisualStateToNode(node, state);
-	assert.equal(classTokens.has("cell_auto_grille-r2-c2"), false);
+	assert.equal(classTokens.has("cell_layout_auto_grille-r2-c2"), false);
 	assert.equal(classTokens.has("cell-r1-c1"), true);
 	assert.equal(classTokens.has("badge"), true);
 

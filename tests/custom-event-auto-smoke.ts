@@ -1,11 +1,11 @@
 import assert from "node:assert/strict";
 
 import { buildScene } from "../app/player/builder";
-import { parseCustomEventAutoOptions, serializeCustomEventAutoOptions } from "../app/config/custom-events";
+import { parseCustomEventMoveOptions, serializeCustomEventMoveOptions } from "../app/config/custom-events";
 
-const encoded = serializeCustomEventAutoOptions({ auto: true, clearTransforms: true });
-const decoded = parseCustomEventAutoOptions(encoded);
-assert.equal(decoded.auto, true);
+const encoded = serializeCustomEventMoveOptions({ autoMove: true, clearTransforms: true });
+const decoded = parseCustomEventMoveOptions(encoded);
+assert.equal(decoded.autoMove, true);
 assert.equal(decoded.clearTransforms, true);
 
 const scene: any = {

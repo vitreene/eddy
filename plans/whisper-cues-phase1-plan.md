@@ -25,27 +25,27 @@ Prouver le flux minimum suivant: lorsqu'un son est importe, il est envoye au mot
 
 ## Plan detaille
 
-- [ ] **1. Definir le contrat de donnees cues pour Whisper**
+- [x] **1. Definir le contrat de donnees cues pour Whisper**
   - Confirmer le format cible `TextTime[]` (`name`, `text`, `start`, `end`).
   - Definir la normalisation (timestamps null, tri, unicite de `name`).
   - Specifier la regle de generation de `name` stable et deterministic.
 
-- [ ] **2. Extraire une API Whisper reutilisable sans UI**
+- [x] **2. Extraire une API Whisper reutilisable sans UI**
   - Creer une facade applicative (service/hook) qui prend un `File` ou `AudioBuffer`.
   - Reutiliser le worker Whisper existant (`app/whisper/worker.js`) et `useTranscriber`.
   - Exposer une promesse `transcribeToCues(...) -> Promise<TextTime[]>`.
 
-- [ ] **3. Brancher le flux import audio vers Whisper**
+- [x] **3. Brancher le flux import audio vers Whisper**
   - Intercepter les fichiers audio a l'import (Chutier).
   - Lancer l'analyse Whisper de facon non bloquante pour l'UX d'upload.
   - Relier le resultat au bon `scene_content` cible (regle explicite si plusieurs contenus).
 
-- [ ] **4. Ajouter l'endpoint API de persistance des cues**
+- [x] **4. Ajouter l'endpoint API de persistance des cues**
   - Creer endpoint dedie (ex: `POST /api/scene-content/:id/cues`).
   - Valider et persister la liste dans `scene_content.events` (JSON).
   - Retourner les cues persistees normalisees.
 
-- [ ] **5. Rafraichir l'etat scene pour rendre visible dans Rubber**
+- [x] **5. Rafraichir l'etat scene pour rendre visible dans Rubber**
   - Mettre a jour l'etat client apres persistance (reload scene ou patch local).
   - Verifier que `app/parts/rubber/index.tsx` affiche les cues sans adaptation structurelle.
   - Verifier que `event-edit` consomme correctement les nouveaux cues.
@@ -73,6 +73,15 @@ Prouver le flux minimum suivant: lorsqu'un son est importe, il est envoye au mot
 ## Review (a completer apres implementation)
 
 - Resultat:
+  - Pipeline phase 1 implemente: import audio -> transcription Whisper via worker -> mapping `TextTime[]` -> persistance `scene_content.events` -> injection dans `scene-logic` pour affichage immediate.
+  - API ajoutee: `POST /api/scene-content/cues` avec validation `sceneId/contentId/cues` et upsert de la piste scene_content cible.
 - Tests/commandes executes:
+  - `npm run build` (OK).
+  - `npx tsx tests/content-api-smoke.ts` (OK).
+  - `npm run typecheck` (KO sur erreurs existantes dans `app/whisper/components/*`, non introduites par cette phase).
 - Limites connues:
+  - Ciblage `scene_content`: la phase 1 met a jour la premiere entree de la scene (ou cree si absente) puis remplace `contentId`; gestion multi-sources sera traitee en phase 2.
+  - Verification UI manuelle Rubber/event-edit reste a faire pour clore le point 6.
 - Suites recommandees (phase 2+):
+  - Introduire la relation explicite sequence <-> son (selector dans item-edit) puis cesser la strategie "premiere entree scene_content".
+  - Preparer fallback waveform quand Whisper ne detecte pas de voix exploitable.

@@ -19,7 +19,7 @@ const scene: any = {
 				position: "end",
 				itemId: 39,
 				decorId: 80,
-				ref: '{"auto":false,"clearTransforms":false}'
+				ref: '{"autoMove":false,"clearTransforms":false}'
 			} as any,
 			"custom-2": {
 				id: 4,
@@ -28,7 +28,7 @@ const scene: any = {
 				position: "start",
 				itemId: 39,
 				decorId: 81,
-				ref: '{"auto":false,"clearTransforms":false}'
+				ref: '{"autoMove":false,"clearTransforms":false}'
 			} as any
 		}
 	},

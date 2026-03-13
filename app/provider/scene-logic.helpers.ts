@@ -160,14 +160,48 @@ export function hasOwn<T extends object>(obj: T, key: string): boolean {
 	return Object.prototype.hasOwnProperty.call(obj, key);
 }
 
+export function isItemDecorEventContext(
+	context: SceneComp,
+	itemId: number,
+	action: string | null | undefined
+): boolean {
+	if (!action) return false;
+	if (action === INTRO) return true;
+	if (deriveEventKind(action) !== "custom") return false;
+
+	const itemEvents = context.events?.[itemId] || {};
+	if (itemEvents[INTRO]) return false;
+
+	const orderedCustomActions = Object.values(itemEvents)
+		.filter((event): event is ContentEvent => Boolean(event) && deriveEventKind(event.action) === "custom")
+		.map((event) => event.action)
+		.toSorted((a, b) => {
+			const aSec = resolveSelectedEventCueSec(context, itemId, a);
+			const bSec = resolveSelectedEventCueSec(context, itemId, b);
+			const aFinite = typeof aSec == "number" && Number.isFinite(aSec);
+			const bFinite = typeof bSec == "number" && Number.isFinite(bSec);
+			if (aFinite && bFinite && aSec !== bSec) return aSec - bSec;
+			if (aFinite && !bFinite) return -1;
+			if (!aFinite && bFinite) return 1;
+			return a.localeCompare(b);
+		});
+
+	return orderedCustomActions[0] === action;
+}
+
 function resolveActiveDecorTarget(
 	context: SceneComp & { active: ActiveState },
 	itemId: number
 ): { decor: Decor | undefined } {
 	const activeEventAction = context.active.event;
 	if (activeEventAction) {
+		if (isItemDecorEventContext(context, itemId, activeEventAction)) {
+			const itemDecorId = context.items[itemId]?.decorId;
+			if (!itemDecorId) return { decor: undefined };
+			return { decor: context.decors[itemDecorId] };
+		}
 		const activeEvent = context.events[itemId]?.[activeEventAction];
-		if (activeEvent && deriveEventKind(activeEvent.action) === "custom" && activeEvent.decorId) {
+		if (activeEvent?.decorId) {
 			return { decor: context.decors[activeEvent.decorId] };
 		}
 	}

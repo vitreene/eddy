@@ -5,7 +5,7 @@ import type { ItemComp, ContentEvent } from "@/api/db";
 
 import { INTRO, OUTRO } from "@/config/constants";
 import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
-import { deriveEventKind, parseCustomEventAutoOptions } from "@/config/custom-events";
+import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { Button } from "@/components/ui/button";
 
@@ -84,14 +84,14 @@ function EventParams({
 	const duration = typeof event.duration === "number" ? Number(event.duration) : "";
 	const position = (event.position as "start" | "middle" | "end" | null) ?? "middle";
 	const eventLabel = resolveEventLabel(cues, event.name);
-	const autoOptions = parseCustomEventAutoOptions(event.ref);
+	const moveOptions = kind === "custom" ? parseCustomEventMoveOptions(event.ref) : null;
 
 	const onUpdateCustom = (payload: {
 		name?: string | null;
 		delay?: number | null;
 		duration?: number | null;
 		position?: "start" | "middle" | "end" | null;
-		auto?: boolean;
+		autoMove?: boolean;
 		clearTransforms?: boolean;
 	}) => {
 		send({ type: "custom-event-update", payload: { action: event.action, ...payload } });
@@ -164,16 +164,16 @@ function EventParams({
 						<label className="flex items-center gap-2">
 							<input
 								type="checkbox"
-								checked={autoOptions.auto}
-								onChange={(e) => onUpdateCustom({ auto: e.currentTarget.checked })}
+								checked={Boolean(moveOptions?.autoMove)}
+								onChange={(e) => onUpdateCustom({ autoMove: e.currentTarget.checked })}
 							/>
-							<span>Auto</span>
+							<span>Auto-move</span>
 						</label>
 						<label className="flex items-center gap-2">
 							<input
 								type="checkbox"
-								disabled={!autoOptions.auto}
-								checked={autoOptions.clearTransforms}
+								disabled={!moveOptions?.autoMove}
+								checked={Boolean(moveOptions?.clearTransforms)}
 								onChange={(e) => onUpdateCustom({ clearTransforms: e.currentTarget.checked })}
 							/>
 							<span>Effacer transformations</span>

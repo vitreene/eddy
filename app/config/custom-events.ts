@@ -21,43 +21,41 @@ export type CustomEventDraft = {
 	ref?: string | null;
 };
 
-export type CustomEventAutoOptions = {
-	auto: boolean;
+export type CustomEventMoveOptions = {
+	autoMove: boolean;
 	clearTransforms: boolean;
 };
 
-const DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS: CustomEventAutoOptions = {
-	auto: false,
+const DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS: CustomEventMoveOptions = {
+	autoMove: true,
 	clearTransforms: false
 };
 
-export function parseCustomEventAutoOptions(ref: string | null | undefined): CustomEventAutoOptions {
-	if (!ref || typeof ref !== "string") return { ...DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS };
+export function parseCustomEventMoveOptions(ref: string | null | undefined): CustomEventMoveOptions {
+	if (!ref || typeof ref !== "string") return { ...DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS };
 	const raw = ref.trim();
-	if (!raw) return { ...DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS };
-	try {
-		const parsed = JSON.parse(raw) as Partial<CustomEventAutoOptions>;
-		return {
-			auto: typeof parsed.auto === "boolean" ? parsed.auto : DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS.auto,
-			clearTransforms:
-				typeof parsed.clearTransforms === "boolean"
-					? parsed.clearTransforms
-					: DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS.clearTransforms
-		};
-	} catch {
-		return { ...DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS };
-	}
+	if (!raw) return { ...DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS };
+	const parsed = JSON.parse(raw) as Partial<CustomEventMoveOptions>;
+	return {
+		autoMove:
+			typeof parsed.autoMove === "boolean" ? parsed.autoMove : DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS.autoMove,
+		clearTransforms:
+			typeof parsed.clearTransforms === "boolean"
+				? parsed.clearTransforms
+				: DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS.clearTransforms
+	};
 }
 
-export function serializeCustomEventAutoOptions(
-	options: Partial<CustomEventAutoOptions> | null | undefined
+export function serializeCustomEventMoveOptions(
+	options: Partial<CustomEventMoveOptions> | null | undefined
 ): string {
-	const normalized: CustomEventAutoOptions = {
-		auto: typeof options?.auto === "boolean" ? options.auto : DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS.auto,
+	const normalized: CustomEventMoveOptions = {
+		autoMove:
+			typeof options?.autoMove === "boolean" ? options.autoMove : DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS.autoMove,
 		clearTransforms:
 			typeof options?.clearTransforms === "boolean"
 				? options.clearTransforms
-				: DEFAULT_CUSTOM_EVENT_AUTO_OPTIONS.clearTransforms
+				: DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS.clearTransforms
 	};
 	return JSON.stringify(normalized);
 }
@@ -106,7 +104,7 @@ export function normalizeCustomEventDraft(draft: CustomEventDraft): CustomEventD
 		delay: resolvedDelay,
 		duration: normalizedDuration,
 		position: draft.position ?? null,
-		ref: draft.ref ?? serializeCustomEventAutoOptions(null)
+		ref: draft.ref ?? serializeCustomEventMoveOptions(null)
 	};
 }
 

@@ -41,7 +41,7 @@
 
 ## 2026-03-11 — Classes area live: eviter les conflits
 
-- Quand une `area` explicite est appliquee en live, supprimer les classes de placement auto (`cell_auto_*`, `liste-rN`) en meme temps; sinon l'ordre CSS peut conserver l'ancien placement visuel.
+- Quand une `area` explicite est appliquee en live, supprimer les classes de placement auto-layout (`cell_layout_auto_*`, `liste-rN`) en meme temps; sinon l'ordre CSS peut conserver l'ancien placement visuel.
 - Ne pas supposer que `decor.area` prime automatiquement en live tant que l'etat de classes du node n'est pas nettoye.
 
 ## 2026-03-11 — Selection custom et frame FLIP
@@ -86,3 +86,39 @@
 - Anime.js v4 permet des patchs partiels de timeline (`add`, `remove`, `sync`) sans reconstruire tout dans les cas simples.
 - Limitation cle doc: `remove()` ne recompose pas la duree/shape globale; pour modification structurelle de timeline, recreer une nouvelle timeline est recommande.
 - Strategie pratique pour eviter une cassure visuelle lors d'une recreation: utiliser `keepTime()` (Scope) pour conserver le temps courant.
+
+## 2026-03-13 — Selection event et seek editeur
+
+- Lors d'un `active-set` avec `action: "seek"` declenche par la selection d'event (ex: premier clic `outro`), ne jamais laisser le `sequence flush` vider `itemId/contentId/event`.
+- Regle: si le seek vient d'une synchro de selection editeur, conserver la selection meme sans flags `*Touched`.
+- Eviter d'assimiler tous les `seek` a des changements de sequence equivalents a `play/rewind`; la selection UI doit rester stable pendant l'edition.
+
+## 2026-03-13 — Regle coeur: process auto custom-event
+
+- Le deplacement `auto` d'un custom-event est la regle nominale du produit, pilotee par la configuration builder; l'absence d'auto est une exception explicite.
+- Ne pas reutiliser le mot-cle `auto` pour des semantiques differentes dans la meme chaine metier (process deplacement vs autres modes), sinon ambiguite produit.
+- Si une intervention reduit/neutralise le process auto nominal, le signaler explicitement a l'utilisateur avant livraison.
+
+## 2026-03-13 — Contexte build: pas de legacy a proteger
+
+- Tant que l'application est en phase de construction, ne pas introduire de contraintes legacy/fallback "ancienne version" par defaut.
+- Avec accord explicite utilisateur, les champs DB de test peuvent etre renommes/modifies directement pour simplifier le modele cible.
+- Ne basculer en strategie de compatibilite descendante qu'au passage en phase stable.
+
+## 2026-03-13 — Contexte build: legerete plutot que defense programming
+
+- En phase de construction, eviter le defensive programming systematique (gardes et validations de forme excessives) sur les fonctions internes.
+- Privilegier un code simple, lisible, facilement refactorable, en supposant des contrats d'entree maitrises dans le flux applicatif.
+- Reporter le durcissement (validation extensive, blindage des formes) a la phase de consolidation/stabilisation.
+
+## 2026-03-13 — Event context comme source unique
+
+- Intro/outro/custom doivent suivre le meme contrat d'edition: en contexte event actif, les modifications ciblent le decor de cet event.
+- Eviter les circuits doubles (decor resolu d'affichage vs decor cible de persistance) non arbitres; conserver une seule source de verite et deriver le reste.
+- Ne pas creer de decor event a la simple selection: creation paresseuse uniquement au premier changement reel (style/position/class/area).
+
+## 2026-03-13 — Rappel auto-event sans intro/outro declares
+
+- En absence d'intro/outro declares (auto-event), les transitions viennent de la capsule parente, sans creation de decor dedie.
+- Les modifications du premier event (intro, ou premier custom-event si intro absent) s'appliquent au decor item.
+- Ne pas forcer la creation d'un decor event pour ces cas par defaut.

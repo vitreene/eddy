@@ -54,7 +54,7 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 		const itemIndex = siblingItems.findIndex((it) => it.id == item.id) + 1;
 		if (itemIndex <= 0) continue;
 
-		const { areaClassName, areaDefinition } = getAutoAreaForItem(capsule, itemIndex);
+		const { areaClassName, areaDefinition } = getAutoLayoutAreaForItem(capsule, itemIndex);
 		if (areaDefinition) areas.add(areaDefinition);
 		itemPlacementClassByItemId[item.id] = areaClassName;
 	}
@@ -135,18 +135,18 @@ function buildGridDefinitions(snapshot: SceneComp): string[] {
 }
 
 /**
- * Compute auto area class and optional css definition for one item slot.
+ * Compute auto-layout area class and optional css definition for one item slot.
  */
-function getAutoAreaForItem(
+function getAutoLayoutAreaForItem(
 	capsule: CapsuleComp,
 	itemIndex: number
 ): { areaClassName: string; areaDefinition: string } {
 	const typeConfig = getCapsuleTypeConfig(capsule.type);
 	const grid = getValuesFromGridName(capsule.grid);
 
-	let prefix = "cell_auto";
+	let prefix = "cell_layout_auto";
 	if (typeConfig.type !== "legacy") {
-		prefix = `cell_auto_${typeConfig.type}`;
+		prefix = `cell_layout_auto_${typeConfig.type}`;
 	}
 
 	const { r, c } = getCoordinatesByCapsuleType(capsule, itemIndex, grid);

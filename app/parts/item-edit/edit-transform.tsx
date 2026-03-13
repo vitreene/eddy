@@ -21,7 +21,6 @@ type EditTransformProps = {
 	editorSyncKey?: string;
 	decor?: Decor;
 	editDecor?: Decor;
-	activeCustomEventAction: string | null;
 	onStyleChange: (payload: EditableStyle) => void;
 	onDecorUpdate: (payload: { id: number; area?: string | null; className?: string | null }) => void;
 	onTreeMove: (payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => void;
@@ -35,7 +34,6 @@ export function EditTransform({
 	editorSyncKey,
 	decor,
 	editDecor,
-	activeCustomEventAction,
 	onStyleChange,
 	onDecorUpdate,
 	onTreeMove,
@@ -116,7 +114,6 @@ export function EditTransform({
 			createTransformController({
 				decor,
 				editDecor,
-				activeCustomEventAction,
 				parentCapsuleType,
 				item,
 				activeNode,
@@ -124,17 +121,7 @@ export function EditTransform({
 				onDecorUpdate,
 				onTreeMove
 			}),
-		[
-			decor,
-			editDecor,
-			activeCustomEventAction,
-			parentCapsuleType,
-			item,
-			activeNode,
-			onStyleChange,
-			onDecorUpdate,
-			onTreeMove
-		]
+		[decor, editDecor, parentCapsuleType, item, activeNode, onStyleChange, onDecorUpdate, onTreeMove]
 	);
 
 	useEffect(() => {

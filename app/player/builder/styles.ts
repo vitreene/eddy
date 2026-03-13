@@ -39,11 +39,11 @@ export function joinNodeClassNames(...tokens: Array<string | null | undefined>):
 export function getEffectiveAreaClassName(
 	capsuleType: string | null | undefined,
 	explicitArea: string | null | undefined,
-	autoArea: string | null | undefined
+	autoLayoutArea: string | null | undefined
 ): string {
 	return shouldCapsuleUseExplicitArea(capsuleType)
-		? explicitArea || autoArea || ""
-		: autoArea || explicitArea || "";
+		? explicitArea || autoLayoutArea || ""
+		: autoLayoutArea || explicitArea || "";
 }
 
 /**
@@ -198,12 +198,12 @@ export function getEventDecor(
 export function buildDynamicClassName(
 	capsuleType: string | null | undefined,
 	decor: DecorLike,
-	autoAreaClassName: string | null | undefined
+	autoLayoutAreaClassName: string | null | undefined
 ): string {
 	return joinNodeClassNames(
 		decor?.className || "",
 		getStaticStyleClassName(decor?.style),
-		getEffectiveAreaClassName(capsuleType, decor?.area, autoAreaClassName)
+		getEffectiveAreaClassName(capsuleType, decor?.area, autoLayoutAreaClassName)
 	);
 }
 
@@ -282,6 +282,24 @@ export function hasPositionStyleDelta(
 	return false;
 }
 
+const PLACEMENT_CLASS_TOKEN_RE = /^(?:cell-span-|cell_layout_auto(?:_[a-z0-9_-]+)?-|liste-r\d+$)/i;
+
+/**
+ * Detect placement-related class token changes (grid/list slot tokens).
+ */
+export function hasPlacementClassDelta(
+	previousClassName: string | null | undefined,
+	nextClassName: string | null | undefined
+): boolean {
+	const previous = extractPlacementClassTokens(previousClassName);
+	const next = extractPlacementClassTokens(nextClassName);
+	if (previous.length !== next.length) return true;
+	for (let i = 0; i < previous.length; i += 1) {
+		if (previous[i] !== next[i]) return true;
+	}
+	return false;
+}
+
 /**
  * Normalize transition preset style with default duration.
  */
@@ -300,6 +318,14 @@ function mapBackgroundSizeToObjectFit(value: string | number): string | null {
 	if (normalized === "cover") return "cover";
 	if (normalized === "contain") return "contain";
 	return null;
+}
+
+function extractPlacementClassTokens(value: string | null | undefined): string[] {
+	return (value || "")
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter((token) => token.length > 0 && PLACEMENT_CLASS_TOKEN_RE.test(token))
+		.sort();
 }
 
 /**

@@ -5,11 +5,14 @@ import { useDropzone } from "react-dropzone";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { SceneLogicContext } from "@/provider/scene-logic";
-import type { Content } from "@/api/db";
+import type { Content, SceneContent, TextTime } from "@/api/db";
 import { CHUTIER_DRAG_MIME, toChutierDragPayload } from "@/lib/drag-content";
 import { cn } from "@/lib/utils";
+import { transcribeAudioFileToCues } from "@/whisper/transcribe-to-cues";
 
 type UploadItem = {
+	originalName: string;
+	mimeType: string;
 	content: Content;
 };
 
@@ -31,6 +34,7 @@ interface ChutierProps {
 
 export function Chutier({ allContents = [] }: ChutierProps) {
 	const { send } = SceneLogicContext.useActorRef();
+	const sceneId = SceneLogicContext.useSelector((state) => state.context.id);
 	const sceneContents = SceneLogicContext.useSelector((state) => Object.values(state.context.contents || {}));
 	const contents = useMemo(() => {
 		const merged = new Map<number, Content>();
@@ -72,8 +76,25 @@ export function Chutier({ allContents = [] }: ChutierProps) {
 			}
 
 			const data = (await res.json()) as { files?: UploadItem[] };
-			for (const file of data.files || []) {
-				send({ type: "content-add", payload: file.content });
+			const uploadedFiles = data.files || [];
+			for (const uploaded of uploadedFiles) {
+				send({ type: "content-add", payload: uploaded.content });
+			}
+
+			if (sceneId) {
+				for (const [index, uploaded] of uploadedFiles.entries()) {
+					const sourceFile = files[index];
+					if (!sourceFile) continue;
+					if (uploaded.content.type !== "sound") continue;
+
+					void processAudioCues({
+						sourceFile,
+						sceneId,
+						contentId: uploaded.content.id,
+						send,
+						setError
+					});
+				}
 			}
 		} catch (e) {
 			setError(e instanceof Error ? e.message : "Erreur inattendue");
@@ -158,6 +179,47 @@ export function Chutier({ allContents = [] }: ChutierProps) {
 			</div>
 		</div>
 	);
+}
+
+async function processAudioCues({
+	sourceFile,
+	sceneId,
+	contentId,
+	send,
+	setError
+}: {
+	sourceFile: File;
+	sceneId: number;
+	contentId: number;
+	send: (event: { type: "scene-content-upsert"; payload: SceneContent }) => void;
+	setError: (error: string | null) => void;
+}) {
+	try {
+		const cues = await transcribeAudioFileToCues(sourceFile, { language: "fr" });
+		const response = await fetch("/api/scene-content/cues", {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({ sceneId, contentId, cues })
+		});
+
+		if (!response.ok) {
+			const detail = await response.text();
+			throw new Error(detail || "Echec persistence des cues");
+		}
+
+		const payload = (await response.json()) as {
+			sceneContent?: Omit<SceneContent, "events"> & { events: TextTime[] };
+		};
+
+		if (payload.sceneContent) {
+			send({ type: "scene-content-upsert", payload: payload.sceneContent });
+		}
+	} catch (error) {
+		setError("Transcription Whisper echouee pour un son importe");
+	}
 }
 
 function ContentGroup({ items, emptyText }: { items: Content[]; emptyText: string }) {

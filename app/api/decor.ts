@@ -45,6 +45,9 @@ export async function action({ request }: Route.ActionArgs) {
 				return { ok: true, decorId: created.id };
 			}
 		}
+
+		const created = await createDecor(normalizedDecorData);
+		return { ok: true, decorId: created.id };
 	}
 
 	return { ok: false };

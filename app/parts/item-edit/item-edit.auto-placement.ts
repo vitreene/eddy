@@ -2,7 +2,7 @@ import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 
 import type { Decor } from "@/api/db";
 
-type AutoPlacementSnapshot = {
+type AutoLayoutPlacementSnapshot = {
 	className: string;
 	gridRowStart: string;
 	gridColumnStart: string;
@@ -18,10 +18,10 @@ type PlacementPatch = {
  * - For grid/rangee-like layouts: persist explicit `area` from computed grid row/col.
  * - For liste layouts: persist current virtual `liste-rN` token in `className`.
  */
-export function buildAutoPlacementLockPatch(params: {
+export function buildAutoLayoutPlacementLockPatch(params: {
 	capsuleType: string | null | undefined;
 	targetDecor: Decor;
-	snapshot: AutoPlacementSnapshot;
+	snapshot: AutoLayoutPlacementSnapshot;
 }): PlacementPatch | null {
 	const { capsuleType, targetDecor, snapshot } = params;
 	const resolvedType = resolveCapsuleType(capsuleType);
@@ -46,7 +46,9 @@ export function buildAutoPlacementLockPatch(params: {
 /**
  * Capture live node placement signals used to lock auto placement.
  */
-export function readAutoPlacementSnapshot(node: HTMLElement | null): AutoPlacementSnapshot | null {
+export function readAutoLayoutPlacementSnapshot(
+	node: HTMLElement | null
+): AutoLayoutPlacementSnapshot | null {
 	if (!node) return null;
 	const cs = getComputedStyle(node);
 	return {
@@ -56,7 +58,7 @@ export function readAutoPlacementSnapshot(node: HTMLElement | null): AutoPlaceme
 	};
 }
 
-function readAreaFromSnapshot(snapshot: AutoPlacementSnapshot): string | null {
+function readAreaFromSnapshot(snapshot: AutoLayoutPlacementSnapshot): string | null {
 	const explicitToken = readExplicitAreaToken(snapshot.className);
 	if (explicitToken) return explicitToken;
 

@@ -9,7 +9,10 @@ import {
 	ensureLivePlacementClassDefinitions
 } from "./live-node-classes";
 import { buildResetTransformStyle } from "./item-edit.transform";
-import { buildAutoPlacementLockPatch, readAutoPlacementSnapshot } from "./item-edit.auto-placement";
+import {
+	buildAutoLayoutPlacementLockPatch,
+	readAutoLayoutPlacementSnapshot
+} from "./item-edit.auto-placement";
 import {
 	buildGridSpanClassName,
 	mergeGridPlacementClassName,
@@ -39,7 +42,6 @@ export type PositionCommitMeta = {
 type Input = {
 	decor?: Decor;
 	editDecor?: Decor;
-	activeCustomEventAction: string | null;
 	parentCapsuleType?: string | null;
 	item?: ItemComp;
 	activeNode: HTMLElement | null;
@@ -49,17 +51,8 @@ type Input = {
 };
 
 export function createTransformController(input: Input) {
-	const {
-		decor,
-		editDecor,
-		activeCustomEventAction,
-		parentCapsuleType,
-		item,
-		activeNode,
-		onStyleChange,
-		onDecorUpdate,
-		onTreeMove
-	} = input;
+	const { decor, editDecor, parentCapsuleType, item, activeNode, onStyleChange, onDecorUpdate, onTreeMove } =
+		input;
 
 	const onResetTransform = () => {
 		onStyleChange(buildResetTransformStyle());
@@ -68,7 +61,7 @@ export function createTransformController(input: Input) {
 	const onTransformModeChange = (mode: TransformEditorMode) => {
 		if (mode !== "position") return;
 		enforcePositionInlineLock(activeNode);
-		const targetDecor = activeCustomEventAction ? editDecor : decor;
+		const targetDecor = editDecor || decor;
 		if (!targetDecor) return;
 
 		const style = ((targetDecor.style as EditableStyle) ?? {}) as Record<string, unknown>;
@@ -101,13 +94,13 @@ export function createTransformController(input: Input) {
 		mode: "move" | "rotate" | "resize-se" | "cell-snap" | "origin",
 		meta: TransformCommitMeta
 	) => {
-		const targetDecor = activeCustomEventAction ? editDecor : decor;
+		const targetDecor = editDecor || decor;
 		if (!targetDecor) return;
 
 		const capsuleType = resolveCapsuleType(parentCapsuleType);
-		const placementSnapshot = readAutoPlacementSnapshot(activeNode);
+		const placementSnapshot = readAutoLayoutPlacementSnapshot(activeNode);
 		if (placementSnapshot) {
-			const lockPatch = buildAutoPlacementLockPatch({
+			const lockPatch = buildAutoLayoutPlacementLockPatch({
 				capsuleType: parentCapsuleType,
 				targetDecor,
 				snapshot: placementSnapshot
@@ -155,7 +148,7 @@ export function createTransformController(input: Input) {
 	};
 
 	const onPositionCommit = (mode: "cell-snap" | "resize-grid-se", meta: PositionCommitMeta) => {
-		const targetDecor = activeCustomEventAction ? editDecor : decor;
+		const targetDecor = editDecor || decor;
 		if (!targetDecor) return;
 
 		enforcePositionInlineLock(activeNode);

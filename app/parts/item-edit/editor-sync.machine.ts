@@ -82,6 +82,16 @@ export const editorSyncMachine = createMachine(
 				const signature = buildSelectionSignature(req);
 				if (signature && signature !== context.lastSelectionSignature) return true;
 
+				if (
+					req.activeAction === "seek" &&
+					typeof req.activeCueSec === "number" &&
+					Number.isFinite(req.activeCueSec) &&
+					Math.abs(req.activeCueSec) <= SEEK_EPSILON_SEC &&
+					req.selectedEventCueSec > SEEK_EPSILON_SEC
+				) {
+					return false;
+				}
+
 				if (typeof req.activeCueSec !== "number" || !Number.isFinite(req.activeCueSec)) return true;
 				return Math.abs(req.selectedEventCueSec - req.activeCueSec) > SEEK_EPSILON_SEC;
 			}
@@ -91,15 +101,6 @@ export const editorSyncMachine = createMachine(
 				const req = context.request;
 				if (!req) return;
 				if (typeof req.selectedEventCueSec !== "number" || !Number.isFinite(req.selectedEventCueSec)) return;
-				if (req.visualState?.itemId === 55 && req.selectedEventAction === "outro") {
-					console.log("[editor-sync][seek]", {
-						itemId: req.visualState?.itemId,
-						event: req.selectedEventAction,
-						selectedEventCueSec: req.selectedEventCueSec,
-						activeCueSec: req.activeCueSec,
-						activeAction: req.activeAction
-					});
-				}
 				context.input.onSeek(req);
 			},
 			dispatchProject: ({ context }) => {

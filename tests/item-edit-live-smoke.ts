@@ -206,9 +206,9 @@ try {
 
 	{
 		const { node, classTokens } = createFakeNode();
-		node.className = "foo cell_auto_grille-r2-c2";
+		node.className = "foo cell_layout_auto_grille-r2-c2";
 		applyAreaClassPatch(node, null, "cell-r1-c1");
-		assert.equal(classTokens.has("cell_auto_grille-r2-c2"), false);
+		assert.equal(classTokens.has("cell_layout_auto_grille-r2-c2"), false);
 		assert.equal(classTokens.has("cell-r1-c1"), true);
 		assert.equal(classTokens.has("foo"), true);
 		console.log("OK: explicit area patch removes auto-placement tokens");

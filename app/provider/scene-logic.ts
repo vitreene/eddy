@@ -5,15 +5,15 @@ import { capsuleReorder, reorderElements, updateOrder } from "./reorder-elements
 import { applyTreeMutation, treeMutation } from "./tree-mutations";
 import { computeActiveCue } from "./active-cue";
 
-import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp } from "@/api/db";
+import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp, SceneContent } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { mergeCssStrings } from "@/lib/merge-css-classes";
 import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO } from "@/config/constants";
 import {
 	deriveEventKind,
 	normalizeCustomEventDraft,
-	parseCustomEventAutoOptions,
-	serializeCustomEventAutoOptions,
+	parseCustomEventMoveOptions,
+	serializeCustomEventMoveOptions,
 	type CustomEventPosition
 } from "@/config/custom-events";
 import { getPlayerNode } from "@/scene-runtime/node-resolver";
@@ -100,7 +100,7 @@ export const sceneLogic = setup({
 						delay?: number | null;
 						duration?: number | null;
 						position?: CustomEventPosition | null;
-						auto?: boolean;
+						autoMove?: boolean;
 						clearTransforms?: boolean;
 					};
 			  }
@@ -112,12 +112,13 @@ export const sceneLogic = setup({
 						delay?: number | null;
 						duration?: number | null;
 						position?: CustomEventPosition | null;
-						auto?: boolean;
+						autoMove?: boolean;
 						clearTransforms?: boolean;
 					};
 			  }
 			| { type: "custom-event-delete"; payload: { action: string } }
 			| { type: "content-add"; payload: Content }
+			| { type: "scene-content-upsert"; payload: SceneContent }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
 			| { type: "tree-create-text"; payload: TreeCreateEvent }
 			| { type: "tree-create-capsule"; payload: TreeCreateEvent }
@@ -367,7 +368,16 @@ export const sceneLogic = setup({
 
 									const shouldFlushFromPayload = isSequenceAction(sequenceActionFromPayload);
 									if (shouldFlushFromPayload && nextActive.sequenceTouched) {
-										nextActive = requestSequenceFlush(nextActive, "sequence-action");
+										const isSeekSelectionSync = sequenceActionFromPayload === "seek";
+										const keepSelectionWhileEditing = Boolean(
+											isSeekSelectionSync ||
+											nextActive.eventTouched ||
+											nextActive.decorTouched ||
+											nextActive.themeTouched
+										);
+										nextActive = requestSequenceFlush(nextActive, "sequence-action", {
+											preserveSelection: keepSelectionWhileEditing
+										});
 									}
 
 									return {
@@ -611,8 +621,8 @@ export const sceneLogic = setup({
 										delay: event.payload?.delay ?? seeded.delay,
 										duration: event.payload?.duration ?? null,
 										position: event.payload?.position ?? seeded.position,
-										ref: serializeCustomEventAutoOptions({
-											auto: event.payload?.auto,
+										ref: serializeCustomEventMoveOptions({
+											autoMove: event.payload?.autoMove,
 											clearTransforms: event.payload?.clearTransforms
 										})
 									});
@@ -662,13 +672,13 @@ export const sceneLogic = setup({
 										delay: hasOwn(event.payload, "delay") ? event.payload.delay : (current as any).delay,
 										duration: hasOwn(event.payload, "duration") ? event.payload.duration : (current as any).duration,
 										position: hasOwn(event.payload, "position") ? event.payload.position : (current as any).position,
-										ref: serializeCustomEventAutoOptions({
-											auto: hasOwn(event.payload, "auto")
-												? event.payload.auto
-												: parseCustomEventAutoOptions(current.ref).auto,
+										ref: serializeCustomEventMoveOptions({
+											autoMove: hasOwn(event.payload, "autoMove")
+												? event.payload.autoMove
+												: parseCustomEventMoveOptions(current.ref).autoMove,
 											clearTransforms: hasOwn(event.payload, "clearTransforms")
 												? event.payload.clearTransforms
-												: parseCustomEventAutoOptions(current.ref).clearTransforms
+												: parseCustomEventMoveOptions(current.ref).clearTransforms
 										})
 									} as Parameters<typeof normalizeCustomEventDraft>[0];
 
@@ -751,6 +761,17 @@ export const sceneLogic = setup({
 										[event.payload.id]: event.payload
 									},
 									active: markSequenceTouched(context.active)
+								};
+							})
+						},
+						"scene-content-upsert": {
+							actions: assign(({ context, event }) => {
+								return {
+									...context,
+									sceneContents: {
+										...context.sceneContents,
+										[event.payload.id]: event.payload
+									}
 								};
 							})
 						}

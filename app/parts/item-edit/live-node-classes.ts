@@ -1,7 +1,7 @@
 import { classNameToCssDefinition, gridPlacementClassNameToCssDefinition } from "@/lib/utils";
 
 const LIVE_AREA_STYLE_ID = "eddy-live-area-definitions";
-const AUTO_AREA_TOKEN_RE = /^cell_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+$/i;
+const AUTO_LAYOUT_AREA_TOKEN_RE = /^cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+$/i;
 const EXPLICIT_AREA_TOKEN_RE = /^cell-r\d+-c\d+$/i;
 const LIST_AREA_TOKEN_RE = /^liste-r\d+$/i;
 
@@ -13,7 +13,9 @@ export function clearPlacementAreaTokens(node: HTMLElement | null) {
 		.filter(Boolean)
 		.filter(
 			(token) =>
-				AUTO_AREA_TOKEN_RE.test(token) || EXPLICIT_AREA_TOKEN_RE.test(token) || LIST_AREA_TOKEN_RE.test(token)
+				AUTO_LAYOUT_AREA_TOKEN_RE.test(token) ||
+				EXPLICIT_AREA_TOKEN_RE.test(token) ||
+				LIST_AREA_TOKEN_RE.test(token)
 		);
 	if (tokens.length) node.classList.remove(...tokens);
 }
