@@ -42,6 +42,7 @@ export interface EditableStyle {
 	/* EXTRA */
 	area?: string;
 	className?: string;
+	rawCss?: string;
 }
 
 export type StyleKey = keyof EditableStyle;

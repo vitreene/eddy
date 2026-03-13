@@ -27,7 +27,8 @@ export const MANAGED_ITEM_STYLE_KEYS: Array<keyof EditableStyle> = [
 	"backgroundRepeat",
 	"outline",
 	"area",
-	"className"
+	"className",
+	"rawCss"
 ];
 
 // Managed keys that should not be interpolated as dynamic timeline style.
@@ -36,7 +37,8 @@ export const NON_ANIMATABLE_MANAGED_STYLE_KEYS: Array<keyof EditableStyle> = [
 	"justifySelf",
 	"alignSelf",
 	"placeSelf",
-	"backgroundPosition"
+	"backgroundPosition",
+	"rawCss"
 ];
 
 export const ANIMATABLE_MANAGED_STYLE_KEYS: Array<keyof EditableStyle> = MANAGED_ITEM_STYLE_KEYS.filter(
@@ -70,7 +72,8 @@ export const DEFAULT_STYLE: EditableStyle = {
 	backgroundRepeat: "no-repeat",
 	outline: undefined,
 	area: undefined,
-	className: undefined
+	className: undefined,
+	rawCss: undefined
 };
 
 export function getDefaultStyleForContentType(_contentType?: string): EditableStyle {

@@ -336,7 +336,6 @@ function createCellSnapSession({
 		if (session.targets[session.activeIndex]) paintDropTarget(session.targets[session.activeIndex].node, true);
 	}
 	moveGhostToPointer(session, pointer.x, pointer.y);
-	element.style.visibility = "hidden";
 	return session;
 }
 

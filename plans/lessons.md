@@ -80,3 +80,9 @@
 - Ne jamais faire transiter `ElementTransform` dans le circuit `position` (props, machine, service, commit): utiliser des types de commit distincts.
 - Eviter les unions de modes qui laissent passer des metadonnees transform dans la branche position; preferer des callbacks differencies (`onTransformCommit` / `onPositionCommit`).
 - Si un composant est declare comme `position`, il ne doit construire que des donnees grille (`cell`, `gridPlacement`, `reorderIndex`) et rien d'autre.
+
+## 2026-03-13 — Anime.js: patch vs reconstruction
+
+- Anime.js v4 permet des patchs partiels de timeline (`add`, `remove`, `sync`) sans reconstruire tout dans les cas simples.
+- Limitation cle doc: `remove()` ne recompose pas la duree/shape globale; pour modification structurelle de timeline, recreer une nouvelle timeline est recommande.
+- Strategie pratique pour eviter une cassure visuelle lors d'une recreation: utiliser `keepTime()` (Scope) pour conserver le temps courant.

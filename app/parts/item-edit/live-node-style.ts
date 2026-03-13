@@ -1,4 +1,5 @@
 import { applyTransformPreserve, readTransformPreserve } from "@/components/position-editor/lib";
+import { parseRawCssDeclarations } from "@/lib/raw-css";
 
 import type { EditableStyle } from "@/components/style-editor/types";
 
@@ -25,6 +26,7 @@ function normalizeInlineStyle(style: EditableStyle | undefined): Record<string, 
 
 	for (const [key, value] of Object.entries(source)) {
 		if (LIVE_TRANSFORM_KEY_SET.has(key)) continue;
+		if (key === "rawCss") continue;
 		if (typeof value === "undefined") continue;
 		if (value === null) {
 			normalized[key] = null;
@@ -121,5 +123,22 @@ export function applyLiveStyleOnNode(
 			continue;
 		}
 		(node.style as any)[key] = typeof value === "number" ? String(value) : value;
+	}
+
+	const previousRawCss = String((options?.currentStyle as Record<string, unknown> | undefined)?.rawCss || "");
+	const nextRawCss = typeof style.rawCss === "string" ? style.rawCss : undefined;
+	if (typeof nextRawCss !== "undefined") {
+		applyRawCssPatchOnNode(node, previousRawCss, nextRawCss);
+	}
+}
+
+function applyRawCssPatchOnNode(node: HTMLElement, previousRawCss: string, nextRawCss: string) {
+	const prev = parseRawCssDeclarations(previousRawCss);
+	const next = parseRawCssDeclarations(nextRawCss);
+	for (const { name } of prev) {
+		node.style.removeProperty(name);
+	}
+	for (const { name, value } of next) {
+		node.style.setProperty(name, value);
 	}
 }

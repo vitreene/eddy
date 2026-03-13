@@ -1,6 +1,7 @@
 import { NON_ANIMATABLE_MANAGED_STYLE_KEYS } from "@/config/item-style-defaults";
 import { shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
 import { DEFAULT_DURATION } from "@/config/constants";
+import { cssPropertyNameToJsKey, parseRawCssDeclarations } from "@/lib/raw-css";
 
 import type { SceneComp } from "@/api/db";
 import type { ClassNameAction } from "../types";
@@ -53,6 +54,7 @@ export function getInlineStyle(style: unknown): Record<string, number | string> 
 	const source = style as Record<string, unknown>;
 	const filtered = Object.fromEntries(
 		Object.entries(source).filter(([key, value]) => {
+			if (key === "rawCss") return false;
 			if (typeof value != "string" && typeof value != "number") return false;
 			if (STATIC_STYLE_CLASS_KEYS.has(key)) return false;
 			return true;
@@ -74,6 +76,13 @@ export function getInlineStyle(style: unknown): Record<string, number | string> 
 		normalized.transformOrigin = `${originX} ${originY}`;
 		delete normalized.originX;
 		delete normalized.originY;
+	}
+
+	if (typeof source.rawCss === "string" && source.rawCss.trim()) {
+		for (const declaration of parseRawCssDeclarations(source.rawCss)) {
+			const key = cssPropertyNameToJsKey(declaration.name);
+			(normalized as Record<string, string | number>)[key] = declaration.value;
+		}
 	}
 
 	return normalized;
@@ -173,8 +182,12 @@ export function getEventDecor(
 	return {
 		...fallback,
 		...incoming,
-		className: incoming.className ?? fallback.className,
-		area: incoming.area ?? fallback.area,
+		className: Object.prototype.hasOwnProperty.call(incoming, "className")
+			? (incoming.className as string | null | undefined)
+			: fallback.className,
+		area: Object.prototype.hasOwnProperty.call(incoming, "area")
+			? (incoming.area as string | null | undefined)
+			: fallback.area,
 		style: mergedStyle
 	};
 }

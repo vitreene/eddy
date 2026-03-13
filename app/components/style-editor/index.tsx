@@ -127,32 +127,41 @@ export const StyleEditor: React.FC<Props> = ({
 				<label>outline</label>
 			</div>
 
-			<TransformDebug value={value} />
+			<RawCssEditor
+				value={typeof value.rawCss === "string" ? value.rawCss : ""}
+				onChange={(rawCss) => onChange({ ...value, rawCss })}
+			/>
 		</div>
 	);
 };
 
-function TransformDebug({ value }: { value: EditableStyle }) {
-	const data = {
-		x: toDebugNumber(value.x),
-		y: toDebugNumber(value.y),
-		width: toDebugNumber(value.width),
-		height: toDebugNumber(value.height),
-		rotate: toDebugNumber(value.rotate),
-		originX: toDebugNumber(value.originX),
-		originY: toDebugNumber(value.originY),
-		scaleX: toDebugNumber(value.scaleX),
-		scaleY: toDebugNumber(value.scaleY)
-	};
-
+function RawCssEditor({ value, onChange }: { value: string; onChange: (value: string) => void }) {
 	return (
-		<div className="mt-2 rounded border border-stone-300 p-2 text-[11px]">
-			<p className="mb-1 font-medium">TransformItem props</p>
-			<pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(data, null, 2)}</pre>
+		<div className="mt-3 rounded border border-stone-300 p-2 text-[11px]">
+			<p className="mb-2 font-medium">CSS brut</p>
+			<div className="grid">
+				<textarea
+					value={value}
+					onChange={(e) => onChange(e.currentTarget.value)}
+					onScroll={(e) => {
+						const pre = e.currentTarget.parentElement?.querySelector("pre");
+						if (!pre) return;
+						pre.scrollTop = e.currentTarget.scrollTop;
+						pre.scrollLeft = e.currentTarget.scrollLeft;
+					}}
+					placeholder={"left: 12px;\ntop: 4px;\nfilter: blur(1px);"}
+					spellCheck={false}
+					className="col-start-1 row-start-1 h-32 w-full resize-none overflow-scroll rounded border border-stone-300 bg-transparent p-2 font-mono text-transparent caret-stone-900 outline-none"
+				/>
+				<div
+					aria-hidden="true"
+					className="pointer-events-none col-start-1 row-start-1 overflow-hidden rounded border border-transparent p-2"
+				>
+					<pre className="h-32 overflow-scroll font-mono break-words whitespace-pre-wrap text-stone-600">
+						{value}
+					</pre>
+				</div>
+			</div>
 		</div>
 	);
-}
-
-function toDebugNumber(value: unknown): number | null {
-	return typeof value == "number" && Number.isFinite(value) ? value : null;
 }

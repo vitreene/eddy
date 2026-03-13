@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 
 import {
 	ItemTransformEditorPosition,
@@ -67,7 +67,6 @@ export function EditTransform({
 	}, [activeNode]);
 
 	const isTransformEditorActive = Boolean(activeNode) && isVisibleAtActiveCue;
-	const [editorMode, setEditorMode] = useState<"transform" | "position">("position");
 
 	const snapParentId = useMemo(() => {
 		if (!item) return null;
@@ -109,8 +108,8 @@ export function EditTransform({
 		};
 	}, [parentCapsule]);
 
-	const supportsPositionMode = snapGrid?.kind === "grid";
-	const effectiveEditorMode = supportsPositionMode ? editorMode : "transform";
+	const effectiveEditorMode: "transform" | "position" =
+		resolveCapsuleType(parentCapsuleType) === CAPSULE_TYPES.POSITION ? "position" : "transform";
 
 	const transformController = useMemo(
 		() =>
@@ -145,33 +144,10 @@ export function EditTransform({
 	return (
 		<>
 			<div className="mb-2 flex justify-end">
-				<div className="mr-auto flex items-center gap-4 text-xs">
-					<label className="inline-flex items-center gap-1">
-						<input
-							type="radio"
-							name="item-editor-mode"
-							value="transform"
-							checked={editorMode === "transform"}
-							onChange={() => setEditorMode("transform")}
-						/>
-						Transform
-					</label>
-					<label className="inline-flex items-center gap-1">
-						<input
-							type="radio"
-							name="item-editor-mode"
-							value="position"
-							checked={editorMode === "position"}
-							disabled={!supportsPositionMode}
-							onChange={() => setEditorMode("position")}
-						/>
-						Position
-					</label>
-				</div>
 				<button
 					type="button"
 					onClick={transformController.onResetTransform}
-					disabled={!isTransformEditorActive || editorMode === "position"}
+					disabled={!isTransformEditorActive || effectiveEditorMode === "position"}
 					className="inline-flex h-7 items-center rounded border border-stone-300 px-2 text-xs hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
 				>
 					Reset transform
