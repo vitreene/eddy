@@ -3,7 +3,8 @@ import { applyStyleDefaults } from "@/config/item-style-defaults";
 import { applyLiveStyleOnNode } from "./live-node-style";
 import {
 	applyAreaClassPatch,
-	applyClassTokenPatch,
+	applyClassNameAction,
+	buildClassNameDiff,
 	ensureLiveAreaClassDefinition
 } from "./live-node-classes";
 
@@ -20,6 +21,9 @@ export type EditableVisualState = {
 	className: string | null;
 	style: EditableStyle;
 	transform: Partial<ElementTransform>;
+	previousClassName: string | null;
+	previousArea: string | null;
+	previousStyle: EditableStyle | null;
 };
 
 export function buildEditableVisualState(input: {
@@ -37,7 +41,10 @@ export function buildEditableVisualState(input: {
 		area: input.decor?.area ?? null,
 		className: input.decor?.className ?? null,
 		style,
-		transform: getTransformValueFromStyle(style)
+		transform: getTransformValueFromStyle(style),
+		previousClassName: null,
+		previousArea: null,
+		previousStyle: null
 	};
 }
 
@@ -47,16 +54,15 @@ export function projectEditableVisualStateToNode(
 ) {
 	if (!node || !state) return;
 
-	const prevArea = node.getAttribute("data-ed-edit-area");
-	const prevClassName = node.getAttribute("data-ed-edit-class");
+	const currentClassName = node.className || "";
+	const classNameDiff = buildClassNameDiff(currentClassName, state.className);
+	if (classNameDiff) {
+		applyClassNameAction(node, classNameDiff);
+	}
 
 	ensureLiveAreaClassDefinition(node, state.area);
-	applyAreaClassPatch(node, prevArea, state.area);
-	applyClassTokenPatch(node, prevClassName, state.className);
+	applyAreaClassPatch(node, null, state.area);
 	applyLiveStyleOnNode(node, state.style);
-
-	node.setAttribute("data-ed-edit-area", state.area ?? "");
-	node.setAttribute("data-ed-edit-class", state.className ?? "");
 }
 
 function toFiniteNumber(value: unknown): number | null {

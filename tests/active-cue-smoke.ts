@@ -105,7 +105,7 @@ function addLeafItem(context: SceneComp, itemId: number, capsuleId: number) {
 		path: "",
 		inner: "leaf",
 		lang: "fr",
-		capsuleId: 0
+		capsuleId: capsuleId
 	};
 	context.items[itemId] = {
 		id: itemId,

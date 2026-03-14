@@ -11,13 +11,6 @@ function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: bo
 	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
 }
 
-function getMoveModeLabel(move: unknown): string {
-	if (typeof move === "string") return "reparent";
-	if (typeof move === "boolean") return move ? "legacy-auto" : "none";
-	if (isAutoMove(move)) return move.clearTransforms ? "auto+clear" : "auto";
-	return "none";
-}
-
 export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean {
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, JSAnimation>();
@@ -76,16 +69,6 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 					(typeof nextChange.change?.move === "boolean" && nextChange.change.move) ||
 					isAutoMove(nextChange.change?.move)
 				) {
-					if (id === "item__53") {
-						console.log("[item_53][player] transition-mode", {
-							curr: nextChange.curr,
-							next: nextChange.next,
-							mode: getMoveModeLabel(nextChange.change?.move),
-							hasStyleX: typeof (nextChange.change?.style as any)?.x !== "undefined",
-							hasStyleY: typeof (nextChange.change?.style as any)?.y !== "undefined",
-							hasClassName: typeof nextChange.change?.className !== "undefined"
-						});
-					}
 					nextChange.snapshot = {
 						x: utils.get($el, "x"),
 						y: utils.get($el, "y"),
@@ -95,45 +78,34 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						originY: utils.get($el, "originY")
 					};
 
+					// Trouver le changement précédent pour récupérer ses dimensions finales
+					const changes = this.persoChanges.get(id);
+					let previousChange: Change | undefined;
+					if (changes && nextChange.curr !== null) {
+						const prevTime = nextChange.curr - DEFAULT_DURATION;
+						for (const change of Object.values(changes)) {
+							if (change.curr !== null && change.curr < nextChange.curr! && change.curr >= prevTime - 100) {
+								previousChange = change;
+								break;
+							}
+						}
+					}
+
 					if (transitions.has(nextChange)) {
 						const existing = transitions.get(nextChange)!;
 						this._applyChanges(id, nextChange.change);
 						existing.progress = resolveChangeProgress(currentTime, nextChange);
 					} else {
-						this.enqueueMoveTransition({
-							key: `${String(id)}:${nextChange.curr ?? "start"}`,
-							id,
-							change: nextChange.change,
-							onTransition: (transition) => {
-								transitions.set(nextChange, transition);
-								transition.progress = resolveChangeProgress(currentTime, nextChange);
-							}
-						});
+						const transition = this._moveChange(id, nextChange.change, previousChange);
+						if (transition) {
+							transitions.set(nextChange, transition);
+							transition.progress = resolveChangeProgress(currentTime, nextChange);
+						}
 					}
 				} else if (typeof nextChange.change?.move === "string") {
-					if (id === "item__53") {
-						console.log("[item_53][player] transition-mode", {
-							curr: nextChange.curr,
-							next: nextChange.next,
-							mode: getMoveModeLabel(nextChange.change?.move),
-							hasStyleX: typeof (nextChange.change?.style as any)?.x !== "undefined",
-							hasStyleY: typeof (nextChange.change?.style as any)?.y !== "undefined",
-							hasClassName: typeof nextChange.change?.className !== "undefined"
-						});
-					}
 					this._moveChange(id, nextChange.change);
 					this._applyChanges(id, nextChange.change);
 				} else {
-					if (id === "item__53") {
-						console.log("[item_53][player] transition-mode", {
-							curr: nextChange.curr,
-							next: nextChange.next,
-							mode: getMoveModeLabel(nextChange.change?.move),
-							hasStyleX: typeof (nextChange.change?.style as any)?.x !== "undefined",
-							hasStyleY: typeof (nextChange.change?.style as any)?.y !== "undefined",
-							hasClassName: typeof nextChange.change?.className !== "undefined"
-						});
-					}
 					this._applyChanges(id, nextChange.change);
 				}
 			}

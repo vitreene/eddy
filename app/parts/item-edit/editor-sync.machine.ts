@@ -21,9 +21,16 @@ type Ctx = {
 	request: SyncRequest | null;
 	projectedSyncKey: string;
 	lastSelectionSignature: string | null;
+	currentVisualState: EditableVisualState | null;
+	editMode: "idle" | "editing";
+	editedItemId: number | null;
 };
 
-type Ev = { type: "sync.request"; payload: SyncRequest };
+type Ev =
+	| { type: "sync.request"; payload: SyncRequest }
+	| { type: "edit.start"; payload: { itemId: number; visualState: EditableVisualState } }
+	| { type: "edit.commit"; payload: { visualState: EditableVisualState } }
+	| { type: "edit.cancel" };
 
 const SEEK_EPSILON_SEC = 0.0005;
 
@@ -39,7 +46,10 @@ export const editorSyncMachine = createMachine(
 			input,
 			request: null,
 			projectedSyncKey: "",
-			lastSelectionSignature: null
+			lastSelectionSignature: null,
+			currentVisualState: null,
+			editMode: "idle",
+			editedItemId: null
 		}),
 		states: {
 			idle: {
@@ -47,6 +57,32 @@ export const editorSyncMachine = createMachine(
 					"sync.request": {
 						target: "resolve",
 						actions: assign(({ event }) => ({ request: event.payload }))
+					},
+					"edit.start": {
+						actions: assign(({ event }) => {
+							if (event.type !== "edit.start") return {};
+							return {
+								editMode: "editing" as const,
+								editedItemId: event.payload.itemId as number,
+								currentVisualState: event.payload.visualState
+							};
+						})
+					},
+					"edit.commit": {
+						actions: assign(({ event }) => {
+							if (event.type !== "edit.commit") return {};
+							return {
+								currentVisualState: event.payload.visualState
+							};
+						})
+					},
+					"edit.cancel": {
+						actions: assign(
+							(): Partial<Ctx> => ({
+								editMode: "idle" as const,
+								editedItemId: null
+							})
+						)
 					}
 				}
 			},

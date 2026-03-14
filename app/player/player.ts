@@ -7,7 +7,6 @@ import { createElements } from "./deps/create-elements";
 import { mixClassNames, setStaticChanges } from "./deps/static-changes";
 import { P } from "./types";
 import { getAbsoluteCoords, getTransform } from "./deps/utils";
-import { createFrameQueue, type FrameQueueController } from "./queue/frame-queue";
 import { DEFAULT_DURATION } from "../config/constants";
 
 function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: boolean } {
@@ -48,10 +47,6 @@ export class Player {
 	updatesTM = new PubSub<Timeline>();
 	onEnd: (tm: Timer) => void = () => {};
 	onTimelineUpdate?: (self: Timeline, duration: number) => void;
-	moveQueue!: FrameQueueController<
-		{ $el: HTMLElement; before: ReturnType<typeof getAbsoluteCoords> },
-		{ after: ReturnType<typeof getAbsoluteCoords>; px: number; py: number }
-	>;
 
 	telco: TelcoProps;
 
@@ -84,11 +79,6 @@ export class Player {
 	}
 
 	private init() {
-		this.moveQueue = createFrameQueue({
-			onError: (error, key, phase) => {
-				console.error("Move queue error", { key, phase, error });
-			}
-		});
 		this.timeLine = createTimeline(tmDefaults);
 		this.createElements();
 		this.initMedias();
@@ -160,7 +150,6 @@ export class Player {
 	};
 
 	private revert = () => {
-		this.moveQueue?.dispose();
 		this.timeLine.revert();
 		return this.timeLine;
 	};
@@ -233,14 +222,12 @@ export class Player {
 		}
 	}
 
-	_moveChange(id: ID, change: Partial<ActionAtributes>): JSAnimation | undefined {
+	_moveChange(id: ID, change: Partial<ActionAtributes>, previousChange?: Change): JSAnimation | undefined {
 		const $el = this.$elements.get(id);
 		if (!$el) return undefined;
 
 		switch (typeof change.move) {
 			case "undefined": {
-				// No explicit move instruction: keep current DOM parent.
-				// Removing here can detach valid items from capsule containers during seek/edit cycles.
 				break;
 			}
 			case "string":
@@ -259,61 +246,37 @@ export class Player {
 				const px = utils.get($el, "x", false);
 				const py = utils.get($el, "y", false);
 
-				return this._createMoveTransition($el, old, nex, px, py, undefined);
+				return this._createMoveTransition($el, old, nex, px, py, undefined, change, previousChange);
 			}
 			case "object": {
 				if (!isAutoMove(change.move)) break;
-				const old = getAbsoluteCoords($el);
+
+				// Utiliser les dimensions de fin de la transition précédente si disponibles
+				const previousEndDimensions = previousChange ? (previousChange as any).endDimensions : undefined;
+
+				const oldBase = getAbsoluteCoords($el);
 				this._applyChanges(id, change);
 				const nex = getAbsoluteCoords($el);
+
+				// Si on a des dimensions de transition précédente, les utiliser pour "old"
+				// Cela corrige le problème où seek(0) remet les valeurs à l'état initial
+				const old = previousEndDimensions
+					? {
+							x: previousEndDimensions.x,
+							y: previousEndDimensions.y,
+							width: previousEndDimensions.width,
+							height: previousEndDimensions.height
+						}
+					: oldBase;
 
 				const px = Number(utils.get($el, "x", false));
 				const py = Number(utils.get($el, "y", false));
 
-				return this._createMoveTransition($el, old, nex, px, py, change.move);
+				return this._createMoveTransition($el, old, nex, px, py, change.move, change, previousChange);
 			}
 			default:
 				break;
 		}
-	}
-
-	enqueueMoveTransition(params: {
-		key: string | number;
-		id: ID;
-		change: Partial<ActionAtributes>;
-		onTransition: (transition: JSAnimation) => void;
-	}) {
-		const { key, id, change, onTransition } = params;
-		this.moveQueue.enqueue({
-			key,
-			priority: 0,
-			readBeforeWrite: () => {
-				const $el = this.$elements.get(id);
-				if (!$el) throw new Error("Missing element for move transition");
-				return { $el, before: getAbsoluteCoords($el) };
-			},
-			applyWrite: () => {
-				this._applyChanges(id, change);
-			},
-			readAfterWrite: ({ $el }) => {
-				return {
-					after: getAbsoluteCoords($el),
-					px: Number(utils.get($el, "x", false)),
-					py: Number(utils.get($el, "y", false))
-				};
-			},
-			commit: ({ $el, before }, { after, px, py }) => {
-				const transition = this._createMoveTransition(
-					$el,
-					before,
-					after,
-					px,
-					py,
-					isAutoMove(change.move) ? change.move : undefined
-				);
-				if (transition) onTransition(transition);
-			}
-		});
 	}
 
 	private _createMoveTransition(
@@ -322,25 +285,20 @@ export class Player {
 		nex: ReturnType<typeof getAbsoluteCoords>,
 		px: number,
 		py: number,
-		moveOptions?: { mode: "auto"; clearTransforms?: boolean }
+		moveOptions?: { mode: "auto"; clearTransforms?: boolean },
+		change?: Partial<ActionAtributes>,
+		previousChange?: Change
 	): JSAnimation | undefined {
-		const isItem53 = $el.id === "item__53";
-		if (isItem53) {
-			console.log("[move:item_53] input", { old, nex, px, py });
-		}
 		const dx = old.x - nex.x;
 		const dy = old.y - nex.y;
 		if (dx === 0 && dy === 0 && old.width === nex.width && old.height === nex.height) {
-			if (isItem53) {
-				console.log("[move:item_53] skip", { dx, dy, old, nex, px, py });
-			}
 			return undefined;
 		}
 
 		const diff = getTransform($el).translate(-px, -py).invertSelf().transformPoint(new DOMPoint(dx, dy));
-		if (isItem53) {
-			console.log("[move:item_53] transition", { dx, dy, diff, old, nex, px, py });
-		}
+
+		// Jouer l'animation jusqu'à la fin pour placer l'élément à sa position finale
+		// Cela permet à la prochaine transition de lire les bonnes dimensions
 		const animationParams: Parameters<typeof animate>[1] = {
 			x: { from: diff.x + px, to: 0 + px },
 			y: { from: diff.y + py, to: 0 + py },
@@ -348,7 +306,7 @@ export class Player {
 			height: { from: old.height, to: nex.height },
 			autoplay: false,
 			duration: DEFAULT_DURATION,
-			composition: "none"
+			composition: "merge"
 		};
 		if (moveOptions?.clearTransforms) {
 			animationParams.rotate = { from: Number(utils.get($el, "rotate", false)), to: 0 };
@@ -357,7 +315,22 @@ export class Player {
 			animationParams.originX = { from: Number(utils.get($el, "originX", false)), to: 0.5 };
 			animationParams.originY = { from: Number(utils.get($el, "originY", false)), to: 0.5 };
 		}
-		return animate($el, animationParams).seek(0);
+
+		const animation = animate($el, animationParams);
+
+		// Stocker les dimensions finales dans le change pour la prochaine transition
+		// Cela permet d'unifier avec le système de snapshot pour la lecture en arrière
+		if (change) {
+			(change as any).endDimensions = { x: nex.x, y: nex.y, width: nex.width, height: nex.height };
+		}
+
+		// Jouer jusqu'à la fin pour avoir les dimensions finales
+		animation.seek(animation.duration);
+
+		// Remettre à 0 pour que la timeline puisse jouer la transition
+		animation.seek(0);
+
+		return animation;
 	}
 
 	// changes : src, media

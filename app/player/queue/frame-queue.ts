@@ -8,6 +8,7 @@ export type QueuePhaseHooks<TContext, TAfterWrite> = {
 	applyWrite?: (context: TContext) => MaybePromise<void>;
 	readAfterWrite?: (context: TContext) => MaybePromise<TAfterWrite>;
 	commit?: (context: TContext, afterWrite: TAfterWrite) => MaybePromise<void>;
+	afterCommit?: (context: TContext, afterWrite: TAfterWrite) => MaybePromise<void>;
 	cancel?: (reason: "dedup" | "clear" | "dispose") => void;
 };
 
@@ -112,6 +113,15 @@ export function createFrameQueue<TContext = void, TAfterWrite = void>(options?: 
 				if (job.commit) await job.commit(contexts.get(job)!, afterWrites.get(job)!);
 			} catch (error) {
 				onError(error, job.key, "commit");
+			}
+		}
+
+		for (const job of batch) {
+			if (!contexts.has(job) || !afterWrites.has(job)) continue;
+			try {
+				if (job.afterCommit) await job.afterCommit(contexts.get(job)!, afterWrites.get(job)!);
+			} catch (error) {
+				onError(error, job.key, "afterCommit");
 			}
 		}
 

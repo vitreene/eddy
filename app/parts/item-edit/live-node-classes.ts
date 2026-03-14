@@ -1,9 +1,12 @@
 import { classNameToCssDefinition, gridPlacementClassNameToCssDefinition } from "@/lib/utils";
 
+import type { ClassNameAction } from "@/player/types";
+
 const LIVE_AREA_STYLE_ID = "eddy-live-area-definitions";
 const AUTO_LAYOUT_AREA_TOKEN_RE = /^cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+$/i;
 const EXPLICIT_AREA_TOKEN_RE = /^cell-r\d+-c\d+$/i;
 const LIST_AREA_TOKEN_RE = /^liste-r\d+$/i;
+const SPAN_LAYOUT_AREA_TOKEN_RE = /^cell-span-r\d+-c\d+-rs\d+-cs\d+$/i;
 
 export function clearPlacementAreaTokens(node: HTMLElement | null) {
 	if (!node) return;
@@ -15,7 +18,8 @@ export function clearPlacementAreaTokens(node: HTMLElement | null) {
 			(token) =>
 				AUTO_LAYOUT_AREA_TOKEN_RE.test(token) ||
 				EXPLICIT_AREA_TOKEN_RE.test(token) ||
-				LIST_AREA_TOKEN_RE.test(token)
+				LIST_AREA_TOKEN_RE.test(token) ||
+				/^cell-span-r\d+-c\d+-rs\d+-cs\d+$/.test(token)
 		);
 	if (tokens.length) node.classList.remove(...tokens);
 }
@@ -38,6 +42,43 @@ export function applyClassTokenPatch(
 	if (nextTokens.length) node.classList.add(...nextTokens);
 }
 
+export function applyClassNameAction(node: HTMLElement | null, action: ClassNameAction | undefined | null) {
+	if (!node || !action) return;
+	if (action.add) {
+		action.add.split(/\s+/).forEach((cls) => node.classList.add(cls));
+	}
+	if (action.remove) {
+		action.remove.split(/\s+/).forEach((cls) => node.classList.remove(cls));
+	}
+}
+
+export function buildClassNameDiff(
+	previousClassName: string | null,
+	nextClassName: string | null
+): ClassNameAction | undefined {
+	const previous = new Set(
+		(previousClassName || "")
+			.split(/\s+/)
+			.map((v) => v.trim())
+			.filter(Boolean)
+	);
+	const next = new Set(
+		(nextClassName || "")
+			.split(/\s+/)
+			.map((v) => v.trim())
+			.filter(Boolean)
+	);
+
+	const remove = [...previous].filter((token) => !next.has(token)).join(" ");
+	const add = [...next].filter((token) => !previous.has(token)).join(" ");
+	if (!remove && !add) return undefined;
+
+	return {
+		...(add ? { add } : {}),
+		...(remove ? { remove } : {})
+	};
+}
+
 /**
  * Apply an explicit grid area class and clear auto/list placement tokens.
  * Keeps className in sync with persisted `decor.area` when editing live.
@@ -48,7 +89,7 @@ export function applyAreaClassPatch(
 	nextArea: string | null
 ) {
 	if (!node) return;
-	if (nextArea && EXPLICIT_AREA_TOKEN_RE.test(nextArea)) {
+	if (nextArea && (EXPLICIT_AREA_TOKEN_RE.test(nextArea) || SPAN_LAYOUT_AREA_TOKEN_RE.test(nextArea))) {
 		clearPlacementAreaTokens(node);
 		node.classList.add(nextArea);
 		return;

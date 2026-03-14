@@ -13,7 +13,8 @@ import { ItemEditPanel } from "./item-edit-panel";
 import { applyLiveStyleOnNode } from "./live-node-style";
 import {
 	applyAreaClassPatch,
-	applyClassTokenPatch,
+	applyClassNameAction,
+	buildClassNameDiff,
 	ensureLiveAreaClassDefinition
 } from "./live-node-classes";
 import { resolveDecorAtEventAction } from "./item-edit.helpers";
@@ -73,6 +74,8 @@ export function EditItem() {
 	const item = SceneLogicContext.useSelector((state) =>
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
 	);
+	// NE PAS RETIRER CE CONSOLE.LOG
+	console.log("ITEM", item);
 
 	const content: Content = SceneLogicContext.useSelector((state) => state.context.contents[item?.contentId]);
 	const decors = SceneLogicContext.useSelector((state) => state.context.decors);
@@ -211,7 +214,8 @@ export function EditItem() {
 					currentStyle: effectiveCurrentStyle as EditableStyle
 				});
 				if (classNameChanged) {
-					applyClassTokenPatch(activeNode, targetDecor.className ?? null, nextClassName);
+					const classNameDiff = buildClassNameDiff(targetDecor.className ?? null, nextClassName);
+					applyClassNameAction(activeNode, classNameDiff);
 				}
 				if (areaChanged) {
 					ensureLiveAreaClassDefinition(activeNode, nextArea);

@@ -136,7 +136,7 @@ function normalizeCustomPosition(position: string | null | undefined): CustomEve
 }
 
 function clampSec(value: number, min: number, max: number): number {
-	if (!Number.isFinite(value)) return min;
+	if (!Number.isFinite(value)) return max;
 	if (value < min) return min;
 	if (value > max) return max;
 	return value;

@@ -387,6 +387,11 @@ function buildTimedActions(input: {
 					if (classNameDiff) transitionAction.className = classNameDiff;
 					if (placementChanged || placementClassChanged || positionStyleChanged) {
 						transitionAction.move = { mode: "auto" };
+						const { style: transitionStyle } = transitionAction;
+						if (transitionStyle && typeof transitionStyle === "object") {
+							delete (transitionStyle as Record<string, unknown>).width;
+							delete (transitionStyle as Record<string, unknown>).height;
+						}
 					}
 				}
 
