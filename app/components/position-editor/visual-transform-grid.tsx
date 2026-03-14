@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useMachine } from "@xstate/react";
 
 import type { ElementTransform } from "./lib.types";
-import { buildFrame, transformEditorMachine } from "./transform-editor.machine";
+import { buildFrame, transformEditorMachine, type Ev } from "./transform-editor.machine";
 import {
 	type DragMode,
 	type DragCommitMeta,
@@ -17,6 +17,37 @@ import {
 	type PositionDragMode,
 	type PositionSnapGridSpec
 } from "./position-editor.service";
+
+function useElementRetry(element: HTMLElement | null, isActive: boolean, send: { (event: Ev): void }) {
+	const retryCountRef = useRef(0);
+	const maxRetries = 10;
+
+	useEffect(() => {
+		if (!element || !isActive) {
+			retryCountRef.current = 0;
+			return;
+		}
+
+		const checkDimensions = () => {
+			if (retryCountRef.current >= maxRetries) return;
+
+			const rect = element.getBoundingClientRect();
+			if (rect.width <= 1 || rect.height <= 1) {
+				retryCountRef.current++;
+				const win = element.ownerDocument.defaultView;
+				if (win) {
+					win.requestAnimationFrame(() => {
+						send({ type: "sync.retry" });
+					});
+				}
+			} else {
+				retryCountRef.current = 0;
+			}
+		};
+
+		checkDimensions();
+	}, [element, isActive, send]);
+}
 
 type SharedProps = {
 	element: HTMLElement | null;
@@ -107,6 +138,9 @@ function useTransformRuntime(props: TransformProps) {
 		});
 	}, [send, service, props]);
 	useEffect(() => () => service.dispose(), [service]);
+
+	useElementRetry(state.context.input.element, state.context.input.active ?? true, send);
+
 	const frame = useMemo(
 		() => buildFrame(state.context.t, state.context.offsetParent),
 		[state.context.t, state.context.offsetParent]

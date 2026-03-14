@@ -47,8 +47,9 @@ type Ctx = {
 	nonce: number;
 };
 
-type Ev =
+export type Ev =
 	| { type: "props.sync"; input: TransformEditorMachineInput }
+	| { type: "sync.retry" }
 	| { type: "bump" }
 	| { type: "overlay.hide"; hidden: boolean }
 	| { type: "drag.session"; active: boolean }
@@ -97,6 +98,9 @@ export const transformEditorMachine = createMachine(
 			"props.sync": {
 				actions: [assign(({ event }) => ({ input: event.input })), "syncFromInput", "applyLiveTransform"]
 			},
+			"sync.retry": {
+				actions: ["syncFromInput"]
+			},
 			bump: {
 				actions: assign(({ context }) => ({ nonce: context.nonce + 1 }))
 			},
@@ -139,15 +143,6 @@ export const transformEditorMachine = createMachine(
 				if (!domOk || !active || !input.element) {
 					input.service.stopPointerSession();
 					input.service.detachOverlayHost();
-				} else {
-					// Retry if element doesn't have valid dimensions yet
-					// This handles auto-layout items that need time to measure
-					if (t && (t.width <= 1 || t.height <= 1)) {
-						const win = input.element.ownerDocument.defaultView;
-						if (win) {
-							win.requestAnimationFrame(() => self.send({ type: "props.sync", input }));
-						}
-					}
 				}
 
 				return { domOk, offsetParent, t, basePosition, portalHost };
