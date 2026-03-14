@@ -15,12 +15,6 @@ export interface Change {
 		originX?: number | string;
 		originY?: number | string;
 	};
-	endDimensions?: {
-		x: number;
-		y: number;
-		width: number;
-		height: number;
-	};
 	change: Partial<ActionAtributes>;
 }
 export function setStaticChanges(this: Player) {

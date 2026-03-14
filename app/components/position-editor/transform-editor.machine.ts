@@ -127,11 +127,10 @@ export const transformEditorMachine = createMachine(
 				const active = input.active ?? true;
 				const domOk = canUseDOM(input.element);
 				const offsetParent = input.element ? getOffsetParent(input.element) : null;
-				const elementReady = domOk && active && input.element ? isElementRenderable(input.element) : false;
-				const measured = elementReady && input.element ? readTransformPreserve(input.element) : null;
+				const measured = domOk && active && input.element ? readTransformPreserve(input.element) : null;
 				const t = measured ? mergeTransformFromInput(measured, input.value) : null;
 				const basePosition =
-					elementReady && input.element && t ? getBasePositionWithoutTranslate(input.element, t) : null;
+					domOk && input.element && t ? getBasePositionWithoutTranslate(input.element, t) : null;
 				const portalHost =
 					domOk && active && input.element
 						? input.service.attachOverlayHost(input.element, input.overlayContainer ?? null)
@@ -141,18 +140,13 @@ export const transformEditorMachine = createMachine(
 					input.service.stopPointerSession();
 					input.service.detachOverlayHost();
 				} else {
-					if (!elementReady) {
+					// Retry if element doesn't have valid dimensions yet
+					// This handles auto-layout items that need time to measure
+					if (t && (t.width <= 1 || t.height <= 1)) {
 						const win = input.element.ownerDocument.defaultView;
 						if (win) {
 							win.requestAnimationFrame(() => self.send({ type: "props.sync", input }));
 						}
-					}
-				}
-
-				if (input.element) {
-					const win = input.element.ownerDocument.defaultView;
-					if (win) {
-						win.requestAnimationFrame(() => self.send({ type: "bump" }));
 					}
 				}
 
@@ -231,13 +225,4 @@ export function buildFrame(
 	const displayHeight = Math.max(1, t.height * scaleY);
 
 	return { w: displayWidth, h: displayHeight, M: noScaleMatrix };
-}
-
-function isElementRenderable(element: HTMLElement): boolean {
-	if (!element.isConnected) return false;
-	const rect = element.getBoundingClientRect();
-	if (rect.width <= 0 || rect.height <= 0) return false;
-	const cs = getComputedStyle(element);
-	if (cs.display === "none" || cs.visibility === "hidden") return false;
-	return true;
 }

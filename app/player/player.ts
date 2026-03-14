@@ -48,6 +48,9 @@ export class Player {
 	onEnd: (tm: Timer) => void = () => {};
 	onTimelineUpdate?: (self: Timeline, duration: number) => void;
 
+	// Stocker les dimensions de fin de la dernière transition pour la prochaine transition
+	private lastEndCoords = new Map<ID, { x: number; y: number; width: number; height: number }>();
+
 	telco: TelcoProps;
 
 	constructor({
@@ -222,7 +225,7 @@ export class Player {
 		}
 	}
 
-	_moveChange(id: ID, change: Partial<ActionAtributes>, previousChange?: Change): JSAnimation | undefined {
+	_moveChange(id: ID, change: Partial<ActionAtributes>): JSAnimation | undefined {
 		const $el = this.$elements.get(id);
 		if (!$el) return undefined;
 
@@ -246,33 +249,27 @@ export class Player {
 				const px = utils.get($el, "x", false);
 				const py = utils.get($el, "y", false);
 
-				return this._createMoveTransition($el, old, nex, px, py, undefined, change, previousChange);
+				return this._createMoveTransition($el, old, nex, px, py, undefined);
 			}
 			case "object": {
 				if (!isAutoMove(change.move)) break;
 
-				// Utiliser les dimensions de fin de la transition précédente si disponibles
-				const previousEndDimensions = previousChange ? (previousChange as any).endDimensions : undefined;
+				// Utiliser les dimensions de fin de la dernière transition si disponibles
+				const lastEndCoords = this.lastEndCoords.get(id);
 
-				const oldBase = getAbsoluteCoords($el);
+				// Si on a des dimensions de la transition précédente, les utiliser pour "old"
+				// Sinon mesurer normalement
+				const old = lastEndCoords
+					? { x: lastEndCoords.x, y: lastEndCoords.y, width: lastEndCoords.width, height: lastEndCoords.height }
+					: getAbsoluteCoords($el);
+
 				this._applyChanges(id, change);
 				const nex = getAbsoluteCoords($el);
-
-				// Si on a des dimensions de transition précédente, les utiliser pour "old"
-				// Cela corrige le problème où seek(0) remet les valeurs à l'état initial
-				const old = previousEndDimensions
-					? {
-							x: previousEndDimensions.x,
-							y: previousEndDimensions.y,
-							width: previousEndDimensions.width,
-							height: previousEndDimensions.height
-						}
-					: oldBase;
 
 				const px = Number(utils.get($el, "x", false));
 				const py = Number(utils.get($el, "y", false));
 
-				return this._createMoveTransition($el, old, nex, px, py, change.move, change, previousChange);
+				return this._createMoveTransition($el, old, nex, px, py, change.move);
 			}
 			default:
 				break;
@@ -285,9 +282,7 @@ export class Player {
 		nex: ReturnType<typeof getAbsoluteCoords>,
 		px: number,
 		py: number,
-		moveOptions?: { mode: "auto"; clearTransforms?: boolean },
-		change?: Partial<ActionAtributes>,
-		previousChange?: Change
+		moveOptions?: { mode: "auto"; clearTransforms?: boolean }
 	): JSAnimation | undefined {
 		const dx = old.x - nex.x;
 		const dy = old.y - nex.y;
@@ -318,11 +313,8 @@ export class Player {
 
 		const animation = animate($el, animationParams);
 
-		// Stocker les dimensions finales dans le change pour la prochaine transition
-		// Cela permet d'unifier avec le système de snapshot pour la lecture en arrière
-		if (change) {
-			(change as any).endDimensions = { x: nex.x, y: nex.y, width: nex.width, height: nex.height };
-		}
+		// Stocker les dimensions de fin dans lastEndCoords pour la prochaine transition
+		this.lastEndCoords.set($el.id, { x: nex.x, y: nex.y, width: nex.width, height: nex.height });
 
 		// Jouer jusqu'à la fin pour avoir les dimensions finales
 		animation.seek(animation.duration);

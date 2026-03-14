@@ -64,7 +64,7 @@ export function EditTransform({
 		return activeNode.ownerDocument.getElementById(SCENE_ID);
 	}, [activeNode]);
 
-	const isTransformEditorActive = Boolean(activeNode) && isVisibleAtActiveCue;
+	const isTransformEditorActive = Boolean(activeNode) && isVisibleAtActiveCue && activeAction !== "seek";
 
 	const snapParentId = useMemo(() => {
 		if (!item) return null;

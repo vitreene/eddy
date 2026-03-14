@@ -78,25 +78,12 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						originY: utils.get($el, "originY")
 					};
 
-					// Trouver le changement précédent pour récupérer ses dimensions finales
-					const changes = this.persoChanges.get(id);
-					let previousChange: Change | undefined;
-					if (changes && nextChange.curr !== null) {
-						const prevTime = nextChange.curr - DEFAULT_DURATION;
-						for (const change of Object.values(changes)) {
-							if (change.curr !== null && change.curr < nextChange.curr! && change.curr >= prevTime - 100) {
-								previousChange = change;
-								break;
-							}
-						}
-					}
-
 					if (transitions.has(nextChange)) {
 						const existing = transitions.get(nextChange)!;
 						this._applyChanges(id, nextChange.change);
 						existing.progress = resolveChangeProgress(currentTime, nextChange);
 					} else {
-						const transition = this._moveChange(id, nextChange.change, previousChange);
+						const transition = this._moveChange(id, nextChange.change);
 						if (transition) {
 							transitions.set(nextChange, transition);
 							transition.progress = resolveChangeProgress(currentTime, nextChange);

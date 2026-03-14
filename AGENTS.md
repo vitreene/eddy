@@ -1,3 +1,5 @@
+# Instructions
+
 ### 1. Plan Mode Default
 
 - Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
