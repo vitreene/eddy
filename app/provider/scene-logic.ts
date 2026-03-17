@@ -17,6 +17,7 @@ import {
 	type CustomEventPosition
 } from "@/config/custom-events";
 import { getPlayerNode } from "@/scene-runtime/node-resolver";
+import { buildNodeId } from "@/scene-runtime/node-id";
 import {
 	clearSequenceFlushRequest,
 	isSequenceAction,
@@ -317,10 +318,26 @@ export const sceneLogic = setup({
 											? (payload.node ?? null)
 											: shouldResolveNodeFromItem
 												? itemId
-													? getPlayerNode(context.items[itemId]?.nodeId)
+													? (() => {
+															const item = context.items[itemId];
+															if (!item) return null;
+															const content = context.contents[item.contentId];
+															if (content?.type === "capsule" && content.capsuleId) {
+																return getPlayerNode(buildNodeId("capsule", content.capsuleId));
+															}
+															return getPlayerNode(item.nodeId);
+														})()
 													: null
 												: shouldResolveNodeLazily
-													? getPlayerNode(context.items[context.active.itemId as number]?.nodeId)
+													? (() => {
+															const item = context.items[context.active.itemId as number];
+															if (!item) return context.active.node;
+															const content = context.contents[item.contentId];
+															if (content?.type === "capsule" && content.capsuleId) {
+																return getPlayerNode(buildNodeId("capsule", content.capsuleId));
+															}
+															return getPlayerNode(item.nodeId);
+														})()
 													: context.active.node;
 									const nextEvent =
 										"event" in payload ? (payload.event ?? null) : itemChanged ? null : context.active.event;
@@ -353,28 +370,24 @@ export const sceneLogic = setup({
 
 									if (itemId && "event" in payload && nextEvent) {
 										const selectedEvent = context.events[itemId]?.[nextEvent];
-										if (
-											selectedEvent &&
-											deriveEventKind(selectedEvent.action) === "custom" &&
-											typeof cue == "number" &&
-											Number.isFinite(cue)
-										) {
-											nextActive = {
-												...nextActive,
-												action: "seek"
-											};
+										if (selectedEvent && typeof cue == "number" && Number.isFinite(cue)) {
+											const kind = deriveEventKind(selectedEvent.action);
+											if (kind === "custom" || kind === "intro" || kind === "outro") {
+												nextActive = {
+													...nextActive,
+													action: "seek"
+												};
+											}
 										}
 									}
 
-									const shouldFlushFromPayload = isSequenceAction(sequenceActionFromPayload);
+									const shouldFlushFromPayload =
+										isSequenceAction(sequenceActionFromPayload) && sequenceActionFromPayload !== "seek";
 									if (shouldFlushFromPayload && nextActive.sequenceTouched) {
-										const isSeekSelectionSync = sequenceActionFromPayload === "seek";
 										const keepSelectionWhileEditing = Boolean(
-											isSeekSelectionSync ||
-											nextActive.eventTouched ||
-											nextActive.decorTouched ||
-											nextActive.themeTouched
+											nextActive.eventTouched || nextActive.decorTouched || nextActive.themeTouched
 										);
+
 										nextActive = requestSequenceFlush(nextActive, "sequence-action", {
 											preserveSelection: keepSelectionWhileEditing
 										});

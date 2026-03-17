@@ -126,7 +126,7 @@ export const transformEditorMachine = createMachine(
 	},
 	{
 		actions: {
-			syncFromInput: assign(({ context, self }) => {
+			syncFromInput: assign(({ context }) => {
 				const input = context.input;
 				const active = input.active ?? true;
 				const domOk = canUseDOM(input.element);

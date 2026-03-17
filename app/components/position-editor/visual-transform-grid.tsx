@@ -174,6 +174,7 @@ function usePositionRuntime(props: PositionProps) {
 		send({ type: "props.sync", input: { service, ...props } });
 	}, [send, service, props]);
 	useEffect(() => () => service.dispose(), [service]);
+
 	if (
 		!state.context.domOk ||
 		!(state.context.input.active ?? true) ||

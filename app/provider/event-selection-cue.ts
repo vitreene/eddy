@@ -157,14 +157,6 @@ function debugEventSelection(
 	resolvedCueSec: number
 ) {
 	if (itemId !== 55) return;
-	console.log("[editor-sync][event-selection]", {
-		itemId,
-		action,
-		mode,
-		windowStartSec,
-		windowEndSec,
-		resolvedCueSec
-	});
 }
 
 /**

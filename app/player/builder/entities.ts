@@ -54,7 +54,8 @@ type TimedActionBuildResult = {
 export function createCapsuleRenderable(
 	capsule: CapsuleComp,
 	snapshot: SceneComp,
-	additionalClassnames: Record<ID, string>
+	additionalClassnames: Record<ID, string>,
+	positionIndex?: number
 ) {
 	const id = buildNodeId("capsule", capsule.id);
 
@@ -103,6 +104,11 @@ export function createCapsuleRenderable(
 	actions[id] = true;
 	const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
 
+	const capsuleStyle = getInlineStyle(initialDecorState.style);
+	if (typeof positionIndex === "number") {
+		capsuleStyle.order = 10 + positionIndex * 10;
+	}
+
 	return {
 		type: P.LIST,
 		initial: {
@@ -115,7 +121,7 @@ export function createCapsuleRenderable(
 				getStaticStyleClassName(initialDecorState.style),
 				getEffectiveAreaClassName(capsule.type, initialDecorState.area, additionalClassnames[item.id])
 			),
-			style: getInlineStyle(initialDecorState.style)
+			style: capsuleStyle
 		},
 		actions
 	};
@@ -127,7 +133,8 @@ export function createCapsuleRenderable(
 export function createItemRenderable(
 	item: ItemComp,
 	snapshot: SceneComp,
-	additionalClassnames: Record<ID, string>
+	additionalClassnames: Record<ID, string>,
+	positionIndex?: number
 ) {
 	const content = snapshot.contents[item.contentId];
 	if (content.type == "capsule") return null;
@@ -152,6 +159,11 @@ export function createItemRenderable(
 	actions[id] = true;
 	const tag = itemTag[content.type as keyof typeof itemTag];
 
+	const itemStyle = getInlineStyle(initialDecorState.style);
+	if (typeof positionIndex === "number") {
+		itemStyle.order = 10 + positionIndex * 10;
+	}
+
 	const initial = {
 		id,
 		tag,
@@ -165,7 +177,7 @@ export function createItemRenderable(
 				additionalClassnames[item.id]
 			)
 		),
-		style: getInlineStyle(initialDecorState.style)
+		style: itemStyle
 	};
 
 	const type = itemType[content.type as keyof typeof itemType];

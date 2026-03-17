@@ -147,6 +147,7 @@ export function Rubber() {
 				const action = slider.current == SLIDER_START ? INTRO : OUTRO;
 				const payload = makeEventPayload(events, action, e.target.id);
 				sceneLogic.send({ type: "events-update", payload });
+				sceneLogic.send({ type: "active-set", payload: { event: action } });
 			}
 		},
 		[events, sceneLogic, activeCustomAction]
@@ -223,9 +224,18 @@ export function Rubber() {
 }
 
 function SliderButtonStart({ disabled = false }: { disabled?: boolean }) {
+	const sceneLogic = SceneLogicContext.useActorRef();
+	const handleClick = () => {
+		sceneLogic.send({ type: "active-set", payload: { event: INTRO } });
+	};
 	return (
 		<span className="relative w-0">
-			<button id={SLIDER_START} disabled={disabled} className="absolute top-0 left-0 -mx-2 -my-1 h-6">
+			<button
+				id={SLIDER_START}
+				disabled={disabled}
+				className="absolute top-0 left-0 -mx-2 -my-1 h-6"
+				onClick={handleClick}
+			>
 				<SliderLeft
 					className={cx(
 						"pointer-events-none",
@@ -237,9 +247,18 @@ function SliderButtonStart({ disabled = false }: { disabled?: boolean }) {
 	);
 }
 function SliderButtonEnd({ disabled = false }: { disabled?: boolean }) {
+	const sceneLogic = SceneLogicContext.useActorRef();
+	const handleClick = () => {
+		sceneLogic.send({ type: "active-set", payload: { event: OUTRO } });
+	};
 	return (
 		<span className="relative w-0">
-			<button id={SLIDER_END} disabled={disabled} className="absolute top-0 right-0 -mx-2 -my-1 h-6">
+			<button
+				id={SLIDER_END}
+				disabled={disabled}
+				className="absolute top-0 right-0 -mx-2 -my-1 h-6"
+				onClick={handleClick}
+			>
 				<SliderRight
 					className={cx(
 						"pointer-events-none",
