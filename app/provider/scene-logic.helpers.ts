@@ -6,6 +6,7 @@ import {
 	getCueTimeAtPosition,
 	resolveClosestCuePointFromDelay
 } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { resolveSelectedEventCueSec } from "./event-selection-cue";
 
@@ -220,13 +221,12 @@ function computeDefaultCustomDelaySec(
 	const outroName = itemEvents[OUTRO]?.name;
 	if (!introName || !outroName) return null;
 
-	const sceneContent =
-		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
-		Object.values(context.sceneContents || {})[0];
-	if (!sceneContent?.events?.length) return null;
+	const sceneContent = getActiveSceneContent(context);
+	const cues = getSceneContentCues(sceneContent);
+	if (!cues.length) return null;
 
-	const introCue = sceneContent.events.find((cue) => cue.name == introName);
-	const outroCue = sceneContent.events.find((cue) => cue.name == outroName);
+	const introCue = cues.find((cue) => cue.name == introName);
+	const outroCue = cues.find((cue) => cue.name == outroName);
 	if (!introCue || !outroCue) return null;
 
 	const start = Number(introCue.start);
@@ -261,10 +261,8 @@ function resolveNearestCuePointFromSeek(
 	const itemEvents = context.events[itemId] || {};
 	const introName = itemEvents[INTRO]?.name;
 	const outroName = itemEvents[OUTRO]?.name;
-	const sceneContent =
-		Object.values(context.sceneContents || {}).find((sc) => sc.sceneId == context.id) ||
-		Object.values(context.sceneContents || {})[0];
-	const cues = sceneContent?.events || [];
+	const sceneContent = getActiveSceneContent(context);
+	const cues = getSceneContentCues(sceneContent);
 	if (!cues.length) return null;
 
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));

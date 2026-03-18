@@ -1,4 +1,5 @@
 import { fromPromise } from "xstate";
+import { buildEditorGridClassName } from "@/config/class-prefix";
 
 import type { ItemComp } from "@/api/db";
 import type { SceneTreeContext, TreeCreateEvent, TreeDeleteEvent, TreeMutationResponse } from "./types";
@@ -10,7 +11,7 @@ const DEFAULT_TEXT = {
 
 const DEFAULT_CAPSULE = {
 	name: "Capsule",
-	grid: "ed-grid-w1-h1"
+	grid: buildEditorGridClassName(1, 1)
 } as const;
 
 export const treeMutation = fromPromise(async ({ input }) => {

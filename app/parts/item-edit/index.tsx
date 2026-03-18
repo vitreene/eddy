@@ -10,6 +10,7 @@ import { SCENE_ID } from "@/scene-runtime/constants";
 import { CapsuleEdit } from "./capsule-edit";
 import { EditTransform } from "./edit-transform";
 import { ItemEditPanel } from "./item-edit-panel";
+import { SceneEdit } from "./scene-edit";
 import { applyLiveStyleOnNode } from "./live-node-style";
 import {
 	applyAreaClassPatch,
@@ -423,7 +424,7 @@ export function EditItem() {
 
 	const editorSyncKey = activeEventAction ? syncState.context.projectedSyncKey : desiredEditorSyncKey;
 
-	if (!item) return null;
+	if (!item) return <SceneEdit />;
 	const transformValue = editableVisualState?.transform ?? {};
 
 	return (

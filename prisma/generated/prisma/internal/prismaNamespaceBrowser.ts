@@ -138,6 +138,7 @@ export const ContentScalarFieldEnum = {
   path: 'path',
   inner: 'inner',
   lang: 'lang',
+  timestamp: 'timestamp',
   capsuleId: 'capsuleId'
 } as const
 

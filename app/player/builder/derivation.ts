@@ -10,8 +10,8 @@ export function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 	if (!snapshot?.capsules || !snapshot?.items || !snapshot?.sceneContents) return snapshot;
 	const sceneContent =
 		Object.values(snapshot.sceneContents).find((sc) => sc.sceneId == snapshot.id) ||
-		Object.values(snapshot.sceneContents)[0];
-	if (!sceneContent) return snapshot;
+		Object.values(snapshot.sceneContents)[0] ||
+		null;
 
 	const behaviorByCapsuleId = buildCapsuleBehaviorById(snapshot);
 	const resolved = resolveCueWindows(snapshot, {
@@ -19,13 +19,26 @@ export function applyCapsuleDefaultItemEvents(snapshot: SceneComp): SceneComp {
 		behaviorByCapsuleId
 	});
 
-	const clonedSceneContents: SceneComp["sceneContents"] = {
-		...snapshot.sceneContents,
-		[sceneContent.id]: {
-			...sceneContent,
-			events: resolved.resolvedSceneContentEvents
-		}
-	};
+	const clonedSceneContents: SceneComp["sceneContents"] = sceneContent
+		? {
+				...snapshot.sceneContents,
+				[sceneContent.id]: {
+					...sceneContent,
+					cues: resolved.resolvedSceneContentEvents
+				}
+			}
+		: {
+				...snapshot.sceneContents,
+				[-snapshot.id]: {
+					id: -snapshot.id,
+					contentId: -1,
+					sceneId: snapshot.id,
+					order: 0,
+					events: resolved.resolvedSceneContentEvents,
+					timestamp: [],
+					cues: resolved.resolvedSceneContentEvents
+				}
+			};
 
 	return {
 		...snapshot,

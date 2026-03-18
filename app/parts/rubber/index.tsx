@@ -6,6 +6,7 @@ import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
 import { deriveEventKind } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import { SliderRight, SliderLeft } from "./slider-left-right";
 
@@ -31,13 +32,10 @@ export function Rubber() {
 		(state) => state.context.active.event as string | null
 	);
 
-	const sceneContents = SceneLogicContext.useSelector((state) =>
-		Object.values(state.context.sceneContents).find((sc) => sc.sceneId == state.context.id)
-	);
+	const sceneContents = SceneLogicContext.useSelector((state) => getActiveSceneContent(state.context as any));
 	const sceneLogic = SceneLogicContext.useActorRef();
 
-	// TODO mieux définir cues
-	const cues = sceneContents?.events || [];
+	const cues = getSceneContentCues(sceneContents);
 	const activeCustomAction =
 		activeEventAction && deriveEventKind(activeEventAction) === "custom" ? activeEventAction : null;
 

@@ -1,6 +1,7 @@
 import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import type { ContentEvent, Decor, SceneComp, TextTime } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
@@ -101,10 +102,8 @@ function getOrderedCustomEvents(
 	context: SceneComp,
 	events: Record<string, ContentEvent | undefined>
 ): Array<{ event: ContentEvent; timeSec: number }> {
-	const sceneContent =
-		Object.values(context.sceneContents).find((sceneContent) => sceneContent.sceneId == context.id) ||
-		Object.values(context.sceneContents)[0];
-	const cues = sceneContent?.events || [];
+	const sceneContent = getActiveSceneContent(context);
+	const cues = getSceneContentCues(sceneContent);
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
 	const introCue = events[INTRO]?.name ? cueByName.get(events[INTRO]!.name || "") : null;
 	const outroCue = events[OUTRO]?.name ? cueByName.get(events[OUTRO]!.name || "") : null;

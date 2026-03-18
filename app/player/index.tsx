@@ -106,6 +106,8 @@ function initializePlayerRuntime({
 	let endedSent = false;
 	let player: Player | null = null;
 
+	console.log("SCENE", scene);
+
 	preload(scene.persos).then((persos) => {
 		if (cancelled || !persos.size) return;
 		const render = sceneRef.current;

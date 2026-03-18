@@ -5,6 +5,11 @@ import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-beh
 import { applyVisibilityRules } from "@/scene-runtime/visibility/apply-visibility-rules";
 import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import {
+	getActiveSceneContent,
+	getSceneContentCues,
+	getSceneContentDurationSec
+} from "@/scene-runtime/scene-content";
 
 export type VisibilityWindow = {
 	startSec: number;
@@ -33,26 +38,16 @@ const DEFAULT_DURATION_SEC = DEFAULT_DURATION / 1000;
 
 export function findSceneCueByName(context: SceneComp, cueName: string | null | undefined): TextTime | null {
 	if (!cueName) return null;
-
-	for (const sceneContent of Object.values(context.sceneContents || {})) {
-		const cue = sceneContent.events?.find((event) => event.name === cueName);
-		if (cue) return cue;
-	}
+	const sceneContent = getActiveSceneContent(context);
+	const cue = getSceneContentCues(sceneContent).find((event) => event.name === cueName);
+	if (cue) return cue;
 
 	return null;
 }
 
 export function getSceneDurationSec(context: SceneComp): number {
-	let maxSec = 0;
-
-	for (const sceneContent of Object.values(context.sceneContents || {})) {
-		for (const cue of sceneContent.events || []) {
-			const end = Number.isFinite(cue.end) ? cue.end : cue.start;
-			if (end > maxSec) maxSec = end;
-		}
-	}
-
-	return maxSec;
+	const sceneContent = getActiveSceneContent(context);
+	return getSceneContentDurationSec(sceneContent);
 }
 
 export function getNodeVisibilityWindow(context: SceneComp, itemId: number): VisibilityWindow {

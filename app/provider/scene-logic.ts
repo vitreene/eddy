@@ -81,6 +81,7 @@ export const sceneLogic = setup({
 		input: {} as SceneComp,
 		events: {} as
 			| { type: "init"; payload: SceneComp }
+			| { type: "scene-update"; payload: Partial<Pick<SceneComp, "title">> }
 			| { type: "persist-touched" }
 			| { type: "active-set"; payload: Partial<ActiveState> }
 			| { type: "sequence-flush-request"; payload?: { reason?: SequenceFlushReason; force?: boolean } }
@@ -120,6 +121,7 @@ export const sceneLogic = setup({
 			| { type: "custom-event-delete"; payload: { action: string } }
 			| { type: "content-add"; payload: Content }
 			| { type: "scene-content-upsert"; payload: SceneContent }
+			| { type: "scene-content-remove"; payload: { sceneId: number } }
 			| { type: "tree-move-item"; payload: TreeMoveEvent }
 			| { type: "tree-create-text"; payload: TreeCreateEvent }
 			| { type: "tree-create-capsule"; payload: TreeCreateEvent }
@@ -539,6 +541,14 @@ export const sceneLogic = setup({
 
 				content: {
 					on: {
+						"scene-update": {
+							actions: assign(({ context, event }) => {
+								return {
+									...context,
+									...event.payload
+								};
+							})
+						},
 						"events-persisted": {
 							actions: assign(({ context, event }) => {
 								const current = context.events[event.payload.itemId] || {};
@@ -798,6 +808,19 @@ export const sceneLogic = setup({
 										...context.sceneContents,
 										[event.payload.id]: event.payload
 									}
+								};
+							})
+						},
+						"scene-content-remove": {
+							actions: assign(({ context, event }) => {
+								const sceneContents = Object.fromEntries(
+									Object.entries(context.sceneContents).filter(
+										([, sceneContent]) => sceneContent.sceneId !== event.payload.sceneId
+									)
+								) as SceneComp["sceneContents"];
+								return {
+									...context,
+									sceneContents
 								};
 							})
 						}

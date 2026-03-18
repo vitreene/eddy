@@ -21,6 +21,12 @@ import { CAPSULE_TYPES } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, POSITION_FULL_SPAN_CLASS } from "@/config/capsule-presets";
 import { resolveCapsuleType } from "@/config/capsule-types";
 import { deriveEventKind } from "@/config/custom-events";
+import { buildEditorGridClassName } from "@/config/class-prefix";
+import {
+	buildSceneFallbackEvents,
+	getSceneContentDurationSec,
+	SCENE_DEFAULT_DURATION_SEC
+} from "@/scene-runtime/scene-content";
 
 export type { Content, ContentEvent };
 
@@ -96,6 +102,9 @@ export interface SceneContent {
 	sceneId: number;
 	order: number;
 	events: Array<TextTime>;
+	timestamp?: Array<TextTime>;
+	cues?: Array<TextTime>;
+	totalDuration?: number;
 }
 
 export interface SceneComp {
@@ -149,7 +158,15 @@ type Scene = {
 interface DbSceneComp extends Scene {
 	capsules: Array<DbCapsule>;
 
-	sceneContents: Array<Omit<SceneContent, "events"> & { events: string }>;
+	sceneContents: Array<{
+		id: number;
+		contentId: number;
+		sceneId: number;
+		order: number;
+		decorId: number | null;
+		events: string;
+		content: Content;
+	}>;
 
 	decor?: DecorDB | null;
 	theme?: Theme | null;
@@ -160,7 +177,12 @@ const adapter = new PrismaBetterSqlite3({
 });
 
 export const prisma = new PrismaClient({ adapter });
-const DEFAULT_CAPSULE_GRID = "ed-grid-w1-h1";
+const DEFAULT_CAPSULE_GRID = buildEditorGridClassName(1, 1);
+export const DEFAULT_MAIN_CAPSULE = {
+	name: "__MAIN__",
+	grid: `${ROOT} ${CAPSULE_GRID_PRESETS.scene}`,
+	type: CAPSULE_TYPES.POSITION
+} as const;
 
 async function main() {}
 
@@ -179,11 +201,7 @@ main()
 export async function createScene(title: string) {
 	return await prisma.$transaction(async (tx) => {
 		const mainCapsule = await tx.capsule.create({
-			data: {
-				name: "__MAIN__",
-				grid: `${CAPSULE_GRID_PRESETS.scene} ${ROOT}`,
-				type: CAPSULE_TYPES.POSITION
-			}
+			data: DEFAULT_MAIN_CAPSULE
 		});
 
 		const scene = await tx.scene.create({
@@ -212,15 +230,8 @@ export async function getScenes(): Promise<Array<SceneRef>> {
 export async function getScene(sceneId: number): Promise<SceneComp> {
 	const sceneDB = await prisma.scene.findUnique({
 		where: { id: sceneId },
-		include: { sceneContents: true, decor: true, theme: true }
+		include: { sceneContents: { include: { content: true } }, decor: true, theme: true }
 	});
-
-	const scenecontents = [
-		...sceneDB!.sceneContents.map((m) => ({
-			...m,
-			events: JSON.parse(m.events)
-		}))
-	];
 
 	const capsules = (
 		await prisma.sceneCapsule.findMany({
@@ -260,7 +271,7 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 		if (mainCapsule) capsules.push(mainCapsule as DbCapsule);
 	}
 
-	const scene = { ...sceneDB!, capsules, scenecontents };
+	const scene = { ...sceneDB!, capsules };
 	return flattenScene(scene);
 }
 
@@ -449,8 +460,23 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 
 	// Scene contents
 	if (scene.sceneContents) {
-		scene.sceneContents.forEach(({ events, ...sceneContent }) => {
-			flatScene.sceneContents[sceneContent.id] = { ...sceneContent, events: JSON.parse(events) };
+		scene.sceneContents.forEach(({ content, ...sceneContent }) => {
+			const fallbackEvents = safeParseSceneCues(sceneContent.events);
+			const whisperTimestamp = safeParseSceneCues(content.timestamp);
+			const cues = whisperTimestamp;
+			const totalDuration = getSceneContentDurationSec({
+				timestamp: whisperTimestamp,
+				events: fallbackEvents,
+				cues
+			});
+			flatScene.sceneContents[sceneContent.id] = {
+				...sceneContent,
+				events: fallbackEvents,
+				timestamp: whisperTimestamp,
+				cues,
+				totalDuration
+			};
+			flatScene.contents[content.id] = content;
 		});
 	}
 
@@ -537,10 +563,23 @@ export async function upsertSceneContentCues(input: {
 	sceneId: number;
 	contentId: number;
 	cues: TextTime[];
+	totalDuration?: number;
 }) {
-	const normalizedCues = normalizeSceneContentCues(input.cues);
+	const normalizedTimestamp = normalizeSceneContentCues(input.cues);
 
 	return await prisma.$transaction(async (tx) => {
+		await tx.content.update({
+			where: { id: input.contentId },
+			data: { timestamp: JSON.stringify(normalizedTimestamp) }
+		});
+
+		const scene = await tx.scene.findUnique({ where: { id: input.sceneId }, select: { title: true } });
+		const normalizedDuration = normalizeSceneDurationSec(input.totalDuration);
+		const fallbackEvents =
+			normalizedTimestamp.length > 0
+				? []
+				: buildSceneFallbackEvents(scene?.title || "Scene", normalizedDuration);
+
 		const existing = await tx.sceneContent.findFirst({
 			where: { sceneId: input.sceneId },
 			orderBy: [{ order: "asc" }, { id: "asc" }]
@@ -551,7 +590,7 @@ export async function upsertSceneContentCues(input: {
 				where: { id: existing.id },
 				data: {
 					contentId: input.contentId,
-					events: JSON.stringify(normalizedCues)
+					events: JSON.stringify(fallbackEvents)
 				}
 			});
 		}
@@ -567,7 +606,65 @@ export async function upsertSceneContentCues(input: {
 				sceneId: input.sceneId,
 				contentId: input.contentId,
 				order: (maxOrder?.order || 0) + 1000,
-				events: JSON.stringify(normalizedCues)
+				events: JSON.stringify(fallbackEvents)
+			}
+		});
+	});
+}
+
+export async function updateSceneTitle(sceneId: number, title: string) {
+	return await prisma.scene.update({
+		where: { id: sceneId },
+		data: { title }
+	});
+}
+
+export async function upsertSceneAudioSettings(input: {
+	sceneId: number;
+	contentId: number | null;
+	totalDuration?: number | null;
+}) {
+	return await prisma.$transaction(async (tx) => {
+		const normalizedDuration = normalizeSceneDurationSec(input.totalDuration);
+		const scene = await tx.scene.findUnique({ where: { id: input.sceneId }, select: { title: true } });
+		const linkedContent = input.contentId
+			? await tx.content.findUnique({ where: { id: input.contentId }, select: { timestamp: true } })
+			: null;
+		const linkedTimestamp = safeParseSceneCues(linkedContent?.timestamp);
+		const existing = await tx.sceneContent.findFirst({
+			where: { sceneId: input.sceneId },
+			orderBy: [{ order: "asc" }, { id: "asc" }]
+		});
+
+		if (!input.contentId) {
+			if (existing) await tx.sceneContent.delete({ where: { id: existing.id } });
+			return null;
+		}
+
+		const fallbackEvents = buildSceneFallbackEvents(scene?.title || "Scene", normalizedDuration);
+
+		if (existing) {
+			return tx.sceneContent.update({
+				where: { id: existing.id },
+				data: {
+					contentId: input.contentId,
+					events: linkedTimestamp.length > 0 ? existing.events : JSON.stringify(fallbackEvents)
+				}
+			});
+		}
+
+		const maxOrder = await tx.sceneContent.findFirst({
+			where: { sceneId: input.sceneId },
+			orderBy: { order: "desc" },
+			select: { order: true }
+		});
+
+		return tx.sceneContent.create({
+			data: {
+				sceneId: input.sceneId,
+				contentId: input.contentId,
+				order: (maxOrder?.order || 0) + 1000,
+				events: JSON.stringify(fallbackEvents)
 			}
 		});
 	});
@@ -623,6 +720,22 @@ function normalizeSceneContentCues(cues: TextTime[]): TextTime[] {
 		})
 		.filter((cue) => cue.text.length > 0)
 		.sort((a, b) => a.start - b.start);
+}
+
+function normalizeSceneDurationSec(value: unknown): number {
+	if (typeof value != "number" || !Number.isFinite(value) || value <= 0) return SCENE_DEFAULT_DURATION_SEC;
+	return Number(value.toFixed(3));
+}
+
+function safeParseSceneCues(raw: string | null | undefined): TextTime[] {
+	if (!raw) return [];
+	try {
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return [];
+		return normalizeSceneContentCues(parsed as TextTime[]);
+	} catch {
+		return [];
+	}
 }
 
 function normalizeCueSec(value: unknown): number {

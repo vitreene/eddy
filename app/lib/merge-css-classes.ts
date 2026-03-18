@@ -79,10 +79,10 @@ export function concatStrings(strA: string | undefined, strB: string | undefined
 
 /**
  * Retrouve la règle CSS complète d'une classe dans une string de règles concaténées.
- * - classToFind: ".ed-grid-w5-h3" ou "ed-grid-w5-h3"
+ * - classToFind: ".<prefix>-grid-w5-h3" ou "<prefix>-grid-w5-h3"
  * - La règle dans cssclasses peut être avec ou sans "."
  * - Si plusieurs occurrences, la dernière gagne
- * - Retourne TOUJOURS avec "." (ex: ".ed-grid-w5-h3{...}")
+ * - Retourne TOUJOURS avec "." (ex: ".<prefix>-grid-w5-h3{...}")
  * - Retourne undefined si non trouvée
  */
 export function findCssClassRule(cssclasses: string, classToFind: string): string | undefined {

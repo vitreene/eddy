@@ -1,6 +1,7 @@
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
 import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
+import { EDITOR_CAPSULE_CLASS, EDITOR_ITEM_CLASS } from "@/config/class-prefix";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { getMediaUrl } from "@/lib/media-url";
 
@@ -116,7 +117,7 @@ export function createCapsuleRenderable(
 			tag: "div",
 			id,
 			className: joinNodeClassNames(
-				"ed-caps",
+				EDITOR_CAPSULE_CLASS,
 				capsule.grid,
 				initialDecorState.className || "",
 				getStaticStyleClassName(initialDecorState.style),
@@ -170,7 +171,7 @@ export function createItemRenderable(
 		tag,
 		...(move && { move }),
 		className: joinNodeClassNames(
-			"ed-item",
+			EDITOR_ITEM_CLASS,
 			initialDecorState.className || "",
 			getStaticStyleClassName(initialDecorState.style),
 			getEffectiveAreaClassName(

@@ -6,6 +6,7 @@ import { INTRO, OUTRO } from "@/config/constants";
 import { applyStyleDefaults } from "@/config/item-style-defaults";
 import { CAPSULE_TYPES, getSelectableCapsuleTypeConfigs, resolveCapsuleType } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/config/capsule-presets";
+import { buildEditorGridClassName } from "@/config/class-prefix";
 import { getValuesFromGridName } from "@/lib/utils";
 
 import type { CapsuleComp, Content, Decor } from "@/api/db";
@@ -177,7 +178,7 @@ function CapsuleGridTypeSelector({
 	const onChangePositionGrid = (nextCols: number, nextRows: number) => {
 		const cols = Math.max(1, Math.floor(nextCols || 1));
 		const rows = Math.max(1, Math.floor(nextRows || 1));
-		onUpdate({ grid: `ed-grid-w${cols}-h${rows}` });
+		onUpdate({ grid: buildEditorGridClassName(cols, rows) });
 	};
 
 	const onChangeLineParams = (orientation: "horizontal" | "vertical", cells: number) => {

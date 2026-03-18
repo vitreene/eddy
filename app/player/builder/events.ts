@@ -2,6 +2,11 @@ import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/tran
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
+import {
+	getActiveSceneContent,
+	getSceneContentCues,
+	getSceneContentDurationSec
+} from "@/scene-runtime/scene-content";
 
 import type { ContentEvent, ItemComp, SceneComp, TextTime, CapsuleComp } from "@/api/db";
 import { buildCustomTweenActionName, buildEventActionName } from "./lib";
@@ -22,7 +27,9 @@ export function mapEvents(snapshot: SceneComp) {
 
 	if (!snapshot || !snapshot.events || !snapshot.sceneContents) return map;
 
-	let lastCue = 0;
+	const sceneContent = getActiveSceneContent(snapshot);
+	const sceneDurationMs = Math.round(getSceneContentDurationSec(sceneContent) * 1000);
+	let lastCue = sceneDurationMs;
 
 	for (const item of Object.values(snapshot.items || {})) {
 		const events = snapshot.events[item.id] || {};
@@ -64,7 +71,8 @@ export function mapEvents(snapshot: SceneComp) {
 			previousKeyframeMs = entry.keyframeMs;
 		}
 	}
-	map.set(lastCue - DEFAULT_DURATION, [{ name: OUTRO, start: lastCue - DEFAULT_DURATION }]);
+	const outroStart = Math.max(0, lastCue - DEFAULT_DURATION);
+	map.set(outroStart, [{ name: OUTRO, start: outroStart }]);
 	return map;
 }
 
@@ -75,10 +83,8 @@ export function getOrderedEventsForItem(
 	snapshot: SceneComp,
 	events: Record<string, ContentEvent | undefined>
 ): OrderedEvent[] {
-	const sceneContent =
-		Object.values(snapshot.sceneContents).find((sc) => sc.sceneId == snapshot.id) ||
-		Object.values(snapshot.sceneContents)[0];
-	const cues = sceneContent?.events || [];
+	const sceneContent = getActiveSceneContent(snapshot);
+	const cues = getSceneContentCues(sceneContent);
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
 	const result: OrderedEvent[] = [];
 	for (const event of Object.values(events || {})) {

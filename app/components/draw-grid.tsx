@@ -1,4 +1,4 @@
-import { GRID_DEFAULT_PREFIX } from "@/config/constants";
+import { ITEM_DEFAULT_PREFIX } from "@/config/constants";
 import { gridClassNameToCssDefinition } from "@/lib/utils";
 import cx from "classnames";
 import { Grid2x2 } from "lucide-react";
@@ -185,7 +185,7 @@ export function gridWHClassName(
 	size: GridSize,
 	opts?: { prefix?: string }
 ): { className: string; cssText: string } {
-	const prefix = opts?.prefix ?? GRID_DEFAULT_PREFIX;
+	const prefix = opts?.prefix ?? ITEM_DEFAULT_PREFIX;
 	const hash = `grid-w${size.w}-h${size.h}`;
 
 	const className = `${prefix}-${hash}`;

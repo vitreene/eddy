@@ -1,6 +1,7 @@
 import type { ContentEvent, ItemComp, SceneComp, TextTime } from "@/api/db";
 import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
+import { SCENE_DEFAULT_DURATION_SEC } from "@/scene-runtime/scene-content";
 
 type Window = { start: number; end: number };
 type Lock = { index: number; start: number; end: number };
@@ -45,17 +46,17 @@ export function resolveCueWindows(
 	const baseEvents: SceneComp["events"] = Object.fromEntries(
 		Object.entries(snapshot.events || {}).map(([itemId, eventMap]) => [itemId, { ...(eventMap || {}) }])
 	);
-
-	if (!sceneContent) {
-		return {
-			resolvedEvents: baseEvents,
-			resolvedSceneContentEvents: [],
-			cueWindowsByItemId: new Map<number, Window>(),
-			cueByName: new Map<string, TextTime>()
-		};
+	const resolvedSceneContentEvents = [...(sceneContent?.events || [])];
+	if (!resolvedSceneContentEvents.length) {
+		const sceneName = (snapshot.title || `Scene ${snapshot.id}`).trim() || `Scene ${snapshot.id}`;
+		resolvedSceneContentEvents.push({
+			id: -1,
+			name: `scene-${snapshot.id}`,
+			text: sceneName,
+			start: 0,
+			end: SCENE_DEFAULT_DURATION_SEC
+		});
 	}
-
-	const resolvedSceneContentEvents = [...(sceneContent.events || [])];
 	const cueByName = new Map<string, TextTime>();
 	for (const cue of resolvedSceneContentEvents) cueByName.set(cue.name, cue);
 
@@ -301,6 +302,7 @@ function getSceneBoundsFromCues(cues: TextTime[]): { start: number; end: number 
 		const cueEnd = Number.isFinite(cue.end) ? cue.end : cue.start;
 		if (cueEnd > end) end = cueEnd;
 	}
+	if (end <= 0) end = SCENE_DEFAULT_DURATION_SEC;
 	return { start: 0, end };
 }
 

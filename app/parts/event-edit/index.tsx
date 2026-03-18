@@ -8,6 +8,7 @@ import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitio
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { Button } from "@/components/ui/button";
+import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import { Rubber } from "../rubber";
 
@@ -43,10 +44,8 @@ export function EditEvent() {
 	);
 	const activeEvent = activeEventAction ? events?.[activeEventAction] || null : null;
 	const cues = SceneLogicContext.useSelector((state) => {
-		const sceneContent =
-			Object.values(state.context.sceneContents).find((sc) => sc.sceneId == state.context.id) ||
-			Object.values(state.context.sceneContents)[0];
-		return sceneContent?.events || [];
+		const sceneContent = getActiveSceneContent(state.context as any);
+		return getSceneContentCues(sceneContent);
 	});
 
 	if (!item) return null;
@@ -235,10 +234,8 @@ function ContentInfos({ item }: { item: ItemComp }) {
 	const events = SceneLogicContext.useSelector((state) => state.context.events[item.id]);
 	const activeEvent = SceneLogicContext.useSelector((state) => state.context.active.event as string | null);
 	const cues = SceneLogicContext.useSelector((state) => {
-		const sceneContent =
-			Object.values(state.context.sceneContents).find((sc) => sc.sceneId == state.context.id) ||
-			Object.values(state.context.sceneContents)[0];
-		return sceneContent?.events || [];
+		const sceneContent = getActiveSceneContent(state.context as any);
+		return getSceneContentCues(sceneContent);
 	});
 	const sceneLogic = SceneLogicContext.useActorRef();
 

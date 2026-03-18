@@ -1,6 +1,12 @@
 import { NON_ANIMATABLE_MANAGED_STYLE_KEYS } from "@/config/item-style-defaults";
 import { shouldCapsuleUseExplicitArea } from "@/config/capsule-types";
 import { DEFAULT_DURATION } from "@/config/constants";
+import { ROOT_SCENE_CLASSNAME } from "@/scene-runtime/constants";
+import {
+	EDITOR_CAPSULE_CLASS,
+	EDITOR_ITEM_CLASS,
+	EDITOR_STATIC_STYLE_CLASS_PREFIX
+} from "@/config/class-prefix";
 import { cssPropertyNameToJsKey, parseRawCssDeclarations } from "@/lib/raw-css";
 
 import type { SceneComp } from "@/api/db";
@@ -21,12 +27,12 @@ const STATIC_STYLE_CLASS_KEYS = new Set<string>(NON_ANIMATABLE_MANAGED_STYLE_KEY
 export function createStyle(snapshot: SceneComp, areas: string[], gridDefinitions: string[]) {
 	const staticStyleDefinitions = buildStaticStyleClassDefinitions(snapshot);
 	const itemAndCapsuleClasses = `
-.ed-item,.ed-caps {
+.${EDITOR_ITEM_CLASS},.${EDITOR_CAPSULE_CLASS} {
 	overflow: hidden;
 	position: relative;
 }
 `;
-	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${gridDefinitions.join("\n")}\n${areas.join("\n")}\n${staticStyleDefinitions.join("\n")}\n${itemAndCapsuleClasses}`.trim();
+	return `${ROOT_SCENE_CLASSNAME}\n${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${gridDefinitions.join("\n")}\n${areas.join("\n")}\n${staticStyleDefinitions.join("\n")}\n${itemAndCapsuleClasses}`.trim();
 }
 
 /**
@@ -116,17 +122,17 @@ function normalizeOriginToken(value: string | number): string {
  * Build deterministic generated class name for non-animatable style keys.
  *
  * Naming contract:
- * - prefix: `ed-static-`
+ * - prefix: `${EDITOR_STATIC_STYLE_CLASS_PREFIX}-`
  * - suffix: base36 hash of the normalized static style signature
  *
- * Example: `ed-static-josgry`
+ * Example: `${EDITOR_STATIC_STYLE_CLASS_PREFIX}-josgry`
  * (`josgry` is a hash suffix, not a semantic label)
  */
 export function getStaticStyleClassName(style: unknown): string {
 	const entries = extractStaticStyleEntries(style);
 	if (!entries.length) return "";
 	const signature = entries.map(([key, value]) => `${key}:${value}`).join(";");
-	return `ed-static-${hashString(signature)}`;
+	return `${EDITOR_STATIC_STYLE_CLASS_PREFIX}-${hashString(signature)}`;
 }
 
 /**

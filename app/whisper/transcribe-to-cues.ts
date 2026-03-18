@@ -32,6 +32,11 @@ export type WhisperTranscribeOptions = {
 	signal?: AbortSignal;
 };
 
+export type WhisperCueResult = {
+	cues: TextTime[];
+	totalDurationSec: number;
+};
+
 const WHISPER_DEFAULTS = {
 	sampleRate: 16000,
 	model: "Xenova/whisper-base",
@@ -44,9 +49,14 @@ const WHISPER_DEFAULTS = {
 export async function transcribeAudioFileToCues(
 	file: File,
 	options: WhisperTranscribeOptions = {}
-): Promise<TextTime[]> {
+): Promise<WhisperCueResult> {
 	const audioBuffer = await decodeAudioFile(file, WHISPER_DEFAULTS.sampleRate);
-	return transcribeAudioBufferToCues(audioBuffer, options);
+	const cues = await transcribeAudioBufferToCues(audioBuffer, options);
+	const totalDurationSec =
+		typeof audioBuffer.duration == "number" && Number.isFinite(audioBuffer.duration) && audioBuffer.duration > 0
+			? Number(audioBuffer.duration.toFixed(3))
+			: 0;
+	return { cues, totalDurationSec };
 }
 
 export function transcribeAudioBufferToCues(

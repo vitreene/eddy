@@ -195,14 +195,14 @@ async function processAudioCues({
 	setError: (error: string | null) => void;
 }) {
 	try {
-		const cues = await transcribeAudioFileToCues(sourceFile, { language: "fr" });
+		const { cues, totalDurationSec } = await transcribeAudioFileToCues(sourceFile, { language: "fr" });
 		const response = await fetch("/api/scene-content/cues", {
 			method: "POST",
 			headers: {
 				Accept: "application/json",
 				"Content-Type": "application/json"
 			},
-			body: JSON.stringify({ sceneId, contentId, cues })
+			body: JSON.stringify({ sceneId, contentId, cues, totalDuration: totalDurationSec })
 		});
 
 		if (!response.ok) {
@@ -211,7 +211,11 @@ async function processAudioCues({
 		}
 
 		const payload = (await response.json()) as {
-			sceneContent?: Omit<SceneContent, "events"> & { events: TextTime[] };
+			sceneContent?: Omit<SceneContent, "events" | "timestamp" | "cues"> & {
+				events: TextTime[];
+				timestamp: TextTime[];
+				cues: TextTime[];
+			};
 		};
 
 		if (payload.sceneContent) {

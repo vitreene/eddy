@@ -10,6 +10,7 @@ import {
 	gridClassNameToCssDefinition,
 	gridPlacementClassNameToCssDefinition
 } from "@/lib/utils";
+import { ROOT } from "@/scene-runtime/constants";
 
 type PlacementResult = {
 	areas: string[];
@@ -118,17 +119,22 @@ function buildGridDefinitions(snapshot: SceneComp): string[] {
 
 	for (const capsule of Object.values(snapshot.capsules || {})) {
 		if (!capsule?.grid) continue;
-		const className = capsule.grid.trim().split(/\s+/)[0]?.replace(/^\./, "");
-		if (!className) continue;
+		const classNames = capsule.grid
+			.trim()
+			.split(/\s+/)
+			.map((token) => token.replace(/^\./, "").trim())
+			.filter(Boolean);
 
 		const type = getCapsuleTypeConfig(capsule.type).type;
-		if (type === "liste") {
-			definitions.add(`.${className}{display:grid}`);
-			continue;
-		}
+		for (const className of classNames) {
+			if (className === ROOT) {
+				definitions.add(`.${className}{display:grid}`);
+				continue;
+			}
 
-		const definition = gridClassNameToCssDefinition(className);
-		if (definition) definitions.add(definition);
+			const definition = gridClassNameToCssDefinition(className);
+			if (definition) definitions.add(definition);
+		}
 	}
 
 	return [...definitions];

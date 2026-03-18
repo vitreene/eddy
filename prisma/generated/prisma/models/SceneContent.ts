@@ -300,7 +300,7 @@ export type SceneContentScalarWhereWithAggregatesInput = {
 
 export type SceneContentCreateInput = {
   order: number
-  events: string
+  events?: string
   content: Prisma.ContentCreateNestedOneWithoutSceneContentsInput
   scene: Prisma.SceneCreateNestedOneWithoutSceneContentsInput
   decor?: Prisma.DecorCreateNestedOneWithoutSceneContentsInput
@@ -309,7 +309,7 @@ export type SceneContentCreateInput = {
 export type SceneContentUncheckedCreateInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   contentId: number
   sceneId: number
   decorId?: number | null
@@ -335,7 +335,7 @@ export type SceneContentUncheckedUpdateInput = {
 export type SceneContentCreateManyInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   contentId: number
   sceneId: number
   decorId?: number | null
@@ -536,7 +536,7 @@ export type SceneContentUncheckedUpdateManyWithoutDecorNestedInput = {
 
 export type SceneContentCreateWithoutSceneInput = {
   order: number
-  events: string
+  events?: string
   content: Prisma.ContentCreateNestedOneWithoutSceneContentsInput
   decor?: Prisma.DecorCreateNestedOneWithoutSceneContentsInput
 }
@@ -544,7 +544,7 @@ export type SceneContentCreateWithoutSceneInput = {
 export type SceneContentUncheckedCreateWithoutSceneInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   contentId: number
   decorId?: number | null
 }
@@ -588,7 +588,7 @@ export type SceneContentScalarWhereInput = {
 
 export type SceneContentCreateWithoutContentInput = {
   order: number
-  events: string
+  events?: string
   scene: Prisma.SceneCreateNestedOneWithoutSceneContentsInput
   decor?: Prisma.DecorCreateNestedOneWithoutSceneContentsInput
 }
@@ -596,7 +596,7 @@ export type SceneContentCreateWithoutContentInput = {
 export type SceneContentUncheckedCreateWithoutContentInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   sceneId: number
   decorId?: number | null
 }
@@ -628,7 +628,7 @@ export type SceneContentUpdateManyWithWhereWithoutContentInput = {
 
 export type SceneContentCreateWithoutDecorInput = {
   order: number
-  events: string
+  events?: string
   content: Prisma.ContentCreateNestedOneWithoutSceneContentsInput
   scene: Prisma.SceneCreateNestedOneWithoutSceneContentsInput
 }
@@ -636,7 +636,7 @@ export type SceneContentCreateWithoutDecorInput = {
 export type SceneContentUncheckedCreateWithoutDecorInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   contentId: number
   sceneId: number
 }
@@ -669,7 +669,7 @@ export type SceneContentUpdateManyWithWhereWithoutDecorInput = {
 export type SceneContentCreateManySceneInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   contentId: number
   decorId?: number | null
 }
@@ -700,7 +700,7 @@ export type SceneContentUncheckedUpdateManyWithoutSceneInput = {
 export type SceneContentCreateManyContentInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   sceneId: number
   decorId?: number | null
 }
@@ -731,7 +731,7 @@ export type SceneContentUncheckedUpdateManyWithoutContentInput = {
 export type SceneContentCreateManyDecorInput = {
   id?: number
   order: number
-  events: string
+  events?: string
   contentId: number
   sceneId: number
 }

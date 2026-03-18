@@ -40,7 +40,7 @@ model SceneCapsule {
 model SceneContent {
   id     Int    @id @default(autoincrement())
   order  Int
-  events String // JSON
+  events String @default("[]") // fallback JSON
 
   contentId Int     @map("content_id")
   content   Content @relation(fields: [contentId], references: [id])
@@ -104,6 +104,7 @@ model Content {
   path  String?
   inner String?
   lang  String?
+  timestamp String @default("[]") // whisper cues JSON
 
   capsuleId Int?     @map("capsule_id")
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])

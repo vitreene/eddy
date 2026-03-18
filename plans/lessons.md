@@ -122,3 +122,15 @@
 - En absence d'intro/outro declares (auto-event), les transitions viennent de la capsule parente, sans creation de decor dedie.
 - Les modifications du premier event (intro, ou premier custom-event si intro absent) s'appliquent au decor item.
 - Ne pas forcer la creation d'un decor event pour ces cas par defaut.
+
+## 2026-03-18 — AGENTS: check-in avant implementation
+
+- Quand une tache est non triviale, appliquer strictement la sequence AGENTS: plan ecrit -> check-in utilisateur -> implementation.
+- Ne pas enchaîner directement apres la creation du plan, meme si la direction semble claire.
+- Ajouter un garde-fou personnel en debut d'execution: tant que le check-in n'a pas ete envoye, aucun `apply_patch`/modification de code.
+
+## 2026-03-18 — Modele DB: ne pas persister les valeurs derivees
+
+- Si la spec dit qu'une valeur (ex: duree) doit etre lue depuis des events fallback, ne pas creer de colonne dediee en base.
+- Verifier explicitement l'emplacement cible demande (ex: `content.timestamp` vs `scene_content.timestamp`) avant migration.
+- Avant livraison, comparer chaque champ ajoute au schema avec la phrase source du besoin pour eviter un mauvais placement de donnee.

@@ -6,6 +6,7 @@ import { INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import type { TextTime, ContentEvent, SceneComp } from "@/api/db";
 
@@ -209,13 +210,11 @@ export function HapticTimeline() {
 		return null;
 	});
 
-	const sceneContents = SceneLogicContext.useSelector((s): any => {
-		return Object.values(s.context.sceneContents).find((sc: any) => sc.sceneId == s.context.id);
-	});
+	const sceneContents = SceneLogicContext.useSelector((s): any => getActiveSceneContent(s.context as any));
 
 	const activeEventAction = SceneLogicContext.useSelector((s) => s.context.active.event as string | null);
 
-	const cues = sceneContents?.events || [];
+	const cues = getSceneContentCues(sceneContents);
 	const activeCustomAction =
 		activeEventAction && deriveEventKind(activeEventAction) === "custom" ? activeEventAction : null;
 

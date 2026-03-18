@@ -1,11 +1,13 @@
 import type { Route } from "../+types/root";
 
 import { prisma, type TextTime, upsertSceneContentCues } from "./db";
+import { getSceneContentDurationSec } from "@/scene-runtime/scene-content";
 
 type SceneContentCuesBody = {
 	sceneId?: number;
 	contentId?: number;
 	cues?: TextTime[];
+	totalDuration?: number;
 };
 
 export async function action({ request }: Route.ActionArgs) {
@@ -13,6 +15,7 @@ export async function action({ request }: Route.ActionArgs) {
 	const sceneId = Number(body?.sceneId);
 	const contentId = Number(body?.contentId);
 	const cues = Array.isArray(body?.cues) ? body.cues : [];
+	const totalDuration = Number(body?.totalDuration);
 
 	if (!Number.isFinite(sceneId) || sceneId <= 0) {
 		return Response.json({ ok: false, message: "sceneId invalide" }, { status: 400 });
@@ -35,13 +38,27 @@ export async function action({ request }: Route.ActionArgs) {
 		return Response.json({ ok: false, message: "content doit etre de type sound" }, { status: 400 });
 	}
 
-	const sceneContent = await upsertSceneContentCues({ sceneId, contentId, cues });
+	const sceneContent = await upsertSceneContentCues({
+		sceneId,
+		contentId,
+		cues,
+		totalDuration: Number.isFinite(totalDuration) ? totalDuration : undefined
+	});
+	const linkedContent = await prisma.content.findUnique({
+		where: { id: sceneContent.contentId },
+		select: { timestamp: true }
+	});
 	const events = JSON.parse(sceneContent.events || "[]") as TextTime[];
+	const timestamp = JSON.parse(linkedContent?.timestamp || "[]") as TextTime[];
+	const durationSec = getSceneContentDurationSec({ timestamp, events, cues: timestamp });
 	return Response.json({
 		ok: true,
 		sceneContent: {
 			...sceneContent,
-			events
+			events,
+			timestamp,
+			cues: timestamp,
+			totalDuration: durationSec
 		}
 	});
 }
