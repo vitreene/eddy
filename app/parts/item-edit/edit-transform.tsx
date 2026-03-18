@@ -79,31 +79,34 @@ export function EditTransform({
 		if (!parentCapsule) return null;
 		const capsuleType = resolveCapsuleType(parentCapsule.type);
 
-		if (capsuleType === CAPSULE_TYPES.LISTE) {
-			const orientation: "horizontal" | "vertical" = parentCapsule.grid?.includes("horizontal")
-				? "horizontal"
-				: "vertical";
-			return {
-				kind: "list" as const,
-				orientation,
-				cells: Math.max(1, parentCapsule.itemIds.length)
-			};
-		}
+		switch (capsuleType) {
+			case CAPSULE_TYPES.LISTE: {
+				const orientation: "horizontal" | "vertical" = parentCapsule.grid?.includes("horizontal")
+					? "horizontal"
+					: "vertical";
+				return {
+					kind: "list" as const,
+					orientation,
+					cells: Math.max(1, parentCapsule.itemIds.length)
+				};
+			}
 
-		if (capsuleType === CAPSULE_TYPES.CARROUSEL) {
-			return {
-				kind: "grid" as const,
-				cols: 1,
-				rows: 1
-			};
-		}
+			case CAPSULE_TYPES.CARROUSEL:
+				return {
+					kind: "grid" as const,
+					cols: 1,
+					rows: 1
+				};
 
-		const grid = getValuesFromGridName(parentCapsule.grid || "");
-		return {
-			kind: "grid" as const,
-			cols: Math.max(1, grid.w),
-			rows: Math.max(1, grid.h)
-		};
+			default: {
+				const grid = getValuesFromGridName(parentCapsule.grid || "");
+				return {
+					kind: "grid" as const,
+					cols: Math.max(1, grid.w),
+					rows: Math.max(1, grid.h)
+				};
+			}
+		}
 	}, [parentCapsule]);
 
 	const effectiveEditorMode: "transform" | "position" =

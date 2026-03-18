@@ -165,6 +165,7 @@ export class PositionEditorDomService {
 					width: Math.max(1, (parentRect.width * gridPlacement.colSpan) / cols),
 					height: Math.max(1, (parentRect.height * gridPlacement.rowSpan) / rows)
 				});
+
 				return;
 			}
 
