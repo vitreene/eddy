@@ -103,7 +103,7 @@ export function createCapsuleRenderable(
 	});
 
 	actions[id] = true;
-	const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
+	const move = hasInitialParentAttach(events) ? parentId : undefined;
 
 	const capsuleStyle = getInlineStyle(initialDecorState.style);
 	if (typeof positionIndex === "number") {
@@ -157,7 +157,7 @@ export function createItemRenderable(
 		debugLabel: item.id === 53 ? "item_53" : null
 	});
 
-	const move = !events || Object.keys(events).length == 0 ? parentId : undefined;
+	const move = hasInitialParentAttach(events) ? parentId : undefined;
 	actions[id] = true;
 	const tag = itemTag[content.type as keyof typeof itemTag];
 
@@ -227,6 +227,11 @@ export function createItemRenderable(
 				actions
 			};
 	}
+}
+
+function hasInitialParentAttach(events: Record<string, ContentEvent | undefined> | undefined): boolean {
+	if (!events || Object.keys(events).length == 0) return true;
+	return !events[INTRO];
 }
 
 /**

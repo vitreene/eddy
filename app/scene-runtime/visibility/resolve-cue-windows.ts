@@ -290,6 +290,38 @@ export function resolveCueWindows(
 		pass++;
 	}
 
+	for (const item of allItems) {
+		const events = baseEvents[item.id];
+		if (!events) continue;
+
+		const explicitWindow = cueWindowsByItemId.get(item.id) || null;
+		const fallbackWindow = explicitWindow || { start: sceneBounds.start, end: sceneBounds.end };
+
+		const introEvent = events[INTRO];
+		if (
+			introEvent &&
+			(!introEvent.name || !introEvent.name.trim() || !cueByName.has((introEvent.name || "").trim()))
+		) {
+			introEvent.name = ensureCueAtTime(
+				fallbackWindow.start,
+				`item_${item.id}_intro_fallback`,
+				fallbackWindow.end <= fallbackWindow.start ? "maximal" : "auto"
+			);
+		}
+
+		const outroEvent = events[OUTRO];
+		if (
+			outroEvent &&
+			(!outroEvent.name || !outroEvent.name.trim() || !cueByName.has((outroEvent.name || "").trim()))
+		) {
+			outroEvent.name = ensureCueAtTime(
+				fallbackWindow.end,
+				`item_${item.id}_outro_fallback`,
+				fallbackWindow.end <= fallbackWindow.start ? "maximal" : "auto"
+			);
+		}
+	}
+
 	return { resolvedEvents: baseEvents, resolvedSceneContentEvents, cueWindowsByItemId, cueByName };
 }
 

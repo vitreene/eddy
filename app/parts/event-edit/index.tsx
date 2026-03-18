@@ -42,7 +42,9 @@ export function EditEvent() {
 	const activeEventAction = SceneLogicContext.useSelector(
 		(state) => state.context.active.event as string | null
 	);
-	const activeEvent = activeEventAction ? events?.[activeEventAction] || null : null;
+	const activeEvent = activeEventAction
+		? events?.[activeEventAction] || buildDefaultTransitionEvent(activeEventAction)
+		: null;
 	const cues = SceneLogicContext.useSelector((state) => {
 		const sceneContent = getActiveSceneContent(state.context as any);
 		return getSceneContentCues(sceneContent);
@@ -58,6 +60,22 @@ export function EditEvent() {
 			</div>
 		</section>
 	);
+}
+
+function buildDefaultTransitionEvent(action: string): ContentEvent | null {
+	const kind = deriveEventKind(action);
+	if (kind !== "intro" && kind !== "outro") return null;
+	return {
+		id: undefined,
+		action,
+		name: null,
+		ref: "",
+		duration: null,
+		delay: null,
+		position: null,
+		itemId: 0,
+		decorId: null
+	} as ContentEvent;
 }
 
 function EventParams({
