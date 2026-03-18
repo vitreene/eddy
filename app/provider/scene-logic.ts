@@ -381,9 +381,22 @@ export const sceneLogic = setup({
 										}
 									}
 
-									const shouldFlushFromPayload =
-										isSequenceAction(sequenceActionFromPayload) && sequenceActionFromPayload !== "seek";
-									if (shouldFlushFromPayload && nextActive.sequenceTouched) {
+									const isTelcoAction = isSequenceAction(sequenceActionFromPayload);
+									const isBeingEdited = Boolean(
+										nextActive.eventTouched || nextActive.decorTouched || nextActive.themeTouched
+									);
+
+									// If Telco action during editing, trigger commit first
+									if (isTelcoAction && isBeingEdited) {
+										const params = getTouchedParams(context);
+										if (params.length) {
+											void executePersistTouchedCommits(context, params, {
+												onEventsPersisted: () => {}
+											});
+										}
+									}
+
+									if (isTelcoAction && nextActive.sequenceTouched) {
 										const keepSelectionWhileEditing = Boolean(
 											nextActive.eventTouched || nextActive.decorTouched || nextActive.themeTouched
 										);

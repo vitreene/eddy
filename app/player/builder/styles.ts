@@ -20,7 +20,13 @@ const STATIC_STYLE_CLASS_KEYS = new Set<string>(NON_ANIMATABLE_MANAGED_STYLE_KEY
  */
 export function createStyle(snapshot: SceneComp, areas: string[], gridDefinitions: string[]) {
 	const staticStyleDefinitions = buildStaticStyleClassDefinitions(snapshot);
-	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${gridDefinitions.join("\n")}\n${areas.join("\n")}\n${staticStyleDefinitions.join("\n")}`.trim();
+	const itemAndCapsuleClasses = `
+.ed-item,.ed-caps {
+	overflow: hidden;
+	position: relative;
+}
+`;
+	return `${snapshot.theme?.generated || ""} \n ${snapshot.theme?.custom || ""} \n\n ${gridDefinitions.join("\n")}\n${areas.join("\n")}\n${staticStyleDefinitions.join("\n")}\n${itemAndCapsuleClasses}`.trim();
 }
 
 /**

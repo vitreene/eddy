@@ -132,9 +132,8 @@ export function gridClassNameToCssDefinition(gridClassName = ""): string | undef
 		display: "grid",
 		...(w > 1 && { gridTemplateColumns: `repeat(${w}, minmax(0, 1fr))` }),
 		...(h > 1 && { gridTemplateRows: `repeat(${h}, minmax(0, 1fr))` }),
-		...(w === 1 && h === 1 && { "& *": "grid-area: 1 / -1" }),
-		isolation: "isolate",
-		overflow: "hidden"
+		// ...(w === 1 && h === 1 && { "& *": "grid-area: 1 / -1" }),
+		...(w === 1 && h === 1 && { "grid-template-rows": "1fr", "grid-template-columns": "1fr" })
 	};
 
 	return `.${className}{${cssObjectToClass(styles)}}`;

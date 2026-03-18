@@ -125,16 +125,3 @@ export function findCssClassRule(cssclasses: string, classToFind: string): strin
 	const body = s.slice(open + 1, end).trim();
 	return `.${wanted}{${body}}`;
 }
-
-/* --- Test (ton cas) ---
-const gridClassName = ".ed-grid-w5-h3";
-const theme =
-  ".ed-grid-w5-h2{display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}" +
-  ".ed-grid-w6-h2{display:grid;grid-template-columns:repeat(6, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}" +
-  ".ed-grid-w10-h1{display:grid;grid-template-columns:repeat(10, minmax(0, 1fr));grid-template-rows:repeat(1, minmax(0, 1fr))}" +
-  ".ed-grid-w4-h2{display:grid;grid-template-columns:repeat(4, minmax(0, 1fr));grid-template-rows:repeat(2, minmax(0, 1fr))}" +
-  ".ed-grid-w5-h3{display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));grid-template-rows:repeat(3, minmax(0, 1fr))}";
-
-console.log(findCssClassRule(theme, gridClassName));
-// => ".ed-grid-w5-h3{display:grid;grid-template-columns:repeat(5, minmax(0, 1fr));grid-template-rows:repeat(3, minmax(0, 1fr))}"
-*/

@@ -116,6 +116,7 @@ export function createCapsuleRenderable(
 			tag: "div",
 			id,
 			className: joinNodeClassNames(
+				"ed-caps",
 				capsule.grid,
 				initialDecorState.className || "",
 				getStaticStyleClassName(initialDecorState.style),
@@ -169,6 +170,7 @@ export function createItemRenderable(
 		tag,
 		...(move && { move }),
 		className: joinNodeClassNames(
+			"ed-item",
 			initialDecorState.className || "",
 			getStaticStyleClassName(initialDecorState.style),
 			getEffectiveAreaClassName(
