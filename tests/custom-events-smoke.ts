@@ -43,7 +43,16 @@ function createSceneBase(): SceneComp {
 			10: { id: 10, order: 1000, contentId: 100, capsuleId: 1, decorId: 200, visible: true, eventIds: [1, 2] }
 		},
 		contents: {
-			100: { id: 100, name: "txt", type: "text", path: null, inner: "hello", lang: null, capsuleId: null }
+			100: {
+				id: 100,
+				name: "txt",
+				type: "text",
+				path: null,
+				inner: "hello",
+				lang: null,
+				timestamp: "[]",
+				capsuleId: null
+			}
 		},
 		decors: {
 			200: { id: 200, name: null, className: "", area: "", style: {}, itemTargetId: null, basedUpon: null }

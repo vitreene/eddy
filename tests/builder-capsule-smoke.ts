@@ -68,11 +68,39 @@ function createSceneBase(): SceneComp {
 				path: null,
 				inner: null,
 				lang: null,
+				timestamp: "[]",
 				capsuleId: 2
 			},
-			1: { id: 1, name: "img-1", type: "img", path: "a.jpg", inner: null, lang: null, capsuleId: null },
-			2: { id: 2, name: "img-2", type: "img", path: "b.jpg", inner: null, lang: null, capsuleId: null },
-			3: { id: 3, name: "img-3", type: "img", path: "c.jpg", inner: null, lang: null, capsuleId: null }
+			1: {
+				id: 1,
+				name: "img-1",
+				type: "img",
+				path: "a.jpg",
+				inner: null,
+				lang: null,
+				timestamp: "[]",
+				capsuleId: null
+			},
+			2: {
+				id: 2,
+				name: "img-2",
+				type: "img",
+				path: "b.jpg",
+				inner: null,
+				lang: null,
+				timestamp: "[]",
+				capsuleId: null
+			},
+			3: {
+				id: 3,
+				name: "img-3",
+				type: "img",
+				path: "c.jpg",
+				inner: null,
+				lang: null,
+				timestamp: "[]",
+				capsuleId: null
+			}
 		},
 		decors: {
 			10: { id: 10, name: null, className: "", area: "", style: {}, itemTargetId: null, basedUpon: null },
@@ -455,6 +483,7 @@ const cases: Case[] = [
 				path: null,
 				inner: null,
 				lang: null,
+				timestamp: "[]",
 				capsuleId: 3
 			} as any;
 			context.decors[14] = {

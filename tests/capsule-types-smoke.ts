@@ -68,11 +68,39 @@ function createContext(): SceneComp {
 				path: null,
 				inner: null,
 				lang: null,
+				timestamp: "[]",
 				capsuleId: 2
 			},
-			1: { id: 1, name: "a", type: "img", path: "a.jpg", inner: null, lang: null, capsuleId: null },
-			2: { id: 2, name: "b", type: "img", path: "b.jpg", inner: null, lang: null, capsuleId: null },
-			3: { id: 3, name: "c", type: "img", path: "c.jpg", inner: null, lang: null, capsuleId: null }
+			1: {
+				id: 1,
+				name: "a",
+				type: "img",
+				path: "a.jpg",
+				inner: null,
+				lang: null,
+				timestamp: "[]",
+				capsuleId: null
+			},
+			2: {
+				id: 2,
+				name: "b",
+				type: "img",
+				path: "b.jpg",
+				inner: null,
+				lang: null,
+				timestamp: "[]",
+				capsuleId: null
+			},
+			3: {
+				id: 3,
+				name: "c",
+				type: "img",
+				path: "c.jpg",
+				inner: null,
+				lang: null,
+				timestamp: "[]",
+				capsuleId: null
+			}
 		},
 		decors: {
 			10: { id: 10, name: null, className: "", area: "", style: {}, itemTargetId: null, basedUpon: null },

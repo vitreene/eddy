@@ -195,7 +195,10 @@ async function processAudioCues({
 	setError: (error: string | null) => void;
 }) {
 	try {
-		const { cues, totalDurationSec } = await transcribeAudioFileToCues(sourceFile, { language: "fr" });
+		const { cues, totalDurationSec } = await transcribeAudioFileToCues(sourceFile, {
+			language: "fr",
+			soundId: contentId
+		});
 		const response = await fetch("/api/scene-content/cues", {
 			method: "POST",
 			headers: {

@@ -1,16 +1,73 @@
-import { useEffect, useMemo, useState } from "react";
-
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/config/capsule-presets";
 import { buildEditorGridClassName } from "@/config/class-prefix";
 import { getValuesFromGridName } from "@/lib/utils";
+import type { Content } from "@/api/db";
 import {
 	getActiveSceneContent,
 	getSceneContentDurationSec,
 	SCENE_DEFAULT_DURATION_SEC
 } from "@/scene-runtime/scene-content";
 
-export function SceneEdit() {
+interface SceneEditProps {
+	allContents?: Content[];
+}
+
+type ScenePatch = {
+	title?: string;
+	contentId?: number | null;
+	totalDuration?: number | null;
+	mainGrid?: string;
+};
+
+function getSafeDurationSec(value: unknown): number {
+	if (typeof value != "number" || !Number.isFinite(value) || value <= 0) return SCENE_DEFAULT_DURATION_SEC;
+	return Number(value.toFixed(3));
+}
+
+function getSounds(allContents: Content[], runtimeContents: Content[]): Content[] {
+	const merged = new Map<number, Content>();
+	for (const content of allContents) merged.set(content.id, content);
+	for (const content of runtimeContents) merged.set(content.id, content);
+	return [...merged.values()].filter((content) => content.type === "sound");
+}
+
+async function persistScenePatch(args: { sceneId: number; patch: ScenePatch; send: (event: any) => void }) {
+	const response = await fetch(`/api/scene/${args.sceneId}`, {
+		method: "POST",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify(args.patch)
+	});
+	if (!response.ok) return;
+
+	const payload = (await response.json()) as {
+		scene?: { title?: string };
+		sceneContent?: any | null;
+		mainCapsule?: { id: number; grid: string | null } | null;
+	};
+
+	if (payload.scene?.title) {
+		args.send({ type: "scene-update", payload: { title: payload.scene.title } });
+	}
+
+	if (payload.sceneContent) {
+		args.send({ type: "scene-content-upsert", payload: payload.sceneContent });
+	} else if (Object.prototype.hasOwnProperty.call(args.patch, "contentId") && args.patch.contentId === null) {
+		args.send({ type: "scene-content-remove", payload: { sceneId: args.sceneId } });
+	}
+
+	if (payload.mainCapsule) {
+		args.send({
+			type: "capsule-update",
+			payload: { id: payload.mainCapsule.id, grid: payload.mainCapsule.grid }
+		});
+	}
+}
+
+export function SceneEdit({ allContents = [] }: SceneEditProps) {
 	const { send } = SceneLogicContext.useActorRef();
 	const sceneId = SceneLogicContext.useSelector((state) => state.context.id);
 	const sceneTitle = SceneLogicContext.useSelector((state) => state.context.title);
@@ -19,95 +76,49 @@ export function SceneEdit() {
 		mainCapsuleId ? state.context.capsules[mainCapsuleId] : null
 	);
 	const sceneContent = SceneLogicContext.useSelector((state) => getActiveSceneContent(state.context as any));
-	const sounds = SceneLogicContext.useSelector((state) =>
-		Object.values(state.context.contents || {}).filter((content) => content.type === "sound")
+	const runtimeContents = SceneLogicContext.useSelector((state) =>
+		Object.values(state.context.contents || {})
 	);
-
-	const [titleDraft, setTitleDraft] = useState(sceneTitle || "");
-	const [durationDraft, setDurationDraft] = useState(String(getSceneContentDurationSec(sceneContent)));
-
-	useEffect(() => {
-		setTitleDraft(sceneTitle || "");
-	}, [sceneTitle]);
-
-	useEffect(() => {
-		setDurationDraft(String(getSceneContentDurationSec(sceneContent)));
-	}, [sceneContent]);
-
-	const linkedSoundId = sceneContent?.contentId ? String(sceneContent.contentId) : "";
-	const gridValues = useMemo(() => getValuesFromGridName(mainCapsule?.grid), [mainCapsule?.grid]);
-
-	const persistScenePatch = async (patch: {
-		title?: string;
-		contentId?: number | null;
-		totalDuration?: number | null;
-		mainGrid?: string;
-	}) => {
-		if (!sceneId) return;
-		const response = await fetch(`/api/scene/${sceneId}`, {
-			method: "POST",
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify(patch)
-		});
-		if (!response.ok) return;
-
-		const payload = (await response.json()) as {
-			scene?: { title?: string };
-			sceneContent?: any | null;
-			mainCapsule?: { id: number; grid: string | null } | null;
-		};
-
-		if (payload.scene?.title) {
-			send({ type: "scene-update", payload: { title: payload.scene.title } });
-			setTitleDraft(payload.scene.title);
-		}
-
-		if (payload.sceneContent) {
-			send({ type: "scene-content-upsert", payload: payload.sceneContent });
-			setDurationDraft(String(payload.sceneContent.totalDuration ?? SCENE_DEFAULT_DURATION_SEC));
-		} else if (Object.prototype.hasOwnProperty.call(patch, "contentId") && patch.contentId === null) {
-			send({ type: "scene-content-remove", payload: { sceneId } });
-			setDurationDraft(String(SCENE_DEFAULT_DURATION_SEC));
-		}
-
-		if (payload.mainCapsule) {
-			send({ type: "capsule-update", payload: { id: payload.mainCapsule.id, grid: payload.mainCapsule.grid } });
-		}
-	};
 
 	if (!sceneId || !mainCapsule) return null;
 
-	const onCommitTitle = () => {
-		const nextTitle = titleDraft.trim() || "Scene";
+	const sounds = getSounds(allContents, runtimeContents);
+	const linkedSoundId = sceneContent?.contentId ? String(sceneContent.contentId) : "";
+	const sceneDurationSec = getSafeDurationSec(getSceneContentDurationSec(sceneContent));
+	const gridValues = getValuesFromGridName(mainCapsule.grid);
+
+	const onCommitTitle = (titleInput: string) => {
+		const nextTitle = titleInput.trim() || "Scene";
 		if (nextTitle === sceneTitle) return;
-		void persistScenePatch({ title: nextTitle });
+		void persistScenePatch({ sceneId, patch: { title: nextTitle }, send });
 	};
 
-	const onCommitDuration = () => {
-		const value = Number(durationDraft);
-		const safeDuration =
-			Number.isFinite(value) && value > 0 ? Number(value.toFixed(3)) : SCENE_DEFAULT_DURATION_SEC;
+	const onCommitDuration = (durationInput: string) => {
+		const safeDuration = getSafeDurationSec(Number(durationInput));
 		void persistScenePatch({
-			totalDuration: safeDuration,
-			contentId: sceneContent?.contentId ?? null
+			sceneId,
+			patch: { totalDuration: safeDuration, contentId: sceneContent?.contentId ?? null },
+			send
 		});
 	};
 
 	const onChangeAudio = (nextValue: string) => {
 		const nextContentId = nextValue ? Number(nextValue) : null;
-		const value = Number(durationDraft);
-		const safeDuration =
-			Number.isFinite(value) && value > 0 ? Number(value.toFixed(3)) : SCENE_DEFAULT_DURATION_SEC;
-		void persistScenePatch({ contentId: nextContentId, totalDuration: safeDuration });
+		void persistScenePatch({
+			sceneId,
+			patch: { contentId: nextContentId, totalDuration: sceneDurationSec },
+			send
+		});
 	};
 
 	const onChangeMainGrid = (nextCols: number, nextRows: number) => {
 		const cols = Math.max(1, Math.floor(nextCols || 1));
 		const rows = Math.max(1, Math.floor(nextRows || 1));
-		void persistScenePatch({ mainGrid: `root-scene ${buildEditorGridClassName(cols, rows)}` });
+		void persistScenePatch({
+			sceneId,
+			patch: { mainGrid: `root-scene ${buildEditorGridClassName(cols, rows)}` },
+			send
+		});
 	};
 
 	return (
@@ -117,23 +128,23 @@ export function SceneEdit() {
 			<div className="grid grid-cols-[90px_1fr] items-center gap-2">
 				<label>Titre</label>
 				<input
+					key={`scene-title-${sceneTitle || ""}`}
 					className="border border-stone-300 p-1"
-					value={titleDraft}
-					onChange={(event) => setTitleDraft(event.currentTarget.value)}
-					onBlur={onCommitTitle}
+					defaultValue={sceneTitle || ""}
+					onBlur={(event) => onCommitTitle(event.currentTarget.value)}
 				/>
 			</div>
 
 			<div className="grid grid-cols-[90px_1fr] items-center gap-2">
-				<label>Duree (s)</label>
+				<label>Durée</label>
 				<input
+					key={`scene-duration-${sceneDurationSec}`}
 					type="number"
 					min={0.1}
 					step={0.1}
 					className="border border-stone-300 p-1"
-					value={durationDraft}
-					onChange={(event) => setDurationDraft(event.currentTarget.value)}
-					onBlur={onCommitDuration}
+					defaultValue={sceneDurationSec}
+					onBlur={(event) => onCommitDuration(event.currentTarget.value)}
 				/>
 			</div>
 

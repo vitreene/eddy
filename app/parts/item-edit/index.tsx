@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useMachine } from "@xstate/react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -26,6 +26,10 @@ import { computeCueForSelectedCustomEvent, isItemDecorEventContext } from "@/pro
 
 import type { Content, Decor, SceneComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
+
+interface EditItemProps {
+	allContents?: Content[];
+}
 
 function sameStyleValue(a: unknown, b: unknown): boolean {
 	return Object.is(a, b);
@@ -69,7 +73,126 @@ function getNeutralTransformValue(key: string): number | null {
 	return null;
 }
 
-export function EditItem() {
+function resolveDecorSelection(args: {
+	item: any;
+	sceneId: number;
+	eventsByItem: any;
+	decors: Record<number, Decor>;
+	sceneContents: any;
+	activeEventAction: string | null;
+	itemDecor: Decor | undefined;
+	selectedEvent: any;
+}): { decor: Decor | undefined; editDecor: Decor | undefined; selectedEventUsesItemDecor: boolean } {
+	if (!args.item) {
+		return {
+			decor: undefined,
+			editDecor: undefined,
+			selectedEventUsesItemDecor: false
+		};
+	}
+
+	const context = {
+		id: args.sceneId,
+		events: args.eventsByItem,
+		decors: args.decors,
+		sceneContents: args.sceneContents
+	} as SceneComp;
+
+	const resolvedDecor = resolveDecorAtEventAction(
+		context,
+		args.item.id,
+		args.activeEventAction,
+		args.itemDecor
+	);
+	const selectedEventUsesItemDecor = isItemDecorEventContext(context, args.item.id, args.activeEventAction);
+	const selectedEventDecor = selectedEventUsesItemDecor
+		? args.itemDecor
+		: args.selectedEvent?.decorId
+			? args.decors[args.selectedEvent.decorId]
+			: args.itemDecor;
+
+	return {
+		decor: resolvedDecor,
+		editDecor: selectedEventDecor || args.itemDecor,
+		selectedEventUsesItemDecor
+	};
+}
+
+function buildEditorSyncKey(visualState: ReturnType<typeof buildEditableVisualState> | null): string {
+	if (!visualState) return "";
+	return [
+		visualState.itemId,
+		visualState.eventAction ?? "",
+		visualState.decorId ?? "",
+		visualState.area ?? "",
+		visualState.className ?? "",
+		JSON.stringify(visualState.style || {})
+	].join("|");
+}
+
+type StyleMutationPlan = {
+	stylePatch: EditableStyle;
+	liveStylePatch: EditableStyle;
+	nextArea: string | null;
+	nextClassName: string | null;
+	areaChanged: boolean;
+	classNameChanged: boolean;
+};
+
+function buildStyleMutationPlan(args: {
+	normalizedPayload: EditableStyle;
+	targetDecor: Decor;
+	effectiveCurrentStyle: EditableStyle;
+	contentType: Content["type"] | undefined;
+}): StyleMutationPlan {
+	const payloadStyleOnly = { ...args.normalizedPayload };
+	const hasArea = typeof payloadStyleOnly.area !== "undefined";
+	const hasClassName = typeof payloadStyleOnly.className !== "undefined";
+
+	if (hasArea) delete payloadStyleOnly.area;
+	if (hasClassName) delete payloadStyleOnly.className;
+
+	const currentPersistedStyle = ((args.targetDecor.style as EditableStyle) ?? {}) as Record<string, unknown>;
+	const currentUiStyle = applyStyleDefaults(args.effectiveCurrentStyle as EditableStyle, args.contentType);
+	const defaults = getDefaultStyleForContentType(args.contentType) as Record<string, unknown>;
+	const stylePatch: EditableStyle = {};
+	const liveStylePatch: EditableStyle = {};
+
+	for (const key of Object.keys(payloadStyleOnly)) {
+		const incomingValue = (payloadStyleOnly as Record<string, unknown>)[key];
+		const baselineValue = (currentUiStyle as Record<string, unknown>)[key];
+		if (sameStyleValue(incomingValue, baselineValue)) continue;
+
+		const defaultValue = defaults[key];
+		const neutralTransformValue = getNeutralTransformValue(key);
+		const shouldDropAsDefault =
+			sameStyleValue(incomingValue, defaultValue) ||
+			(typeof neutralTransformValue == "number" && sameStyleValue(incomingValue, neutralTransformValue));
+		const nextValue = shouldDropAsDefault ? null : incomingValue;
+		const previousValue = currentPersistedStyle[key];
+		if (sameStyleValue(nextValue, previousValue)) continue;
+		(stylePatch as Record<string, unknown>)[key] = nextValue;
+		(liveStylePatch as Record<string, unknown>)[key] = incomingValue;
+	}
+
+	const nextArea = hasArea ? (args.normalizedPayload.area ?? null) : (args.targetDecor.area ?? null);
+	const nextClassName = hasClassName
+		? (args.normalizedPayload.className ?? null)
+		: (args.targetDecor.className ?? null);
+	const areaChanged = hasArea && !sameStyleValue(nextArea, args.targetDecor.area ?? null);
+	const classNameChanged = hasClassName && !sameStyleValue(nextClassName, args.targetDecor.className ?? null);
+
+	return {
+		stylePatch,
+		liveStylePatch,
+		nextArea,
+		nextClassName,
+		areaChanged,
+		classNameChanged
+	};
+}
+
+export function EditItem({ allContents = [] }: EditItemProps) {
 	const { send } = SceneLogicContext.useActorRef();
 
 	const item = SceneLogicContext.useSelector((state) =>
@@ -91,33 +214,22 @@ export function EditItem() {
 	const activePlaybackAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
 
 	const selectedEvent = item && activeEventAction ? eventsByItem[item.id]?.[activeEventAction] : null;
+	const { decor, editDecor, selectedEventUsesItemDecor } = resolveDecorSelection({
+		item,
+		sceneId,
+		eventsByItem,
+		decors,
+		sceneContents,
+		activeEventAction,
+		itemDecor,
+		selectedEvent
+	});
 
-	const { decor, editDecor, selectedEventUsesItemDecor } = useMemo(() => {
-		if (!item)
-			return {
-				decor: undefined as Decor | undefined,
-				editDecor: undefined as Decor | undefined,
-				selectedEventUsesItemDecor: false
-			};
-		const context = { id: sceneId, events: eventsByItem, decors, sceneContents } as SceneComp;
-		const selectedAction = activeEventAction;
-		const resolvedDecor = resolveDecorAtEventAction(context, item.id, selectedAction, itemDecor);
-		const selectedEventUsesItemDecor = isItemDecorEventContext(context, item.id, selectedAction);
+	const itemRef = useRef(item);
+	const activeNodeRef = useRef(activeNode);
+	const pendingEventDecorPromiseRef = useRef<Promise<number | null> | null>(null);
 
-		const selectedEventDecor = selectedEventUsesItemDecor
-			? itemDecor
-			: selectedEvent?.decorId
-				? decors[selectedEvent.decorId]
-				: itemDecor;
-
-		return {
-			decor: resolvedDecor,
-			editDecor: selectedEventDecor || itemDecor,
-			selectedEventUsesItemDecor
-		};
-	}, [item, itemDecor, activeEventAction, decors, eventsByItem, sceneContents, sceneId]);
-
-	const ensureSelectedEventDecorId = useCallback(async () => {
+	const ensureSelectedEventDecorId = async () => {
 		if (!item || !selectedEvent) return null;
 		if (selectedEventUsesItemDecor) return item?.decorId ?? null;
 		if (selectedEvent.decorId) return selectedEvent.decorId;
@@ -156,7 +268,7 @@ export function EditItem() {
 		const result = await creationPromise;
 		pendingEventDecorPromiseRef.current = null;
 		return result;
-	}, [item, selectedEvent, selectedEventUsesItemDecor, decor, itemDecor, send]);
+	};
 
 	const capsule = SceneLogicContext.useSelector((state) => {
 		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
@@ -166,87 +278,61 @@ export function EditItem() {
 		item ? state.context.capsules[item.capsuleId] : undefined
 	);
 
-	const onStyleChange = useCallback(
-		(payload: EditableStyle) => {
-			void (async () => {
-				const normalizedPayload = normalizeTransformPrecision(payload);
-				const targetDecor = editDecor || itemDecor;
-				if (!targetDecor) return;
-				const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as Record<string, unknown>;
+	const onStyleChange = (payload: EditableStyle) => {
+		void (async () => {
+			const normalizedPayload = normalizeTransformPrecision(payload);
+			const targetDecor = editDecor || itemDecor;
+			if (!targetDecor) return;
+			const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as EditableStyle;
+			const mutationPlan = buildStyleMutationPlan({
+				normalizedPayload,
+				targetDecor,
+				effectiveCurrentStyle,
+				contentType: content?.type
+			});
 
-				const payloadStyleOnly = { ...normalizedPayload };
-				const hasArea = typeof payloadStyleOnly.area !== "undefined";
-				const hasClassName = typeof payloadStyleOnly.className !== "undefined";
-				if (hasArea) delete payloadStyleOnly.area;
-				if (hasClassName) delete payloadStyleOnly.className;
+			if (
+				!Object.keys(mutationPlan.stylePatch).length &&
+				!mutationPlan.areaChanged &&
+				!mutationPlan.classNameChanged
+			) {
+				return;
+			}
 
-				const currentPersistedStyle = ((targetDecor.style as EditableStyle) ?? {}) as Record<string, unknown>;
-				const currentUiStyle = applyStyleDefaults(effectiveCurrentStyle as EditableStyle, content?.type);
-				const defaults = getDefaultStyleForContentType(content?.type) as Record<string, unknown>;
-				const stylePatch: EditableStyle = {};
-				const liveStylePatch: EditableStyle = {};
+			applyLiveStyleOnNode(activeNode, mutationPlan.liveStylePatch, {
+				currentStyle: effectiveCurrentStyle
+			});
+			if (mutationPlan.classNameChanged) {
+				const classNameDiff = buildClassNameDiff(targetDecor.className ?? null, mutationPlan.nextClassName);
+				applyClassNameAction(activeNode, classNameDiff);
+			}
+			if (mutationPlan.areaChanged) {
+				ensureLiveAreaClassDefinition(activeNode, mutationPlan.nextArea);
+				applyAreaClassPatch(activeNode, targetDecor.area ?? null, mutationPlan.nextArea);
+			}
 
-				for (const key of Object.keys(payloadStyleOnly)) {
-					const incomingValue = (payloadStyleOnly as Record<string, unknown>)[key];
-					const baselineValue = (currentUiStyle as Record<string, unknown>)[key];
-					if (sameStyleValue(incomingValue, baselineValue)) continue;
+			let targetDecorId = targetDecor.id;
+			if (selectedEvent && !selectedEvent.decorId) {
+				const createdDecorId = await ensureSelectedEventDecorId();
+				if (!createdDecorId) return;
+				targetDecorId = createdDecorId;
+			}
 
-					const defaultValue = defaults[key];
-					const neutralTransformValue = getNeutralTransformValue(key);
-					const shouldDropAsDefault =
-						sameStyleValue(incomingValue, defaultValue) ||
-						(typeof neutralTransformValue == "number" && sameStyleValue(incomingValue, neutralTransformValue));
-					const nextValue = shouldDropAsDefault ? null : incomingValue;
-					const previousValue = currentPersistedStyle[key];
-					if (sameStyleValue(nextValue, previousValue)) continue;
-					(stylePatch as Record<string, unknown>)[key] = nextValue;
-					(liveStylePatch as Record<string, unknown>)[key] = incomingValue;
+			send({
+				type: "item-update",
+				payload: {
+					decor: {
+						id: targetDecorId,
+						...(mutationPlan.classNameChanged ? { className: mutationPlan.nextClassName } : {}),
+						...(mutationPlan.areaChanged ? { area: mutationPlan.nextArea } : {}),
+						style: mutationPlan.stylePatch
+					} as Decor
 				}
+			});
+		})();
+	};
 
-				const nextArea = hasArea ? (normalizedPayload.area ?? null) : (targetDecor.area ?? null);
-				const nextClassName = hasClassName
-					? (normalizedPayload.className ?? null)
-					: (targetDecor.className ?? null);
-				const areaChanged = hasArea && !sameStyleValue(nextArea, targetDecor.area ?? null);
-				const classNameChanged = hasClassName && !sameStyleValue(nextClassName, targetDecor.className ?? null);
-				if (!Object.keys(stylePatch).length && !areaChanged && !classNameChanged) return;
-
-				applyLiveStyleOnNode(activeNode, liveStylePatch, {
-					currentStyle: effectiveCurrentStyle as EditableStyle
-				});
-				if (classNameChanged) {
-					const classNameDiff = buildClassNameDiff(targetDecor.className ?? null, nextClassName);
-					applyClassNameAction(activeNode, classNameDiff);
-				}
-				if (areaChanged) {
-					ensureLiveAreaClassDefinition(activeNode, nextArea);
-					applyAreaClassPatch(activeNode, targetDecor.area ?? null, nextArea);
-				}
-
-				let targetDecorId = targetDecor.id;
-				if (selectedEvent && !selectedEvent.decorId) {
-					const createdDecorId = await ensureSelectedEventDecorId();
-					if (!createdDecorId) return;
-					targetDecorId = createdDecorId;
-				}
-
-				send({
-					type: "item-update",
-					payload: {
-						decor: {
-							id: targetDecorId,
-							...(classNameChanged ? { className: nextClassName } : {}),
-							...(areaChanged ? { area: nextArea } : {}),
-							style: stylePatch
-						} as Decor
-					}
-				});
-			})();
-		},
-		[send, decor, editDecor, itemDecor, content?.type, activeNode, selectedEvent, ensureSelectedEventDecorId]
-	);
-
-	const onResetStyle = useCallback(() => {
+	const onResetStyle = () => {
 		if (!item || !editDecor) return;
 		const itemEvents = eventsByItem[item.id] || null;
 		const customActions = getCustomEventActions(itemEvents);
@@ -287,41 +373,34 @@ export function EditItem() {
 				action: "seek"
 			}
 		});
-	}, [send, item, editDecor, eventsByItem, activeNode]);
+	};
 
-	const onTextChange = useCallback(
-		(inner: string) => {
-			if (!content || content.type !== "text") return;
-			if (activeNode) activeNode.textContent = inner;
-			send({ type: "content-update", payload: { id: content.id, inner } });
-		},
-		[send, content, activeNode]
-	);
+	const onTextChange = (inner: string) => {
+		if (!content || content.type !== "text") return;
+		if (activeNode) activeNode.textContent = inner;
+		send({ type: "content-update", payload: { id: content.id, inner } });
+	};
 
-	const onTextCommit = useCallback(
-		(inner: string) => {
-			if (!content || content.type !== "text") return;
-			fetch(`/api/content/${content.id}`, {
-				method: "POST",
-				headers: {
-					Accept: "application/json",
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({ inner })
-			});
-		},
-		[content]
-	);
-
-	const editableVisualState = useMemo(() => {
-		if (!item) return null;
-		return buildEditableVisualState({
-			itemId: item.id,
-			eventAction: activeEventAction,
-			cueSec: activeCueSec,
-			decor
+	const onTextCommit = (inner: string) => {
+		if (!content || content.type !== "text") return;
+		fetch(`/api/content/${content.id}`, {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({ inner })
 		});
-	}, [item, activeEventAction, activeCueSec, decor]);
+	};
+
+	const editableVisualState = item
+		? buildEditableVisualState({
+				itemId: item.id,
+				eventAction: activeEventAction,
+				cueSec: activeCueSec,
+				decor
+			})
+		: null;
 
 	const selectedEventCueSec = SceneLogicContext.useSelector((state) => {
 		const itemId = state.context.active.itemId;
@@ -330,20 +409,7 @@ export function EditItem() {
 		return computeCueForSelectedCustomEvent(state.context as any, itemId, action);
 	});
 
-	const desiredEditorSyncKey = editableVisualState
-		? [
-				editableVisualState.itemId,
-				editableVisualState.eventAction ?? "",
-				editableVisualState.decorId ?? "",
-				editableVisualState.area ?? "",
-				editableVisualState.className ?? "",
-				JSON.stringify(editableVisualState.style || {})
-			].join("|")
-		: "";
-
-	const itemRef = useRef(item);
-	const activeNodeRef = useRef(activeNode);
-	const pendingEventDecorPromiseRef = useRef<Promise<number | null> | null>(null);
+	const desiredEditorSyncKey = buildEditorSyncKey(editableVisualState);
 	useEffect(() => {
 		itemRef.current = item;
 		activeNodeRef.current = activeNode;
@@ -394,37 +460,31 @@ export function EditItem() {
 		activePlaybackAction
 	]);
 
-	const onDecorUpdate = useCallback(
-		(payload: { id: number; area?: string | null; className?: string | null }) => {
-			void (async () => {
-				let targetId = selectedEvent?.decorId ?? payload.id;
-				if (selectedEvent && !selectedEvent.decorId) {
-					const createdDecorId = await ensureSelectedEventDecorId();
-					if (!createdDecorId) return;
-					targetId = createdDecorId;
+	const onDecorUpdate = (payload: { id: number; area?: string | null; className?: string | null }) => {
+		void (async () => {
+			let targetId = selectedEvent?.decorId ?? payload.id;
+			if (selectedEvent && !selectedEvent.decorId) {
+				const createdDecorId = await ensureSelectedEventDecorId();
+				if (!createdDecorId) return;
+				targetId = createdDecorId;
+			}
+
+			send({
+				type: "item-update",
+				payload: {
+					decor: { ...payload, id: targetId } as Decor
 				}
+			});
+		})();
+	};
 
-				send({
-					type: "item-update",
-					payload: {
-						decor: { ...payload, id: targetId } as Decor
-					}
-				});
-			})();
-		},
-		[send, selectedEvent, ensureSelectedEventDecorId]
-	);
-
-	const onTreeMove = useCallback(
-		(payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => {
-			send({ type: "tree-move-item", payload });
-		},
-		[send]
-	);
+	const onTreeMove = (payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => {
+		send({ type: "tree-move-item", payload });
+	};
 
 	const editorSyncKey = activeEventAction ? syncState.context.projectedSyncKey : desiredEditorSyncKey;
 
-	if (!item) return <SceneEdit />;
+	if (!item) return <SceneEdit allContents={allContents} />;
 	const transformValue = editableVisualState?.transform ?? {};
 
 	return (

@@ -25,10 +25,11 @@ type WhisperWorkerMessage =
 
 export type WhisperTranscribeOptions = {
 	model?: string;
-	multilingual?: boolean;
-	quantized?: boolean;
 	subtask?: "transcribe" | "translate";
 	language?: string | null;
+	dtype?: "fp32" | "fp16" | "q8" | "q4";
+	device?: "webgpu" | "wasm" | null;
+	soundId?: number | string | null;
 	signal?: AbortSignal;
 };
 
@@ -37,13 +38,20 @@ export type WhisperCueResult = {
 	totalDurationSec: number;
 };
 
-const WHISPER_DEFAULTS = {
+const WHISPER_DEFAULTS: {
+	sampleRate: number;
+	model: string;
+	subtask: "transcribe";
+	language: string | null;
+	dtype: NonNullable<WhisperTranscribeOptions["dtype"]>;
+	device: WhisperTranscribeOptions["device"];
+} = {
 	sampleRate: 16000,
-	model: "Xenova/whisper-base",
-	multilingual: true,
-	quantized: false,
+	model: "onnx-community/whisper-small_timestamped",
 	subtask: "transcribe" as const,
-	language: "fr"
+	language: "fr",
+	dtype: "q8" as const,
+	device: null
 };
 
 export async function transcribeAudioFileToCues(
@@ -64,6 +72,15 @@ export function transcribeAudioBufferToCues(
 	options: WhisperTranscribeOptions = {}
 ): Promise<TextTime[]> {
 	const monoAudio = toMonoAudio(audioData);
+	const model = options.model || WHISPER_DEFAULTS.model;
+
+	if (!supportsWordTimestamps(model)) {
+		return Promise.reject(
+			new Error(
+				`Le modele Whisper "${model}" ne semble pas compatible word timestamps. Utiliser un modele *_timestamped (ex: onnx-community/whisper-small_timestamped).`
+			)
+		);
+	}
 
 	return new Promise((resolve, reject) => {
 		const worker = new Worker(new URL("./worker.js", import.meta.url), { type: "module" });
@@ -90,7 +107,7 @@ export function transcribeAudioBufferToCues(
 			if (message.status === "complete") {
 				cleanup();
 				const chunks = "data" in message ? message.data?.chunks || [] : [];
-				resolve(mapWhisperChunksToCues(chunks));
+				resolve(mapWhisperChunksToCues(chunks, { soundId: options.soundId }));
 				return;
 			}
 
@@ -112,16 +129,23 @@ export function transcribeAudioBufferToCues(
 
 		worker.postMessage({
 			audio: monoAudio,
-			model: options.model || WHISPER_DEFAULTS.model,
-			multilingual: options.multilingual ?? WHISPER_DEFAULTS.multilingual,
-			quantized: options.quantized ?? WHISPER_DEFAULTS.quantized,
+			model,
 			subtask: options.subtask || WHISPER_DEFAULTS.subtask,
-			language: options.language === null ? null : options.language || WHISPER_DEFAULTS.language
+			language: options.language === undefined ? WHISPER_DEFAULTS.language : options.language,
+			dtype: options.dtype || WHISPER_DEFAULTS.dtype,
+			device: options.device === undefined ? WHISPER_DEFAULTS.device : options.device
 		});
 	});
 }
 
-export function mapWhisperChunksToCues(chunks: WhisperChunk[]): TextTime[] {
+function supportsWordTimestamps(model: string): boolean {
+	return /_timestamped$/i.test(model.trim());
+}
+
+export function mapWhisperChunksToCues(
+	chunks: WhisperChunk[],
+	options: { soundId?: number | string | null } = {}
+): TextTime[] {
 	const mapped = chunks
 		.map((chunk, index) => {
 			const rawText = chunk.text || "";
@@ -133,7 +157,7 @@ export function mapWhisperChunksToCues(chunks: WhisperChunk[]): TextTime[] {
 			const end = rawEnd >= start ? rawEnd : start;
 
 			return {
-				name: buildCueName(index),
+				name: buildCueName(index, text, options.soundId),
 				text,
 				start,
 				end
@@ -170,9 +194,36 @@ async function decodeAudioFile(file: File, sampleRate: number): Promise<AudioBuf
 	}
 }
 
-function buildCueName(index: number): string {
+function buildCueName(index: number, text: string, soundId?: number | string | null): string {
+	const soundToken = normalizeSoundToken(soundId);
 	const token = String(index + 1).padStart(4, "0");
-	return `whisper-${token}`;
+	const slug = slugifyCueText(text);
+	return `${soundToken}-${token}-${slug}`;
+}
+
+function normalizeSoundToken(soundId?: number | string | null): string {
+	if (typeof soundId == "number" && Number.isFinite(soundId)) {
+		return `sound-${Math.max(0, Math.trunc(soundId))}`;
+	}
+
+	if (typeof soundId == "string") {
+		const trimmed = soundId.trim();
+		if (trimmed.length) return `sound-${slugifyCueText(trimmed)}`;
+	}
+
+	return "sound-unknown";
+}
+
+function slugifyCueText(value: string): string {
+	const normalized = value
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/[^a-z0-9]+/g, "-")
+		.replace(/^-+|-+$/g, "")
+		.slice(0, 40);
+
+	return normalized || "cue";
 }
 
 function toFiniteSec(value: number | null | undefined): number {

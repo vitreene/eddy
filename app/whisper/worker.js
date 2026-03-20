@@ -1,5 +1,5 @@
 /* eslint-disable camelcase */
-import { pipeline, env } from "@xenova/transformers";
+import { pipeline, env, WhisperTextStreamer } from "@huggingface/transformers";
 
 // Disable local models
 env.allowLocalModels = false;
@@ -7,181 +7,174 @@ env.allowLocalModels = false;
 // Define model factories
 // Ensures only one model is created of each type
 class PipelineFactory {
-    static task = null;
-    static model = null;
-    static quantized = null;
-    static instance = null;
+	static task = null;
+	static model = null;
+	static dtype = null;
+	static device = null;
+	static instance = null;
 
-    constructor(tokenizer, model, quantized) {
-        this.tokenizer = tokenizer;
-        this.model = model;
-        this.quantized = quantized;
-    }
+	constructor(tokenizer, model, dtype, device) {
+		this.tokenizer = tokenizer;
+		this.model = model;
+		this.dtype = dtype;
+		this.device = device;
+	}
 
-    static async getInstance(progress_callback = null) {
-        if (this.instance === null) {
-            this.instance = pipeline(this.task, this.model, {
-                quantized: this.quantized,
-                progress_callback,
+	static async getInstance(progress_callback = null) {
+		if (this.instance === null) {
+			this.instance = pipeline(this.task, this.model, {
+				dtype: this.dtype,
+				device: this.device,
+				progress_callback
+			});
+		}
 
-                // For medium models, we need to load the `no_attentions` revision to avoid running out of memory
-                revision: this.model.includes("/whisper-medium")
-                    ? "no_attentions"
-                    : "main",
-            });
-        }
-
-        return this.instance;
-    }
+		return this.instance;
+	}
 }
 
 self.addEventListener("message", async (event) => {
-    const message = event.data;
+	const message = event.data;
 
-    // Do some work...
-    // TODO use message data
-    let transcript = await transcribe(
-        message.audio,
-        message.model,
-        message.multilingual,
-        message.quantized,
-        message.subtask,
-        message.language,
-    );
-    if (transcript === null) return;
+	let transcript = await transcribe(message);
+	if (transcript === null) return;
 
-    // Send the result back to the main thread
-    self.postMessage({
-        status: "complete",
-        task: "automatic-speech-recognition",
-        data: transcript,
-    });
+	// Send the result back to the main thread
+	self.postMessage({
+		status: "complete",
+		task: "automatic-speech-recognition",
+		data: transcript
+	});
 });
 
 class AutomaticSpeechRecognitionPipelineFactory extends PipelineFactory {
-    static task = "automatic-speech-recognition";
-    static model = null;
-    static quantized = null;
+	static task = "automatic-speech-recognition";
+	static model = null;
+	static dtype = null;
+	static device = null;
 }
 
-const transcribe = async (
-    audio,
-    model,
-    multilingual,
-    quantized,
-    subtask,
-    language,
-) => {
-    const isDistilWhisper = model.startsWith("distil-whisper/");
+const transcribe = async ({ audio, model, subtask, language, dtype = "q8", device = null }) => {
+	if (!audio || !model) {
+		self.postMessage({
+			status: "error",
+			task: "automatic-speech-recognition",
+			data: { message: "Missing audio or model for Whisper transcription" }
+		});
+		return null;
+	}
 
-    let modelName = model;
-    if (!isDistilWhisper && !multilingual) {
-        modelName += ".en";
-    }
+	const isDistilWhisper = model.startsWith("distil-whisper/");
 
-    const p = AutomaticSpeechRecognitionPipelineFactory;
-    if (p.model !== modelName || p.quantized !== quantized) {
-        // Invalidate model if different
-        p.model = modelName;
-        p.quantized = quantized;
+	const p = AutomaticSpeechRecognitionPipelineFactory;
+	if (p.model !== model || p.dtype !== dtype || p.device !== device) {
+		// Invalidate model if different
+		p.model = model;
+		p.dtype = dtype;
+		p.device = device;
 
-        if (p.instance !== null) {
-            (await p.getInstance()).dispose();
-            p.instance = null;
-        }
-    }
+		if (p.instance !== null) {
+			(await p.getInstance()).dispose();
+			p.instance = null;
+		}
+	}
 
-    // Load transcriber model
-    let transcriber = await p.getInstance((data) => {
-        self.postMessage(data);
-    });
+	let transcriber = await p.getInstance((data) => {
+		self.postMessage(data);
+	});
 
-    const time_precision =
-        transcriber.processor.feature_extractor.config.chunk_length /
-        transcriber.model.config.max_source_positions;
+	const time_precision =
+		transcriber.processor.feature_extractor.config.chunk_length / transcriber.model.config.max_source_positions;
 
-    // Storage for chunks to be processed. Initialise with an empty chunk.
-    let chunks_to_process = [
-        {
-            tokens: [],
-            finalised: false,
-        },
-    ];
+	const chunk_length_s = isDistilWhisper ? 20 : 30;
+	const stride_length_s = isDistilWhisper ? 3 : 5;
 
-    // TODO: Storage for fully-processed and merged chunks
-    // let decoded_chunks = [];
+	let chunk_count = 0;
+	let started_at = null;
+	let token_count = 0;
+	let tps = null;
 
-    function chunk_callback(chunk) {
-        let last = chunks_to_process[chunks_to_process.length - 1];
+	const chunks = [];
+	const toPublicChunks = () => chunks.map(({ text, timestamp }) => ({ text, timestamp }));
 
-        // Overwrite last chunk with new info
-        Object.assign(last, chunk);
-        last.finalised = true;
+	const streamer = new WhisperTextStreamer(transcriber.tokenizer, {
+		time_precision,
+		on_chunk_start: (value) => {
+			const offset = (chunk_length_s - stride_length_s) * chunk_count;
+			chunks.push({
+				text: "",
+				timestamp: [offset + value, null],
+				offset
+			});
+		},
+		token_callback_function: () => {
+			started_at ??= performance.now();
+			token_count += 1;
 
-        // Create an empty chunk after, if it not the last chunk
-        if (!chunk.is_last) {
-            chunks_to_process.push({
-                tokens: [],
-                finalised: false,
-            });
-        }
-    }
+			if (token_count > 1 && started_at !== null) {
+				const elapsed_ms = performance.now() - started_at;
+				if (elapsed_ms > 0) {
+					tps = (token_count / elapsed_ms) * 1000;
+				}
+			}
+		},
+		callback_function: (value) => {
+			if (!chunks.length) return;
 
-    // Inject custom callback function to handle merging of chunks
-    async function callback_function(item) {
-        let last = chunks_to_process[chunks_to_process.length - 1];
+			chunks[chunks.length - 1].text += value;
+			self.postMessage({
+				status: "update",
+				task: "automatic-speech-recognition",
+				data: {
+					text: "",
+					chunks: toPublicChunks(),
+					tps
+				}
+			});
+		},
+		on_chunk_end: (value) => {
+			if (!chunks.length) return;
+			const current = chunks[chunks.length - 1];
+			current.timestamp[1] = value + current.offset;
+		},
+		on_finalize: () => {
+			started_at = null;
+			token_count = 0;
+			chunk_count += 1;
+		}
+	});
 
-        // Update tokens of last chunk
-        last.tokens = [...item[0].output_token_ids];
+	const generation_options = {
+		top_k: 0,
+		do_sample: false,
+		chunk_length_s,
+		stride_length_s,
+		task: subtask || "transcribe",
+		return_timestamps: "word",
+		force_full_sequences: false,
+		streamer
+	};
 
-        // Merge text chunks
-        // TODO optimise so we don't have to decode all chunks every time
-        let data = transcriber.tokenizer._decode_asr(chunks_to_process, {
-            time_precision: time_precision,
-            return_timestamps: true,
-            force_full_sequences: false,
-        });
+	if (language && language !== "auto") {
+		generation_options.language = language;
+	}
 
-        self.postMessage({
-            status: "update",
-            task: "automatic-speech-recognition",
-            data: data,
-        });
-    }
+	let output = await transcriber(audio, {
+		...generation_options
+	}).catch((error) => {
+		self.postMessage({
+			status: "error",
+			task: "automatic-speech-recognition",
+			data: {
+				message: error?.message || "Whisper transcription failed"
+			}
+		});
+		return null;
+	});
 
-    // const outputWord = await transcriber(audio, { return_timestamps: "word" });
-    // console.log("output", outputWord);
-
-    // Actually run transcription
-    let output = await transcriber(audio, {
-        // Greedy
-        top_k: 0,
-        do_sample: false,
-
-        // Sliding window
-        chunk_length_s: isDistilWhisper ? 20 : 30,
-        stride_length_s: isDistilWhisper ? 3 : 5,
-
-        // Language and task
-        language: language,
-        task: subtask,
-
-        // Return timestamps
-        return_timestamps: "word",
-        // return_timestamps: true,
-        force_full_sequences: false,
-
-        // Callback functions
-        callback_function: callback_function, // after each generation step
-        chunk_callback: chunk_callback, // after each chunk is processed
-    }).catch((error) => {
-        self.postMessage({
-            status: "error",
-            task: "automatic-speech-recognition",
-            data: error,
-        });
-        return null;
-    });
-
-    return output;
+	if (!output) return null;
+	return {
+		...output,
+		tps
+	};
 };

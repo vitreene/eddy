@@ -134,3 +134,33 @@
 - Si la spec dit qu'une valeur (ex: duree) doit etre lue depuis des events fallback, ne pas creer de colonne dediee en base.
 - Verifier explicitement l'emplacement cible demande (ex: `content.timestamp` vs `scene_content.timestamp`) avant migration.
 - Avant livraison, comparer chaque champ ajoute au schema avec la phrase source du besoin pour eviter un mauvais placement de donnee.
+
+## 2026-03-20 — Operations couteuses: demander avant escalation
+
+- Si la demande est une comparaison/analyse, rester en mode lecture et ne pas lancer de charges lourdes (agent massif, batterie de commandes, scans larges) sans accord explicite.
+- Definir un seuil personnel d'escalade: des que l'action depasse la lecture ciblee de quelques fichiers/commandes, faire un check-in utilisateur avant d'executer.
+- En cas d'incertitude, proposer une option par defaut frugale (logs/docs locaux) et expliquer ce qui changerait avec l'option couteuse.
+
+## 2026-03-20 — Source de verite contenus audio (SceneEdit)
+
+- Pour les selecteurs de contenu (ex: audio SceneEdit), reutiliser la meme source de donnees que Chutier: merge `allContents` (loader) + `state.context.contents`, puis filtrage `groupedContents.sound`.
+- Ne pas supposer que `state.context.contents` contient tout le catalogue; il peut etre limite aux contenus deja lies a la scene.
+- En cas de divergence UI entre deux zones (Chutier vs SceneEdit), aligner d'abord le pipeline de donnees avant de toucher l'affichage.
+
+## 2026-03-20 — Whisper word timestamps: verifier le bon artefact modele
+
+- Le prerequis "word timestamps" doit etre valide avec `return_timestamps: "word"` sur le modele exact configure en production, pas seulement sur l'API generale.
+- Pour Whisper ONNX communautaire, utiliser les variantes `_timestamped` quand les attentions croisees sont requises; les variantes standards peuvent echouer avec `output_attentions` manquant.
+- En verification, inclure un test runtime explicite qui echoue si `chunks` mot-a-mot n'est pas retourne.
+
+## 2026-03-20 — SceneEdit: minimiser l'etat React
+
+- Ne pas dupliquer l'etat global XState dans `useState` local (`titleDraft`, `durationDraft`) quand la valeur peut venir directement du store.
+- Eviter `useMemo` pour des derivees simples (ex: filtrage sons) quand la lisibilite est meilleure en calcul direct.
+- Sortir la logique metier (normalisation, persistance patch scene) hors du composant React pour garder une UI declarative et mince.
+
+## 2026-03-20 — ItemEdit: limiter `use*` au strict necessaire
+
+- Dans les panneaux d'edition relies a XState, eviter `useCallback`/`useMemo` par defaut; les utiliser seulement si un probleme mesurable de perf le justifie.
+- Preferer des fonctions metier pures hors composant (ex: resolution decor, plan de mutation style, construction de cles de sync).
+- Garder les hooks React pour l'integration (ex: `useSelector`, `useRef`, `useEffect`, `useMachine`) et non pour encapsuler la logique metier courante.

@@ -87,7 +87,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 				{/* <PinDemo imageSrc="/images/DSCF6975-crop.jpg" /> */}
 			</section>
 			<section className="base-layout layout-infos">
-				<EditItem />
+				<EditItem allContents={data.allContents} />
 			</section>
 			<section className="base-layout layout-edit">
 				<EditEvent />

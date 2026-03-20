@@ -1,5 +1,14 @@
 {
 	"include": ["**/*", "**/.server/**/*", "**/.client/**/*", ".react-router/types/**/*"],
+	"exclude": [
+		"app/whisper/App.tsx",
+		"app/whisper/index.tsx",
+		"app/whisper/components/**/*",
+		"app/whisper/hooks/**/*",
+		"app/whisper/utils/AudioUtils.ts",
+		"app/whisper/utils/BlobFix.ts",
+		"app/whisper/utils/Constants.ts"
+	],
 	"compilerOptions": {
 		"lib": ["DOM", "DOM.Iterable", "ESNext"],
 		"types": ["node", "vite/client"],

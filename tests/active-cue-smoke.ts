@@ -83,6 +83,7 @@ function addCapsuleHost(
 		path: "",
 		inner: "",
 		lang: "",
+		timestamp: "[]",
 		capsuleId: args.childCapsuleId
 	};
 	context.items[args.hostItemId] = {
@@ -105,6 +106,7 @@ function addLeafItem(context: SceneComp, itemId: number, capsuleId: number) {
 		path: "",
 		inner: "leaf",
 		lang: "fr",
+		timestamp: "[]",
 		capsuleId: capsuleId
 	};
 	context.items[itemId] = {
