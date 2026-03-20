@@ -4,7 +4,7 @@ import { useMachine } from "@xstate/react";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { applyStyleDefaults, getDefaultStyleForContentType } from "@/config/item-style-defaults";
 import { CAPSULE_TYPES } from "@/config/capsule-types";
-import { INTRO, OUTRO } from "@/config/constants";
+import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { SCENE_ID } from "@/scene-runtime/constants";
 
 import { CapsuleEdit } from "./capsule-edit";
@@ -315,6 +315,10 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		send({
 			type: "events-update",
 			payload: buildDefaultTransitionEventPatch(OUTRO, itemEvents?.[OUTRO])
+		});
+		send({
+			type: "events-update",
+			payload: buildDefaultTransitionEventPatch(SUSTAIN, itemEvents?.[SUSTAIN])
 		});
 
 		if (activeNode) {

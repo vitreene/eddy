@@ -1,4 +1,5 @@
 export const INTRO = "intro";
+export const SUSTAIN = "sustain";
 export const OUTRO = "outro";
 
 export const EMPTY = "–";

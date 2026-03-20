@@ -1,12 +1,16 @@
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
-import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
+import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import {
 	getActiveSceneContent,
 	getSceneContentCues,
 	getSceneContentDurationSec
 } from "@/scene-runtime/scene-content";
+import {
+	resolveCueWindows,
+	type ResolveCueWindowsResult
+} from "@/scene-runtime/visibility/resolve-cue-windows";
 
 import type { ContentEvent, ItemComp, SceneComp, TextTime, CapsuleComp } from "@/api/db";
 import { buildCustomTweenActionName, buildEventActionName } from "./lib";
@@ -33,7 +37,7 @@ export function mapEvents(snapshot: SceneComp) {
 
 	for (const item of Object.values(snapshot.items || {})) {
 		const events = snapshot.events[item.id] || {};
-		const orderedEvents = getOrderedEventsForItem(snapshot, events);
+		const orderedEvents = getOrderedEventsForItem(snapshot, events, item.id);
 		let previousKeyframeMs = 0;
 		for (const entry of orderedEvents) {
 			const ev = entry.event;
@@ -81,7 +85,8 @@ export function mapEvents(snapshot: SceneComp) {
  */
 export function getOrderedEventsForItem(
 	snapshot: SceneComp,
-	events: Record<string, ContentEvent | undefined>
+	events: Record<string, ContentEvent | undefined>,
+	itemId?: number
 ): OrderedEvent[] {
 	const sceneContent = getActiveSceneContent(snapshot);
 	const cues = getSceneContentCues(sceneContent);
@@ -89,7 +94,7 @@ export function getOrderedEventsForItem(
 	const result: OrderedEvent[] = [];
 	for (const event of Object.values(events || {})) {
 		if (!event) continue;
-		const timing = resolveEventTiming(event, cueByName);
+		const timing = resolveEventTiming(event, cueByName, events, snapshot, itemId);
 		result.push({ event, keyframeMs: timing.keyframeMs, runtimeStartMs: timing.runtimeStartMs });
 	}
 
@@ -134,9 +139,18 @@ export function getTransitionPresetForEvent({
  */
 function resolveEventTiming(
 	event: ContentEvent,
-	cueByName: Map<string, TextTime>
+	cueByName: Map<string, TextTime>,
+	eventsByAction: Record<string, ContentEvent | undefined>,
+	snapshot: SceneComp,
+	itemId?: number
 ): { keyframeMs: number | null; runtimeStartMs: number | null } {
 	const kind = deriveEventKind(event.action);
+	if (kind === "sustain") {
+		const sustain = resolveSustainTimingMs(snapshot, eventsByAction, cueByName, itemId);
+		if (!sustain) return { keyframeMs: null, runtimeStartMs: null };
+		return { keyframeMs: sustain.startMs, runtimeStartMs: sustain.startMs };
+	}
+
 	if (kind === "outro") {
 		const cue = event.name ? cueByName.get(event.name) : null;
 		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
@@ -174,14 +188,78 @@ function resolveTransitionDurationMs(event: ContentEvent): number {
 	return DEFAULT_DURATION;
 }
 
+export function resolveSustainWindowMs(
+	snapshot: SceneComp,
+	eventsByAction: Record<string, ContentEvent | undefined>,
+	itemId?: number
+): { startMs: number; endMs: number; durationMs: number } | null {
+	const sceneContent = getActiveSceneContent(snapshot);
+	const cues = getSceneContentCues(sceneContent);
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+	return resolveSustainTimingMs(snapshot, eventsByAction, cueByName, itemId);
+}
+
+function resolveSustainTimingMs(
+	snapshot: SceneComp,
+	eventsByAction: Record<string, ContentEvent | undefined>,
+	cueByName: Map<string, TextTime>,
+	itemId?: number
+): { startMs: number; endMs: number; durationMs: number } | null {
+	const sustainEvent = eventsByAction[SUSTAIN];
+	let introEvent = eventsByAction[INTRO];
+	let outroEvent = eventsByAction[OUTRO];
+	if (!sustainEvent) return null;
+
+	if ((!introEvent?.name || !outroEvent?.name) && typeof itemId === "number") {
+		const resolved = getResolvedCueWindows(snapshot);
+		const resolvedEvents = resolved.resolvedEvents[itemId] || {};
+		introEvent = introEvent || resolvedEvents[INTRO];
+		outroEvent = outroEvent || resolvedEvents[OUTRO];
+		cueByName = resolved.cueByName;
+	}
+
+	const sceneDurationMs = Math.max(
+		0,
+		Math.round(getSceneContentDurationSec(getActiveSceneContent(snapshot)) * 1000)
+	);
+
+	const introCue = introEvent?.name ? cueByName.get(introEvent.name) : null;
+	const introStartMs = introCue ? Math.round(Number(introCue.start) * 1000) : 0;
+	const introDurationMs = introEvent ? resolveTransitionDurationMs(introEvent) : DEFAULT_DURATION;
+	const introEndMs = Math.max(0, introStartMs + introDurationMs);
+
+	const outroCue = outroEvent?.name ? cueByName.get(outroEvent.name) : null;
+	const outroDurationMs = outroEvent ? resolveTransitionDurationMs(outroEvent) : DEFAULT_DURATION;
+	const outroStartMs = outroCue
+		? Math.round(Number(outroCue.start) * 1000)
+		: Math.max(introEndMs, sceneDurationMs - outroDurationMs);
+	if (!Number.isFinite(introEndMs) || !Number.isFinite(outroStartMs)) return null;
+
+	const startMs = Math.max(0, introEndMs);
+	const endMs = Math.max(startMs, outroStartMs);
+	const durationMs = Math.max(0, endMs - startMs);
+	return { startMs, endMs, durationMs };
+}
+
+const resolvedCueWindowsCache = new WeakMap<SceneComp, ResolveCueWindowsResult>();
+
+function getResolvedCueWindows(snapshot: SceneComp): ResolveCueWindowsResult {
+	const cached = resolvedCueWindowsCache.get(snapshot);
+	if (cached) return cached;
+	const resolved = resolveCueWindows(snapshot, { generateMissingEvents: true });
+	resolvedCueWindowsCache.set(snapshot, resolved);
+	return resolved;
+}
+
 /**
  * Stable tie-breaker used when two actions share same start time.
  */
 function actionRank(action: string): number {
 	if (action === INTRO) return 0;
-	if (deriveEventKind(action) === "custom") return 1;
-	if (action === OUTRO) return 2;
-	return 3;
+	if (action === SUSTAIN) return 1;
+	if (deriveEventKind(action) === "custom") return 2;
+	if (action === OUTRO) return 3;
+	return 4;
 }
 
 /**

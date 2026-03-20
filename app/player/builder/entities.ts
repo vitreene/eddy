@@ -1,6 +1,7 @@
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
-import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
+import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
+import { buildSustainEffectStyle } from "@/config/event-effects";
 import { EDITOR_CAPSULE_CLASS, EDITOR_ITEM_CLASS } from "@/config/class-prefix";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { getMediaUrl } from "@/lib/media-url";
@@ -9,7 +10,7 @@ import type { CapsuleComp, ContentEvent, ItemComp, SceneComp } from "@/api/db";
 import { P, type ID } from "../types";
 import { SCENE_ID } from "@/scene-runtime/constants";
 import { buildCustomTweenActionName, buildEventActionName } from "./lib";
-import { getOrderedEventsForItem, getTransitionPresetForEvent } from "./events";
+import { getOrderedEventsForItem, getTransitionPresetForEvent, resolveSustainWindowMs } from "./events";
 import {
 	buildClassNameDiff,
 	buildDynamicClassName,
@@ -260,6 +261,10 @@ function buildTimedActions(input: {
 
 	if (events) {
 		const orderedEvents = getOrderedEventsForItem(snapshot, events);
+		const hasCustomEvents = Object.values(events).some(
+			(event) => Boolean(event) && deriveEventKind(event!.action) === "custom"
+		);
+		const sustainWindow = !hasCustomEvents ? resolveSustainWindowMs(snapshot, events, item.id) : null;
 		const hasExplicitIntroEvent = Boolean(events[INTRO]);
 		let firstCustomHandled = false;
 		let previousKeyframeMs = 0;
@@ -270,6 +275,16 @@ function buildTimedActions(input: {
 			const ev = entry.event;
 			const actionName = buildEventActionName(ev);
 			const eventKind = deriveEventKind(ev.action);
+
+			if (eventKind === "sustain") {
+				if (!sustainWindow || sustainWindow.durationMs <= 0) continue;
+				const sustainStyle = buildSustainEffectStyle(ev.ref, sustainWindow.durationMs);
+				if (!sustainStyle || !Object.keys(sustainStyle).length) continue;
+				actions[actionName] = { style: sustainStyle };
+				lastScheduledStartMs = sustainWindow.startMs;
+				if (sustainWindow.startMs > previousKeyframeMs) previousKeyframeMs = sustainWindow.startMs;
+				continue;
+			}
 
 			if (eventKind === "custom") {
 				const useItemDecorForThisCustom = !hasExplicitIntroEvent && !firstCustomHandled;

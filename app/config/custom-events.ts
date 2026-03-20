@@ -1,15 +1,17 @@
-import { INTRO, OUTRO } from "@/config/constants";
+import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 
 export const RESERVED_EVENT_ACTIONS = {
 	INTRO,
+	SUSTAIN,
 	OUTRO
 } as const;
 
 export type ReservedEventAction =
 	| (typeof RESERVED_EVENT_ACTIONS)["INTRO"]
+	| (typeof RESERVED_EVENT_ACTIONS)["SUSTAIN"]
 	| (typeof RESERVED_EVENT_ACTIONS)["OUTRO"];
 
-export type EventKind = "intro" | "outro" | "custom";
+export type EventKind = "intro" | "sustain" | "outro" | "custom";
 export type CustomEventPosition = "start" | "middle" | "end";
 
 export type CustomEventDraft = {
@@ -62,6 +64,7 @@ export function serializeCustomEventMoveOptions(
 
 export function deriveEventKind(action: string | null | undefined): EventKind {
 	if (action === RESERVED_EVENT_ACTIONS.INTRO) return "intro";
+	if (action === RESERVED_EVENT_ACTIONS.SUSTAIN) return "sustain";
 	if (action === RESERVED_EVENT_ACTIONS.OUTRO) return "outro";
 	return "custom";
 }

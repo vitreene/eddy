@@ -17,6 +17,8 @@ import {
 	normalizeTransitionAction,
 	normalizeTransitionRef
 } from "@/config/transitions";
+import { normalizeSustainEffectRef } from "@/config/event-effects";
+import { SUSTAIN } from "@/config/constants";
 import { CAPSULE_TYPES } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, POSITION_FULL_SPAN_CLASS } from "@/config/capsule-presets";
 import { resolveCapsuleType } from "@/config/capsule-types";
@@ -1182,19 +1184,22 @@ export async function addEventToContent({
 }) {
 	const eventKind = deriveEventKind(action);
 	const transitionAction = normalizeTransitionAction(action);
-	const normalizedAction = eventKind === "custom" ? action.trim() : transitionAction;
+	const normalizedAction =
+		eventKind === "custom" ? action.trim() : action === SUSTAIN ? SUSTAIN : transitionAction;
 	const normalizedName = typeof name == "string" && name.trim().length ? name.trim() : null;
 	const normalizedRef =
 		eventKind === "custom"
 			? typeof ref == "string" && ref.trim().length
 				? ref.trim()
 				: null
-			: normalizeTransitionRef(
-					typeof ref == "string" && ref.trim().length
-						? ref.trim()
-						: DEFAULT_TRANSITION_BY_ACTION[transitionAction],
-					transitionAction
-				);
+			: eventKind === "sustain"
+				? normalizeSustainEffectRef(ref)
+				: normalizeTransitionRef(
+						typeof ref == "string" && ref.trim().length
+							? ref.trim()
+							: DEFAULT_TRANSITION_BY_ACTION[transitionAction],
+						transitionAction
+					);
 
 	const normalizedDuration =
 		typeof duration == "number" && Number.isFinite(duration) && duration > 0 ? duration : null;
@@ -1257,7 +1262,7 @@ export async function removeCustomEventFromContent(id: number) {
 	});
 	if (!event) return null;
 	if (deriveEventKind(event.action) !== "custom") {
-		throw new Error("Cannot delete intro/outro events");
+		throw new Error("Cannot delete standard events");
 	}
 
 	return await prisma.$transaction(async (tx) => {

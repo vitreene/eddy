@@ -3,7 +3,7 @@ import { CircleSmallIcon, Plus, Trash2 } from "lucide-react";
 
 import type { ItemComp, ContentEvent } from "@/api/db";
 
-import { INTRO, OUTRO } from "@/config/constants";
+import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -11,8 +11,9 @@ import { Button } from "@/components/ui/button";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import { Rubber } from "../rubber";
+import { SustainEventParams } from "./sustain-event-params";
 
-const actionOrder = [INTRO, OUTRO];
+const actionOrder = [INTRO, SUSTAIN, OUTRO];
 
 const positionName = {
 	start: "début",
@@ -64,12 +65,12 @@ export function EditEvent() {
 
 function buildDefaultTransitionEvent(action: string): ContentEvent | null {
 	const kind = deriveEventKind(action);
-	if (kind !== "intro" && kind !== "outro") return null;
+	if (kind !== "intro" && kind !== "sustain" && kind !== "outro") return null;
 	return {
 		id: undefined,
 		action,
 		name: null,
-		ref: "",
+		ref: kind === "sustain" ? null : "",
 		duration: null,
 		delay: null,
 		position: null,
@@ -197,6 +198,8 @@ function EventParams({
 						</label>
 					</div>
 				</>
+			) : kind === "sustain" ? (
+				<SustainEventParams event={event} events={events} />
 			) : (
 				<div className="flex items-center gap-2">
 					<label>{event.action === INTRO ? "Transition entrée" : "Transition sortie"}</label>
@@ -258,7 +261,9 @@ function ContentInfos({ item }: { item: ItemComp }) {
 	const sceneLogic = SceneLogicContext.useActorRef();
 
 	const orderedEvents = [
-		...actionOrder.map((action) => events?.[action] ?? { action, ref: "" }),
+		...actionOrder.map(
+			(action) => events?.[action] ?? buildDefaultTransitionEvent(action) ?? { action, ref: "" }
+		),
 		...Object.values(events || {})
 			.filter((event) => !actionOrder.includes(event.action))
 			.toSorted((a, b) => {
@@ -318,8 +323,8 @@ function MediaEventTransition({
 		sceneLogic.send({ type: "custom-event-delete", payload: { action: event.action } });
 	};
 
-	const label =
-		deriveEventKind(event.action) === "custom" ? resolveEventLabel(cues, event.name) : event.action;
+	const kind = deriveEventKind(event.action);
+	const label = kind === "custom" ? resolveEventLabel(cues, event.name) : event.action;
 
 	return (
 		<div
@@ -334,9 +339,11 @@ function MediaEventTransition({
 						"inline-block",
 						event.action === INTRO
 							? "fill-green-300 stroke-green-500"
-							: event.action === OUTRO
-								? "fill-red-300 stroke-red-500"
-								: "fill-blue-300 stroke-blue-600"
+							: event.action === SUSTAIN
+								? "fill-amber-200 stroke-amber-500"
+								: event.action === OUTRO
+									? "fill-red-300 stroke-red-500"
+									: "fill-blue-300 stroke-blue-600"
 					)}
 				/>
 				<span className="truncate">{label}</span>

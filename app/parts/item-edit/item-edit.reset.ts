@@ -1,5 +1,5 @@
 import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
-import { INTRO, OUTRO } from "@/config/constants";
+import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind } from "@/config/custom-events";
 
 import type { ContentEvent } from "@/api/db";
@@ -15,13 +15,13 @@ export function getCustomEventActions(
 }
 
 export function buildDefaultTransitionEventPatch(
-	action: typeof INTRO | typeof OUTRO,
+	action: typeof INTRO | typeof OUTRO | typeof SUSTAIN,
 	event: ContentEvent | undefined
 ): Partial<ContentEvent> {
 	return {
 		...event,
 		action,
-		ref: DEFAULT_TRANSITION_BY_ACTION[action],
+		ref: action === SUSTAIN ? null : DEFAULT_TRANSITION_BY_ACTION[action],
 		duration: null,
 		delay: null,
 		position: null

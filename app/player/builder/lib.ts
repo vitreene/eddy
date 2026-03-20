@@ -4,7 +4,8 @@ import type { ContentEvent } from "@/api/db";
  * Build a stable action key used by both timeline events and item actions.
  */
 export function buildEventActionName(event: ContentEvent): string {
-	const label = event.name || event.action;
+	const itemScope = typeof event.itemId === "number" ? `item-${event.itemId}` : null;
+	const label = event.name || itemScope || event.action;
 	return `${label}-${event.action}`;
 }
 

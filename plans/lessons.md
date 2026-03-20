@@ -187,3 +187,17 @@
 - Pour la duree auto des items, ne pas se baser uniquement sur `sceneContent.events` (peut etre stale/default).
 - Utiliser la meme priorite de source partout: `cues` -> `timestamp` -> `events` (`getSceneContentCues`).
 - Quand la scene est reliee a un son apres creation, les fenetres auto doivent suivre la plage temporelle des cues audio, pas la fallback duration historique.
+
+## 2026-03-20 — Round-trip UI des refs d'effets
+
+- Quand une config est stockee en JSON dans `event.ref`, verifier explicitement le round-trip DB -> parser UI -> controles pour des scenes reelles (ex: scene 8) apres implementation.
+- Rendre le parser tolerant aux variantes historiques (`in/out`, `initial/final`, scalaires ou tableaux) pour eviter des reglages "perdus" a la relecture.
+
+## 2026-03-20 — Ne pas sur-generaliser sans besoin explicite
+
+- Eviter d'ajouter de la compatibilite de format non demandee (parser permissif) quand le contrat attendu est deja precise.
+- Prioriser une implementation stricte et lisible du schema requis, puis elargir seulement si un cas legacy est explicitement valide.
+
+## 2026-03-20 — Builder: standard events sans ancrage explicite
+
+- Quand un standard event depend d'un intervalle (ex: `sustain`) et que `intro/outro` ne sont pas explicitement persistes, le builder doit calculer un fallback auto (borne scene + durees de transition), sinon aucun trigger n'est produit.

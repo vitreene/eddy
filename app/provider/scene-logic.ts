@@ -8,7 +8,7 @@ import { computeActiveCue } from "./active-cue";
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp, SceneContent } from "@/api/db";
 import type { Theme } from "prisma/generated/prisma/client";
 import { mergeCssStrings } from "@/lib/merge-css-classes";
-import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO } from "@/config/constants";
+import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import {
 	deriveEventKind,
 	normalizeCustomEventDraft,
@@ -479,7 +479,7 @@ export const sceneLogic = setup({
 										const selectedEvent = context.events[itemId]?.[nextEvent];
 										if (selectedEvent && typeof cue == "number" && Number.isFinite(cue)) {
 											const kind = deriveEventKind(selectedEvent.action);
-											if (kind === "custom" || kind === "intro" || kind === "outro") {
+											if (kind === "custom" || kind === "intro" || kind === "sustain" || kind === "outro") {
 												nextActive = {
 													...nextActive,
 													action: "seek"

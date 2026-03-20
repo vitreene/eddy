@@ -1,4 +1,4 @@
-import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
+import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 
@@ -91,6 +91,7 @@ export function resolveEventAnchorSec(
 	event: ContentEvent
 ): number | null {
 	if (event.action === INTRO) return resolveIntroAnchorSec(context, event);
+	if (event.action === SUSTAIN) return resolveSustainAnchorSec(context, itemId);
 	if (event.action === OUTRO) return resolveOutroAnchorSec(context, event);
 	if (deriveEventKind(event.action) !== "custom") return null;
 
@@ -123,6 +124,20 @@ function resolveOutroAnchorSec(context: SceneComp, event: ContentEvent): number 
 	if (!cue) return null;
 	const durationSec = resolveTransitionDurationSec(event);
 	return cue.end - durationSec;
+}
+
+function resolveSustainAnchorSec(context: SceneComp, itemId: number): number | null {
+	const introEvent = context.events?.[itemId]?.[INTRO];
+	if (!introEvent) return null;
+	const introAnchor = resolveIntroAnchorSec(context, introEvent);
+	if (!Number.isFinite(introAnchor)) return null;
+
+	const outroEvent = context.events?.[itemId]?.[OUTRO];
+	if (!outroEvent) return introAnchor;
+	const outroCue = findSceneCueByName(context, outroEvent.name);
+	if (!outroCue || !Number.isFinite(outroCue.start)) return introAnchor;
+
+	return Math.min(introAnchor, outroCue.start);
 }
 
 function resolveTransitionDurationSec(event: ContentEvent): number {
