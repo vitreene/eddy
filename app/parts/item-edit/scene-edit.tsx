@@ -32,41 +32,6 @@ function getSounds(allContents: Content[], runtimeContents: Content[]): Content[
 	return [...merged.values()].filter((content) => content.type === "sound");
 }
 
-async function persistScenePatch(args: { sceneId: number; patch: ScenePatch; send: (event: any) => void }) {
-	const response = await fetch(`/api/scene/${args.sceneId}`, {
-		method: "POST",
-		headers: {
-			Accept: "application/json",
-			"Content-Type": "application/json"
-		},
-		body: JSON.stringify(args.patch)
-	});
-	if (!response.ok) return;
-
-	const payload = (await response.json()) as {
-		scene?: { title?: string };
-		sceneContent?: any | null;
-		mainCapsule?: { id: number; grid: string | null } | null;
-	};
-
-	if (payload.scene?.title) {
-		args.send({ type: "scene-update", payload: { title: payload.scene.title } });
-	}
-
-	if (payload.sceneContent) {
-		args.send({ type: "scene-content-upsert", payload: payload.sceneContent });
-	} else if (Object.prototype.hasOwnProperty.call(args.patch, "contentId") && args.patch.contentId === null) {
-		args.send({ type: "scene-content-remove", payload: { sceneId: args.sceneId } });
-	}
-
-	if (payload.mainCapsule) {
-		args.send({
-			type: "capsule-update",
-			payload: { id: payload.mainCapsule.id, grid: payload.mainCapsule.grid }
-		});
-	}
-}
-
 export function SceneEdit({ allContents = [] }: SceneEditProps) {
 	const { send } = SceneLogicContext.useActorRef();
 	const sceneId = SceneLogicContext.useSelector((state) => state.context.id);
@@ -90,34 +55,40 @@ export function SceneEdit({ allContents = [] }: SceneEditProps) {
 	const onCommitTitle = (titleInput: string) => {
 		const nextTitle = titleInput.trim() || "Scene";
 		if (nextTitle === sceneTitle) return;
-		void persistScenePatch({ sceneId, patch: { title: nextTitle }, send });
+		send({ type: "scene-patch-requested", payload: { sceneId, patch: { title: nextTitle } } });
 	};
 
 	const onCommitDuration = (durationInput: string) => {
 		const safeDuration = getSafeDurationSec(Number(durationInput));
-		void persistScenePatch({
-			sceneId,
-			patch: { totalDuration: safeDuration, contentId: sceneContent?.contentId ?? null },
-			send
+		send({
+			type: "scene-patch-requested",
+			payload: {
+				sceneId,
+				patch: { totalDuration: safeDuration, contentId: sceneContent?.contentId ?? null }
+			}
 		});
 	};
 
 	const onChangeAudio = (nextValue: string) => {
 		const nextContentId = nextValue ? Number(nextValue) : null;
-		void persistScenePatch({
-			sceneId,
-			patch: { contentId: nextContentId, totalDuration: sceneDurationSec },
-			send
+		send({
+			type: "scene-patch-requested",
+			payload: {
+				sceneId,
+				patch: { contentId: nextContentId, totalDuration: sceneDurationSec }
+			}
 		});
 	};
 
 	const onChangeMainGrid = (nextCols: number, nextRows: number) => {
 		const cols = Math.max(1, Math.floor(nextCols || 1));
 		const rows = Math.max(1, Math.floor(nextRows || 1));
-		void persistScenePatch({
-			sceneId,
-			patch: { mainGrid: `root-scene ${buildEditorGridClassName(cols, rows)}` },
-			send
+		send({
+			type: "scene-patch-requested",
+			payload: {
+				sceneId,
+				patch: { mainGrid: `root-scene ${buildEditorGridClassName(cols, rows)}` }
+			}
 		});
 	};
 

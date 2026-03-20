@@ -1,7 +1,7 @@
 import type { ContentEvent, ItemComp, SceneComp, TextTime } from "@/api/db";
 import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
-import { SCENE_DEFAULT_DURATION_SEC } from "@/scene-runtime/scene-content";
+import { getSceneContentCues, SCENE_DEFAULT_DURATION_SEC } from "@/scene-runtime/scene-content";
 
 type Window = { start: number; end: number };
 type Lock = { index: number; start: number; end: number };
@@ -46,7 +46,7 @@ export function resolveCueWindows(
 	const baseEvents: SceneComp["events"] = Object.fromEntries(
 		Object.entries(snapshot.events || {}).map(([itemId, eventMap]) => [itemId, { ...(eventMap || {}) }])
 	);
-	const resolvedSceneContentEvents = [...(sceneContent?.events || [])];
+	const resolvedSceneContentEvents = [...getSceneContentCues(sceneContent)];
 	if (!resolvedSceneContentEvents.length) {
 		const sceneName = (snapshot.title || `Scene ${snapshot.id}`).trim() || `Scene ${snapshot.id}`;
 		resolvedSceneContentEvents.push({

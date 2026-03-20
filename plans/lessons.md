@@ -164,3 +164,26 @@
 - Dans les panneaux d'edition relies a XState, eviter `useCallback`/`useMemo` par defaut; les utiliser seulement si un probleme mesurable de perf le justifie.
 - Preferer des fonctions metier pures hors composant (ex: resolution decor, plan de mutation style, construction de cles de sync).
 - Garder les hooks React pour l'integration (ex: `useSelector`, `useRef`, `useEffect`, `useMachine`) et non pour encapsuler la logique metier courante.
+
+## 2026-03-20 — Scene-logic: isoler les appels reseau en modules annexes
+
+- Quand on ajoute des flux reseau dans `scene-logic`, deplacer les methodes HTTP dans un fichier annexe dedie (ex: `scene-logic.api.ts`) au lieu d'encombrer la machine.
+- La machine XState doit orchestrer (events/actions/transitions), pas porter les details bas niveau des requetes.
+- Pour les composants `item-edit`, toute operation reseau doit transiter par `send(...)` vers la machine; aucun `fetch` direct dans les composants.
+
+## 2026-03-20 — Eviter les refs miroir pour etat XState
+
+- Si une valeur provient deja du store XState, privilegier la lecture depuis la source (`actorRef.getSnapshot()`) au moment d'execution plutot qu'un `useRef` miroir synchronise par `useEffect`.
+- Garder `useRef` seulement pour les etats locaux non reactifs (ex: promesse en cours), pas pour dupliquer `item`/`node` issus du contexte machine.
+
+## 2026-03-20 — Boucles React: stabiliser les dependances machine
+
+- Ne jamais dependre d'un objet `props` entier dans un `useEffect` qui envoie un event machine (`props.sync`), sinon boucle de render potentielle.
+- Memoizer les objets derives envoyes aux machines (`runtimeInput`, `editableVisualState`) pour eviter les transitions inutiles en continu.
+- Stabiliser les callbacks passes aux composants editeurs sensibles aux refs (`onCommit`, `onStyleChange`, etc.) quand ils pilotent des sous-machines.
+
+## 2026-03-20 — Auto durations: toujours deriver des cues effectifs
+
+- Pour la duree auto des items, ne pas se baser uniquement sur `sceneContent.events` (peut etre stale/default).
+- Utiliser la meme priorite de source partout: `cues` -> `timestamp` -> `events` (`getSceneContentCues`).
+- Quand la scene est reliee a un son apres creation, les fenetres auto doivent suivre la plage temporelle des cues audio, pas la fallback duration historique.

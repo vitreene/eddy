@@ -37,6 +37,14 @@ import {
 	withItemNodeIds
 } from "./scene-logic.helpers";
 import { initializeSceneContext } from "./scene-logic.init";
+import {
+	deleteCustomEventOnServer,
+	patchSceneOnServer,
+	persistContentTextOnServer,
+	persistItemVisibilityOnServer,
+	type ScenePatchRequest
+} from "./scene-logic.api";
+import { ensureEventDecorId } from "./scene-logic.decor";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -82,6 +90,7 @@ export const sceneLogic = setup({
 		events: {} as
 			| { type: "init"; payload: SceneComp }
 			| { type: "scene-update"; payload: Partial<Pick<SceneComp, "title">> }
+			| { type: "scene-patch-requested"; payload: { sceneId: number; patch: ScenePatchRequest } }
 			| { type: "persist-touched" }
 			| { type: "active-set"; payload: Partial<ActiveState> }
 			| { type: "sequence-flush-request"; payload?: { reason?: SequenceFlushReason; force?: boolean } }
@@ -92,9 +101,41 @@ export const sceneLogic = setup({
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
 			| { type: "item-visibility-toggle"; payload: { itemId: number; visible: boolean } }
 			| { type: "content-update"; payload: { id: number; inner?: string; name?: string } }
+			| { type: "content-text-commit-requested"; payload: { id: number; inner: string } }
+			| {
+					type: "decor-patch-requested";
+					payload: {
+						itemId: number;
+						action: string | null;
+						targetDecorId: number;
+						selectedEventUsesItemDecor: boolean;
+						seed?: { className?: string | null; area?: string | null; style?: Decor["style"] | null };
+						patch: {
+							className?: string | null;
+							area?: string | null;
+							style?: Decor["style"] | null;
+						};
+					};
+			  }
+			| {
+					type: "decor-patch-apply";
+					payload: {
+						itemId: number;
+						decorId: number;
+						patch: {
+							className?: string | null;
+							area?: string | null;
+							style?: Decor["style"] | null;
+						};
+					};
+			  }
 			| { type: "capsule-update"; payload: Partial<CapsuleComp> }
 			| { type: "events-update"; payload: Partial<ContentEvent> }
 			| { type: "events-persisted"; payload: { itemId: number; events: ContentEvent[] } }
+			| {
+					type: "decor-created";
+					payload: { itemId: number; action: string; decor: Decor };
+			  }
 			| {
 					type: "custom-event-create";
 					payload?: {
@@ -196,24 +237,88 @@ export const sceneLogic = setup({
 			});
 		},
 		persistItemVisibility: async (_, params: { itemId: number; visible: boolean }) => {
-			const formData = new FormData();
-			formData.set("visible", params.visible ? "true" : "false");
-			void fetch(`/api/item/${params.itemId}`, {
-				method: "POST",
-				body: formData
-			});
+			await persistItemVisibilityOnServer(params.itemId, params.visible);
 		},
 		deleteCustomEvent: async (_, params: { itemId: number; eventId: number }) => {
-			if (!params?.itemId || !params?.eventId) return;
+			await deleteCustomEventOnServer(params.itemId, params.eventId);
+		},
+		persistContentText: async (_, params: { id: number; inner: string }) => {
+			await persistContentTextOnServer(params.id, params.inner);
+		},
+		ensureDecorPatchTarget: async (
+			{ self },
+			params: {
+				itemId: number;
+				action: string | null;
+				targetDecorId: number;
+				selectedEventUsesItemDecor: boolean;
+				seed?: { className?: string | null; area?: string | null; style?: Decor["style"] | null };
+				patch: {
+					className?: string | null;
+					area?: string | null;
+					style?: Decor["style"] | null;
+				};
+			}
+		) => {
+			let decorId = params.targetDecorId;
+			const action = params.action;
 
-			void fetch(`/api/content/${params.itemId}`, {
-				method: "DELETE",
-				headers: {
-					Accept: "application/json",
-					"Content-Type": "application/json"
-				},
-				body: JSON.stringify({ eventId: params.eventId })
+			if (action && !params.selectedEventUsesItemDecor) {
+				const snapshotContext = self.getSnapshot().context as SceneComp & { active: ActiveState };
+				const ensured = await ensureEventDecorId({
+					context: snapshotContext,
+					itemId: params.itemId,
+					action,
+					seed: params.seed
+				});
+
+				if (!ensured.decorId) return;
+				decorId = ensured.decorId;
+
+				if (ensured.createdDecor) {
+					self.send({
+						type: "decor-created",
+						payload: {
+							itemId: params.itemId,
+							action,
+							decor: ensured.createdDecor
+						}
+					});
+				}
+			}
+
+			self.send({
+				type: "decor-patch-apply",
+				payload: {
+					itemId: params.itemId,
+					decorId,
+					patch: params.patch
+				}
 			});
+		},
+		persistScenePatch: async ({ self }, params: { sceneId: number; patch: ScenePatchRequest }) => {
+			const payload = await patchSceneOnServer(params.sceneId, params.patch);
+			if (!payload) return;
+
+			if (payload.scene?.title) {
+				self.send({ type: "scene-update", payload: { title: payload.scene.title } });
+			}
+
+			if (payload.sceneContent) {
+				self.send({ type: "scene-content-upsert", payload: payload.sceneContent });
+			} else if (
+				Object.prototype.hasOwnProperty.call(params.patch, "contentId") &&
+				params.patch.contentId === null
+			) {
+				self.send({ type: "scene-content-remove", payload: { sceneId: params.sceneId } });
+			}
+
+			if (payload.mainCapsule) {
+				self.send({
+					type: "capsule-update",
+					payload: { id: payload.mainCapsule.id, grid: payload.mainCapsule.grid }
+				});
+			}
 		}
 	},
 	guards: {
@@ -549,6 +654,14 @@ export const sceneLogic = setup({
 								};
 							})
 						},
+						"scene-patch-requested": {
+							actions: [
+								{
+									type: "persistScenePatch",
+									params: ({ event }) => ({ sceneId: event.payload.sceneId, patch: event.payload.patch })
+								}
+							]
+						},
 						"events-persisted": {
 							actions: assign(({ context, event }) => {
 								const current = context.events[event.payload.itemId] || {};
@@ -614,6 +727,88 @@ export const sceneLogic = setup({
 									active: markSequenceTouched(context.active)
 								};
 							})
+						},
+						"content-text-commit-requested": {
+							actions: [
+								{
+									type: "persistContentText",
+									params: ({ event }) => event.payload
+								}
+							]
+						},
+						"decor-patch-requested": {
+							actions: [
+								{
+									type: "ensureDecorPatchTarget",
+									params: ({ event }) => event.payload
+								}
+							]
+						},
+						"decor-created": {
+							actions: [
+								assign(({ context, event }) => {
+									const currentItemEvents = context.events[event.payload.itemId] || {};
+									const currentEvent = currentItemEvents[event.payload.action];
+									if (!currentEvent) return context;
+
+									return {
+										...context,
+										decors: {
+											...context.decors,
+											[event.payload.decor.id]: event.payload.decor
+										},
+										events: {
+											...context.events,
+											[event.payload.itemId]: {
+												...currentItemEvents,
+												[event.payload.action]: {
+													...currentEvent,
+													decorId: event.payload.decor.id
+												}
+											}
+										},
+										active: {
+											...markSequenceTouched(context.active),
+											decorTouched: true,
+											eventTouched: true
+										}
+									};
+								}),
+								raise(() => ({ type: "persist-touched" }))
+							]
+						},
+						"decor-patch-apply": {
+							actions: [
+								assign(({ context, event }) => {
+									if (!event.payload.decorId || !Number.isFinite(event.payload.decorId)) return context;
+
+									const patch = event.payload.patch;
+									const hasClassName = hasOwn(patch, "className");
+									const hasArea = hasOwn(patch, "area");
+									const hasStyle = hasOwn(patch, "style");
+									if (!hasClassName && !hasArea && !hasStyle) return context;
+
+									const decorPatch = {
+										id: event.payload.decorId,
+										...(hasClassName ? { className: patch.className ?? null } : {}),
+										...(hasArea ? { area: patch.area ?? null } : {}),
+										...(hasStyle ? { style: patch.style ?? {} } : {})
+									} as Decor;
+
+									return {
+										...context,
+										decors: {
+											...context.decors,
+											[event.payload.decorId]: mergeDecorStylePatch(context.decors?.[event.payload.decorId], decorPatch)
+										},
+										active: {
+											...markSequenceTouched(context.active),
+											decorTouched: true
+										}
+									};
+								}),
+								raise(() => ({ type: "persist-touched" }))
+							]
 						},
 						"events-update": {
 							actions: [

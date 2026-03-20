@@ -128,15 +128,31 @@ export function ItemTransformEditorPosition(props: PositionProps) {
 
 function useTransformRuntime(props: TransformProps) {
 	const service = useMemo(() => new TransformEditorDomService(), []);
+	const runtimeInput = useMemo(
+		() => ({ service, ...props, disableLiveTransform: false, alwaysResyncOnCommit: false }),
+		[
+			service,
+			props.element,
+			props.active,
+			props.onCommit,
+			props.snapParentElement,
+			props.snapParentId,
+			props.overlayContainer,
+			props.className,
+			props.syncToken,
+			props.snapGrid,
+			props.value,
+			props.applyToElement,
+			props.minWidth,
+			props.minHeight
+		]
+	);
 	const [state, send] = useMachine(transformEditorMachine, {
-		input: { service, ...props, disableLiveTransform: false, alwaysResyncOnCommit: false }
+		input: runtimeInput
 	});
 	useEffect(() => {
-		send({
-			type: "props.sync",
-			input: { service, ...props, disableLiveTransform: false, alwaysResyncOnCommit: false }
-		});
-	}, [send, service, props]);
+		send({ type: "props.sync", input: runtimeInput });
+	}, [send, runtimeInput]);
 	useEffect(() => () => service.dispose(), [service]);
 
 	useElementRetry(state.context.input.element, state.context.input.active ?? true, send);
@@ -167,12 +183,27 @@ function useTransformRuntime(props: TransformProps) {
 
 function usePositionRuntime(props: PositionProps) {
 	const service = useMemo(() => new PositionEditorDomService(), []);
+	const runtimeInput = useMemo(
+		() => ({ service, ...props }),
+		[
+			service,
+			props.element,
+			props.active,
+			props.onCommit,
+			props.snapParentElement,
+			props.snapParentId,
+			props.overlayContainer,
+			props.className,
+			props.syncToken,
+			props.snapGrid
+		]
+	);
 	const [state, send] = useMachine(positionEditorMachine, {
-		input: { service, ...props }
+		input: runtimeInput
 	});
 	useEffect(() => {
-		send({ type: "props.sync", input: { service, ...props } });
-	}, [send, service, props]);
+		send({ type: "props.sync", input: runtimeInput });
+	}, [send, runtimeInput]);
 	useEffect(() => () => service.dispose(), [service]);
 
 	if (

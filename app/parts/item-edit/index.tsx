@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useMachine } from "@xstate/react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -193,7 +193,8 @@ function buildStyleMutationPlan(args: {
 }
 
 export function EditItem({ allContents = [] }: EditItemProps) {
-	const { send } = SceneLogicContext.useActorRef();
+	const actorRef = SceneLogicContext.useActorRef();
+	const { send } = actorRef;
 
 	const item = SceneLogicContext.useSelector((state) =>
 		state.context.active.itemId ? state.context.items[state.context.active.itemId] : undefined
@@ -225,51 +226,6 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		selectedEvent
 	});
 
-	const itemRef = useRef(item);
-	const activeNodeRef = useRef(activeNode);
-	const pendingEventDecorPromiseRef = useRef<Promise<number | null> | null>(null);
-
-	const ensureSelectedEventDecorId = async () => {
-		if (!item || !selectedEvent) return null;
-		if (selectedEventUsesItemDecor) return item?.decorId ?? null;
-		if (selectedEvent.decorId) return selectedEvent.decorId;
-		if (pendingEventDecorPromiseRef.current) return await pendingEventDecorPromiseRef.current;
-
-		const creationPromise = (async () => {
-			const response = await fetch("/api/decor", {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({})
-			});
-			if (!response.ok) return null;
-
-			const payload = (await response.json()) as { decorId?: number };
-			const decorId = Number(payload.decorId);
-			if (!decorId || !Number.isFinite(decorId)) return null;
-
-			const seedDecor = decor || itemDecor;
-			send({
-				type: "item-update",
-				payload: {
-					decor: {
-						id: decorId,
-						className: seedDecor?.className ?? null,
-						area: seedDecor?.area ?? null,
-						style: (seedDecor?.style as EditableStyle) ?? {}
-					} as Decor
-				}
-			});
-			send({ type: "events-update", payload: { action: selectedEvent.action, decorId } });
-
-			return decorId;
-		})();
-
-		pendingEventDecorPromiseRef.current = creationPromise;
-		const result = await creationPromise;
-		pendingEventDecorPromiseRef.current = null;
-		return result;
-	};
-
 	const capsule = SceneLogicContext.useSelector((state) => {
 		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
 		return undefined;
@@ -278,11 +234,11 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		item ? state.context.capsules[item.capsuleId] : undefined
 	);
 
-	const onStyleChange = (payload: EditableStyle) => {
-		void (async () => {
+	const onStyleChange = useCallback(
+		(payload: EditableStyle) => {
 			const normalizedPayload = normalizeTransformPrecision(payload);
 			const targetDecor = editDecor || itemDecor;
-			if (!targetDecor) return;
+			if (!targetDecor || !item) return;
 			const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as EditableStyle;
 			const mutationPlan = buildStyleMutationPlan({
 				normalizedPayload,
@@ -311,26 +267,38 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				applyAreaClassPatch(activeNode, targetDecor.area ?? null, mutationPlan.nextArea);
 			}
 
-			let targetDecorId = targetDecor.id;
-			if (selectedEvent && !selectedEvent.decorId) {
-				const createdDecorId = await ensureSelectedEventDecorId();
-				if (!createdDecorId) return;
-				targetDecorId = createdDecorId;
-			}
-
 			send({
-				type: "item-update",
+				type: "decor-patch-requested",
 				payload: {
-					decor: {
-						id: targetDecorId,
+					itemId: item.id,
+					action: selectedEvent?.action ?? null,
+					targetDecorId: targetDecor.id,
+					selectedEventUsesItemDecor,
+					seed: {
+						className: targetDecor.className ?? null,
+						area: targetDecor.area ?? null,
+						style: (targetDecor.style as EditableStyle) ?? {}
+					},
+					patch: {
 						...(mutationPlan.classNameChanged ? { className: mutationPlan.nextClassName } : {}),
 						...(mutationPlan.areaChanged ? { area: mutationPlan.nextArea } : {}),
 						style: mutationPlan.stylePatch
-					} as Decor
+					}
 				}
 			});
-		})();
-	};
+		},
+		[
+			editDecor,
+			itemDecor,
+			item,
+			decor,
+			content?.type,
+			activeNode,
+			send,
+			selectedEvent,
+			selectedEventUsesItemDecor
+		]
+	);
 
 	const onResetStyle = () => {
 		if (!item || !editDecor) return;
@@ -383,24 +351,21 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 
 	const onTextCommit = (inner: string) => {
 		if (!content || content.type !== "text") return;
-		fetch(`/api/content/${content.id}`, {
-			method: "POST",
-			headers: {
-				Accept: "application/json",
-				"Content-Type": "application/json"
-			},
-			body: JSON.stringify({ inner })
-		});
+		send({ type: "content-text-commit-requested", payload: { id: content.id, inner } });
 	};
 
-	const editableVisualState = item
-		? buildEditableVisualState({
-				itemId: item.id,
-				eventAction: activeEventAction,
-				cueSec: activeCueSec,
-				decor
-			})
-		: null;
+	const editableVisualState = useMemo(
+		() =>
+			item
+				? buildEditableVisualState({
+						itemId: item.id,
+						eventAction: activeEventAction,
+						cueSec: activeCueSec,
+						decor
+					})
+				: null,
+		[item, activeEventAction, activeCueSec, decor]
+	);
 
 	const selectedEventCueSec = SceneLogicContext.useSelector((state) => {
 		const itemId = state.context.active.itemId;
@@ -410,16 +375,16 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	});
 
 	const desiredEditorSyncKey = buildEditorSyncKey(editableVisualState);
-	useEffect(() => {
-		itemRef.current = item;
-		activeNodeRef.current = activeNode;
-	}, [item, activeNode]);
 
 	const [syncState, syncSend] = useMachine(editorSyncMachine, {
 		input: {
 			onSeek: (request) => {
-				const currentItem = itemRef.current;
-				if (!currentItem || !request.selectedEventAction) return;
+				if (!request.selectedEventAction) return;
+				const snapshot = actorRef.getSnapshot();
+				const selectedItemId = request.visualState?.itemId ?? snapshot.context.active.itemId;
+				if (!selectedItemId) return;
+				const currentItem = snapshot.context.items[selectedItemId];
+				if (!currentItem) return;
 				send({
 					type: "active-set",
 					payload: {
@@ -433,7 +398,8 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 			},
 			onProject: (request) => {
 				if (!request.selectedEventAction) return;
-				projectEditableVisualStateToNode(activeNodeRef.current, request.visualState);
+				const snapshot = actorRef.getSnapshot();
+				projectEditableVisualStateToNode(snapshot.context.active.node as HTMLElement | null, request.visualState);
 			}
 		}
 	});
@@ -460,27 +426,39 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		activePlaybackAction
 	]);
 
-	const onDecorUpdate = (payload: { id: number; area?: string | null; className?: string | null }) => {
-		void (async () => {
-			let targetId = selectedEvent?.decorId ?? payload.id;
-			if (selectedEvent && !selectedEvent.decorId) {
-				const createdDecorId = await ensureSelectedEventDecorId();
-				if (!createdDecorId) return;
-				targetId = createdDecorId;
-			}
-
+	const onDecorUpdate = useCallback(
+		(payload: { id: number; area?: string | null; className?: string | null }) => {
+			if (!item) return;
 			send({
-				type: "item-update",
+				type: "decor-patch-requested",
 				payload: {
-					decor: { ...payload, id: targetId } as Decor
+					itemId: item.id,
+					action: selectedEvent?.action ?? null,
+					targetDecorId: selectedEvent?.decorId ?? payload.id,
+					selectedEventUsesItemDecor,
+					seed: {
+						className: (decor || itemDecor)?.className ?? null,
+						area: (decor || itemDecor)?.area ?? null,
+						style: ((decor || itemDecor)?.style as EditableStyle) ?? {}
+					},
+					patch: {
+						...(Object.prototype.hasOwnProperty.call(payload, "className")
+							? { className: payload.className ?? null }
+							: {}),
+						...(Object.prototype.hasOwnProperty.call(payload, "area") ? { area: payload.area ?? null } : {})
+					}
 				}
 			});
-		})();
-	};
+		},
+		[item, send, selectedEvent, selectedEventUsesItemDecor, decor, itemDecor]
+	);
 
-	const onTreeMove = (payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => {
-		send({ type: "tree-move-item", payload });
-	};
+	const onTreeMove = useCallback(
+		(payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => {
+			send({ type: "tree-move-item", payload });
+		},
+		[send]
+	);
 
 	const editorSyncKey = activeEventAction ? syncState.context.projectedSyncKey : desiredEditorSyncKey;
 

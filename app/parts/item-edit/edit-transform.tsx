@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
 import {
 	ItemTransformEditorPosition,
@@ -12,6 +12,11 @@ import { getAssuredVisibleCue } from "@/provider/active-cue";
 import { createTransformController } from "./item-edit.transform-controller";
 
 import type { ElementTransform } from "@/components/position-editor/lib.types";
+import type { DragCommitMeta, DragMode } from "@/components/position-editor/transform-editor.service";
+import type {
+	PositionDragCommitMeta,
+	PositionDragMode
+} from "@/components/position-editor/position-editor.service";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import type { Decor, ItemComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
@@ -131,6 +136,21 @@ export function EditTransform({
 		transformController.onTransformModeChange(effectiveEditorMode);
 	}, [effectiveEditorMode, transformController]);
 
+	const onPositionCommit = useCallback(
+		(mode: PositionDragMode["kind"], meta: PositionDragCommitMeta) => {
+			transformController.onPositionCommit(mode, meta);
+		},
+		[transformController]
+	);
+
+	const onTransformCommit = useCallback(
+		(transform: ElementTransform, mode: DragMode["kind"], meta: DragCommitMeta) => {
+			if (mode === "resize-grid-se") return;
+			transformController.onTransformCommit(transform, mode, meta);
+		},
+		[transformController]
+	);
+
 	return (
 		<>
 			<div className="mb-2 flex justify-end">
@@ -147,7 +167,7 @@ export function EditTransform({
 				<ItemTransformEditorPosition
 					element={activeNode}
 					active={isTransformEditorActive}
-					onCommit={(mode, meta) => transformController.onPositionCommit(mode, meta)}
+					onCommit={onPositionCommit}
 					snapParentId={snapParentId}
 					snapGrid={snapGrid}
 					syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
@@ -158,10 +178,7 @@ export function EditTransform({
 					element={activeNode}
 					active={isTransformEditorActive}
 					value={value}
-					onCommit={(transform, mode, meta) => {
-						if (mode === "resize-grid-se") return;
-						transformController.onTransformCommit(transform, mode, meta);
-					}}
+					onCommit={onTransformCommit}
 					snapParentId={snapParentId}
 					snapGrid={snapGrid}
 					syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
