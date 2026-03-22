@@ -1,51 +1,49 @@
-import type { ContentEvent } from "@/api/db";
-
 import {
 	parseSustainEffectUiState,
 	serializeSustainEffectUiState,
+	type SustainEffectName,
 	type SustainEffectUiState
 } from "@/config/event-effects";
-import { deriveEventKind } from "@/config/custom-events";
-import { SceneLogicContext } from "@/provider/scene-logic";
 
 type Props = {
-	event: ContentEvent;
-	events: Record<string, ContentEvent | undefined> | null;
+	refValue: string | null | undefined;
+	onRefChange: (nextRef: string | null) => void;
+	hasCustomEvents: boolean;
+	showCustomEventHint?: boolean;
+	effectLabel?: string;
+	showAlternateOption?: boolean;
+	alternate?: boolean;
+	onAlternateChange?: (checked: boolean) => void;
 };
 
-export function SustainEventParams({ event, events }: Props) {
-	const { send } = SceneLogicContext.useActorRef();
-	const sustainState = parseSustainEffectUiState(event.ref);
-	const hasCustomEvents = Boolean(
-		events &&
-		Object.values(events).some((entry) => Boolean(entry) && deriveEventKind(entry!.action) === "custom")
-	);
+export function SustainEventParams({
+	refValue,
+	onRefChange,
+	hasCustomEvents,
+	showCustomEventHint = true,
+	effectLabel = "Effet sustain",
+	showAlternateOption = false,
+	alternate = false,
+	onAlternateChange
+}: Props) {
+	const sustainState = parseSustainEffectUiState(refValue);
 
 	const onUpdate = (patch: Partial<SustainEffectUiState>) => {
 		const nextState: SustainEffectUiState = {
 			...sustainState,
 			...patch
 		};
-		send({
-			type: "events-update",
-			payload: {
-				action: event.action,
-				ref: serializeSustainEffectUiState(nextState)
-			}
-		});
+		onRefChange(serializeSustainEffectUiState(nextState));
+	};
+
+	const onChangeEffect = (value: string) => {
+		onUpdate({ name: value === "zoom" ? ("zoom" as SustainEffectName) : null });
 	};
 
 	return (
-		<div className="flex items-center gap-3">
-			<label>Effet sustain</label>
-			<select
-				value={sustainState.name ?? ""}
-				onChange={(evt) =>
-					onUpdate({
-						name: evt.currentTarget.value === "zoom" ? "zoom" : null
-					})
-				}
-			>
+		<div className="flex flex-wrap items-center gap-3">
+			<label>{effectLabel}</label>
+			<select value={sustainState.name ?? ""} onChange={(evt) => onChangeEffect(evt.currentTarget.value)}>
 				<option value="">--</option>
 				<option value="zoom">zoom</option>
 			</select>
@@ -71,8 +69,18 @@ export function SustainEventParams({ event, events }: Props) {
 				onChange={(evt) => onUpdate({ value: Number(evt.currentTarget.value) })}
 			/>
 			<span>{sustainState.value.toFixed(2)}</span>
-			{hasCustomEvents ? (
+			{showCustomEventHint && hasCustomEvents ? (
 				<span className="text-[10px] text-amber-700">Ignoré si custom-event présent</span>
+			) : null}
+			{showAlternateOption ? (
+				<label className="ml-2 inline-flex items-center gap-1">
+					<input
+						type="checkbox"
+						checked={alternate}
+						onChange={(evt) => onAlternateChange?.(evt.currentTarget.checked)}
+					/>
+					<span>Alterner</span>
+				</label>
 			) : null}
 		</div>
 	);

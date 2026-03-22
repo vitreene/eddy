@@ -3,6 +3,7 @@ import { clearCapsuleItemAreas, getCapsule, reorderCapsule, updateCapsule } from
 import type { Route } from "../+types/root";
 import type { Capsule } from "prisma/generated/prisma/client";
 import { normalizeTransitionRef } from "@/config/transitions";
+import { normalizeSustainEffectRef } from "@/config/event-effects";
 import {
 	CAPSULE_TYPES,
 	isCapsuleKnownType,
@@ -49,6 +50,20 @@ export async function action({ params, request }: Route.ActionArgs) {
 		nextProfil.defaultItemOutroTransition = outroTransition.value;
 	}
 
+	if (formData.has("defaultItemSustainTransition")) {
+		const sustainTransition = parseCapsuleSustainField(rawData.defaultItemSustainTransition);
+		if (sustainTransition.ok === false) {
+			return Response.json({ ok: false, message: sustainTransition.message }, { status: 400 });
+		}
+		nextProfil.defaultItemSustainTransition = sustainTransition.value;
+	}
+
+	if (formData.has("defaultItemSustainAlternate")) {
+		nextProfil.defaultItemSustainAlternate = parseCapsuleSustainAlternateField(
+			rawData.defaultItemSustainAlternate
+		);
+	}
+
 	if (formData.has("itemDurationMode") && typeof rawData.itemDurationMode == "string") {
 		nextProfil.itemDurationMode = rawData.itemDurationMode === "fixed" ? "fixed" : "auto";
 	}
@@ -93,6 +108,8 @@ function parseCapsuleProfil(raw: string | null | undefined): {
 	itemDurationMode?: "auto" | "fixed";
 	itemDurationSec?: number | null;
 	defaultItemIntroTransition?: string | null;
+	defaultItemSustainTransition?: string | null;
+	defaultItemSustainAlternate?: boolean;
 	defaultItemOutroTransition?: string | null;
 } {
 	if (!raw) return {};
@@ -103,6 +120,34 @@ function parseCapsuleProfil(raw: string | null | undefined): {
 	} catch {
 		return {};
 	}
+}
+
+function parseCapsuleSustainAlternateField(value: FormDataEntryValue | undefined): boolean {
+	if (typeof value != "string") return false;
+	const normalized = value.trim().toLowerCase();
+	if (!normalized) return false;
+	return normalized === "true" || normalized === "1" || normalized === "on";
+}
+
+function parseCapsuleSustainField(value: FormDataEntryValue | undefined):
+	| { ok: true; value: string | null }
+	| {
+			ok: false;
+			message: string;
+	  } {
+	if (typeof value != "string") return { ok: true, value: null };
+	const raw = value.trim();
+	if (!raw) return { ok: true, value: null };
+
+	const normalized = normalizeSustainEffectRef(raw);
+	if (!normalized) {
+		return {
+			ok: false,
+			message: 'Sustain capsule invalide: format attendu {"name":"zoom","in":n,"out":n}'
+		};
+	}
+
+	return { ok: true, value: normalized };
 }
 //
 

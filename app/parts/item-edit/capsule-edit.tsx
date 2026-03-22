@@ -2,12 +2,13 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { StyleEditor } from "@/components/style-editor";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
 import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
-import { INTRO, OUTRO } from "@/config/constants";
+import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { applyStyleDefaults } from "@/config/item-style-defaults";
 import { CAPSULE_TYPES, getSelectableCapsuleTypeConfigs, resolveCapsuleType } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/config/capsule-presets";
 import { buildEditorGridClassName } from "@/config/class-prefix";
 import { getValuesFromGridName } from "@/lib/utils";
+import { SustainEventParams } from "@/parts/event-edit/sustain-event-params";
 
 import type { CapsuleComp, Content, Decor } from "@/api/db";
 import type { GridSize } from "@/components/draw-grid";
@@ -50,7 +51,16 @@ export function CapsuleEdit({
 			payload:
 				action == INTRO
 					? { id: capsule.id, defaultItemIntroTransition: ref || null }
-					: { id: capsule.id, defaultItemOutroTransition: ref || null }
+					: action == OUTRO
+						? { id: capsule.id, defaultItemOutroTransition: ref || null }
+						: { id: capsule.id, defaultItemSustainTransition: ref || null }
+		});
+	};
+
+	const onChangeDefaultSustainAlternate = (checked: boolean) => {
+		send({
+			type: "capsule-update",
+			payload: { id: capsule.id, defaultItemSustainAlternate: checked }
 		});
 	};
 
@@ -69,7 +79,11 @@ export function CapsuleEdit({
 
 			<CapsuleGridTypeSelector capsule={capsule} onUpdate={onUpdateCapsule} />
 
-			<CapsuleDefaultTransitions capsule={capsule} onChangeDefaultTransition={onChangeDefaultTransition} />
+			<CapsuleDefaultTransitions
+				capsule={capsule}
+				onChangeDefaultTransition={onChangeDefaultTransition}
+				onChangeDefaultSustainAlternate={onChangeDefaultSustainAlternate}
+			/>
 
 			<StyleEditor
 				content={content}
@@ -90,13 +104,17 @@ export function CapsuleEdit({
 
 function CapsuleDefaultTransitions({
 	capsule,
-	onChangeDefaultTransition
+	onChangeDefaultTransition,
+	onChangeDefaultSustainAlternate
 }: {
 	capsule: CapsuleComp;
 	onChangeDefaultTransition: (action: string, ref: string) => void;
+	onChangeDefaultSustainAlternate: (checked: boolean) => void;
 }) {
 	const introRef = normalizeTransitionRef(parseTransitionRef(capsule.defaultItemIntroTransition), INTRO);
 	const outroRef = normalizeTransitionRef(parseTransitionRef(capsule.defaultItemOutroTransition), OUTRO);
+	const sustainRef = capsule.defaultItemSustainTransition ?? null;
+	const sustainAlternate = capsule.defaultItemSustainAlternate === true;
 
 	return (
 		<div className="mt-3 mb-2 border border-stone-300 p-2 text-xs">
@@ -122,6 +140,18 @@ function CapsuleDefaultTransitions({
 						</option>
 					))}
 				</select>
+			</div>
+			<div className="mt-2 border-t border-stone-200 pt-2">
+				<SustainEventParams
+					refValue={sustainRef}
+					onRefChange={(ref) => onChangeDefaultTransition(SUSTAIN, ref || "")}
+					hasCustomEvents={false}
+					showCustomEventHint={false}
+					effectLabel="Sustain"
+					showAlternateOption
+					alternate={sustainAlternate}
+					onAlternateChange={onChangeDefaultSustainAlternate}
+				/>
 			</div>
 		</div>
 	);

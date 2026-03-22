@@ -260,7 +260,7 @@ function buildTimedActions(input: {
 	);
 
 	if (events) {
-		const orderedEvents = getOrderedEventsForItem(snapshot, events);
+		const orderedEvents = getOrderedEventsForItem(snapshot, events, item.id);
 		const hasCustomEvents = Object.values(events).some(
 			(event) => Boolean(event) && deriveEventKind(event!.action) === "custom"
 		);

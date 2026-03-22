@@ -74,6 +74,8 @@ export interface CapsuleComp {
 	profil?: string | null;
 	itemIds: number[];
 	defaultItemIntroTransition?: string | { action?: string; ref?: string } | null;
+	defaultItemSustainTransition?: string | null;
+	defaultItemSustainAlternate?: boolean;
 	defaultItemOutroTransition?: string | { action?: string; ref?: string } | null;
 	itemDurationMode?: "auto" | "fixed";
 	itemDurationSec?: number | null;
@@ -83,6 +85,8 @@ type CapsuleProfil = {
 	itemDurationMode?: "auto" | "fixed";
 	itemDurationSec?: number | null;
 	defaultItemIntroTransition?: string | null;
+	defaultItemSustainTransition?: string | null;
+	defaultItemSustainAlternate?: boolean;
 	defaultItemOutroTransition?: string | null;
 };
 
@@ -491,6 +495,8 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 			flatScene.capsules[capsule.id] = {
 				...capsule,
 				defaultItemIntroTransition: parseCapsuleTransition(capsuleProfil.defaultItemIntroTransition ?? null),
+				defaultItemSustainTransition: parseCapsuleSustain(capsuleProfil.defaultItemSustainTransition ?? null),
+				defaultItemSustainAlternate: capsuleProfil.defaultItemSustainAlternate === true,
 				defaultItemOutroTransition: parseCapsuleTransition(capsuleProfil.defaultItemOutroTransition ?? null),
 				itemDurationMode: capsuleProfil.itemDurationMode === "fixed" ? "fixed" : "auto",
 				itemDurationSec:
@@ -1358,6 +1364,8 @@ function defaultCapsuleProfil(): CapsuleProfil {
 		itemDurationMode: "auto",
 		itemDurationSec: null,
 		defaultItemIntroTransition: JSON.stringify({ action: "intro", ref: "fade" }),
+		defaultItemSustainTransition: null,
+		defaultItemSustainAlternate: false,
 		defaultItemOutroTransition: JSON.stringify({ action: "outro", ref: "fade" })
 	};
 }
@@ -1390,5 +1398,12 @@ function parseCapsuleTransition(
 		}
 	}
 
+	return raw;
+}
+
+function parseCapsuleSustain(value: string | null | undefined): string | null {
+	if (!value) return null;
+	const raw = value.trim();
+	if (!raw) return null;
 	return raw;
 }

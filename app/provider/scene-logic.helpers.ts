@@ -1,6 +1,7 @@
 import { findCssClassRule } from "@/lib/merge-css-classes";
 import { INTRO, OUTRO } from "@/config/constants";
 import { normalizeTransitionRef } from "@/config/transitions";
+import { normalizeSustainEffectRef } from "@/config/event-effects";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import {
 	getCueTimeAtPosition,
@@ -47,6 +48,13 @@ function serializeCapsuleTransition(value: unknown, action: typeof INTRO | typeo
 	}
 
 	return "";
+}
+
+function serializeCapsuleSustain(value: unknown): string {
+	if (!value) return "";
+	if (typeof value != "string") return "";
+	const normalized = normalizeSustainEffectRef(value);
+	return normalized ?? "";
 }
 
 export function getMutationActivePayload(output: TreeMutationResponse): Partial<ActiveState> {
@@ -122,14 +130,24 @@ export async function executePersistTouchedCommits(
 		delete capsule.itemIds;
 
 		const introSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemIntroTransition, INTRO);
+		const sustainSerialized = serializeCapsuleSustain(capsuleRecord.defaultItemSustainTransition);
+		const sustainAlternate = capsuleRecord.defaultItemSustainAlternate === true ? "true" : "false";
 		const outroSerialized = serializeCapsuleTransition(capsuleRecord.defaultItemOutroTransition, OUTRO);
 
 		const formData = new FormData();
 		Object.entries(capsule).forEach(([k, v]: [string, unknown]) => {
-			if (k == "defaultItemIntroTransition" || k == "defaultItemOutroTransition") return;
-			formData.set(k, (v || "") as any);
+			if (
+				k == "defaultItemIntroTransition" ||
+				k == "defaultItemSustainTransition" ||
+				k == "defaultItemSustainAlternate" ||
+				k == "defaultItemOutroTransition"
+			)
+				return;
+			formData.set(k, v == null ? "" : String(v));
 		});
 		formData.set("defaultItemIntroTransition", introSerialized);
+		formData.set("defaultItemSustainTransition", sustainSerialized);
+		formData.set("defaultItemSustainAlternate", sustainAlternate);
 		formData.set("defaultItemOutroTransition", outroSerialized);
 
 		fetch(`/api/capsule/${id}`, { method: "POST", body: formData });

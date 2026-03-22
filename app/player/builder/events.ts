@@ -2,6 +2,7 @@ import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/tran
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
+import { normalizeSustainEffectRef, parseSustainEffectRef } from "@/config/event-effects";
 import {
 	getActiveSceneContent,
 	getSceneContentCues,
@@ -88,13 +89,14 @@ export function getOrderedEventsForItem(
 	events: Record<string, ContentEvent | undefined>,
 	itemId?: number
 ): OrderedEvent[] {
+	const effectiveEvents = withCapsuleDefaultSustainEvent(snapshot, events, itemId);
 	const sceneContent = getActiveSceneContent(snapshot);
 	const cues = getSceneContentCues(sceneContent);
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
 	const result: OrderedEvent[] = [];
-	for (const event of Object.values(events || {})) {
+	for (const event of Object.values(effectiveEvents || {})) {
 		if (!event) continue;
-		const timing = resolveEventTiming(event, cueByName, events, snapshot, itemId);
+		const timing = resolveEventTiming(event, cueByName, effectiveEvents, snapshot, itemId);
 		result.push({ event, keyframeMs: timing.keyframeMs, runtimeStartMs: timing.runtimeStartMs });
 	}
 
@@ -105,6 +107,50 @@ export function getOrderedEventsForItem(
 			return a.keyframeMs - b.keyframeMs;
 		return actionRank(a.event.action) - actionRank(b.event.action);
 	});
+}
+
+function withCapsuleDefaultSustainEvent(
+	snapshot: SceneComp,
+	events: Record<string, ContentEvent | undefined>,
+	itemId?: number
+): Record<string, ContentEvent | undefined> {
+	if (typeof itemId !== "number") return events;
+	if (events[SUSTAIN]) return events;
+
+	const item = snapshot.items?.[itemId];
+	if (!item) return events;
+	const capsule = snapshot.capsules?.[item.capsuleId];
+	if (!capsule) return events;
+
+	const defaultRef = normalizeSustainEffectRef(capsule.defaultItemSustainTransition ?? null);
+	if (!defaultRef) return events;
+
+	let resolvedRef = defaultRef;
+	if (capsule.defaultItemSustainAlternate === true) {
+		const itemIndex = (capsule.itemIds || []).indexOf(itemId);
+		const shouldInvert = itemIndex > -1 && itemIndex % 2 === 1;
+		if (shouldInvert) {
+			const parsed = parseSustainEffectRef(defaultRef);
+			if (parsed) {
+				resolvedRef = JSON.stringify({ name: parsed.name, in: parsed.out, out: parsed.in });
+			}
+		}
+	}
+
+	return {
+		...events,
+		[SUSTAIN]: {
+			id: undefined,
+			name: null,
+			action: SUSTAIN,
+			ref: resolvedRef,
+			duration: null,
+			delay: null,
+			position: null,
+			itemId,
+			decorId: null
+		}
+	};
 }
 
 /**
@@ -193,10 +239,11 @@ export function resolveSustainWindowMs(
 	eventsByAction: Record<string, ContentEvent | undefined>,
 	itemId?: number
 ): { startMs: number; endMs: number; durationMs: number } | null {
+	const effectiveEvents = withCapsuleDefaultSustainEvent(snapshot, eventsByAction, itemId);
 	const sceneContent = getActiveSceneContent(snapshot);
 	const cues = getSceneContentCues(sceneContent);
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-	return resolveSustainTimingMs(snapshot, eventsByAction, cueByName, itemId);
+	return resolveSustainTimingMs(snapshot, effectiveEvents, cueByName, itemId);
 }
 
 function resolveSustainTimingMs(

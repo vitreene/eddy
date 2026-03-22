@@ -103,6 +103,10 @@ function EventParams({
 	const position = (event.position as "start" | "middle" | "end" | null) ?? "middle";
 	const eventLabel = resolveEventLabel(cues, event.name);
 	const moveOptions = kind === "custom" ? parseCustomEventMoveOptions(event.ref) : null;
+	const hasCustomEvents = Boolean(
+		events &&
+		Object.values(events).some((entry) => Boolean(entry) && deriveEventKind(entry!.action) === "custom")
+	);
 
 	const onUpdateCustom = (payload: {
 		name?: string | null;
@@ -116,6 +120,10 @@ function EventParams({
 	};
 
 	const onChangeTransition = (ref: string) => {
+		send({ type: "events-update", payload: { action: event.action, ref } });
+	};
+
+	const onChangeSustainRef = (ref: string | null) => {
 		send({ type: "events-update", payload: { action: event.action, ref } });
 	};
 
@@ -199,7 +207,11 @@ function EventParams({
 					</div>
 				</>
 			) : kind === "sustain" ? (
-				<SustainEventParams event={event} events={events} />
+				<SustainEventParams
+					refValue={event.ref}
+					onRefChange={onChangeSustainRef}
+					hasCustomEvents={hasCustomEvents}
+				/>
 			) : (
 				<div className="flex items-center gap-2">
 					<label>{event.action === INTRO ? "Transition entrée" : "Transition sortie"}</label>

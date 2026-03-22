@@ -249,6 +249,8 @@ export function applyTreeMutation(context: SceneTreeContext, output: TreeMutatio
 			...createdCapsule,
 			profil: createdCapsule.profil ?? null,
 			defaultItemIntroTransition: profile.defaultItemIntroTransition ?? null,
+			defaultItemSustainTransition: profile.defaultItemSustainTransition ?? null,
+			defaultItemSustainAlternate: profile.defaultItemSustainAlternate === true,
 			defaultItemOutroTransition: profile.defaultItemOutroTransition ?? null,
 			itemDurationMode: profile.itemDurationMode ?? "auto",
 			itemDurationSec: profile.itemDurationSec ?? null,
@@ -275,6 +277,8 @@ export function applyTreeMutation(context: SceneTreeContext, output: TreeMutatio
 
 function parseCapsuleProfile(raw: string | null | undefined): {
 	defaultItemIntroTransition?: string | null;
+	defaultItemSustainTransition?: string | null;
+	defaultItemSustainAlternate?: boolean;
 	defaultItemOutroTransition?: string | null;
 	itemDurationMode?: "auto" | "fixed";
 	itemDurationSec?: number | null;
