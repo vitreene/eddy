@@ -201,3 +201,8 @@
 ## 2026-03-20 — Builder: standard events sans ancrage explicite
 
 - Quand un standard event depend d'un intervalle (ex: `sustain`) et que `intro/outro` ne sont pas explicitement persistes, le builder doit calculer un fallback auto (borne scene + durees de transition), sinon aucun trigger n'est produit.
+
+## 2026-03-25 — Son de scene: contrat runtime prioritaire
+
+- Pour les medias lies a la scene, valider le contrat runtime courant avant implementation (ex: `VIDEO` au lieu de `SOUND`, `hidden`, autoplay media) afin d'eviter des itérations correctives.
+- Quand la spec evoque "video/son", implementer les scripts runtime sur les deux selecteurs DOM (`video, audio`) pour couvrir le present et les transitions de modele.

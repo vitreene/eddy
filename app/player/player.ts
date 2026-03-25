@@ -8,6 +8,7 @@ import { mixClassNames, setStaticChanges } from "./deps/static-changes";
 import { P } from "./types";
 import { getAbsoluteCoords, getTransform } from "./deps/utils";
 import { DEFAULT_DURATION } from "../config/constants";
+import { SCENE_ID } from "@/scene-runtime/constants";
 
 function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: boolean } {
 	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
@@ -30,8 +31,11 @@ export interface TelcoProps {
 	play: () => Timeline;
 	replay: () => Timeline;
 	revert: () => Timeline;
+	toggleMute: () => boolean;
+	setMuted: (muted: boolean) => boolean;
 	readonly duration: number;
 	readonly paused: boolean;
+	readonly muted: boolean;
 
 	subscribe: (up: Subscribed<Timeline>) => () => void;
 }
@@ -47,6 +51,7 @@ export class Player {
 	updatesTM = new PubSub<Timeline>();
 	onEnd: (tm: Timer) => void = () => {};
 	onTimelineUpdate?: (self: Timeline, duration: number) => void;
+	isMuted = false;
 
 	// Stocker les dimensions de fin de la dernière transition pour la prochaine transition
 	private lastEndCoords = new Map<ID, { x: number; y: number; width: number; height: number }>();
@@ -112,20 +117,47 @@ export class Player {
 
 		const duration = () => this.timeLine.duration;
 		const paused = () => this.timeLine.paused;
+		const muted = () => this.isMuted;
 		this.telco = {
 			seek: this.seek,
 			pause: this.pause,
 			play: this.play,
 			replay: this.replay,
 			revert: this.revert,
+			toggleMute: this.toggleMute,
+			setMuted: this.setMuted,
 			get duration() {
 				return duration();
 			},
 			get paused() {
 				return paused();
 			},
+			get muted() {
+				return muted();
+			},
 			subscribe: (up: Subscribed<Timeline>) => this.updatesTM.subscribe(up)
 		};
+	};
+
+	private toggleMute = () => {
+		return this.setMuted(!this.isMuted);
+	};
+
+	private setMuted = (muted: boolean) => {
+		const root = this.$elements.get(SCENE_ID) ?? this.render;
+		const mediaNodes = root ? Array.from(root.querySelectorAll("video, audio")) : [];
+		mediaNodes.forEach((node) => {
+			const media = node as HTMLMediaElement;
+			if (muted) {
+				media.setAttribute("muted", "muted");
+				media.muted = true;
+				return;
+			}
+			media.removeAttribute("muted");
+			media.muted = false;
+		});
+		this.isMuted = muted;
+		return this.isMuted;
 	};
 
 	private play = () => {

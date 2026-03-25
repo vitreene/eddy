@@ -2,7 +2,7 @@
 import React from "react";
 import { Timer } from "animejs";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Play, Pause, RotateCcwIcon } from "lucide-react";
+import { Play, Pause, RotateCcwIcon, Volume2, VolumeX } from "lucide-react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
 import type { ActiveState } from "@/provider/types";
@@ -26,6 +26,7 @@ type TelcoController = {
 	togglePlay: () => void;
 	rewind: () => void;
 	seek: (progress: number, timeMs: number) => void;
+	toggleMute: () => boolean | null;
 	syncFromActive: (active: { action: string | null; cue: number | null }) => void;
 };
 
@@ -40,6 +41,9 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 	activeRef.current = active;
 
 	const [duration, setDuration] = useState(0);
+	const [isMuted, setIsMuted] = useState(false);
+	const isMutedRef = useRef(isMuted);
+	isMutedRef.current = isMuted;
 
 	const telcoController = useMemo(
 		() =>
@@ -61,6 +65,9 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 			onTelcoReady: (telco) => {
 				telcoRef.current = telco;
 				setDuration(telco?.duration || 0);
+				if (!telco) return;
+				telco.setMuted(isMutedRef.current);
+				setIsMuted(telco.muted);
 			}
 		});
 	}, [scene, send]);
@@ -78,10 +85,15 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 			<TelcoPanel
 				progress={active.progress ?? 0}
 				isPlaying={active.action === "play"}
+				isMuted={isMuted}
 				duration={duration}
 				onTogglePlay={telcoController.togglePlay}
 				onRewind={telcoController.rewind}
 				onSeek={telcoController.seek}
+				onToggleMute={() => {
+					const muted = telcoController.toggleMute();
+					if (typeof muted === "boolean") setIsMuted(muted);
+				}}
 			/>
 		</>
 	);
@@ -202,6 +214,11 @@ function createTelcoController({
 			telco.seek(timeMs);
 			send({ type: "active-set", payload: { action: "seek", progress, cue: timeMs / 1000 } });
 		},
+		toggleMute: () => {
+			const telco = getTelco();
+			if (!telco) return null;
+			return telco.toggleMute();
+		},
 		syncFromActive: (active) => {
 			const telco = getTelco();
 			if (!telco) return;
@@ -232,17 +249,21 @@ function createTelcoController({
 function TelcoPanel({
 	progress,
 	isPlaying,
+	isMuted,
 	duration,
 	onTogglePlay,
 	onRewind,
-	onSeek
+	onSeek,
+	onToggleMute
 }: {
 	progress: number;
 	isPlaying: boolean;
+	isMuted: boolean;
 	duration: number;
 	onTogglePlay: () => void;
 	onRewind: () => void;
 	onSeek: (progress: number, timeMs: number) => void;
+	onToggleMute: () => void;
 }) {
 	const onRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		const nextProgress = Number(e.currentTarget.value);
@@ -252,10 +273,18 @@ function TelcoPanel({
 
 	return (
 		<div id="telco" className="flex items-center gap-2 border border-stone-500 p-1">
-			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={onTogglePlay}>
+			<button
+				type="button"
+				className="aspect-square shrink-0 rounded-md border border-stone-500 p-1"
+				onClick={onTogglePlay}
+			>
 				{isPlaying ? <Pause /> : <Play />}
 			</button>
-			<button className="aspect-square shrink-0 rounded-md border border-stone-500 p-1" onClick={onRewind}>
+			<button
+				type="button"
+				className="aspect-square shrink-0 rounded-md border border-stone-500 p-1"
+				onClick={onRewind}
+			>
 				<RotateCcwIcon />
 			</button>
 			<input
@@ -268,6 +297,14 @@ function TelcoPanel({
 				className="flex-1"
 			/>
 			<output>{progress}&nbsp;%</output>
+			<button
+				type="button"
+				title={isMuted ? "Retablir le son" : "Couper le son"}
+				className="aspect-square shrink-0 rounded-md border border-stone-500 p-1"
+				onClick={onToggleMute}
+			>
+				{isMuted ? <VolumeX /> : <Volume2 />}
+			</button>
 		</div>
 	);
 }

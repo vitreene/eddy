@@ -1,5 +1,10 @@
 import type { ItemComp, SceneComp } from "@/api/db";
+import { INTRO } from "@/config/constants";
+import { getMediaUrl } from "@/lib/media-url";
+import { getActiveSceneContent } from "@/scene-runtime/scene-content";
+import { SCENE_ID } from "@/scene-runtime/constants";
 import type { ID } from "../types";
+import { P } from "../types";
 import { createCapsuleRenderable, createItemRenderable } from "./entities";
 
 type ItemWithPosition = { item: ItemComp; positionIndex: number };
@@ -12,6 +17,9 @@ export function createRenderablesInDisplayOrder(
 	additionalClassnames: Record<ID, string>
 ) {
 	const result: Array<any> = [];
+	const sceneSound = createSceneSoundRenderable(snapshot);
+	if (sceneSound) result.push(sceneSound);
+
 	const mainCapsule = snapshot.capsules?.[snapshot.main];
 	if (mainCapsule) {
 		const mainPerso = createCapsuleRenderable(mainCapsule, snapshot, additionalClassnames);
@@ -37,6 +45,40 @@ export function createRenderablesInDisplayOrder(
 	}
 
 	return result;
+}
+
+function createSceneSoundRenderable(snapshot: SceneComp): any | null {
+	const sceneContent = getActiveSceneContent(snapshot);
+	if (!sceneContent) return null;
+
+	const content = snapshot.contents?.[sceneContent.contentId];
+	if (!content || content.type !== "sound") return null;
+
+	const id = `scene-sound__${sceneContent.id}`;
+	const src = getMediaUrl(content.path ?? "");
+
+	return {
+		type: P.VIDEO,
+		initial: {
+			id,
+			tag: "video",
+			move: SCENE_ID,
+			src,
+			attr: {
+				hidden: "hidden"
+			}
+		},
+		actions: {
+			[id]: true,
+			[INTRO]: {
+				media: {
+					action: "play",
+					changeAt: 0,
+					offset: 0
+				}
+			}
+		}
+	};
 }
 
 /**
