@@ -235,3 +235,19 @@
 
 - Ne pas confondre `outroStart` (debut de transition finale) avec la fin de timeline utilisee pour la lecture audio/video.
 - Garder la fin de timeline alignee sur la duree cues/son, meme si l'outro commence plus tot (`end - DEFAULT_DURATION`).
+
+## 2026-03-26 — `content.timestamp`: evoluer sans ecraser
+
+- Quand `content.timestamp` devient un objet extensible (`{ words, visemes, custom, ... }`), ne jamais ecrire le champ complet a partir d'un seul sous-ensemble.
+- Regle d'ecriture: lire l'objet existant, merger, puis modifier uniquement la propriete cible (`words`) pour preserver les autres donnees futures.
+- Regle de lecture: en phase de migration explicite, accepter temporairement les deux formats; sinon garder uniquement le format cible valide par l'utilisateur.
+
+## 2026-03-26 — Contexte build: ne pas maintenir de legacy non demande
+
+- Si l'utilisateur confirme qu'il n'y a pas de legacy a maintenir, supprimer les branches de compatibilite au lieu de conserver des lectures multi-format.
+- Aligner rapidement la base (schema + migration des valeurs) avec le format cible pour garder un contrat unique et simple.
+
+## 2026-03-26 — Ecritures DB: check-in obligatoire
+
+- Ne jamais executer une migration SQL sur `dev.db` sans demande explicite de l'utilisateur.
+- Si une correction implique une ecriture base, faire d'abord toutes les modifs code/schema non bloquantes puis demander une validation unique pour l'operation DB.

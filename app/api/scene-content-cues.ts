@@ -1,6 +1,6 @@
 import type { Route } from "../+types/root";
 
-import { prisma, type TextTime, upsertSceneContentCues } from "./db";
+import { parseContentTimestampWords, prisma, type TextTime, upsertSceneContentCues } from "./db";
 import { getSceneContentDurationSec } from "@/scene-runtime/scene-content";
 
 type SceneContentCuesBody = {
@@ -49,7 +49,7 @@ export async function action({ request }: Route.ActionArgs) {
 		select: { timestamp: true }
 	});
 	const events = JSON.parse(sceneContent.events || "[]") as TextTime[];
-	const timestamp = JSON.parse(linkedContent?.timestamp || "[]") as TextTime[];
+	const timestamp = parseContentTimestampWords(linkedContent?.timestamp);
 	const durationSec = getSceneContentDurationSec({ timestamp, events, cues: timestamp });
 	return Response.json({
 		ok: true,

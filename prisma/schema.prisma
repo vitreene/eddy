@@ -104,7 +104,7 @@ model Content {
   path  String?
   inner String?
   lang  String?
-  timestamp String @default("[]") // whisper cues JSON
+  timestamp String? // cues JSON payload for media content only (words, visemes, ...)
 
   capsuleId Int?     @map("capsule_id")
   capsule   Capsule? @relation(fields: [capsuleId], references: [id])

@@ -469,7 +469,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 	if (scene.sceneContents) {
 		scene.sceneContents.forEach(({ content, ...sceneContent }) => {
 			const fallbackEvents = safeParseSceneCues(sceneContent.events);
-			const whisperTimestamp = safeParseSceneCues(content.timestamp);
+			const whisperTimestamp = parseContentTimestampWords(content.timestamp);
 			const cues = whisperTimestamp;
 			const totalDuration = getSceneContentDurationSec({
 				timestamp: whisperTimestamp,
@@ -577,9 +577,19 @@ export async function upsertSceneContentCues(input: {
 	const normalizedTimestamp = normalizeSceneContentCues(input.cues);
 
 	return await prisma.$transaction(async (tx) => {
+		const content = await tx.content.findUnique({
+			where: { id: input.contentId },
+			select: { timestamp: true, type: true }
+		});
+		if (!content) throw new Error(`Content ${input.contentId} not found`);
+		if (!supportsTimestampPayload(content.type)) {
+			throw new Error(`Content ${input.contentId} type ${content.type} does not support timestamp payload`);
+		}
 		await tx.content.update({
 			where: { id: input.contentId },
-			data: { timestamp: JSON.stringify(normalizedTimestamp) }
+			data: {
+				timestamp: mergeContentTimestampWords(content?.timestamp, normalizedTimestamp)
+			}
 		});
 
 		const scene = await tx.scene.findUnique({ where: { id: input.sceneId }, select: { title: true } });
@@ -639,9 +649,12 @@ export async function upsertSceneAudioSettings(input: {
 		const normalizedDuration = normalizeSceneDurationSec(input.totalDuration);
 		const scene = await tx.scene.findUnique({ where: { id: input.sceneId }, select: { title: true } });
 		const linkedContent = input.contentId
-			? await tx.content.findUnique({ where: { id: input.contentId }, select: { timestamp: true } })
+			? await tx.content.findUnique({ where: { id: input.contentId }, select: { timestamp: true, type: true } })
 			: null;
-		const linkedTimestamp = safeParseSceneCues(linkedContent?.timestamp);
+		const linkedTimestamp =
+			linkedContent && supportsTimestampPayload(linkedContent.type)
+				? parseContentTimestampWords(linkedContent.timestamp)
+				: [];
 		const existing = await tx.sceneContent.findFirst({
 			where: { sceneId: input.sceneId },
 			orderBy: [{ order: "asc" }, { id: "asc" }]
@@ -736,6 +749,39 @@ function normalizeSceneContentCues(cues: TextTime[]): TextTime[] {
 function normalizeSceneDurationSec(value: unknown): number {
 	if (typeof value != "number" || !Number.isFinite(value) || value <= 0) return SCENE_DEFAULT_DURATION_SEC;
 	return Number(value.toFixed(3));
+}
+
+export function parseContentTimestampWords(raw: string | null | undefined): TextTime[] {
+	if (!raw) return [];
+	try {
+		const parsed = JSON.parse(raw);
+		if (!parsed || typeof parsed != "object") return [];
+		const words = (parsed as { words?: unknown }).words;
+		if (!Array.isArray(words)) return [];
+		return normalizeSceneContentCues(words as TextTime[]);
+	} catch {
+		return [];
+	}
+}
+
+function mergeContentTimestampWords(raw: string | null | undefined, words: TextTime[]): string {
+	let current: Record<string, unknown> = {};
+	if (raw) {
+		try {
+			const parsed = JSON.parse(raw);
+			if (parsed && typeof parsed == "object" && !Array.isArray(parsed)) {
+				current = parsed as Record<string, unknown>;
+			}
+		} catch {
+			current = {};
+		}
+	}
+
+	return JSON.stringify({ ...current, words });
+}
+
+function supportsTimestampPayload(type: string | null | undefined): boolean {
+	return type === "sound" || type === "video";
 }
 
 function safeParseSceneCues(raw: string | null | undefined): TextTime[] {

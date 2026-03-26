@@ -1,6 +1,6 @@
 import type { Route } from "../+types/root";
 
-import { prisma, updateSceneTitle, upsertSceneAudioSettings } from "./db";
+import { parseContentTimestampWords, prisma, updateSceneTitle, upsertSceneAudioSettings } from "./db";
 import {
 	buildSceneFallbackEvents,
 	getSceneContentDurationSec,
@@ -44,9 +44,9 @@ export async function action({ params, request }: Route.ActionArgs) {
 					select: { timestamp: true }
 				})
 			: null;
-		if (existingSceneContent && (!existingContent?.timestamp || existingContent.timestamp === "[]")) {
+		const existingTimestamp = parseContentTimestampWords(existingContent?.timestamp);
+		if (existingSceneContent && existingTimestamp.length === 0) {
 			const existingEvents = safeParseTextTimes(existingSceneContent.events);
-			const existingTimestamp = safeParseTextTimes(existingContent?.timestamp || "[]");
 			const nextDuration = getSceneContentDurationSec({
 				timestamp: existingTimestamp,
 				events: existingEvents,
@@ -94,7 +94,7 @@ export async function action({ params, request }: Route.ActionArgs) {
 				select: { timestamp: true }
 			})
 		: null;
-	const timestamp = safeParseTextTimes(linkedContent?.timestamp || "[]");
+	const timestamp = parseContentTimestampWords(linkedContent?.timestamp);
 	const events = updatedSceneContent ? JSON.parse(updatedSceneContent.events || "[]") : [];
 	const durationSec = getSceneContentDurationSec({ timestamp, events, cues: timestamp });
 
