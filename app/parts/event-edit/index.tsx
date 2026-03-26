@@ -21,6 +21,7 @@ import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scen
 import { Rubber } from "../rubber";
 import { MediaEventParams } from "./media-event-params";
 import { SustainEventParams } from "./sustain-event-params";
+import { WaveformCanvasTest } from "../rubber/waveform-canvas-test";
 
 const actionOrder = [INTRO, SUSTAIN, OUTRO];
 const MEDIA_CONTENT_TYPES = new Set(["sound", "video", "lottie", "audio"]);
@@ -80,6 +81,7 @@ export function EditEvent() {
 					showMediaParams={isMediaContentType(itemContentType)}
 				/>
 				<Rubber />
+				<WaveformCanvasTest />
 			</div>
 		</section>
 	);

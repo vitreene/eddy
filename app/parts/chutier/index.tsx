@@ -9,6 +9,7 @@ import type { Content, SceneContent, TextTime } from "@/api/db";
 import { CHUTIER_DRAG_MIME, toChutierDragPayload } from "@/lib/drag-content";
 import { cn } from "@/lib/utils";
 import { transcribeAudioFileToCues } from "@/whisper/transcribe-to-cues";
+import { extractAudioFileToWaveform } from "@/waveform/extract-to-waveform";
 
 type UploadItem = {
 	originalName: string;
@@ -90,6 +91,13 @@ export function Chutier({ allContents = [] }: ChutierProps) {
 					void processAudioCues({
 						sourceFile,
 						sceneId,
+						contentId: uploaded.content.id,
+						send,
+						setError
+					});
+
+					void processAudioWaveform({
+						sourceFile,
 						contentId: uploaded.content.id,
 						send,
 						setError
@@ -226,6 +234,45 @@ async function processAudioCues({
 		}
 	} catch (error) {
 		setError("Transcription Whisper echouee pour un son importe");
+	}
+}
+
+async function processAudioWaveform({
+	sourceFile,
+	contentId,
+	send,
+	setError
+}: {
+	sourceFile: File;
+	contentId: number;
+	send: (event: { type: "content-add"; payload: Content }) => void;
+	setError: (error: string | null) => void;
+}) {
+	try {
+		const waveform = await extractAudioFileToWaveform(sourceFile, {
+			points: 2048
+		});
+
+		const response = await fetch(`/api/content/${contentId}`, {
+			method: "POST",
+			headers: {
+				Accept: "application/json",
+				"Content-Type": "application/json"
+			},
+			body: JSON.stringify({ waveform })
+		});
+
+		if (!response.ok) {
+			const detail = await response.text();
+			throw new Error(detail || "Echec persistence waveform");
+		}
+
+		const payload = (await response.json()) as { content?: Content };
+		if (payload.content) {
+			send({ type: "content-add", payload: payload.content });
+		}
+	} catch (_error) {
+		setError("Extraction waveform echouee pour un son importe");
 	}
 }
 

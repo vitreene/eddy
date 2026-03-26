@@ -1,7 +1,14 @@
 import type { Route } from "../+types/root";
-import { addEventToContent, removeCustomEventFromContent, type TextTime, updateContent } from "./db";
+import {
+	addEventToContent,
+	removeCustomEventFromContent,
+	type TextTime,
+	updateContent,
+	upsertContentWaveform
+} from "./db";
 import { deriveEventKind } from "@/config/custom-events";
 import { parseEventMediaFromRef } from "@/lib/event-ref";
+import { isWaveformDataV1 } from "@/waveform/payload";
 
 export function shouldPersistEventPayload(action: string, texttime: TextTime | null | undefined): boolean {
 	if (!texttime) return false;
@@ -35,6 +42,22 @@ export async function action({ request, params }: Route.ActionArgs) {
 	}
 
 	const body = await request.json();
+	if (body && typeof body === "object" && "waveform" in body) {
+		const waveform = (body as { waveform?: unknown }).waveform;
+		if (!isWaveformDataV1(waveform)) {
+			return Response.json({ ok: false, message: "waveform invalide" }, { status: 400 });
+		}
+
+		try {
+			const content = await upsertContentWaveform({ contentId: Number(id), waveform });
+			return Response.json({ ok: true, id: Number(id), content });
+		} catch (error) {
+			return Response.json(
+				{ ok: false, message: error instanceof Error ? error.message : "Echec persistence waveform" },
+				{ status: 400 }
+			);
+		}
+	}
 
 	if (body && typeof body === "object" && "inner" in body) {
 		const inner = body.inner;

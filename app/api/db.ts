@@ -30,6 +30,7 @@ import {
 	getSceneContentDurationSec,
 	SCENE_DEFAULT_DURATION_SEC
 } from "@/scene-runtime/scene-content";
+import { isWaveformDataV1, type WaveformDataV1 } from "@/waveform/payload";
 
 export type { Content, ContentEvent };
 
@@ -633,6 +634,26 @@ export async function upsertSceneContentCues(input: {
 	});
 }
 
+export async function upsertContentWaveform(input: { contentId: number; waveform: WaveformDataV1 }) {
+	return await prisma.$transaction(async (tx) => {
+		const content = await tx.content.findUnique({
+			where: { id: input.contentId },
+			select: { id: true, timestamp: true, type: true }
+		});
+		if (!content) throw new Error(`Content ${input.contentId} not found`);
+		if (!supportsTimestampPayload(content.type)) {
+			throw new Error(`Content ${input.contentId} type ${content.type} does not support timestamp payload`);
+		}
+
+		return tx.content.update({
+			where: { id: input.contentId },
+			data: {
+				timestamp: mergeContentTimestampWaveform(content.timestamp, input.waveform)
+			}
+		});
+	});
+}
+
 export async function updateSceneTitle(sceneId: number, title: string) {
 	return await prisma.scene.update({
 		where: { id: sceneId },
@@ -764,6 +785,19 @@ export function parseContentTimestampWords(raw: string | null | undefined): Text
 	}
 }
 
+export function parseContentTimestampWaveform(raw: string | null | undefined): WaveformDataV1 | null {
+	if (!raw) return null;
+	try {
+		const parsed = JSON.parse(raw);
+		if (!parsed || typeof parsed != "object" || Array.isArray(parsed)) return null;
+		const waveform = (parsed as { waveform?: unknown }).waveform;
+		if (!isWaveformDataV1(waveform)) return null;
+		return waveform;
+	} catch {
+		return null;
+	}
+}
+
 function mergeContentTimestampWords(raw: string | null | undefined, words: TextTime[]): string {
 	let current: Record<string, unknown> = {};
 	if (raw) {
@@ -778,6 +812,22 @@ function mergeContentTimestampWords(raw: string | null | undefined, words: TextT
 	}
 
 	return JSON.stringify({ ...current, words });
+}
+
+function mergeContentTimestampWaveform(raw: string | null | undefined, waveform: WaveformDataV1): string {
+	let current: Record<string, unknown> = {};
+	if (raw) {
+		try {
+			const parsed = JSON.parse(raw);
+			if (parsed && typeof parsed == "object" && !Array.isArray(parsed)) {
+				current = parsed as Record<string, unknown>;
+			}
+		} catch {
+			current = {};
+		}
+	}
+
+	return JSON.stringify({ ...current, waveform });
 }
 
 function supportsTimestampPayload(type: string | null | undefined): boolean {
