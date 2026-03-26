@@ -22,6 +22,8 @@ type OrderedEvent = {
 	runtimeStartMs: number | null;
 };
 
+const SCENE_END_MARKER_ACTION = "__scene_end__";
+
 /**
  * Build timeline event map from all item events.
  */
@@ -78,6 +80,9 @@ export function mapEvents(snapshot: SceneComp) {
 	}
 	const outroStart = Math.max(0, lastCue - DEFAULT_DURATION);
 	map.set(outroStart, [{ name: OUTRO, start: outroStart }]);
+	const sceneEndExisting = map.get(sceneDurationMs) || [];
+	sceneEndExisting.push({ name: SCENE_END_MARKER_ACTION, start: sceneDurationMs });
+	map.set(sceneDurationMs, sceneEndExisting);
 	return map;
 }
 

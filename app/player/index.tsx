@@ -34,25 +34,22 @@ const onEnd = (t: Timer) => console.log("PLAYER the end", t.duration, t);
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
-	const { send } = SceneLogicContext.useActorRef();
+	const actorRef = SceneLogicContext.useActorRef();
+	const { send } = actorRef;
 	const sceneRef = useRef<HTMLDivElement>(null);
 	const telcoRef = useRef<TelcoProps | null>(null);
-	const activeRef = useRef(active);
-	activeRef.current = active;
 
 	const [duration, setDuration] = useState(0);
 	const [isMuted, setIsMuted] = useState(false);
-	const isMutedRef = useRef(isMuted);
-	isMutedRef.current = isMuted;
 
 	const telcoController = useMemo(
 		() =>
 			createTelcoController({
 				getTelco: () => telcoRef.current,
-				getActive: () => activeRef.current,
+				getActive: () => actorRef.getSnapshot().context.active,
 				send
 			}),
-		[send]
+		[actorRef, send]
 	);
 
 	useEffect(() => {
@@ -60,17 +57,18 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 			scene,
 			sceneRef,
 			send,
-			getActiveItemId: () => activeRef.current.itemId,
-			getActivePlayback: () => ({ action: activeRef.current.action, cue: activeRef.current.cue }),
+			getActive: () => actorRef.getSnapshot().context.active,
 			onTelcoReady: (telco) => {
 				telcoRef.current = telco;
 				setDuration(telco?.duration || 0);
 				if (!telco) return;
-				telco.setMuted(isMutedRef.current);
-				setIsMuted(telco.muted);
+				setIsMuted((currentMuted) => {
+					telco.setMuted(currentMuted);
+					return telco.muted;
+				});
 			}
 		});
-	}, [scene, send]);
+	}, [actorRef, scene, send]);
 
 	useEffect(() => {
 		telcoController.syncFromActive({ action: active.action, cue: active.cue });
@@ -103,15 +101,13 @@ function initializePlayerRuntime({
 	scene,
 	sceneRef,
 	send,
-	getActiveItemId,
-	getActivePlayback,
+	getActive,
 	onTelcoReady
 }: {
 	scene: PlayerProps;
 	sceneRef: React.RefObject<HTMLDivElement | null>;
 	send: (event: { type: "active-set"; payload: Partial<ActiveState> }) => void;
-	getActiveItemId: () => number | null;
-	getActivePlayback: () => { action: string | null; cue: number | null };
+	getActive: () => ActiveState;
 	onTelcoReady: (telco: TelcoProps | null) => void;
 }) {
 	let cancelled = false;
@@ -133,6 +129,7 @@ function initializePlayerRuntime({
 			onEnd,
 			onTimelineUpdate: (self, timelineDuration) => {
 				const progress = timelineDuration > 0 ? Math.round((self.currentTime / timelineDuration) * 100) : 0;
+
 				send({ type: "active-set", payload: { progress } });
 
 				const ended = timelineDuration > 0 && self.currentTime >= timelineDuration;
@@ -145,15 +142,14 @@ function initializePlayerRuntime({
 		});
 
 		setPlayerNodeResolver((nodeId: string) => player?.getNodeByNodeId(nodeId) ?? null);
-		const activeItemId = getActiveItemId();
-		if (activeItemId) send({ type: "active-set", payload: { itemId: activeItemId } });
+		const active = getActive();
+		if (active.itemId) send({ type: "active-set", payload: { itemId: active.itemId } });
 
-		const playback = getActivePlayback();
-		if (playback.action === "play") {
+		if (active.action === "play") {
 			player.telco.play();
 		} else {
 			player.telco.pause();
-			player.telco.seek((playback.cue ?? 0) * 1000);
+			player.telco.seek((active.cue ?? 0) * 1000);
 		}
 
 		onTelcoReady(player.telco);
@@ -181,10 +177,21 @@ function createTelcoController({
 	};
 	send: (event: { type: "active-set"; payload: Partial<ActiveState> }) => void;
 }): TelcoController {
+	let unsubscribeSeekSync: (() => void) | null = null;
+	const subscribeOnce = (subscribe?: () => () => void) => {
+		if (unsubscribeSeekSync) {
+			unsubscribeSeekSync();
+			unsubscribeSeekSync = null;
+		}
+		if (!subscribe) return;
+		unsubscribeSeekSync = subscribe();
+	};
+
 	return {
 		togglePlay: () => {
 			const telco = getTelco();
 			if (!telco) return;
+			subscribeOnce();
 			const active = getActive();
 			const willPlay = active.action !== "play";
 			const shouldRestartFromZero = willPlay && typeof active.progress == "number" && active.progress >= 100;
@@ -205,12 +212,14 @@ function createTelcoController({
 		rewind: () => {
 			const telco = getTelco();
 			if (!telco) return;
+			subscribeOnce();
 			telco.seek(0);
 			send({ type: "active-set", payload: { action: "seek", progress: 0, cue: 0 } });
 		},
 		seek: (progress: number, timeMs: number) => {
 			const telco = getTelco();
 			if (!telco) return;
+			subscribeOnce();
 			telco.seek(timeMs);
 			send({ type: "active-set", payload: { action: "seek", progress, cue: timeMs / 1000 } });
 		},
@@ -224,23 +233,26 @@ function createTelcoController({
 			if (!telco) return;
 
 			if (active.action === "play") {
+				subscribeOnce();
 				telco.play();
 				return;
 			}
 
 			if (active.action === "pause") {
+				subscribeOnce();
 				telco.pause();
 				return;
 			}
 
 			if (active.action === "seek") {
 				telco.pause();
-				telco.seek((active.cue ?? 0) * 1000);
-				if (typeof window != "undefined") {
-					window.requestAnimationFrame(() => {
+				subscribeOnce(() =>
+					telco.subscribe(() => {
+						subscribeOnce();
 						send({ type: "active-set", payload: { action: null } });
-					});
-				}
+					})
+				);
+				telco.seek((active.cue ?? 0) * 1000);
 			}
 		}
 	};

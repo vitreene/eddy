@@ -92,9 +92,9 @@ export const StyleEditor: React.FC<Props> = ({
 				</>
 			)}
 
-			{(content.type === "img" || content.type === "sprite") && (
+			{(content.type === "img" || content.type === "sprite" || content.type === "video") && (
 				<div className="mb-4 flex items-center gap-2 border-b pb-3 text-xs">
-					<span className="text-muted-foreground">Ajustement image</span>
+					<span className="text-muted-foreground">Ajustement media</span>
 					<Button
 						type="button"
 						size="sm"

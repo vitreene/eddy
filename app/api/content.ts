@@ -1,6 +1,7 @@
 import type { Route } from "../+types/root";
 import { addEventToContent, removeCustomEventFromContent, type TextTime, updateContent } from "./db";
 import { deriveEventKind } from "@/config/custom-events";
+import { parseEventMediaFromRef } from "@/config/event-media";
 
 export function shouldPersistEventPayload(action: string, texttime: TextTime | null | undefined): boolean {
 	if (!texttime) return false;
@@ -8,7 +9,8 @@ export function shouldPersistEventPayload(action: string, texttime: TextTime | n
 	if (kind !== "custom") return true;
 	const hasName = typeof texttime?.name == "string" && texttime.name.trim().length > 0;
 	const hasDelay = typeof (texttime as any)?.delay == "number";
-	return hasName || hasDelay;
+	const hasMedia = Boolean(parseEventMediaFromRef(texttime.ref));
+	return hasName || hasDelay || hasMedia;
 }
 
 export async function action({ request, params }: Route.ActionArgs) {

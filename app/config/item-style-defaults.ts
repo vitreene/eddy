@@ -77,6 +77,12 @@ export const DEFAULT_STYLE: EditableStyle = {
 };
 
 export function getDefaultStyleForContentType(_contentType?: string): EditableStyle {
+	if (_contentType === "video") {
+		return {
+			...DEFAULT_STYLE,
+			backgroundSize: "contain"
+		};
+	}
 	return DEFAULT_STYLE;
 }
 

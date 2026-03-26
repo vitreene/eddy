@@ -206,3 +206,32 @@
 
 - Pour les medias lies a la scene, valider le contrat runtime courant avant implementation (ex: `VIDEO` au lieu de `SOUND`, `hidden`, autoplay media) afin d'eviter des itérations correctives.
 - Quand la spec evoque "video/son", implementer les scripts runtime sur les deux selecteurs DOM (`video, audio`) pour couvrir le present et les transitions de modele.
+
+## 2026-03-25 — Preferer le contrat CSS sans wrapper quand demande
+
+- Si le besoin est un remplissage media "par defaut" et que l'utilisateur veut eviter les wrappers, prioriser une classe runtime dediee (`ed-video`) appliquee par builder plutot qu'une refonte DOM.
+- Aligner le contrat editeur avec le rendu runtime: si `video` doit partager les reglages image (cover/contain), exposer les memes controles dans `StyleEditor` et mapper vers `object-fit` au build/runtime.
+
+## 2026-03-25 — Eviter la duplication classe + inline
+
+- Quand une classe CSS porte deja les proprietes par defaut (ex: `ed-video` pour `width/height/display`), ne pas reinjecter ces memes valeurs en inline style depuis le builder.
+- Garder l'inline style pour les variations metier (ex: `object-fit`, `object-position`, overrides explicites), afin d'eviter les conflits et la redondance.
+
+## 2026-03-25 — Event media params: persistance dans `event.ref`
+
+- Quand un parametre event est demande comme persiste en base via `event.ref`, ne pas introduire un champ runtime parallele (`event.media`) comme source principale.
+- Encapsuler les extensions dans `ref` en JSON tout en preservant les semantiques existantes (`transition ref`, `sustain ref`, `custom move options`) pour eviter les regressions.
+
+## 2026-03-25 — Media seek: enrichir MediaParams avant patch runtime
+
+- Avant de corriger la logique de seek media, verifier que `MediaParams` porte toutes les ancres temporelles necessaires (ex: `changeAt` par defaut a 0) pour eviter un patch symptome dans le player.
+
+## 2026-03-26 — Player telco: dedupliquer les unsubscribe
+
+- Quand un meme bloc d'unsubscribe est repete dans un controleur (`toggle/play/pause/seek`), extraire une fonction locale unique (ex: `subscribeOnce`) pour garder une logique de nettoyage coherente.
+- Pour les abonnements ponctuels, centraliser `unsubscribe` + `resubscribe` dans le helper afin d'eviter les oublis lors des futurs ajouts de branches d'action.
+
+## 2026-03-26 — Duree timeline vs outro
+
+- Ne pas confondre `outroStart` (debut de transition finale) avec la fin de timeline utilisee pour la lecture audio/video.
+- Garder la fin de timeline alignee sur la duree cues/son, meme si l'outro commence plus tot (`end - DEFAULT_DURATION`).

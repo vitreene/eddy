@@ -59,7 +59,8 @@ export async function transcribeAudioFileToCues(
 	options: WhisperTranscribeOptions = {}
 ): Promise<WhisperCueResult> {
 	const audioBuffer = await decodeAudioFile(file, WHISPER_DEFAULTS.sampleRate);
-	const cues = await transcribeAudioBufferToCues(audioBuffer, options);
+	const chunks = await transcribeAudioBufferToWhisperChunks(audioBuffer, options);
+	const cues = mapWhisperChunksToCues(chunks, { soundId: options.soundId });
 	const totalDurationSec =
 		typeof audioBuffer.duration == "number" && Number.isFinite(audioBuffer.duration) && audioBuffer.duration > 0
 			? Number(audioBuffer.duration.toFixed(3))
@@ -71,6 +72,15 @@ export function transcribeAudioBufferToCues(
 	audioData: AudioBuffer,
 	options: WhisperTranscribeOptions = {}
 ): Promise<TextTime[]> {
+	return transcribeAudioBufferToWhisperChunks(audioData, options).then((chunks) =>
+		mapWhisperChunksToCues(chunks, { soundId: options.soundId })
+	);
+}
+
+export function transcribeAudioBufferToWhisperChunks(
+	audioData: AudioBuffer,
+	options: WhisperTranscribeOptions = {}
+): Promise<WhisperChunk[]> {
 	const monoAudio = toMonoAudio(audioData);
 	const model = options.model || WHISPER_DEFAULTS.model;
 
@@ -107,7 +117,7 @@ export function transcribeAudioBufferToCues(
 			if (message.status === "complete") {
 				cleanup();
 				const chunks = "data" in message ? message.data?.chunks || [] : [];
-				resolve(mapWhisperChunksToCues(chunks, { soundId: options.soundId }));
+				resolve(chunks);
 				return;
 			}
 

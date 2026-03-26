@@ -52,6 +52,7 @@ const sceneSoundPerso = sceneWithSound.persos.find(
 assert.ok(sceneSoundPerso, "scene-linked sound should be included in persos");
 assert.equal(sceneSoundPerso.type, "VIDEO");
 assert.equal(sceneSoundPerso.initial.tag, "video");
+assert.equal(String(sceneSoundPerso.initial.className || "").includes("ed-video"), true);
 assert.equal(sceneSoundPerso.initial.move, "container-scene");
 assert.equal(typeof sceneSoundPerso.initial.src, "string");
 assert.equal(sceneSoundPerso.initial.src.includes("scene-audio.mp3"), true);

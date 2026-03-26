@@ -16,6 +16,7 @@ import {
 	serializeCustomEventMoveOptions,
 	type CustomEventPosition
 } from "@/config/custom-events";
+import { replaceEventRefPreservingMedia } from "@/config/event-media";
 import { getPlayerNode } from "@/scene-runtime/node-resolver";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import {
@@ -903,14 +904,17 @@ export const sceneLogic = setup({
 										delay: hasOwn(event.payload, "delay") ? event.payload.delay : (current as any).delay,
 										duration: hasOwn(event.payload, "duration") ? event.payload.duration : (current as any).duration,
 										position: hasOwn(event.payload, "position") ? event.payload.position : (current as any).position,
-										ref: serializeCustomEventMoveOptions({
-											autoMove: hasOwn(event.payload, "autoMove")
-												? event.payload.autoMove
-												: parseCustomEventMoveOptions(current.ref).autoMove,
-											clearTransforms: hasOwn(event.payload, "clearTransforms")
-												? event.payload.clearTransforms
-												: parseCustomEventMoveOptions(current.ref).clearTransforms
-										})
+										ref: replaceEventRefPreservingMedia(
+											current.ref,
+											serializeCustomEventMoveOptions({
+												autoMove: hasOwn(event.payload, "autoMove")
+													? event.payload.autoMove
+													: parseCustomEventMoveOptions(current.ref).autoMove,
+												clearTransforms: hasOwn(event.payload, "clearTransforms")
+													? event.payload.clearTransforms
+													: parseCustomEventMoveOptions(current.ref).clearTransforms
+											})
+										)
 									} as Parameters<typeof normalizeCustomEventDraft>[0];
 
 									const normalized = normalizeCustomEventDraft(nextDraft);

@@ -1,8 +1,9 @@
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
 import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
+import { parseEventMediaFromRef } from "@/config/event-media";
 import { buildSustainEffectStyle } from "@/config/event-effects";
-import { EDITOR_CAPSULE_CLASS, EDITOR_ITEM_CLASS } from "@/config/class-prefix";
+import { EDITOR_CAPSULE_CLASS, EDITOR_ITEM_CLASS, EDITOR_VIDEO_CLASS } from "@/config/class-prefix";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { getMediaUrl } from "@/lib/media-url";
 
@@ -24,6 +25,7 @@ import {
 	hasPositionStyleDelta,
 	joinNodeClassNames,
 	toImageStyle,
+	toVideoStyle,
 	type DecorLike
 } from "./styles";
 
@@ -100,7 +102,8 @@ export function createCapsuleRenderable(
 		parentId,
 		capsuleType: capsule.type,
 		autoLayoutAreaClassName,
-		debugLabel: null
+		debugLabel: null,
+		isMediaItem: false
 	});
 
 	actions[id] = true;
@@ -155,7 +158,8 @@ export function createItemRenderable(
 		parentId,
 		capsuleType: snapshot.capsules[item.capsuleId]?.type,
 		autoLayoutAreaClassName: additionalClassnames[item.id],
-		debugLabel: item.id === 53 ? "item_53" : null
+		debugLabel: item.id === 53 ? "item_53" : null,
+		isMediaItem: isMediaContentType(content.type)
 	});
 
 	const move = hasInitialParentAttach(events) ? parentId : undefined;
@@ -190,15 +194,20 @@ export function createItemRenderable(
 
 	switch (type) {
 		case P.SOUND:
-		case P.VIDEO:
+		case P.VIDEO: {
+			const videoClassName =
+				type === P.VIDEO ? joinNodeClassNames(initial.className, EDITOR_VIDEO_CLASS) : initial.className;
+			const videoStyle = type === P.VIDEO ? toVideoStyle(initial.style) : initial.style;
 			return {
 				type,
 				initial: {
 					...initial,
+					...(type === P.VIDEO ? { className: videoClassName, style: videoStyle } : {}),
 					src: mediaSrc
 				},
 				actions
 			};
+		}
 		case P.SPRITE:
 		case P.IMG:
 			return {
@@ -247,9 +256,11 @@ function buildTimedActions(input: {
 	capsuleType: string | null | undefined;
 	autoLayoutAreaClassName: string | null | undefined;
 	debugLabel: string | null;
+	isMediaItem: boolean;
 }): TimedActionBuildResult {
 	const { snapshot, item, events, baseDecor, parentId, capsuleType, autoLayoutAreaClassName, debugLabel } =
 		input;
+	const { isMediaItem } = input;
 	const actions: Record<string | number, any> = {};
 	let initialDecorState: DecorLike = baseDecor;
 	let previousClassDecor: DecorLike = baseDecor;
@@ -275,12 +286,16 @@ function buildTimedActions(input: {
 			const ev = entry.event;
 			const actionName = buildEventActionName(ev);
 			const eventKind = deriveEventKind(ev.action);
+			const eventMedia = isMediaItem ? resolveEventMediaAction(ev) : null;
 
 			if (eventKind === "sustain") {
 				if (!sustainWindow || sustainWindow.durationMs <= 0) continue;
 				const sustainStyle = buildSustainEffectStyle(ev.ref, sustainWindow.durationMs);
 				if (!sustainStyle || !Object.keys(sustainStyle).length) continue;
-				actions[actionName] = { style: sustainStyle };
+				actions[actionName] = {
+					style: sustainStyle,
+					...(eventMedia ? { media: eventMedia } : {})
+				};
 				lastScheduledStartMs = sustainWindow.startMs;
 				if (sustainWindow.startMs > previousKeyframeMs) previousKeyframeMs = sustainWindow.startMs;
 				continue;
@@ -314,6 +329,12 @@ function buildTimedActions(input: {
 					previousStyleState = { ...previousStyleState, ...targetStyle };
 					previousClassDecor = targetDecor;
 					previousDynamicClassName = nextDynamicClassName;
+					if (eventMedia) {
+						actions[actionName] = {
+							...(actions[actionName] || {}),
+							media: eventMedia
+						};
+					}
 					if (entry.keyframeMs !== null) previousKeyframeMs = entry.keyframeMs;
 					continue;
 				}
@@ -358,6 +379,7 @@ function buildTimedActions(input: {
 				const tweenAction: Record<string, unknown> = { style: customStyle };
 				const keyframeAction: Record<string, unknown> = {};
 				if (classNameDiff) keyframeAction.className = classNameDiff;
+				if (eventMedia) keyframeAction.media = eventMedia;
 				if (autoMoveRequested || layoutStyleChanged) {
 					keyframeAction.move =
 						autoMoveRequested && autoMoveOptions.clearTransforms
@@ -398,6 +420,7 @@ function buildTimedActions(input: {
 			const actionStyle = getActionStyle(preset.style);
 			const transitionAction: Record<string, unknown> =
 				ev.action == INTRO ? { style: actionStyle, move: parentId } : { style: actionStyle };
+			if (eventMedia) transitionAction.media = eventMedia;
 
 			if (ev.decorId && ev.action !== INTRO) {
 				const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
@@ -449,4 +472,21 @@ function buildTimedActions(input: {
 	}
 
 	return { actions, initialDecorState };
+}
+
+function isMediaContentType(type: string | null | undefined): boolean {
+	return type === "sound" || type === "video" || type === "lottie" || type === "audio";
+}
+
+function resolveEventMediaAction(
+	event: ContentEvent
+): { action: "play" | "pause"; offset?: number; changeAt?: number } | null {
+	const media = parseEventMediaFromRef(event.ref);
+	if (!media) return null;
+	const action = media.action;
+	const offsetSec = media.offset;
+	const changeAtSec = media.changeAt;
+	const offset = Number.isFinite(offsetSec) && offsetSec > 0 ? Math.round(offsetSec * 1000) : 0;
+	const changeAt = Number.isFinite(changeAtSec) && changeAtSec > 0 ? Math.round(changeAtSec * 1000) : 0;
+	return { action, offset, changeAt };
 }

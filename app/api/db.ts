@@ -18,6 +18,7 @@ import {
 	normalizeTransitionRef
 } from "@/config/transitions";
 import { normalizeSustainEffectRef } from "@/config/event-effects";
+import { parseEventMediaFromRef, upsertEventMediaInRef } from "@/config/event-media";
 import { SUSTAIN } from "@/config/constants";
 import { CAPSULE_TYPES } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, POSITION_FULL_SPAN_CLASS } from "@/config/capsule-presets";
@@ -587,6 +588,8 @@ export async function upsertSceneContentCues(input: {
 			normalizedTimestamp.length > 0
 				? []
 				: buildSceneFallbackEvents(scene?.title || "Scene", normalizedDuration);
+		const eventsPayload =
+			normalizedTimestamp.length > 0 ? JSON.stringify(normalizedTimestamp) : JSON.stringify(fallbackEvents);
 
 		const existing = await tx.sceneContent.findFirst({
 			where: { sceneId: input.sceneId },
@@ -598,7 +601,7 @@ export async function upsertSceneContentCues(input: {
 				where: { id: existing.id },
 				data: {
 					contentId: input.contentId,
-					events: JSON.stringify(fallbackEvents)
+					events: eventsPayload
 				}
 			});
 		}
@@ -614,7 +617,7 @@ export async function upsertSceneContentCues(input: {
 				sceneId: input.sceneId,
 				contentId: input.contentId,
 				order: (maxOrder?.order || 0) + 1000,
-				events: JSON.stringify(fallbackEvents)
+				events: eventsPayload
 			}
 		});
 	});
@@ -656,7 +659,7 @@ export async function upsertSceneAudioSettings(input: {
 				where: { id: existing.id },
 				data: {
 					contentId: input.contentId,
-					events: linkedTimestamp.length > 0 ? existing.events : JSON.stringify(fallbackEvents)
+					events: linkedTimestamp.length > 0 ? JSON.stringify(linkedTimestamp) : JSON.stringify(fallbackEvents)
 				}
 			});
 		}
@@ -672,7 +675,7 @@ export async function upsertSceneAudioSettings(input: {
 				sceneId: input.sceneId,
 				contentId: input.contentId,
 				order: (maxOrder?.order || 0) + 1000,
-				events: JSON.stringify(fallbackEvents)
+				events: linkedTimestamp.length > 0 ? JSON.stringify(linkedTimestamp) : JSON.stringify(fallbackEvents)
 			}
 		});
 	});
@@ -1199,13 +1202,8 @@ export async function addEventToContent({
 				? ref.trim()
 				: null
 			: eventKind === "sustain"
-				? normalizeSustainEffectRef(ref)
-				: normalizeTransitionRef(
-						typeof ref == "string" && ref.trim().length
-							? ref.trim()
-							: DEFAULT_TRANSITION_BY_ACTION[transitionAction],
-						transitionAction
-					);
+				? normalizeSustainRefWithMedia(ref)
+				: normalizeTransitionRefWithMedia(ref, transitionAction);
 
 	const normalizedDuration =
 		typeof duration == "number" && Number.isFinite(duration) && duration > 0 ? duration : null;
@@ -1259,6 +1257,40 @@ export async function removeEventFromcontent(id: number) {
 	return await prisma.event.delete({
 		where: { id }
 	});
+}
+
+function normalizeTransitionRefWithMedia(
+	ref: string | null | undefined,
+	transitionAction: ReturnType<typeof normalizeTransitionAction>
+): string | null {
+	const media = parseEventMediaFromRef(ref);
+	const transitionRef = extractTransitionRefValue(ref);
+	const normalizedTransitionRef = normalizeTransitionRef(
+		transitionRef || DEFAULT_TRANSITION_BY_ACTION[transitionAction],
+		transitionAction
+	);
+	if (!media) return normalizedTransitionRef;
+	return upsertEventMediaInRef(normalizedTransitionRef, media);
+}
+
+function normalizeSustainRefWithMedia(ref: string | null | undefined): string | null {
+	const media = parseEventMediaFromRef(ref);
+	const normalizedSustainRef = normalizeSustainEffectRef(ref);
+	if (!media) return normalizedSustainRef;
+	return upsertEventMediaInRef(normalizedSustainRef, media);
+}
+
+function extractTransitionRefValue(ref: string | null | undefined): string {
+	if (typeof ref !== "string") return "";
+	const raw = ref.trim();
+	if (!raw) return "";
+	if (!raw.startsWith("{")) return raw;
+	try {
+		const parsed = JSON.parse(raw) as { ref?: unknown };
+		return typeof parsed.ref === "string" ? parsed.ref.trim() : "";
+	} catch {
+		return "";
+	}
 }
 
 export async function removeCustomEventFromContent(id: number) {

@@ -174,6 +174,13 @@ export function toImageStyle(
 }
 
 /**
+ * Build default video style from decor style inputs.
+ */
+export function toVideoStyle(style: unknown): Record<string, number | string> {
+	return toImageStyle(style, "contain");
+}
+
+/**
  * Build effective decor from event decor with fallback and patch merge.
  */
 export function getEventDecor(

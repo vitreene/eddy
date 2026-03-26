@@ -60,7 +60,9 @@ suivant, à deplcer après test.
 					const { style, ...change } = action;
 
 					if (change && isVideo && change.media) {
-						change.media.changeAt = change.media.changeAt ?? position;
+						const authoredChangeAt = Number(change.media.changeAt);
+						change.media.changeAt =
+							Number.isFinite(authoredChangeAt) && authoredChangeAt > 0 ? authoredChangeAt : position;
 
 						offset = change.media.offset ?? offset;
 						if (change.media.action == "play") {

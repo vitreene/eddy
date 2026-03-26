@@ -15,4 +15,5 @@ export function buildEditorGridClassName(cols: number, rows: number): string {
 
 export const EDITOR_ITEM_CLASS = withEditorPrefix("item");
 export const EDITOR_CAPSULE_CLASS = withEditorPrefix("caps");
+export const EDITOR_VIDEO_CLASS = withEditorPrefix("video");
 export const EDITOR_STATIC_STYLE_CLASS_PREFIX = withEditorPrefix("static");

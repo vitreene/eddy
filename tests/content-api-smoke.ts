@@ -36,4 +36,14 @@ assert(
 	"custom event with delay should persist"
 );
 
+assert(
+	shouldPersistEventPayload("custom-1", {
+		action: "custom-1",
+		name: "",
+		delay: undefined,
+		ref: JSON.stringify({ media: { action: "play", offset: 0 } })
+	} as any) === true,
+	"custom event with media should persist"
+);
+
 console.log("content api smoke: all checks passed");

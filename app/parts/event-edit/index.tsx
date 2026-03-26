@@ -6,14 +6,22 @@ import type { ItemComp, ContentEvent } from "@/api/db";
 import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
+import {
+	parseEventMediaFromRef,
+	replaceEventRefPreservingMedia,
+	upsertEventMediaInRef,
+	type EventMediaParams
+} from "@/config/event-media";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { Button } from "@/components/ui/button";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import { Rubber } from "../rubber";
+import { MediaEventParams } from "./media-event-params";
 import { SustainEventParams } from "./sustain-event-params";
 
 const actionOrder = [INTRO, SUSTAIN, OUTRO];
+const MEDIA_CONTENT_TYPES = new Set(["sound", "video", "lottie", "audio"]);
 
 const positionName = {
 	start: "début",
@@ -36,6 +44,13 @@ export function EditEvent() {
 		if (state.context.active.itemId) return state.context.items[state.context.active.itemId];
 		return null;
 	});
+	const itemContentType = SceneLogicContext.useSelector((state) => {
+		const itemId = state.context.active.itemId;
+		if (!itemId) return null;
+		const activeItem = state.context.items[itemId];
+		if (!activeItem) return null;
+		return state.context.contents[activeItem.contentId]?.type ?? null;
+	});
 	const events = SceneLogicContext.useSelector((state) => {
 		if (!item) return null;
 		return state.context.events[item.id] || null;
@@ -56,11 +71,21 @@ export function EditEvent() {
 		<section className="flex gap-4">
 			<ContentInfos key={item.id} item={item} />
 			<div className="flex flex-col gap-2">
-				<EventParams event={activeEvent} events={events} cues={cues} />
+				<EventParams
+					event={activeEvent}
+					events={events}
+					cues={cues}
+					showMediaParams={isMediaContentType(itemContentType)}
+				/>
 				<Rubber />
 			</div>
 		</section>
 	);
+}
+
+function isMediaContentType(type: string | null | undefined): boolean {
+	if (!type) return false;
+	return MEDIA_CONTENT_TYPES.has(type);
 }
 
 function buildDefaultTransitionEvent(action: string): ContentEvent | null {
@@ -82,11 +107,13 @@ function buildDefaultTransitionEvent(action: string): ContentEvent | null {
 function EventParams({
 	event,
 	events,
-	cues
+	cues,
+	showMediaParams
 }: {
 	event: ContentEvent | null;
 	events: Record<string, ContentEvent | undefined> | null;
 	cues: Array<{ name: string; text: string }>;
+	showMediaParams: boolean;
 }) {
 	const { send } = SceneLogicContext.useActorRef();
 	const kind = event ? deriveEventKind(event.action) : null;
@@ -103,6 +130,7 @@ function EventParams({
 	const position = (event.position as "start" | "middle" | "end" | null) ?? "middle";
 	const eventLabel = resolveEventLabel(cues, event.name);
 	const moveOptions = kind === "custom" ? parseCustomEventMoveOptions(event.ref) : null;
+	const mediaParams = resolveMediaParams(event.ref);
 	const hasCustomEvents = Boolean(
 		events &&
 		Object.values(events).some((entry) => Boolean(entry) && deriveEventKind(entry!.action) === "custom")
@@ -120,15 +148,29 @@ function EventParams({
 	};
 
 	const onChangeTransition = (ref: string) => {
-		send({ type: "events-update", payload: { action: event.action, ref } });
+		send({
+			type: "events-update",
+			payload: { action: event.action, ref: replaceEventRefPreservingMedia(event.ref, ref) }
+		});
 	};
 
 	const onChangeSustainRef = (ref: string | null) => {
-		send({ type: "events-update", payload: { action: event.action, ref } });
+		send({
+			type: "events-update",
+			payload: { action: event.action, ref: replaceEventRefPreservingMedia(event.ref, ref) }
+		});
+	};
+
+	const onChangeMedia = (media: EventMediaParams) => {
+		send({
+			type: "events-update",
+			payload: { action: event.action, ref: upsertEventMediaInRef(event.ref, media) }
+		});
 	};
 
 	return (
 		<div className="flex justify-start gap-4 rounded border p-2 text-xs">
+			{showMediaParams ? <MediaEventParams value={mediaParams} onChange={onChangeMedia} /> : null}
 			{kind === "custom" ? (
 				<>
 					<div className="flex min-w-40 items-center gap-2 rounded border border-stone-300 px-2">
@@ -218,7 +260,7 @@ function EventParams({
 					<select
 						name="ref"
 						onChange={(e) => onChangeTransition(e.currentTarget.value)}
-						value={event.ref ? normalizeTransitionRef(event.ref, event.action) : ""}
+						value={resolveTransitionRefValue(event.ref, event.action)}
 					>
 						<option value="">--</option>
 						{getTransitionOptions(event.action).map(({ key, name }) => (
@@ -232,6 +274,25 @@ function EventParams({
 			<ClearEvents />
 		</div>
 	);
+}
+
+function resolveMediaParams(ref: string | null | undefined): EventMediaParams {
+	return parseEventMediaFromRef(ref) || { action: "play", offset: 0, changeAt: 0 };
+}
+
+function resolveTransitionRefValue(ref: string | null | undefined, action: string): string {
+	if (!ref) return "";
+	const raw = ref.trim();
+	if (!raw) return "";
+	if (raw.startsWith("{")) {
+		try {
+			const parsed = JSON.parse(raw) as { ref?: unknown };
+			if (typeof parsed.ref === "string") return normalizeTransitionRef(parsed.ref, action);
+		} catch {
+			return normalizeTransitionRef(raw, action);
+		}
+	}
+	return normalizeTransitionRef(raw, action);
 }
 
 function ClearEvents() {
