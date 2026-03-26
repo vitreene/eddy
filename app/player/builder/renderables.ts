@@ -1,5 +1,4 @@
 import type { ItemComp, SceneComp } from "@/api/db";
-import { INTRO } from "@/config/constants";
 import { EDITOR_VIDEO_CLASS } from "@/config/class-prefix";
 import { getMediaUrl } from "@/lib/media-url";
 import { getActiveSceneContent } from "@/scene-runtime/scene-content";
@@ -66,19 +65,17 @@ function createSceneSoundRenderable(snapshot: SceneComp): any | null {
 			className: EDITOR_VIDEO_CLASS,
 			move: SCENE_ID,
 			src,
+			media: {
+				action: "play",
+				changeAt: 0,
+				offset: 0
+			},
 			attr: {
 				hidden: "hidden"
 			}
 		},
 		actions: {
-			[id]: true,
-			[INTRO]: {
-				media: {
-					action: "play",
-					changeAt: 0,
-					offset: 0
-				}
-			}
+			[id]: true
 		}
 	};
 }

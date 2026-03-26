@@ -57,11 +57,12 @@ assert.equal(sceneSoundPerso.initial.move, "container-scene");
 assert.equal(typeof sceneSoundPerso.initial.src, "string");
 assert.equal(sceneSoundPerso.initial.src.includes("scene-audio.mp3"), true);
 assert.equal(sceneSoundPerso.initial.attr?.hidden, "hidden");
-assert.deepEqual(sceneSoundPerso.actions.intro?.media, {
+assert.deepEqual(sceneSoundPerso.initial.media, {
 	action: "play",
 	changeAt: 0,
 	offset: 0
 });
+assert.equal(typeof sceneSoundPerso.actions.intro, "undefined");
 
 const sceneWithoutSound = createBaseScene();
 sceneWithoutSound.contents[500].type = "img" as any;

@@ -34,37 +34,29 @@ const SUSTAIN_EFFECTS: Record<SustainEffectName, SustainEffectDefinition> = {
 	}
 };
 
-export function parseSustainEffectRef(raw: string | null | undefined): SustainEffectRef | null {
-	if (!raw || typeof raw != "string") return null;
-	const trimmed = raw.trim();
-	if (!trimmed) return null;
+export function parseSustainEffectRef(raw: unknown): SustainEffectRef | null {
+	const parsed = parseSustainEffectPayload(raw);
+	if (!parsed || parsed.name !== "zoom") return null;
+	if (typeof parsed.in !== "number" || !Number.isFinite(parsed.in)) return null;
+	if (typeof parsed.out !== "number" || !Number.isFinite(parsed.out)) return null;
 
-	try {
-		const parsed = JSON.parse(trimmed) as Partial<SustainEffectRef>;
-		if (parsed?.name !== "zoom") return null;
-		if (typeof parsed.in !== "number" || !Number.isFinite(parsed.in)) return null;
-		if (typeof parsed.out !== "number" || !Number.isFinite(parsed.out)) return null;
-
-		const inScale = clampScale(parsed.in);
-		const outScale = clampScale(parsed.out);
-		return {
-			name: "zoom",
-			in: inScale,
-			out: outScale
-		};
-	} catch {
-		return null;
-	}
+	const inScale = clampScale(parsed.in);
+	const outScale = clampScale(parsed.out);
+	return {
+		name: "zoom",
+		in: inScale,
+		out: outScale
+	};
 }
 
-export function normalizeSustainEffectRef(raw: string | null | undefined): string | null {
+export function normalizeSustainEffectRef(raw: unknown): string | null {
 	const parsed = parseSustainEffectRef(raw);
 	if (!parsed) return null;
 	return JSON.stringify(parsed);
 }
 
 export function buildSustainEffectStyle(
-	ref: string | null | undefined,
+	ref: unknown,
 	durationMs: number
 ): ActionStyle | null {
 	const parsed = parseSustainEffectRef(ref);
@@ -81,7 +73,7 @@ export function buildSustainEffectStyle(
 	});
 }
 
-export function parseSustainEffectUiState(raw: string | null | undefined): SustainEffectUiState {
+export function parseSustainEffectUiState(raw: unknown): SustainEffectUiState {
 	const parsed = parseSustainEffectRef(raw);
 	if (!parsed) {
 		return {
@@ -106,6 +98,23 @@ export function parseSustainEffectUiState(raw: string | null | undefined): Susta
 		direction: "final",
 		value: parsed.out
 	};
+}
+
+function parseSustainEffectPayload(raw: unknown): Partial<SustainEffectRef> | null {
+	if (!raw) return null;
+	if (typeof raw === "string") {
+		const trimmed = raw.trim();
+		if (!trimmed || !trimmed.startsWith("{")) return null;
+		try {
+			const parsed = JSON.parse(trimmed) as unknown;
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+			return parsed as Partial<SustainEffectRef>;
+		} catch {
+			return null;
+		}
+	}
+	if (typeof raw !== "object" || Array.isArray(raw)) return null;
+	return raw as Partial<SustainEffectRef>;
 }
 
 export function serializeSustainEffectUiState(state: SustainEffectUiState): string | null {

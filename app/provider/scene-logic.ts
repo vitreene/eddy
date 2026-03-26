@@ -16,7 +16,7 @@ import {
 	serializeCustomEventMoveOptions,
 	type CustomEventPosition
 } from "@/config/custom-events";
-import { replaceEventRefPreservingMedia } from "@/config/event-media";
+import { replaceEventRefPreservingMedia } from "@/lib/event-ref";
 import { getPlayerNode } from "@/scene-runtime/node-resolver";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import {

@@ -354,7 +354,7 @@ function createGeneratedEvent({
 		id: -1,
 		name,
 		action,
-		ref: "",
+		ref: null,
 		duration: null,
 		delay: null,
 		position: null,

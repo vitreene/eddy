@@ -251,3 +251,19 @@
 
 - Ne jamais executer une migration SQL sur `dev.db` sans demande explicite de l'utilisateur.
 - Si une correction implique une ecriture base, faire d'abord toutes les modifs code/schema non bloquantes puis demander une validation unique pour l'operation DB.
+
+## 2026-03-26 — Boundary modules: `config` valeurs uniquement
+
+- Ne pas ajouter de nouveaux modules metier/fonctionnels dans `app/config`; ce dossier reste reserve aux valeurs/definitions de configuration.
+- Pour la logique de serialisation/merge des payloads d'event, centraliser dans un module partage neutre (`app/lib/*`) ou `event-edit` si strictement local UI, pas dans `config`.
+
+## 2026-03-26 — Placement module: ne pas supposer l'orchestrateur
+
+- Ne pas placer un module dans `scene-logic` par defaut sans verifier qu'il est reellement pilote par XState.
+- Pour une logique partagee entre API, builder et UI, choisir un module neutre (`app/lib/*`) plutot qu'un dossier d'orchestration specifique.
+
+## 2026-03-26 — Discipline plan: zero changement hors plan
+
+- Interdiction stricte: ne jamais ajouter une modification qui n'est pas explicitement capturee dans un plan actif.
+- Avant toute edition de code/schema/tests, mettre a jour la checklist du plan pour inclure exactement ce changement.
+- Si un besoin emerge pendant l'implementation, stopper, re-planifier, puis seulement modifier le code.

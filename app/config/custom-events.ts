@@ -1,4 +1,5 @@
 import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
+import type { Prisma } from "prisma/generated/prisma/client";
 
 export const RESERVED_EVENT_ACTIONS = {
 	INTRO,
@@ -20,7 +21,7 @@ export type CustomEventDraft = {
 	delay?: number | null;
 	duration?: number | null;
 	position?: CustomEventPosition | null;
-	ref?: string | null;
+	ref?: Prisma.JsonValue | null;
 };
 
 export type CustomEventMoveOptions = {
@@ -33,11 +34,9 @@ const DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS: CustomEventMoveOptions = {
 	clearTransforms: false
 };
 
-export function parseCustomEventMoveOptions(ref: string | null | undefined): CustomEventMoveOptions {
-	if (!ref || typeof ref !== "string") return { ...DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS };
-	const raw = ref.trim();
-	if (!raw) return { ...DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS };
-	const parsed = JSON.parse(raw) as Partial<CustomEventMoveOptions>;
+export function parseCustomEventMoveOptions(ref: unknown): CustomEventMoveOptions {
+	const parsed = parseCustomEventMovePayload(ref);
+	if (!parsed) return { ...DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS };
 	return {
 		autoMove:
 			typeof parsed.autoMove === "boolean" ? parsed.autoMove : DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS.autoMove,
@@ -46,6 +45,23 @@ export function parseCustomEventMoveOptions(ref: string | null | undefined): Cus
 				? parsed.clearTransforms
 				: DEFAULT_CUSTOM_EVENT_MOVE_OPTIONS.clearTransforms
 	};
+}
+
+function parseCustomEventMovePayload(ref: unknown): Partial<CustomEventMoveOptions> | null {
+	if (!ref) return null;
+	if (typeof ref === "string") {
+		const raw = ref.trim();
+		if (!raw || !raw.startsWith("{")) return null;
+		try {
+			const parsed = JSON.parse(raw) as unknown;
+			if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+			return parsed as Partial<CustomEventMoveOptions>;
+		} catch {
+			return null;
+		}
+	}
+	if (typeof ref !== "object" || Array.isArray(ref)) return null;
+	return ref as Partial<CustomEventMoveOptions>;
 }
 
 export function serializeCustomEventMoveOptions(

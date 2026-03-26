@@ -1,4 +1,4 @@
-import type { EventMediaParams } from "@/config/event-media";
+import type { EventMediaParams } from "@/lib/event-ref";
 
 type Props = {
 	value: EventMediaParams;

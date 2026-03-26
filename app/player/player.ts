@@ -106,32 +106,6 @@ export class Player {
 	private setStaticChanges!: () => void;
 	private createScene!: () => void;
 
-	private traceMediaSeek(stage: string, payload: Record<string, unknown>) {
-		console.log(`[Player][media-seek][${stage}]`, payload);
-	}
-
-	private getMediaStatusRow(id: ID) {
-		const ms = this.mediaStatus.get(id);
-		if (!ms) return null;
-		const node = ms.node as HTMLMediaElement;
-		return {
-			id,
-			status: ms.status,
-			startAt: ms.startAt,
-			change: ms.change ? { ...ms.change } : null,
-			nodeCurrentTimeMs: Math.round((node.currentTime || 0) * 1000),
-			nodePaused: node.paused,
-			nodeReadyState: node.readyState,
-			src: node.currentSrc || node.src
-		};
-	}
-
-	private getAllMediaStatusRows() {
-		const rows: Array<ReturnType<Player["getMediaStatusRow"]>> = [];
-		this.mediaStatus.forEach((_ms, id) => rows.push(this.getMediaStatusRow(id)));
-		return rows.filter(Boolean);
-	}
-
 	private onBeforeUpdateTM() {
 		this.timeLine.onBeforeUpdate = (self: Timeline) => {
 			this.updatesTM.forEach((up) => up(self));
@@ -191,7 +165,7 @@ export class Player {
 		if (this.timeLine.paused) {
 			this.timeLine.play();
 			this.mediaStatus.forEach((ms) => {
-				ms.node[ms.status]();
+				this.executeMediaAction(ms.node, ms.status, { force: true });
 			});
 		}
 		return this.timeLine;
@@ -206,7 +180,7 @@ export class Player {
 	private pause = () => {
 		this.timeLine.pause();
 		this.mediaStatus.forEach((ms) => {
-			(ms.node as HTMLVideoElement).pause();
+			this.executeMediaAction(ms.node, "pause", { force: true });
 		});
 		return this.timeLine;
 	};
@@ -217,29 +191,14 @@ export class Player {
 	};
 
 	private seek = (time: number) => {
-		this.traceMediaSeek("seek:start", {
-			time,
-			mediaCount: this.mediaStatus.size,
-			before: this.getAllMediaStatusRows()
-		});
-
 		this.timeLine.pause();
 		this.mediaStatus.forEach((ms) => {
 			ms.node.pause();
 		});
 		this.seekChanges(time);
-		this.traceMediaSeek("seek:after-seekChanges", {
-			time,
-			afterSeekChanges: this.getAllMediaStatusRows()
-		});
 
 		this.timeLine.seek(+time);
 		this.seekMedias(+time);
-
-		this.traceMediaSeek("seek:end", {
-			time,
-			afterSeekMedias: this.getAllMediaStatusRows()
-		});
 
 		return this.timeLine;
 	};
@@ -247,28 +206,16 @@ export class Player {
 	private seekMedias = (time: number) => {
 		this.mediaStatus.forEach((ms, id) => {
 			const $node = ms.node as HTMLVideoElement;
-			const beforeMs = Math.round(($node.currentTime || 0) * 1000);
 			const currentime = ms.change
 				? ms.change.offset + (time - ms.change.changeAt)
 				: ms.startAt <= time
 					? time - ms.startAt
 					: 0;
 			$node.currentTime = currentime / 1000;
-			this.traceMediaSeek("seekMedias:apply", {
-				time,
-				id,
-				status: ms.status,
-				change: ms.change ?? null,
-				currentime,
-				beforeMs,
-				afterMs: Math.round(($node.currentTime || 0) * 1000),
-				nodePaused: $node.paused
-			});
 		});
 	};
 	private seekChanges(time: number) {
 		this.persoChanges.forEach((pcs, id) => {
-			const before = this.getMediaStatusRow(id);
 			const changes = [];
 			let lastParentMove: ID | null = null;
 
@@ -297,18 +244,6 @@ export class Player {
 			}
 			this._applyChanges(id, change);
 			this.applyMediaChanges(time, id, change, true);
-
-			const after = this.getMediaStatusRow(id);
-			if (before || after || change.media) {
-				this.traceMediaSeek("seekChanges:folded", {
-					time,
-					id,
-					mergedMedia: change.media ?? null,
-					mergedSrc: change.src ?? null,
-					before,
-					after
-				});
-			}
 		});
 	}
 
@@ -427,10 +362,11 @@ export class Player {
 	}
 
 	// changes : src, media
-	private applyMediaChanges(time: number, id: ID, change: Partial<ActionAtributes>, duringSeek = false) {
+	applyMediaChanges(time: number, id: ID, change: Partial<ActionAtributes>, duringSeek = false) {
 		const perso = this.persos.get(id);
 		if (!("media" in perso)) return;
-		const before = this.getMediaStatusRow(id);
+		const mediaStatus = this.mediaStatus.get(perso.initial.id);
+		if (!mediaStatus) return;
 
 		const $el = this.$elements.get(id);
 		if (change.src) {
@@ -442,43 +378,45 @@ export class Player {
 		}
 
 		if (perso.type == P.VIDEO && change.media) {
-			const $video = $el as HTMLVideoElement;
-
-			const $media = this.mediaStatus.get(perso.initial.id)!;
-			$media.change = {
+			mediaStatus.change = {
 				changeAt: change.media.changeAt,
 				offset: change.media.offset
 			};
-			$media.startAt = time ?? 0;
-			$media.status = change.media.action == "pause" ? "pause" : "play";
+			mediaStatus.startAt = time ?? 0;
+			mediaStatus.status = change.media.action == "pause" ? "pause" : "play";
 
 			if (duringSeek) {
-				this.traceMediaSeek("applyMediaChanges:video", {
-					time,
-					id,
-					incomingMedia: change.media,
-					duringSeek,
-					before,
-					after: this.getMediaStatusRow(id)
-				});
 				return;
 			}
 
-			if (change.media.action == "play") {
-				$video.currentTime = (change.media.offset ?? 0) / 1000;
-				!this.timeLine.paused && $video.play();
-			}
-			if (change.media.action == "pause") {
-				$video.pause();
-			}
-
-			this.traceMediaSeek("applyMediaChanges:video", {
-				time,
-				id,
-				incomingMedia: change.media,
-				before,
-				after: this.getMediaStatusRow(id)
+			this.executeMediaAction(mediaStatus.node, change.media.action, {
+				offsetMs: change.media.offset,
+				force: false
 			});
+		}
+	}
+
+	private executeMediaAction(
+		node: HTMLMediaElement,
+		action: string,
+		options?: { offsetMs?: number; force?: boolean }
+	) {
+		switch (action) {
+			case "play": {
+				if (typeof options?.offsetMs == "number" && Number.isFinite(options.offsetMs)) {
+					node.currentTime = Math.max(0, options.offsetMs) / 1000;
+				}
+				if (options?.force || !this.timeLine.paused) {
+					node.play();
+				}
+				break;
+			}
+			case "pause": {
+				node.pause();
+				break;
+			}
+			default:
+				break;
 		}
 	}
 

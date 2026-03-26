@@ -4,14 +4,16 @@ import { CircleSmallIcon, Plus, Trash2 } from "lucide-react";
 import type { ItemComp, ContentEvent } from "@/api/db";
 
 import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
-import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
+import { getTransitionOptions } from "@/config/transitions";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
 import {
 	parseEventMediaFromRef,
+	readEventTransition,
 	replaceEventRefPreservingMedia,
-	upsertEventMediaInRef,
+	writeEventMedia,
+	writeEventTransition,
 	type EventMediaParams
-} from "@/config/event-media";
+} from "@/lib/event-ref";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { Button } from "@/components/ui/button";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
@@ -150,7 +152,7 @@ function EventParams({
 	const onChangeTransition = (ref: string) => {
 		send({
 			type: "events-update",
-			payload: { action: event.action, ref: replaceEventRefPreservingMedia(event.ref, ref) }
+			payload: { action: event.action, ref: writeEventTransition(event.ref, ref, event.action) }
 		});
 	};
 
@@ -164,7 +166,7 @@ function EventParams({
 	const onChangeMedia = (media: EventMediaParams) => {
 		send({
 			type: "events-update",
-			payload: { action: event.action, ref: upsertEventMediaInRef(event.ref, media) }
+			payload: { action: event.action, ref: writeEventMedia(event.ref, media) }
 		});
 	};
 
@@ -276,23 +278,12 @@ function EventParams({
 	);
 }
 
-function resolveMediaParams(ref: string | null | undefined): EventMediaParams {
+function resolveMediaParams(ref: unknown): EventMediaParams {
 	return parseEventMediaFromRef(ref) || { action: "play", offset: 0, changeAt: 0 };
 }
 
-function resolveTransitionRefValue(ref: string | null | undefined, action: string): string {
-	if (!ref) return "";
-	const raw = ref.trim();
-	if (!raw) return "";
-	if (raw.startsWith("{")) {
-		try {
-			const parsed = JSON.parse(raw) as { ref?: unknown };
-			if (typeof parsed.ref === "string") return normalizeTransitionRef(parsed.ref, action);
-		} catch {
-			return normalizeTransitionRef(raw, action);
-		}
-	}
-	return normalizeTransitionRef(raw, action);
+function resolveTransitionRefValue(ref: unknown, action: string): string {
+	return readEventTransition(ref, action);
 }
 
 function ClearEvents() {

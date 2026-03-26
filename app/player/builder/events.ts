@@ -12,6 +12,7 @@ import {
 	resolveCueWindows,
 	type ResolveCueWindowsResult
 } from "@/scene-runtime/visibility/resolve-cue-windows";
+import { readEventTransitionValue } from "@/lib/event-ref";
 
 import type { ContentEvent, ItemComp, SceneComp, TextTime, CapsuleComp } from "@/api/db";
 import { buildCustomTweenActionName, buildEventActionName } from "./lib";
@@ -171,7 +172,7 @@ export function getTransitionPresetForEvent({
 	event: ContentEvent;
 }) {
 	const eventAction = event.action == OUTRO ? OUTRO : INTRO;
-	const eventRef = parseTransitionRef(event.ref);
+	const eventRef = readEventTransitionValue(event.ref);
 	const capsule = snapshot.capsules?.[item.capsuleId];
 	const capsuleRef = getCapsuleDefaultTransitionRef(capsule, eventAction);
 	const fallbackRef = DEFAULT_TRANSITION_BY_ACTION[eventAction];

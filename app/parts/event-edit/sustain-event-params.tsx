@@ -6,7 +6,7 @@ import {
 } from "@/config/event-effects";
 
 type Props = {
-	refValue: string | null | undefined;
+	refValue: unknown;
 	onRefChange: (nextRef: string | null) => void;
 	hasCustomEvents: boolean;
 	showCustomEventHint?: boolean;

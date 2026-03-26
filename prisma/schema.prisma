@@ -124,7 +124,7 @@ model Event {
   id       Int    @id @default(autoincrement())
   name     String?
   action   String
-  ref      String? // référence nommée dans une config, sans décor
+  ref      Json? // event params payload (transition/media/...)
   duration Float?
   delay    Float?
   position String?

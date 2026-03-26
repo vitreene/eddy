@@ -1,7 +1,7 @@
 import { DEFAULT_TRANSITION_BY_ACTION, getTransitionPreset } from "@/config/transitions";
 import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
-import { parseEventMediaFromRef } from "@/config/event-media";
+import { parseEventMediaFromRef } from "@/lib/event-ref";
 import { buildSustainEffectStyle } from "@/config/event-effects";
 import { EDITOR_CAPSULE_CLASS, EDITOR_ITEM_CLASS, EDITOR_VIDEO_CLASS } from "@/config/class-prefix";
 import { buildNodeId } from "@/scene-runtime/node-id";
@@ -103,7 +103,8 @@ export function createCapsuleRenderable(
 		capsuleType: capsule.type,
 		autoLayoutAreaClassName,
 		debugLabel: null,
-		isMediaItem: false
+		isMediaItem: false,
+		isVideoItem: false
 	});
 
 	actions[id] = true;
@@ -159,7 +160,8 @@ export function createItemRenderable(
 		capsuleType: snapshot.capsules[item.capsuleId]?.type,
 		autoLayoutAreaClassName: additionalClassnames[item.id],
 		debugLabel: item.id === 53 ? "item_53" : null,
-		isMediaItem: isMediaContentType(content.type)
+		isMediaItem: isMediaContentType(content.type),
+		isVideoItem: content.type === "video"
 	});
 
 	const move = hasInitialParentAttach(events) ? parentId : undefined;
@@ -257,10 +259,11 @@ function buildTimedActions(input: {
 	autoLayoutAreaClassName: string | null | undefined;
 	debugLabel: string | null;
 	isMediaItem: boolean;
+	isVideoItem: boolean;
 }): TimedActionBuildResult {
 	const { snapshot, item, events, baseDecor, parentId, capsuleType, autoLayoutAreaClassName, debugLabel } =
 		input;
-	const { isMediaItem } = input;
+	const { isMediaItem, isVideoItem } = input;
 	const actions: Record<string | number, any> = {};
 	let initialDecorState: DecorLike = baseDecor;
 	let previousClassDecor: DecorLike = baseDecor;
@@ -286,7 +289,9 @@ function buildTimedActions(input: {
 			const ev = entry.event;
 			const actionName = buildEventActionName(ev);
 			const eventKind = deriveEventKind(ev.action);
-			const eventMedia = isMediaItem ? resolveEventMediaAction(ev) : null;
+			const eventMedia = isMediaItem
+				? resolveEventMediaAction(ev, { kind: eventKind, defaultForVideo: isVideoItem })
+				: null;
 
 			if (eventKind === "sustain") {
 				if (!sustainWindow || sustainWindow.durationMs <= 0) continue;
@@ -479,10 +484,16 @@ function isMediaContentType(type: string | null | undefined): boolean {
 }
 
 function resolveEventMediaAction(
-	event: ContentEvent
+	event: ContentEvent,
+	options: { kind: ReturnType<typeof deriveEventKind>; defaultForVideo: boolean }
 ): { action: "play" | "pause"; offset?: number; changeAt?: number } | null {
 	const media = parseEventMediaFromRef(event.ref);
-	if (!media) return null;
+	if (!media) {
+		if (!options.defaultForVideo) return null;
+		if (options.kind === "intro") return { action: "play", offset: 0, changeAt: 0 };
+		if (options.kind === "outro") return { action: "pause", offset: 0, changeAt: 0 };
+		return null;
+	}
 	const action = media.action;
 	const offsetSec = media.offset;
 	const changeAtSec = media.changeAt;

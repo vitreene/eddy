@@ -13,12 +13,12 @@ function createVideoMediaScene(): SceneComp {
 				intro: {
 					action: "intro",
 					name: "cue-intro",
-					ref: JSON.stringify({ ref: "fade", media: { action: "play", offset: 1.25 } })
+					ref: { transition: "fade", media: { action: "play", offset: 1.25 } }
 				} as any,
 				outro: {
 					action: "outro",
 					name: "cue-outro",
-					ref: JSON.stringify({ ref: "fade", media: { action: "pause", offset: 0 } })
+					ref: { transition: "fade", media: { action: "pause", offset: 0 } }
 				} as any
 			}
 		},
@@ -58,6 +58,13 @@ function createVideoMediaScene(): SceneComp {
 	};
 }
 
+function createVideoDefaultMediaScene(): SceneComp {
+	const base = createVideoMediaScene();
+	(base.events[10].intro as any).ref = { transition: "fade" };
+	(base.events[10].outro as any).ref = { transition: "fade" };
+	return base;
+}
+
 const built = buildScene(createVideoMediaScene());
 const item = built.persos.find((perso: any) => perso?.initial?.id === "item__10") as any;
 
@@ -73,5 +80,16 @@ assert.equal(item.actions[introActionName!].media.changeAt, 0);
 assert.equal(item.actions[outroActionName!].media.action, "pause");
 assert.equal(item.actions[outroActionName!].media.offset, 0);
 assert.equal(item.actions[outroActionName!].media.changeAt, 0);
+
+const builtDefault = buildScene(createVideoDefaultMediaScene());
+const itemDefault = builtDefault.persos.find((perso: any) => perso?.initial?.id === "item__10") as any;
+const introDefaultActionName = Object.keys(itemDefault.actions).find((key) => key.endsWith("-intro"));
+const outroDefaultActionName = Object.keys(itemDefault.actions).find((key) => key.endsWith("-outro"));
+assert.ok(introDefaultActionName, "default intro action should be generated");
+assert.ok(outroDefaultActionName, "default outro action should be generated");
+assert.equal(itemDefault.actions[introDefaultActionName!].media.action, "play");
+assert.equal(itemDefault.actions[introDefaultActionName!].media.offset, 0);
+assert.equal(itemDefault.actions[outroDefaultActionName!].media.action, "pause");
+assert.equal(itemDefault.actions[outroDefaultActionName!].media.offset, 0);
 
 console.log("event media action smoke: all checks passed");

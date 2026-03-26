@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { INTRO, OUTRO } from "@/config/constants";
 import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
 import { deriveEventKind } from "@/config/custom-events";
+import { writeEventTransition } from "@/lib/event-ref";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
@@ -276,14 +277,14 @@ function selectCues(cues: Array<TextTime> = [], start: string, end: string) {
 }
 
 export function makeEventPayload(
-	events: Record<string, { action?: string; name?: string; ref?: string } | undefined> | null,
+	events: Record<string, { action?: string; name?: string; ref?: unknown } | undefined> | null,
 	action: string,
 	name: string
 ) {
 	const current = events?.[action] || {};
 	const defaultRef =
 		action === OUTRO ? DEFAULT_TRANSITION_BY_ACTION[OUTRO] : DEFAULT_TRANSITION_BY_ACTION[INTRO];
-	return { ...current, action, name, ref: current.ref || defaultRef };
+	return { ...current, action, name, ref: writeEventTransition(current.ref, defaultRef, action) };
 }
 
 function computeCuePositionFromPointer(target: HTMLLIElement, clientX: number): "start" | "middle" | "end" {

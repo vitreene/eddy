@@ -13,12 +13,12 @@ import type {
 import type { EditableStyle } from "@/components/style-editor/types";
 import { ROOT } from "@/scene-runtime/constants";
 import {
-	DEFAULT_TRANSITION_BY_ACTION,
-	normalizeTransitionAction,
-	normalizeTransitionRef
+	normalizeTransitionAction
 } from "@/config/transitions";
 import { normalizeSustainEffectRef } from "@/config/event-effects";
-import { parseEventMediaFromRef, upsertEventMediaInRef } from "@/config/event-media";
+import {
+	normalizeEventRefForPersist,
+} from "@/lib/event-ref";
 import { SUSTAIN } from "@/config/constants";
 import { CAPSULE_TYPES } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, POSITION_FULL_SPAN_CLASS } from "@/config/capsule-presets";
@@ -97,7 +97,7 @@ export interface TextTime {
 	text: string;
 	start: number;
 	end: number;
-	ref?: string;
+	ref?: unknown;
 	delay?: number;
 	duration?: number;
 	position?: "start" | "middle" | "end" | null;
@@ -1212,7 +1212,7 @@ async function getInitialDecorForCapsule(tx: any, capsuleId: number): Promise<Pa
 	// return await prisma.item.create({data});
 } */
 
-//	ref: string  -> transition, details...
+//	ref: JSON value  -> transition, details...
 //	name: string; -> label time
 //	action: string; -> name  intro, outro..
 
@@ -1230,7 +1230,7 @@ export async function addEventToContent({
 	id?: number;
 	name?: string | null;
 	action: string;
-	ref?: string | null;
+	ref?: unknown;
 	duration?: number;
 	delay?: number;
 	position?: string | null;
@@ -1242,14 +1242,12 @@ export async function addEventToContent({
 	const normalizedAction =
 		eventKind === "custom" ? action.trim() : action === SUSTAIN ? SUSTAIN : transitionAction;
 	const normalizedName = typeof name == "string" && name.trim().length ? name.trim() : null;
-	const normalizedRef =
-		eventKind === "custom"
-			? typeof ref == "string" && ref.trim().length
-				? ref.trim()
-				: null
-			: eventKind === "sustain"
-				? normalizeSustainRefWithMedia(ref)
-				: normalizeTransitionRefWithMedia(ref, transitionAction);
+	const normalizedRef = normalizeEventRefForPersist({
+		raw: ref,
+		kind: eventKind,
+		action: transitionAction,
+		normalizeSustainRef: (value) => normalizeSustainEffectRef(value)
+	});
 
 	const normalizedDuration =
 		typeof duration == "number" && Number.isFinite(duration) && duration > 0 ? duration : null;
@@ -1282,20 +1280,20 @@ export async function addEventToContent({
 			duration: normalizedDuration,
 			delay: normalizedDelay,
 			position: normalizedPosition,
-			ref: normalizedRef,
+			ref: normalizedRef as any,
 			decorId: resolvedDecorId,
 			itemId
 		};
 
 		if (targetById) {
-			return tx.event.update({ where: { id: targetById.id }, data });
+			return tx.event.update({ where: { id: targetById.id }, data: data as any });
 		}
 
 		if (existingByNaturalKey) {
-			return tx.event.update({ where: { id: existingByNaturalKey.id }, data });
+			return tx.event.update({ where: { id: existingByNaturalKey.id }, data: data as any });
 		}
 
-		return tx.event.create({ data });
+		return tx.event.create({ data: data as any });
 	});
 }
 
@@ -1303,40 +1301,6 @@ export async function removeEventFromcontent(id: number) {
 	return await prisma.event.delete({
 		where: { id }
 	});
-}
-
-function normalizeTransitionRefWithMedia(
-	ref: string | null | undefined,
-	transitionAction: ReturnType<typeof normalizeTransitionAction>
-): string | null {
-	const media = parseEventMediaFromRef(ref);
-	const transitionRef = extractTransitionRefValue(ref);
-	const normalizedTransitionRef = normalizeTransitionRef(
-		transitionRef || DEFAULT_TRANSITION_BY_ACTION[transitionAction],
-		transitionAction
-	);
-	if (!media) return normalizedTransitionRef;
-	return upsertEventMediaInRef(normalizedTransitionRef, media);
-}
-
-function normalizeSustainRefWithMedia(ref: string | null | undefined): string | null {
-	const media = parseEventMediaFromRef(ref);
-	const normalizedSustainRef = normalizeSustainEffectRef(ref);
-	if (!media) return normalizedSustainRef;
-	return upsertEventMediaInRef(normalizedSustainRef, media);
-}
-
-function extractTransitionRefValue(ref: string | null | undefined): string {
-	if (typeof ref !== "string") return "";
-	const raw = ref.trim();
-	if (!raw) return "";
-	if (!raw.startsWith("{")) return raw;
-	try {
-		const parsed = JSON.parse(raw) as { ref?: unknown };
-		return typeof parsed.ref === "string" ? parsed.ref.trim() : "";
-	} catch {
-		return "";
-	}
 }
 
 export async function removeCustomEventFromContent(id: number) {

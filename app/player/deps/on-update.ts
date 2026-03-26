@@ -21,11 +21,13 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 		const changes = this.persoChanges.get(id);
 		if (!changes) return;
 		const change = Object.values(changes).find((ch) => {
-			return (
-				(ch.next && currentTime < ch.next && ch.prev == null) ||
-				(ch.prev && currentTime > ch.prev && ch.next == null) ||
-				(ch.next && ch.prev && currentTime < ch.next && currentTime > ch.prev)
-			);
+			if (ch.prev == null && ch.next == null) return true;
+			if (ch.prev == null && typeof ch.next == "number") return currentTime < ch.next;
+			if (typeof ch.prev == "number" && ch.next == null) return currentTime >= ch.prev;
+			if (typeof ch.prev == "number" && typeof ch.next == "number") {
+				return currentTime >= ch.prev && currentTime < ch.next;
+			}
+			return false;
 		});
 		if (change) persoPositions.set(id, change);
 		return change;
@@ -95,6 +97,8 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 				} else {
 					this._applyChanges(id, nextChange.change);
 				}
+
+				this.applyMediaChanges(currentTime, id, nextChange.change);
 			}
 		});
 		return true;

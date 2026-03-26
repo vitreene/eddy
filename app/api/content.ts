@@ -1,7 +1,7 @@
 import type { Route } from "../+types/root";
 import { addEventToContent, removeCustomEventFromContent, type TextTime, updateContent } from "./db";
 import { deriveEventKind } from "@/config/custom-events";
-import { parseEventMediaFromRef } from "@/config/event-media";
+import { parseEventMediaFromRef } from "@/lib/event-ref";
 
 export function shouldPersistEventPayload(action: string, texttime: TextTime | null | undefined): boolean {
 	if (!texttime) return false;

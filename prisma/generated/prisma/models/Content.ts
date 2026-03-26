@@ -208,7 +208,7 @@ export type ContentGroupByOutputType = {
   path: string | null
   inner: string | null
   lang: string | null
-  timestamp: string
+  timestamp: string | null
   capsuleId: number | null
   _count: ContentCountAggregateOutputType | null
   _avg: ContentAvgAggregateOutputType | null
@@ -242,7 +242,7 @@ export type ContentWhereInput = {
   path?: Prisma.StringNullableFilter<"Content"> | string | null
   inner?: Prisma.StringNullableFilter<"Content"> | string | null
   lang?: Prisma.StringNullableFilter<"Content"> | string | null
-  timestamp?: Prisma.StringFilter<"Content"> | string
+  timestamp?: Prisma.StringNullableFilter<"Content"> | string | null
   capsuleId?: Prisma.IntNullableFilter<"Content"> | number | null
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   items?: Prisma.ItemListRelationFilter
@@ -256,7 +256,7 @@ export type ContentOrderByWithRelationInput = {
   path?: Prisma.SortOrderInput | Prisma.SortOrder
   inner?: Prisma.SortOrderInput | Prisma.SortOrder
   lang?: Prisma.SortOrderInput | Prisma.SortOrder
-  timestamp?: Prisma.SortOrder
+  timestamp?: Prisma.SortOrderInput | Prisma.SortOrder
   capsuleId?: Prisma.SortOrderInput | Prisma.SortOrder
   capsule?: Prisma.CapsuleOrderByWithRelationInput
   items?: Prisma.ItemOrderByRelationAggregateInput
@@ -273,7 +273,7 @@ export type ContentWhereUniqueInput = Prisma.AtLeast<{
   path?: Prisma.StringNullableFilter<"Content"> | string | null
   inner?: Prisma.StringNullableFilter<"Content"> | string | null
   lang?: Prisma.StringNullableFilter<"Content"> | string | null
-  timestamp?: Prisma.StringFilter<"Content"> | string
+  timestamp?: Prisma.StringNullableFilter<"Content"> | string | null
   capsuleId?: Prisma.IntNullableFilter<"Content"> | number | null
   capsule?: Prisma.XOR<Prisma.CapsuleNullableScalarRelationFilter, Prisma.CapsuleWhereInput> | null
   items?: Prisma.ItemListRelationFilter
@@ -287,7 +287,7 @@ export type ContentOrderByWithAggregationInput = {
   path?: Prisma.SortOrderInput | Prisma.SortOrder
   inner?: Prisma.SortOrderInput | Prisma.SortOrder
   lang?: Prisma.SortOrderInput | Prisma.SortOrder
-  timestamp?: Prisma.SortOrder
+  timestamp?: Prisma.SortOrderInput | Prisma.SortOrder
   capsuleId?: Prisma.SortOrderInput | Prisma.SortOrder
   _count?: Prisma.ContentCountOrderByAggregateInput
   _avg?: Prisma.ContentAvgOrderByAggregateInput
@@ -306,7 +306,7 @@ export type ContentScalarWhereWithAggregatesInput = {
   path?: Prisma.StringNullableWithAggregatesFilter<"Content"> | string | null
   inner?: Prisma.StringNullableWithAggregatesFilter<"Content"> | string | null
   lang?: Prisma.StringNullableWithAggregatesFilter<"Content"> | string | null
-  timestamp?: Prisma.StringWithAggregatesFilter<"Content"> | string
+  timestamp?: Prisma.StringNullableWithAggregatesFilter<"Content"> | string | null
   capsuleId?: Prisma.IntNullableWithAggregatesFilter<"Content"> | number | null
 }
 
@@ -316,7 +316,7 @@ export type ContentCreateInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   capsule?: Prisma.CapsuleCreateNestedOneWithoutContentsInput
   items?: Prisma.ItemCreateNestedManyWithoutContentInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutContentInput
@@ -329,7 +329,7 @@ export type ContentUncheckedCreateInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   capsuleId?: number | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutContentInput
   sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutContentInput
@@ -341,7 +341,7 @@ export type ContentUpdateInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   capsule?: Prisma.CapsuleUpdateOneWithoutContentsNestedInput
   items?: Prisma.ItemUpdateManyWithoutContentNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutContentNestedInput
@@ -354,7 +354,7 @@ export type ContentUncheckedUpdateInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutContentNestedInput
   sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutContentNestedInput
@@ -367,7 +367,7 @@ export type ContentCreateManyInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   capsuleId?: number | null
 }
 
@@ -377,7 +377,7 @@ export type ContentUpdateManyMutationInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 export type ContentUncheckedUpdateManyInput = {
@@ -387,7 +387,7 @@ export type ContentUncheckedUpdateManyInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
 
@@ -525,7 +525,7 @@ export type ContentCreateWithoutSceneContentsInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   capsule?: Prisma.CapsuleCreateNestedOneWithoutContentsInput
   items?: Prisma.ItemCreateNestedManyWithoutContentInput
 }
@@ -537,7 +537,7 @@ export type ContentUncheckedCreateWithoutSceneContentsInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   capsuleId?: number | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutContentInput
 }
@@ -564,7 +564,7 @@ export type ContentUpdateWithoutSceneContentsInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   capsule?: Prisma.CapsuleUpdateOneWithoutContentsNestedInput
   items?: Prisma.ItemUpdateManyWithoutContentNestedInput
 }
@@ -576,7 +576,7 @@ export type ContentUncheckedUpdateWithoutSceneContentsInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutContentNestedInput
 }
@@ -587,7 +587,7 @@ export type ContentCreateWithoutCapsuleInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   items?: Prisma.ItemCreateNestedManyWithoutContentInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutContentInput
 }
@@ -599,7 +599,7 @@ export type ContentUncheckedCreateWithoutCapsuleInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   items?: Prisma.ItemUncheckedCreateNestedManyWithoutContentInput
   sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutContentInput
 }
@@ -639,7 +639,7 @@ export type ContentScalarWhereInput = {
   path?: Prisma.StringNullableFilter<"Content"> | string | null
   inner?: Prisma.StringNullableFilter<"Content"> | string | null
   lang?: Prisma.StringNullableFilter<"Content"> | string | null
-  timestamp?: Prisma.StringFilter<"Content"> | string
+  timestamp?: Prisma.StringNullableFilter<"Content"> | string | null
   capsuleId?: Prisma.IntNullableFilter<"Content"> | number | null
 }
 
@@ -649,7 +649,7 @@ export type ContentCreateWithoutItemsInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   capsule?: Prisma.CapsuleCreateNestedOneWithoutContentsInput
   sceneContents?: Prisma.SceneContentCreateNestedManyWithoutContentInput
 }
@@ -661,7 +661,7 @@ export type ContentUncheckedCreateWithoutItemsInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
   capsuleId?: number | null
   sceneContents?: Prisma.SceneContentUncheckedCreateNestedManyWithoutContentInput
 }
@@ -688,7 +688,7 @@ export type ContentUpdateWithoutItemsInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   capsule?: Prisma.CapsuleUpdateOneWithoutContentsNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutContentNestedInput
 }
@@ -700,7 +700,7 @@ export type ContentUncheckedUpdateWithoutItemsInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   capsuleId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
   sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutContentNestedInput
 }
@@ -712,7 +712,7 @@ export type ContentCreateManyCapsuleInput = {
   path?: string | null
   inner?: string | null
   lang?: string | null
-  timestamp?: string
+  timestamp?: string | null
 }
 
 export type ContentUpdateWithoutCapsuleInput = {
@@ -721,7 +721,7 @@ export type ContentUpdateWithoutCapsuleInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUpdateManyWithoutContentNestedInput
   sceneContents?: Prisma.SceneContentUpdateManyWithoutContentNestedInput
 }
@@ -733,7 +733,7 @@ export type ContentUncheckedUpdateWithoutCapsuleInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   items?: Prisma.ItemUncheckedUpdateManyWithoutContentNestedInput
   sceneContents?: Prisma.SceneContentUncheckedUpdateManyWithoutContentNestedInput
 }
@@ -745,7 +745,7 @@ export type ContentUncheckedUpdateManyWithoutCapsuleInput = {
   path?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   inner?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
   lang?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
-  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.NullableStringFieldUpdateOperationsInput | string | null
 }
 
 
@@ -866,7 +866,7 @@ export type $ContentPayload<ExtArgs extends runtime.Types.Extensions.InternalArg
     path: string | null
     inner: string | null
     lang: string | null
-    timestamp: string
+    timestamp: string | null
     capsuleId: number | null
   }, ExtArgs["result"]["content"]>
   composites: {}
