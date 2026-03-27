@@ -20,6 +20,8 @@ interface Props {
 	textValue?: string;
 	onTextChange?: (value: string) => void;
 	onTextCommit?: (value: string) => void;
+	mode?: "full" | "layout" | "advanced" | "preset";
+	showToolbar?: boolean;
 }
 
 const typeEdit = {
@@ -37,7 +39,9 @@ export const StyleEditor: React.FC<Props> = ({
 	onReset,
 	textValue,
 	onTextChange,
-	onTextCommit
+	onTextCommit,
+	mode = "full",
+	showToolbar = true
 }) => {
 	const update = (k: keyof EditableStyle, v: any) => onChange({ ...value, [k]: v });
 	const visualMode = value.backgroundSize === "contain" ? "sprite" : "image";
@@ -51,19 +55,24 @@ export const StyleEditor: React.FC<Props> = ({
 	};
 
 	const type = typeEdit[content.type as keyof typeof typeEdit];
+	const showPreset = mode === "full" || mode === "preset";
+	const showLayout = mode === "full" || mode === "layout";
+	const showAdvanced = mode === "full" || mode === "advanced";
 
 	return (
 		<div className="mt-2">
-			<div className="mb-2 flex justify-between border-b pb-2">
-				<Button size="sm" variant="outline" onClick={() => (onReset ? onReset() : onChange({}))}>
-					Reset
-				</Button>
-				<Button size="sm" variant="outline" onClick={copyCSS}>
-					<Copy className="h-4 w-4" />
-				</Button>
-			</div>
+			{showToolbar ? (
+				<div className="mb-2 flex justify-between border-b pb-2">
+					<Button size="sm" variant="outline" onClick={() => (onReset ? onReset() : onChange({}))}>
+						Reset
+					</Button>
+					<Button size="sm" variant="outline" onClick={copyCSS}>
+						<Copy className="h-4 w-4" />
+					</Button>
+				</div>
+			) : null}
 
-			{content.type === "text" && (
+			{showPreset && content.type === "text" && (
 				<div className="mb-3 border-b pb-3">
 					<label className="mb-1 block text-xs">Texte</label>
 					<input
@@ -75,11 +84,13 @@ export const StyleEditor: React.FC<Props> = ({
 					/>
 				</div>
 			)}
-			<div className="my-2 flex gap-4 border-b pb-2">
-				<SlotEditor value={value} onChange={onChange} />
-				<FlexMini contentType={content.type} value={value} onChange={onChange} />
-			</div>
-			{type == "typo" && (
+			{showAdvanced ? (
+				<div className="my-2 flex gap-4 border-b pb-2">
+					<SlotEditor value={value} onChange={onChange} />
+					<FlexMini contentType={content.type} value={value} onChange={onChange} />
+				</div>
+			) : null}
+			{showLayout && type == "typo" && (
 				<>
 					{/* <div className="aspect-video w-full overflow-hidden">
 						<PreviewMini value={value} />
@@ -92,7 +103,7 @@ export const StyleEditor: React.FC<Props> = ({
 				</>
 			)}
 
-			{(content.type === "img" || content.type === "sprite" || content.type === "video") && (
+			{showLayout && (content.type === "img" || content.type === "sprite" || content.type === "video") && (
 				<div className="mb-4 flex items-center gap-2 border-b pb-3 text-xs">
 					<span className="text-muted-foreground">Ajustement media</span>
 					<Button
@@ -114,23 +125,27 @@ export const StyleEditor: React.FC<Props> = ({
 				</div>
 			)}
 
-			<ColorMini type={type} value={value} onChange={onChange} />
+			{showLayout ? <ColorMini type={type} value={value} onChange={onChange} /> : null}
 
-			<SpacingMini value={value} onChange={onChange} />
+			{showLayout ? <SpacingMini value={value} onChange={onChange} /> : null}
 
-			<div className="mt-2 flex items-center gap-2 text-xs">
-				<input
-					type="checkbox"
-					checked={value.outline === "1px solid red"}
-					onChange={(e) => update("outline", e.currentTarget.checked ? "1px solid red" : undefined)}
-				/>
-				<label>outline</label>
-			</div>
+			{showAdvanced ? (
+				<>
+					<div className="mt-2 flex items-center gap-2 text-xs">
+						<input
+							type="checkbox"
+							checked={value.outline === "1px solid red"}
+							onChange={(e) => update("outline", e.currentTarget.checked ? "1px solid red" : undefined)}
+						/>
+						<label>outline</label>
+					</div>
 
-			<RawCssEditor
-				value={typeof value.rawCss === "string" ? value.rawCss : ""}
-				onChange={(rawCss) => onChange({ ...value, rawCss })}
-			/>
+					<RawCssEditor
+						value={typeof value.rawCss === "string" ? value.rawCss : ""}
+						onChange={(rawCss) => onChange({ ...value, rawCss })}
+					/>
+				</>
+			) : null}
 		</div>
 	);
 };

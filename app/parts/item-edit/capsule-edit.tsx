@@ -1,5 +1,9 @@
+import { Copy } from "lucide-react";
+
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { StyleEditor } from "@/components/style-editor";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
 import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
 import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
@@ -64,41 +68,85 @@ export function CapsuleEdit({
 		});
 	};
 
+	const value: EditableStyle = {
+		...applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type),
+		area: decor?.area ?? undefined,
+		className: decor?.className ?? undefined
+	};
+
+	const copyCSS = () => {
+		const txt = Object.entries(value)
+			.map(([k, v]) => `${k.replace(/[A-Z]/g, (m) => "-" + m.toLowerCase())}: ${v};`)
+			.join("\n");
+		navigator.clipboard.writeText(txt);
+	};
+
 	return (
-		<>
-			<form onBlur={onSubmit} className="mb-2">
-				<input hidden name="id" defaultValue={capsule?.id} />
-				<label className="mr-2 text-xs">Nom</label>
-				<input
-					key={capsule?.id}
-					className="inline-block border border-stone-300 p-1"
-					name="name"
-					defaultValue={capsule?.name}
-				/>
-			</form>
+		<div className="mt-2">
+			<div className="mb-2 flex justify-between border-b pb-2">
+				<Button size="sm" variant="outline" onClick={onReset}>
+					Reset
+				</Button>
+				<Button size="sm" variant="outline" onClick={copyCSS}>
+					<Copy className="h-4 w-4" />
+				</Button>
+			</div>
 
-			<CapsuleGridTypeSelector capsule={capsule} onUpdate={onUpdateCapsule} />
+			<Tabs defaultValue="presets" className="w-full">
+				<TabsList>
+					<TabsTrigger value="presets">Presets</TabsTrigger>
+					<TabsTrigger value="layout">Layout</TabsTrigger>
+					<TabsTrigger value="advanced">Advanced</TabsTrigger>
+				</TabsList>
 
-			<CapsuleDefaultTransitions
-				capsule={capsule}
-				onChangeDefaultTransition={onChangeDefaultTransition}
-				onChangeDefaultSustainAlternate={onChangeDefaultSustainAlternate}
-			/>
+				<TabsContent value="presets">
+					<form onBlur={onSubmit} className="mb-2 rounded border border-stone-300 p-2">
+						<input hidden name="id" defaultValue={capsule?.id} />
+						<label className="mr-2 text-xs">Nom</label>
+						<input
+							key={capsule?.id}
+							className="inline-block border border-stone-300 p-1"
+							name="name"
+							defaultValue={capsule?.name}
+						/>
+					</form>
+				</TabsContent>
 
-			<StyleEditor
-				content={content}
-				value={{
-					...applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type),
-					area: decor?.area ?? undefined,
-					className: decor?.className ?? undefined
-				}}
-				onChange={onChange}
-				onReset={onReset}
-				textValue={content.inner || ""}
-				onTextChange={onTextChange}
-				onTextCommit={onTextCommit}
-			/>
-		</>
+				<TabsContent value="layout">
+					<StyleEditor
+						content={content}
+						value={value}
+						onChange={onChange}
+						textValue={content.inner || ""}
+						onTextChange={onTextChange}
+						onTextCommit={onTextCommit}
+						mode="layout"
+						showToolbar={false}
+					/>
+				</TabsContent>
+
+				<TabsContent value="advanced">
+					<CapsuleGridTypeSelector capsule={capsule} onUpdate={onUpdateCapsule} />
+
+					<CapsuleDefaultTransitions
+						capsule={capsule}
+						onChangeDefaultTransition={onChangeDefaultTransition}
+						onChangeDefaultSustainAlternate={onChangeDefaultSustainAlternate}
+					/>
+
+					<StyleEditor
+						content={content}
+						value={value}
+						onChange={onChange}
+						textValue={content.inner || ""}
+						onTextChange={onTextChange}
+						onTextCommit={onTextCommit}
+						mode="advanced"
+						showToolbar={false}
+					/>
+				</TabsContent>
+			</Tabs>
+		</div>
 	);
 }
 
