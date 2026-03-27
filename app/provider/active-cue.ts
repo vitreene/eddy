@@ -228,7 +228,7 @@ function getFirstCustomCueSec(context: SceneComp, itemId: number): number | null
 		const position =
 			event.position === "start" || event.position === "end" || event.position === "middle"
 				? event.position
-				: "middle";
+				: "start";
 		const cueSec = getCueTimeAtPosition(cue, position);
 		if (!Number.isFinite(cueSec)) continue;
 		if (first === null || cueSec < first) first = cueSec;

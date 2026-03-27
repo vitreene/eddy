@@ -206,7 +206,8 @@ function resolveEventTiming(
 	if (kind === "outro") {
 		const cue = event.name ? cueByName.get(event.name) : null;
 		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
-		const keyframeMs = Math.round(Number(cue.end) * 1000);
+		const cueTimeSec = getCueTimeAtPosition(cue, resolveEventPosition(event.position, "end"));
+		const keyframeMs = Math.round(cueTimeSec * 1000);
 		return { keyframeMs, runtimeStartMs: keyframeMs };
 	}
 
@@ -214,7 +215,8 @@ function resolveEventTiming(
 		const cue = event.name ? cueByName.get(event.name) : null;
 		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
 		const durationMs = resolveTransitionDurationMs(event);
-		const introStartMs = Math.round(Number(cue.start) * 1000);
+		const cueTimeSec = getCueTimeAtPosition(cue, resolveEventPosition(event.position, "start"));
+		const introStartMs = Math.round(cueTimeSec * 1000);
 		const keyframeMs = introStartMs + durationMs;
 		return {
 			keyframeMs,
@@ -225,7 +227,7 @@ function resolveEventTiming(
 	if (event.name) {
 		const cue = cueByName.get(event.name);
 		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
-		const position = (event.position || "middle") as CustomEventPosition;
+		const position = resolveEventPosition(event.position, "start");
 		const keyframeMs = Math.round(getCueTimeAtPosition(cue, position) * 1000);
 		return { keyframeMs, runtimeStartMs: keyframeMs };
 	}
@@ -238,6 +240,11 @@ function resolveTransitionDurationMs(event: ContentEvent): number {
 		return Math.round(event.duration * 1000);
 	}
 	return DEFAULT_DURATION;
+}
+
+function resolveEventPosition(value: unknown, fallback: CustomEventPosition): CustomEventPosition {
+	if (value === "start" || value === "middle" || value === "end") return value;
+	return fallback;
 }
 
 export function resolveSustainWindowMs(

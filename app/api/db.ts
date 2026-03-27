@@ -12,13 +12,9 @@ import type {
 } from "prisma/generated/prisma/client";
 import type { EditableStyle } from "@/components/style-editor/types";
 import { ROOT } from "@/scene-runtime/constants";
-import {
-	normalizeTransitionAction
-} from "@/config/transitions";
+import { normalizeTransitionAction } from "@/config/transitions";
 import { normalizeSustainEffectRef } from "@/config/event-effects";
-import {
-	normalizeEventRefForPersist,
-} from "@/lib/event-ref";
+import { normalizeEventRefForPersist } from "@/lib/event-ref";
 import { SUSTAIN } from "@/config/constants";
 import { CAPSULE_TYPES } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, POSITION_FULL_SPAN_CLASS } from "@/config/capsule-presets";
@@ -1302,7 +1298,8 @@ export async function addEventToContent({
 	const normalizedDuration =
 		typeof duration == "number" && Number.isFinite(duration) && duration > 0 ? duration : null;
 	const normalizedDelay = typeof delay == "number" && Number.isFinite(delay) && delay >= 0 ? delay : null;
-	const normalizedPosition = eventKind === "custom" && typeof position == "string" ? position : null;
+	const normalizedPosition =
+		position === "start" || position === "middle" || position === "end" ? position : null;
 
 	return await prisma.$transaction(async (tx) => {
 		const targetById = id

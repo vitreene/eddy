@@ -4,9 +4,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { getActiveSceneContent } from "@/scene-runtime/scene-content";
 import { parseContentTimestampWaveform } from "@/waveform/payload";
 
-const DEFAULT_HEIGHT = 72;
-
-export function WaveformCanvasTest() {
+export function WaveformCanvas() {
 	const waveform = SceneLogicContext.useSelector((state) => {
 		const sceneContent = getActiveSceneContent(state.context as any);
 		if (!sceneContent) return null;
@@ -19,22 +17,18 @@ export function WaveformCanvasTest() {
 		? `${waveform.points} pts • ${waveform.durationSec.toFixed(2)}s • ${Math.round(waveform.sampleRate)}Hz`
 		: null;
 
-	const containerRef = useRef<HTMLDivElement>(null);
 	const canvasRef = useRef<HTMLCanvasElement>(null);
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
-		const container = containerRef.current;
-		if (!canvas || !container || !waveform) return;
+		if (!canvas || !waveform) return;
 
-		const width = Math.max(1, Math.round(container.clientWidth));
+		const width = Math.max(1, Math.round(canvas.clientWidth));
+		const height = Math.max(1, Math.round(canvas.clientHeight));
 
 		const pixelRatio = Math.max(1, Math.floor(window.devicePixelRatio || 1));
-		const height = DEFAULT_HEIGHT;
 		canvas.width = width * pixelRatio;
 		canvas.height = height * pixelRatio;
-		canvas.style.width = `${width}px`;
-		canvas.style.height = `${height}px`;
 
 		const context = canvas.getContext("2d");
 		if (!context) return;
@@ -69,13 +63,13 @@ export function WaveformCanvasTest() {
 	}, [waveform, activeProgress]);
 
 	return (
-		<div ref={containerRef} className="rounded-md border border-stone-200 bg-white p-2">
+		<div className="rounded-md border border-stone-200 bg-white p-2">
 			<div className="mb-1 flex items-center justify-between text-[10px] text-stone-500">
 				<span>Waveform test</span>
 				<span>{summary || "aucune donnee"}</span>
 			</div>
 			{waveform ? (
-				<canvas ref={canvasRef} className="block w-full" />
+				<canvas ref={canvasRef} className="block h-[72px] w-full" />
 			) : (
 				<div className="flex h-[72px] items-center justify-center text-[11px] text-stone-400">
 					Aucun waveform enregistre

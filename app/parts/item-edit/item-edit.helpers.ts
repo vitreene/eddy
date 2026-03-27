@@ -131,7 +131,7 @@ function resolveCustomEventTimeSec(
 	if (event.name) {
 		const cue = cueByName.get(event.name);
 		if (!cue) return Number.NaN;
-		const position = (event.position === "start" || event.position === "end" ? event.position : "middle") as
+		const position = (event.position === "end" || event.position === "middle" ? event.position : "start") as
 			| "start"
 			| "middle"
 			| "end";

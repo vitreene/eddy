@@ -18,19 +18,17 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { Button } from "@/components/ui/button";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
-import { Rubber } from "../rubber";
+import { Rubber } from "../rubber/rubber";
 import { MediaEventParams } from "./media-event-params";
 import { SustainEventParams } from "./sustain-event-params";
-import { WaveformCanvasTest } from "../rubber/waveform-canvas-test";
+import { WaveformCanvas } from "../rubber/waveform-canvas";
 
 const actionOrder = [INTRO, SUSTAIN, OUTRO];
 const MEDIA_CONTENT_TYPES = new Set(["sound", "video", "lottie", "audio"]);
+const TIMELINE_VIEW_RUBBER = "rubber";
+const TIMELINE_VIEW_WAVEFORM = "waveform";
 
-const positionName = {
-	start: "début",
-	middle: "milieu",
-	end: "fin"
-};
+type TimelineViewMode = typeof TIMELINE_VIEW_RUBBER | typeof TIMELINE_VIEW_WAVEFORM;
 
 function resolveEventLabel(
 	cues: Array<{ name: string; text: string }>,
@@ -44,8 +42,9 @@ function resolveEventLabel(
 
 export function EditEvent() {
 	const item = SceneLogicContext.useSelector((state) => {
-		if (state.context.active.itemId) return state.context.items[state.context.active.itemId];
-		return null;
+		const itemId = state.context.active.itemId;
+		if (!itemId) return null;
+		return state.context.items[itemId] ?? null;
 	});
 	const itemContentType = SceneLogicContext.useSelector((state) => {
 		const itemId = state.context.active.itemId;
@@ -55,8 +54,9 @@ export function EditEvent() {
 		return state.context.contents[activeItem.contentId]?.type ?? null;
 	});
 	const events = SceneLogicContext.useSelector((state) => {
-		if (!item) return null;
-		return state.context.events[item.id] || null;
+		const itemId = state.context.active.itemId;
+		if (!itemId) return null;
+		return state.context.events[itemId] || null;
 	});
 	const activeEventAction = SceneLogicContext.useSelector(
 		(state) => state.context.active.event as string | null
@@ -68,20 +68,22 @@ export function EditEvent() {
 		const sceneContent = getActiveSceneContent(state.context as any);
 		return getSceneContentCues(sceneContent);
 	});
+	const timelineView = SceneLogicContext.useSelector((state) =>
+		readTimelineView(state.context.active.timelineView)
+	);
 
-	if (!item) return null;
 	return (
 		<section className="flex gap-4">
-			<ContentInfos key={item.id} item={item} />
-			<div className="flex flex-col gap-2">
+			<ContentInfos key={item?.id ?? "empty"} item={item} />
+			<div className="flex flex-1 flex-col gap-2">
 				<EventParams
+					hasActiveItem={Boolean(item)}
 					event={activeEvent}
 					events={events}
 					cues={cues}
 					showMediaParams={isMediaContentType(itemContentType)}
 				/>
-				<Rubber />
-				<WaveformCanvasTest />
+				{timelineView === TIMELINE_VIEW_WAVEFORM ? <WaveformCanvas /> : <Rubber />}
 			</div>
 		</section>
 	);
@@ -109,11 +111,13 @@ function buildDefaultTransitionEvent(action: string): ContentEvent | null {
 }
 
 function EventParams({
+	hasActiveItem,
 	event,
 	events,
 	cues,
 	showMediaParams
 }: {
+	hasActiveItem: boolean;
 	event: ContentEvent | null;
 	events: Record<string, ContentEvent | undefined> | null;
 	cues: Array<{ name: string; text: string }>;
@@ -121,6 +125,10 @@ function EventParams({
 }) {
 	const { send } = SceneLogicContext.useActorRef();
 	const kind = event ? deriveEventKind(event.action) : null;
+
+	if (!hasActiveItem) {
+		return <div className="flex min-h-11 justify-start gap-4 rounded border p-2 text-xs" />;
+	}
 
 	if (!event)
 		return (
@@ -131,7 +139,6 @@ function EventParams({
 
 	const delay = typeof event.delay === "number" ? Number(event.delay) : "";
 	const duration = typeof event.duration === "number" ? Number(event.duration) : "";
-	const position = (event.position as "start" | "middle" | "end" | null) ?? "middle";
 	const eventLabel = resolveEventLabel(cues, event.name);
 	const moveOptions = kind === "custom" ? parseCustomEventMoveOptions(event.ref) : null;
 	const mediaParams = resolveMediaParams(event.ref);
@@ -213,23 +220,6 @@ function EventParams({
 								onUpdateCustom({ duration: Number.isFinite(value) && value > 0 ? value : null });
 							}}
 						/>
-					</div>
-
-					<div className="flex items-center gap-4">
-						<label>Position</label>
-						<div className="flex items-center gap-2">
-							{(["start", "middle", "end"] as const).map((option) => (
-								<label key={option} className="flex flex-col items-center gap-1 text-[9px]">
-									<input
-										type="radio"
-										name={`position-${event.action}`}
-										checked={position === option}
-										onChange={() => onUpdateCustom({ position: option })}
-									/>
-									<span>{positionName[option]}</span>
-								</label>
-							))}
-						</div>
 					</div>
 
 					<div className="flex items-center gap-4">
@@ -317,9 +307,16 @@ function ClearEvents() {
 		</button>
 	);
 }
-function ContentInfos({ item }: { item: ItemComp }) {
-	const events = SceneLogicContext.useSelector((state) => state.context.events[item.id]);
+function ContentInfos({ item }: { item: ItemComp | null }) {
+	const itemId = item?.id ?? null;
+	const events = SceneLogicContext.useSelector((state) => {
+		if (!itemId) return null;
+		return state.context.events[itemId] || null;
+	});
 	const activeEvent = SceneLogicContext.useSelector((state) => state.context.active.event as string | null);
+	const timelineView = SceneLogicContext.useSelector((state) =>
+		readTimelineView(state.context.active.timelineView)
+	);
 	const cues = SceneLogicContext.useSelector((state) => {
 		const sceneContent = getActiveSceneContent(state.context as any);
 		return getSceneContentCues(sceneContent);
@@ -340,30 +337,72 @@ function ContentInfos({ item }: { item: ItemComp }) {
 	] as Array<Partial<ContentEvent> & { action: string }>;
 
 	const onCreateCustomEvent = () => {
+		if (!item) return;
 		sceneLogic.send({ type: "custom-event-create", payload: {} });
+	};
+	const setTimelineView = (value: TimelineViewMode) => {
+		sceneLogic.send({ type: "active-set", payload: { timelineView: value } });
 	};
 
 	return (
 		<div className="media-infos w-64">
-			<div className="mb-2 flex items-center justify-between">
-				<p className="text-sm">Events</p>
-				<Button
-					type="button"
-					size="icon-sm"
-					variant="outline"
-					onClick={onCreateCustomEvent}
-					aria-label="Ajouter un event personnalisé"
-				>
-					<Plus className="h-3.5 w-3.5" />
-				</Button>
+			<div className="mb-2 space-y-2">
+				<div className="flex items-center justify-between">
+					<p className="text-sm">Events</p>
+					<Button
+						type="button"
+						size="icon-sm"
+						variant="outline"
+						disabled={!item}
+						onClick={onCreateCustomEvent}
+						aria-label="Ajouter un event personnalisé"
+					>
+						<Plus className="h-3.5 w-3.5" />
+					</Button>
+				</div>
+				<div className="inline-flex rounded border border-stone-300 bg-white p-0.5 text-[11px]">
+					<button
+						type="button"
+						onClick={() => setTimelineView(TIMELINE_VIEW_RUBBER)}
+						aria-pressed={timelineView === TIMELINE_VIEW_RUBBER}
+						className={cx(
+							"rounded px-2 py-1",
+							timelineView === TIMELINE_VIEW_RUBBER
+								? "bg-amber-100 text-amber-900"
+								: "text-stone-600 hover:bg-stone-100"
+						)}
+					>
+						Rubber
+					</button>
+					<button
+						type="button"
+						onClick={() => setTimelineView(TIMELINE_VIEW_WAVEFORM)}
+						aria-pressed={timelineView === TIMELINE_VIEW_WAVEFORM}
+						className={cx(
+							"rounded px-2 py-1",
+							timelineView === TIMELINE_VIEW_WAVEFORM
+								? "bg-teal-100 text-teal-900"
+								: "text-stone-600 hover:bg-stone-100"
+						)}
+					>
+						Waveform
+					</button>
+				</div>
 			</div>
-			<div className="rounded border p-1">
-				{orderedEvents.map((event) => (
-					<MediaEventTransition key={event.action} event={event} activeEvent={activeEvent} cues={cues} />
-				))}
-			</div>
+			{item ? (
+				<div className="rounded border p-1">
+					{orderedEvents.map((event) => (
+						<MediaEventTransition key={event.action} event={event} activeEvent={activeEvent} cues={cues} />
+					))}
+				</div>
+			) : null}
 		</div>
 	);
+}
+
+function readTimelineView(value: unknown): TimelineViewMode {
+	if (value === TIMELINE_VIEW_WAVEFORM) return TIMELINE_VIEW_WAVEFORM;
+	return TIMELINE_VIEW_RUBBER;
 }
 
 // action == marker

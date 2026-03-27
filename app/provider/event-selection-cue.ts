@@ -116,14 +116,16 @@ export function resolveEventAnchorSec(
 function resolveIntroAnchorSec(context: SceneComp, event: ContentEvent): number | null {
 	const cue = findSceneCueByName(context, event.name);
 	if (!cue) return null;
-	return cue.start + resolveTransitionDurationSec(event);
+	const cueTime = getCueTimeAtPosition(cue, normalizeEventPositionForAction(event.position, INTRO));
+	return cueTime + resolveTransitionDurationSec(event);
 }
 
 function resolveOutroAnchorSec(context: SceneComp, event: ContentEvent): number | null {
 	const cue = findSceneCueByName(context, event.name);
 	if (!cue) return null;
 	const durationSec = resolveTransitionDurationSec(event);
-	return cue.end - durationSec;
+	const cueTime = getCueTimeAtPosition(cue, normalizeEventPositionForAction(event.position, OUTRO));
+	return cueTime - durationSec;
 }
 
 function resolveSustainAnchorSec(context: SceneComp, itemId: number): number | null {
@@ -147,7 +149,16 @@ function resolveTransitionDurationSec(event: ContentEvent): number {
 }
 
 function normalizeCustomPosition(position: string | null | undefined): CustomEventPosition {
-	return position === "start" || position === "end" || position === "middle" ? position : "middle";
+	return position === "start" || position === "end" || position === "middle" ? position : "start";
+}
+
+function normalizeEventPositionForAction(
+	position: string | null | undefined,
+	action: string
+): CustomEventPosition {
+	if (position === "start" || position === "middle" || position === "end") return position;
+	if (action === OUTRO) return "end";
+	return "start";
 }
 
 function clampSec(value: number, min: number, max: number): number {

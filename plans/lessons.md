@@ -267,3 +267,45 @@
 - Interdiction stricte: ne jamais ajouter une modification qui n'est pas explicitement capturee dans un plan actif.
 - Avant toute edition de code/schema/tests, mettre a jour la checklist du plan pour inclure exactement ce changement.
 - Si un besoin emerge pendant l'implementation, stopper, re-planifier, puis seulement modifier le code.
+
+## 2026-03-26 — Canvas: eviter la boucle de derive largeur
+
+- Ne pas mesurer la largeur depuis le parent puis la re-appliquer en `canvas.style.width` dans un effet de redraw: en layout flex auto, cela peut creer une retroaction d'agrandissement.
+- Pour les redraw frequents (progress player), mesurer la largeur CSS sur le canvas (`canvas.clientWidth`) et ne synchroniser que la taille bitmap (`canvas.width`/`canvas.height`).
+- Garder la taille CSS du canvas declarative (classes), sans ecriture inline dynamique de largeur a chaque frame.
+
+## 2026-03-27 — Mapping progress->mot: gerer trous et echelle explicite
+
+- Ne jamais supposer une timeline de mots continue; `resolveActiveIndex` doit traiter les trous temporels et revenir au dernier mot termine si aucun segment ne couvre le temps courant.
+- Pour un mapping progress fiable, autoriser une duree timeline explicite (source player/scene) au lieu de deduire uniquement depuis le dernier cue.
+- Quand l'utilisateur corrige une constante d'echelle, l'appliquer a la source unique (`DEFAULT_PIXELS_PER_SECOND`) et retirer les overrides locaux pour eviter les ecarts.
+
+## 2026-03-27 — Editeur de points: couvrir tout le scope event et decoupler
+
+- Quand la spec parle de "tous les points", inclure explicitement `intro` + `outro` + tous les `custom`, et exclure seulement les actions precisees (ici `sustain`).
+- Conserver strictement les payloads metier existants lors d'une refonte UI de manipulation (aucun nouveau contrat de donnees implicite).
+- Si une prochaine etape prevoit la reutilisation sur une autre vue (ex: waveform), extraire des maintenant un composant d'edition context-agnostic au lieu de l'imbriquer dans la vue courante.
+
+## 2026-03-27 — Layout edition: conserver la structure meme sans selection
+
+- Si l'utilisateur demande d'eviter les decallages visuels, ne jamais masquer tout le panneau parent: garder un conteneur vide de largeur stable.
+- Pour les controles de position event, ne pas laisser de double source de verite (formulaire + drag handles): retirer les radios quand le placement visuel devient la reference unique.
+- Meme sans item selectionne, garder les composants de timeline rendus pour la continuite visuelle; seuls les controles d'edition doivent etre conditionnels.
+- Si un switch de vue est un controle global (ex: Rubber/Waveform), le laisser visible meme sans selection d'item pour eviter de "perdre" l'etat courant de la vue.
+- Pour les poignees intro/outro, ne pas inventer de fallback visuel: si elles ne sont pas definies dans les events (nom absent/invalide), ne pas les afficher.
+
+## 2026-03-27 — Position event: default metier = start
+
+- Ne pas utiliser `middle` comme fallback implicite pour `event.position`; la valeur par defaut metier est `start`.
+- Garder `middle` uniquement quand il est explicitement choisi (ou derive d'un snap explicite), pas comme valeur de secours silencieuse.
+- Verifier tous les chemins de calcul temporel (builder, selection, active-cue, tris UI) pour eviter des defaults incoherents.
+- Pour un drag-and-snap fiable, calculer le point de snap final depuis la position reelle au `pointerup` (pas uniquement depuis un state React potentiellement en retard).
+- Si une poignee est "recree" depuis les events, ne pas hardcoder sa position d'ancrage (intro=start, outro=end) sans lire `event.position`; sinon chaque rerender ecrase le choix utilisateur.
+- Quand un champ doit rester modifiable pour tous les events, ne pas le filtrer au persist backend (sinon la synchro serveur remet des valeurs par defaut a chaque persist).
+- Quand le produit demande un snap moins "agressif" sur `middle`, appliquer un biais explicite de scoring (penalite middle) au lieu de changer les donnees de position.
+- Les couches visuelles de bornage (ex: griser hors intro/outro) doivent etre conditionnees au contexte d'edition actif; sans item selectionne, ne pas appliquer de masque.
+- Dans un trou inter-mots, les preferences de snap dependent de la poignee: `intro` doit preferer le `start` du mot suivant, `outro` le `end` du mot precedent.
+- Pour les indications timeline multi-items, reutiliser `resolveCueWindows` (avec comportements capsule) plutot que les seuls events explicites, afin que les placements auto restent synchronises dynamiquement.
+- Toujours valider la semantique visuelle avec le produit: le niveau de gris "plus leger" peut representer la couche "moins selectionnee" meme si cela inverse une convention precedente.
+- Les panneaux d'edition paralleles (`ContentInfos`, `EventParams`) doivent conserver leur emprise visuelle meme sans item selectionne; rendre un conteneur vide plutot que masquer le bloc.
+- Pour une deselection sur zone vide d'un panneau liste/tree, declencher l'action seulement si `event.target === event.currentTarget` pour ne pas casser les clics d'item existants.

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, type MouseEvent } from "react";
 import {
 	type FeatureImplementation,
 	dragAndDropFeature,
@@ -284,6 +284,17 @@ export function SceneTreeView() {
 		.find((item) => item.isSelected())
 		?.getItemData();
 	const actionDisabled = !hasTreeData;
+	const containerProps = tree.getContainerProps();
+
+	const onTreeBackgroundClick = (event: MouseEvent<HTMLDivElement>) => {
+		containerProps.onClick?.(event);
+		if (event.defaultPrevented) return;
+		if (event.target !== event.currentTarget) return;
+		if (!activeItemId) return;
+
+		tree.setSelectedItems([]);
+		send({ type: "active-set", payload: { itemId: null, event: null } });
+	};
 
 	const getCreatePayload = () => {
 		if (!selectedNode) {
@@ -342,7 +353,7 @@ export function SceneTreeView() {
 				</Button>
 			</div>
 
-			<div {...tree.getContainerProps()} className="min-h-64 rounded border p-1">
+			<div {...containerProps} onClick={onTreeBackgroundClick} className="min-h-64 rounded border p-1">
 				{tree.getItems().map((item) => {
 					const data = item.getItemData();
 					const Icon = getNodeIcon(data);
