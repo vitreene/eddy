@@ -26,8 +26,8 @@ export function buildEditablePointHandles(params: {
 
 	const introEvent = events?.[INTRO] ?? null;
 	const outroEvent = events?.[OUTRO] ?? null;
-	const introCueName = resolveDefinedCueName(cues, introEvent?.name);
-	const outroCueName = resolveDefinedCueName(cues, outroEvent?.name);
+	const introCueName = resolveCueNameForHandle(cues, introEvent?.name, INTRO);
+	const outroCueName = resolveCueNameForHandle(cues, outroEvent?.name, OUTRO);
 
 	const handles: Array<TimelineEditablePointHandle> = [];
 	if (introCueName) {
@@ -115,10 +115,19 @@ export function clampCustomCueNameToIntroOutro(
 	return targetName;
 }
 
-function resolveDefinedCueName(cues: Array<TextTime>, cueName: string | null | undefined): string | null {
+function resolveCueNameForHandle(
+	cues: Array<TextTime>,
+	cueName: string | null | undefined,
+	action: string
+): string | null {
 	if (!cueName) return null;
-	if (!cues.some((cue) => cue.name === cueName)) return null;
-	return cueName;
+	if (cues.some((cue) => cue.name === cueName)) return cueName;
+
+	// Recovery path for dangling legacy references: keep handles editable
+	// by anchoring to a deterministic visible cue.
+	if (action === INTRO) return cues[0]?.name || null;
+	if (action === OUTRO) return cues[cues.length - 1]?.name || null;
+	return null;
 }
 
 function resolveCustomPoint(params: {

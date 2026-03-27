@@ -8,8 +8,10 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import {
 	getActiveSceneContent,
 	getSceneContentCues,
-	getSceneContentDurationSec
+	getSceneContentDurationSec,
+	mergeSceneEditorCues
 } from "@/scene-runtime/scene-content";
+import { isWaveformPositionCueName } from "@/scene-runtime/waveform-position-cues";
 import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
 import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
@@ -23,6 +25,7 @@ import {
 } from "./timeline-point-editor.model";
 
 const layout = new RubberProportionalLayout();
+const RUBBER_ITEM_GAP_PX = 4;
 
 type GuidanceBounds = { startSec: number; endSec: number };
 type GuidanceMarkerKind = "item-intro" | "item-outro" | "capsule-intro" | "capsule-outro";
@@ -49,7 +52,11 @@ export function Rubber() {
 
 	const cues = SceneLogicContext.useSelector((state) => {
 		const sceneContent = getActiveSceneContent(state.context as any);
-		return getSceneContentCues(sceneContent);
+		const words = getSceneContentCues(sceneContent);
+		const waveformPositionCues = (sceneContent?.events || []).filter((cue) =>
+			isWaveformPositionCueName(cue?.name)
+		);
+		return mergeSceneEditorCues(words, waveformPositionCues).filter((cue) => isRenderableCue(cue));
 	});
 	const timelineDurationSec = SceneLogicContext.useSelector((state) => {
 		const sceneContent = getActiveSceneContent(state.context as any);
@@ -58,7 +65,25 @@ export function Rubber() {
 	const activeProgress = SceneLogicContext.useSelector((state) => state.context.active.progress ?? 0);
 
 	const segments = layout.build(cues, activeProgress, timelineDurationSec);
+	const displaySegments = segments.map((segment, index) => {
+		const isWaveformPositionCue = isWaveformPositionCueName(segment.name);
+		const previousSegment = index > 0 ? segments[index - 1] : null;
+		const nextSegment = index < segments.length - 1 ? segments[index + 1] : null;
+		const hasPreviousWaveformPositionCue = Boolean(
+			isWaveformPositionCue && previousSegment && isWaveformPositionCueName(previousSegment.name)
+		);
+		const hasNextWaveformPositionCue = Boolean(
+			isWaveformPositionCue && nextSegment && isWaveformPositionCueName(nextSegment.name)
+		);
+		return {
+			...segment,
+			isWaveformPositionCue,
+			hasPreviousWaveformPositionCue,
+			hasNextWaveformPositionCue
+		};
+	});
 	const snapPoints = layout.getSnapPoints(cues);
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
 	const handles = buildEditablePointHandles({ cues, events, activeEventAction });
 	const capsuleGuidance = SceneLogicContext.useSelector((state) =>
 		resolveCapsuleGuidance(state.context as SceneComp, state.context.active.itemId)
@@ -68,8 +93,33 @@ export function Rubber() {
 		if (!point.cueName) return;
 
 		if (action === INTRO || action === OUTRO) {
-			const payload = makeIntroOutroEventPayload(events, action, point.cueName, point.position);
-			sceneLogic.send({ type: "events-update", payload });
+			const ordered = buildOrderedIntroOutroTargets({
+				action,
+				pendingPoint: point,
+				events,
+				cueByName
+			});
+
+			if (ordered.intro) {
+				const introPayload = makeIntroOutroEventPayload(
+					events,
+					INTRO,
+					ordered.intro.cueName,
+					ordered.intro.position
+				);
+				sceneLogic.send({ type: "events-update", payload: introPayload });
+			}
+
+			if (ordered.outro) {
+				const outroPayload = makeIntroOutroEventPayload(
+					events,
+					OUTRO,
+					ordered.outro.cueName,
+					ordered.outro.position
+				);
+				sceneLogic.send({ type: "events-update", payload: outroPayload });
+			}
+
 			sceneLogic.send({ type: "active-set", payload: { event: action } });
 			return;
 		}
@@ -103,17 +153,25 @@ export function Rubber() {
 					ref={timelineRef}
 					className="relative flex flex-1 flex-wrap items-start gap-1 rounded border border-amber-200 bg-amber-50/30 p-1 text-[10px]"
 				>
-					{segments.length ? (
-						segments.map((segment) => (
+					{displaySegments.length ? (
+						displaySegments.map((segment) => (
+							// wf position cues are rendered as markers, not words
 							<li
 								key={segment.key}
 								data-rubber-cue={segment.name}
 								title={`${segment.name} - ${segment.durationSec.toFixed(2)}s`}
 								className={resolveSegmentClassName(
 									segment.isActive,
-									resolveCueDimVariant(segment.name, capsuleGuidance)
+									resolveCueDimVariant(segment.name, capsuleGuidance),
+									segment.isWaveformPositionCue,
+									segment.hasPreviousWaveformPositionCue,
+									segment.hasNextWaveformPositionCue
 								)}
-								style={{ width: `${segment.widthPx}px` }}
+								style={{
+									width: segment.isWaveformPositionCue ? "6px" : `${segment.widthPx}px`,
+									minHeight: segment.isWaveformPositionCue ? "20px" : undefined,
+									marginLeft: segment.hasPreviousWaveformPositionCue ? `${-RUBBER_ITEM_GAP_PX}px` : undefined
+								}}
 							>
 								{(capsuleGuidance?.markersByCueName.get(segment.name) || []).map((marker, index) => (
 									<span
@@ -122,7 +180,7 @@ export function Rubber() {
 										style={{ left: resolveMarkerLeft(marker.position) }}
 									/>
 								))}
-								{segment.text}
+								{segment.isWaveformPositionCue ? null : segment.text}
 							</li>
 						))
 					) : (
@@ -145,6 +203,87 @@ export function Rubber() {
 			</div>
 		</div>
 	);
+}
+
+function isRenderableCue(cue: TextTime): boolean {
+	if (!cue?.name) return false;
+	const start = Number(cue.start);
+	if (!Number.isFinite(start)) return false;
+	if (isWaveformPositionCueName(cue.name)) return true;
+	const end = Number(cue.end);
+	const safeEnd = Number.isFinite(end) ? end : start;
+	if (safeEnd <= start) return false;
+	return true;
+}
+
+function buildOrderedIntroOutroTargets(params: {
+	action: typeof INTRO | typeof OUTRO;
+	pendingPoint: { cueName: string; position: "start" | "middle" | "end" };
+	events: Record<string, ContentEvent | undefined> | null;
+	cueByName: Map<string, TextTime>;
+}): {
+	intro: { cueName: string; position: "start" | "middle" | "end" } | null;
+	outro: { cueName: string; position: "start" | "middle" | "end" } | null;
+} {
+	const { action, pendingPoint, events, cueByName } = params;
+	const introEvent = events?.[INTRO];
+	const outroEvent = events?.[OUTRO];
+	const introPoint = introEvent?.name
+		? {
+				cueName: introEvent.name,
+				position: normalizePositionForAction(introEvent.position, INTRO)
+			}
+		: null;
+	const outroPoint = outroEvent?.name
+		? {
+				cueName: outroEvent.name,
+				position: normalizePositionForAction(outroEvent.position, OUTRO)
+			}
+		: null;
+
+	const pendingSec = resolvePointTimeSec(pendingPoint, cueByName);
+
+	if (action === INTRO) {
+		if (outroPoint && Number.isFinite(pendingSec)) {
+			const outroSec = resolvePointTimeSec(outroPoint, cueByName);
+			if (Number.isFinite(outroSec) && pendingSec > outroSec) {
+				return {
+					intro: outroPoint,
+					outro: pendingPoint
+				};
+			}
+		}
+
+		return {
+			intro: pendingPoint,
+			outro: outroPoint
+		};
+	}
+
+	if (introPoint && Number.isFinite(pendingSec)) {
+		const introSec = resolvePointTimeSec(introPoint, cueByName);
+		if (Number.isFinite(introSec) && pendingSec < introSec) {
+			return {
+				intro: pendingPoint,
+				outro: introPoint
+			};
+		}
+	}
+
+	return {
+		intro: introPoint,
+		outro: pendingPoint
+	};
+}
+
+function resolvePointTimeSec(
+	point: { cueName: string; position: "start" | "middle" | "end" } | null,
+	cueByName: Map<string, TextTime>
+): number {
+	if (!point?.cueName) return Number.NaN;
+	const cue = cueByName.get(point.cueName);
+	if (!cue) return Number.NaN;
+	return getCueTimeAtPosition(cue, point.position);
 }
 
 function resolveCapsuleGuidance(
@@ -310,8 +449,23 @@ function resolveCueDimVariant(
 
 function resolveSegmentClassName(
 	isActive: boolean,
-	variant: "default" | "outside-selected" | "outside-capsule"
+	variant: "default" | "outside-selected" | "outside-capsule",
+	isWaveformPositionCue: boolean,
+	hasPreviousWaveformPositionCue: boolean,
+	hasNextWaveformPositionCue: boolean
 ): string {
+	if (isWaveformPositionCue) {
+		return cx(
+			"pointer-events-none relative self-center h-5 rounded border px-0 py-0 leading-none select-none",
+			hasPreviousWaveformPositionCue && "rounded-l-none border-l-0",
+			hasNextWaveformPositionCue && "rounded-r-none border-r-0",
+			variant === "outside-capsule" && "border-emerald-300/50 bg-emerald-100/35",
+			variant === "outside-selected" && "border-emerald-400/60 bg-emerald-100/55",
+			variant === "default" &&
+				(isActive ? "border-emerald-700 bg-emerald-400" : "border-emerald-500 bg-emerald-300")
+		);
+	}
+
 	return cx(
 		"relative truncate rounded px-1 py-0.5 text-center leading-4 select-none",
 		variant === "outside-capsule" && "border border-stone-300 bg-stone-100 text-stone-400",

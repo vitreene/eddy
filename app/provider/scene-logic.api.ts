@@ -13,6 +13,17 @@ export type ScenePatchResponse = {
 	mainCapsule?: { id: number; grid: string | null } | null;
 };
 
+type SceneContentPositionCuePatch = {
+	sceneId: number;
+	name: string;
+	timeSec?: number;
+	remove?: boolean;
+};
+
+type SceneContentPositionCuePatchResponse = {
+	sceneContent?: SceneContent;
+};
+
 export async function createDecorOnServer(): Promise<number | null> {
 	const response = await fetch("/api/decor", {
 		method: "POST",
@@ -74,4 +85,21 @@ export async function deleteCustomEventOnServer(itemId: number, eventId: number)
 		},
 		body: JSON.stringify({ eventId })
 	});
+}
+
+export async function patchSceneContentPositionCueOnServer(
+	patch: SceneContentPositionCuePatch
+): Promise<SceneContent | null> {
+	const response = await fetch("/api/scene-content/position-cues", {
+		method: "POST",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify(patch)
+	});
+	if (!response.ok) return null;
+
+	const payload = (await response.json()) as SceneContentPositionCuePatchResponse;
+	return payload.sceneContent || null;
 }

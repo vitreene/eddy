@@ -309,3 +309,19 @@
 - Toujours valider la semantique visuelle avec le produit: le niveau de gris "plus leger" peut representer la couche "moins selectionnee" meme si cela inverse une convention precedente.
 - Les panneaux d'edition paralleles (`ContentInfos`, `EventParams`) doivent conserver leur emprise visuelle meme sans item selectionne; rendre un conteneur vide plutot que masquer le bloc.
 - Pour une deselection sur zone vide d'un panneau liste/tree, declencher l'action seulement si `event.target === event.currentTarget` pour ne pas casser les clics d'item existants.
+
+## 2026-03-27 — Waveform positions: nommage stable et fusion read-only
+
+- Pour des cues techniques references par `name`, choisir un prefixe structurel reserve (distinct des cues Whisper) et conserver ce `name` lors des deplacements.
+- Clarifier explicitement la fusion multi-sources: aggregation uniquement cote editeur/read-model; ne jamais re-persister une vue fusionnee dans une source DB unique.
+- En projection waveform ponctuelle, ne pas reutiliser des regles de snap `start/middle/end` de timelines segmentaires; travailler en ancrage temporel point-a-point.
+- Ne pas encoder l'item dans la cle `name` des cues techniques: la cle doit rester globale pour supporter des triggers synchrones sur plusieurs items.
+- Quand `intro/outro` sont absents en waveform, conserver un mode de creation progressive sur fond vide (clic1 intro, clic2 outro) et un mode drag initial qui cree les deux bornes en une action.
+- Ajouter un garde-fou d'ordre apres toute edition `outro`: si `outro < intro`, inverser les references pour conserver `intro <= outro`.
+- Appliquer le garde-fou d'ordre dans les deux sens (`intro` deplacee apres `outro` ou `outro` deplacee avant `intro`) et sur les deux vues (`Rubber` + `Waveform`).
+- Ne pas propager globalement des cues techniques ponctuels (`start=end`) dans les listes de mots Rubber; reserver leur fusion aux vues qui en ont besoin (waveform editor).
+- Quand on retire des cues techniques du rendu principal, garder un chemin de compat edition (cues fusionnes en lecture uniquement) pour ne pas faire "disparaitre" les anciens events en cours de migration.
+- Si le produit veut visualiser les cues techniques dans Rubber, les rendre avec un code visuel distinct (sans texte) au lieu de les traiter comme des mots.
+- Quand un handle reference un cue legacy introuvable, ne pas le masquer silencieusement: fournir un ancrage de recuperation pour maintenir l'edition possible.
+- Les conditions de creation intro/outro ne doivent pas se baser sur la simple presence du `name` en event, mais sur l'existence effective d'une poignee resolue dans la vue.
+- Pour "fusionner" des marqueurs techniques adjacents sans casser l'edition, preferer une fusion visuelle (overlap/gap) en conservant un element DOM par cue.

@@ -18,6 +18,7 @@ export default [
 		route("item/:id", "./api/item.ts"),
 		route("content/:id", "./api/content.ts"),
 		route("scene-content/cues", "./api/scene-content-cues.ts"),
+		route("scene-content/position-cues", "./api/scene-content-position-cues.ts"),
 		route("theme/:id", "./api/theme.ts")
 	])
 ] satisfies RouteConfig;

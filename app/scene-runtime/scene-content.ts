@@ -23,6 +23,25 @@ export function getSceneContentCues(
 	return [];
 }
 
+export function mergeSceneEditorCues(timestamp: TextTime[], events: TextTime[]): TextTime[] {
+	const byName = new Map<string, TextTime>();
+
+	for (const cue of Array.isArray(timestamp) ? timestamp : []) {
+		if (!cue?.name) continue;
+		byName.set(cue.name, cue);
+	}
+
+	for (const cue of Array.isArray(events) ? events : []) {
+		if (!cue?.name) continue;
+		byName.set(cue.name, cue);
+	}
+
+	return [...byName.values()].toSorted((a, b) => {
+		if (a.start !== b.start) return a.start - b.start;
+		return a.name.localeCompare(b.name);
+	});
+}
+
 export function getSceneContentDurationSec(
 	sceneContent: Pick<SceneContent, "totalDuration" | "timestamp" | "events" | "cues"> | null | undefined
 ): number {

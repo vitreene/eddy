@@ -24,8 +24,10 @@ import { buildEditorGridClassName } from "@/config/class-prefix";
 import {
 	buildSceneFallbackEvents,
 	getSceneContentDurationSec,
+	mergeSceneEditorCues,
 	SCENE_DEFAULT_DURATION_SEC
 } from "@/scene-runtime/scene-content";
+import { isWaveformPositionCueName } from "@/scene-runtime/waveform-position-cues";
 import { isWaveformDataV1, type WaveformDataV1 } from "@/waveform/payload";
 
 export type { Content, ContentEvent };
@@ -574,6 +576,11 @@ export async function upsertSceneContentCues(input: {
 	const normalizedTimestamp = normalizeSceneContentCues(input.cues);
 
 	return await prisma.$transaction(async (tx) => {
+		const existing = await tx.sceneContent.findFirst({
+			where: { sceneId: input.sceneId },
+			orderBy: [{ order: "asc" }, { id: "asc" }]
+		});
+
 		const content = await tx.content.findUnique({
 			where: { id: input.contentId },
 			select: { timestamp: true, type: true }
@@ -591,17 +598,14 @@ export async function upsertSceneContentCues(input: {
 
 		const scene = await tx.scene.findUnique({ where: { id: input.sceneId }, select: { title: true } });
 		const normalizedDuration = normalizeSceneDurationSec(input.totalDuration);
+		const existingEvents = safeParseSceneCues(existing?.events);
+		const preservedPositionCues = existingEvents.filter((cue) => isWaveformPositionCueName(cue.name));
 		const fallbackEvents =
 			normalizedTimestamp.length > 0
 				? []
 				: buildSceneFallbackEvents(scene?.title || "Scene", normalizedDuration);
-		const eventsPayload =
-			normalizedTimestamp.length > 0 ? JSON.stringify(normalizedTimestamp) : JSON.stringify(fallbackEvents);
-
-		const existing = await tx.sceneContent.findFirst({
-			where: { sceneId: input.sceneId },
-			orderBy: [{ order: "asc" }, { id: "asc" }]
-		});
+		const persistedSceneEvents = mergeSceneEditorCues(preservedPositionCues, fallbackEvents);
+		const eventsPayload = JSON.stringify(persistedSceneEvents);
 
 		if (existing) {
 			return tx.sceneContent.update({
@@ -625,6 +629,66 @@ export async function upsertSceneContentCues(input: {
 				contentId: input.contentId,
 				order: (maxOrder?.order || 0) + 1000,
 				events: eventsPayload
+			}
+		});
+	});
+}
+
+export async function upsertSceneContentPositionCue(input: {
+	sceneId: number;
+	cueName: string;
+	timeSec: number;
+	text?: string | null;
+}) {
+	const cueName = typeof input.cueName == "string" ? input.cueName.trim() : "";
+	if (!isWaveformPositionCueName(cueName)) {
+		throw new Error(`Invalid waveform position cue name: ${input.cueName}`);
+	}
+
+	const start = normalizeCueSec(input.timeSec);
+	const end = start;
+	const text = typeof input.text == "string" && input.text.trim().length ? input.text.trim() : cueName;
+
+	return await prisma.$transaction(async (tx) => {
+		const sceneContent = await tx.sceneContent.findFirst({
+			where: { sceneId: input.sceneId },
+			orderBy: [{ order: "asc" }, { id: "asc" }]
+		});
+		if (!sceneContent) throw new Error(`SceneContent not found for scene ${input.sceneId}`);
+
+		const currentEvents = safeParseSceneCues(sceneContent.events);
+		const nextEvents = mergeSceneEditorCues(
+			currentEvents.filter((cue) => cue.name !== cueName),
+			[{ name: cueName, text, start, end }]
+		);
+
+		return tx.sceneContent.update({
+			where: { id: sceneContent.id },
+			data: {
+				events: JSON.stringify(nextEvents)
+			}
+		});
+	});
+}
+
+export async function deleteSceneContentPositionCue(input: { sceneId: number; cueName: string }) {
+	const cueName = typeof input.cueName == "string" ? input.cueName.trim() : "";
+	if (!cueName) return null;
+
+	return await prisma.$transaction(async (tx) => {
+		const sceneContent = await tx.sceneContent.findFirst({
+			where: { sceneId: input.sceneId },
+			orderBy: [{ order: "asc" }, { id: "asc" }]
+		});
+		if (!sceneContent) return null;
+
+		const currentEvents = safeParseSceneCues(sceneContent.events);
+		const nextEvents = currentEvents.filter((cue) => cue.name !== cueName);
+
+		return tx.sceneContent.update({
+			where: { id: sceneContent.id },
+			data: {
+				events: JSON.stringify(nextEvents)
 			}
 		});
 	});
@@ -751,15 +815,16 @@ function normalizeSceneContentCues(cues: TextTime[]): TextTime[] {
 			const endCandidate = normalizeCueSec(cue?.end);
 			const end = endCandidate >= start ? endCandidate : start;
 			const uniqueName = dedupeCueName(name, seen);
+			const isWaveformPositionCue = isWaveformPositionCueName(uniqueName);
 
 			return {
 				name: uniqueName,
-				text,
+				text: text.length ? text : isWaveformPositionCue ? uniqueName : "",
 				start,
 				end
 			};
 		})
-		.filter((cue) => cue.text.length > 0)
+		.filter((cue) => cue.text.length > 0 || isWaveformPositionCueName(cue.name))
 		.sort((a, b) => a.start - b.start);
 }
 

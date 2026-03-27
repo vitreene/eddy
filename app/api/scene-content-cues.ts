@@ -14,7 +14,7 @@ export async function action({ request }: Route.ActionArgs) {
 	const body = (await request.json()) as SceneContentCuesBody;
 	const sceneId = Number(body?.sceneId);
 	const contentId = Number(body?.contentId);
-	const cues = Array.isArray(body?.cues) ? body.cues : [];
+	const inputCues = Array.isArray(body?.cues) ? body.cues : [];
 	const totalDuration = Number(body?.totalDuration);
 
 	if (!Number.isFinite(sceneId) || sceneId <= 0) {
@@ -41,7 +41,7 @@ export async function action({ request }: Route.ActionArgs) {
 	const sceneContent = await upsertSceneContentCues({
 		sceneId,
 		contentId,
-		cues,
+		cues: inputCues,
 		totalDuration: Number.isFinite(totalDuration) ? totalDuration : undefined
 	});
 	const linkedContent = await prisma.content.findUnique({
