@@ -158,8 +158,12 @@ function useTransformRuntime(props: TransformProps) {
 	useElementRetry(state.context.input.element, state.context.input.active ?? true, send);
 
 	const frame = useMemo(
-		() => buildFrame(state.context.t, state.context.offsetParent),
-		[state.context.t, state.context.offsetParent]
+		() =>
+			resolveTransformOverlayFrame(
+				state.context.input.element,
+				buildFrame(state.context.t, state.context.offsetParent)
+			),
+		[state.context.input.element, state.context.t, state.context.offsetParent]
 	);
 	if (
 		!state.context.domOk ||
@@ -179,6 +183,33 @@ function useTransformRuntime(props: TransformProps) {
 			send({ type: "drag.start", mode, clientX: ev.clientX, clientY: ev.clientY }),
 		className: state.context.input.className
 	};
+}
+
+function resolveTransformOverlayFrame(
+	element: HTMLElement | null,
+	rawFrame: { w: number; h: number; M: DOMMatrix } | null
+): { w: number; h: number; M: DOMMatrix } | null {
+	const rect = readElementRect(element);
+	if (!rect) return rawFrame;
+
+	const rectFrame = {
+		w: Math.max(1, rect.width),
+		h: Math.max(1, rect.height),
+		M: new DOMMatrix([1, 0, 0, 1, rect.left, rect.top])
+	};
+
+	if (!rawFrame) return rectFrame;
+
+	const isAxisAligned = Math.abs(rawFrame.M.b) < 0.0001 && Math.abs(rawFrame.M.c) < 0.0001;
+	if (!isAxisAligned) return rawFrame;
+
+	const dx = Math.abs(rawFrame.M.e - rect.left);
+	const dy = Math.abs(rawFrame.M.f - rect.top);
+	if (dx > 1 || dy > 1) {
+		return rectFrame;
+	}
+
+	return rawFrame;
 }
 
 function usePositionRuntime(props: PositionProps) {
@@ -214,6 +245,7 @@ function usePositionRuntime(props: PositionProps) {
 		!state.context.frame
 	)
 		return null;
+
 	return {
 		hidden: state.context.hideOverlayFrame,
 		portalContainer: state.context.portalHost,
@@ -221,6 +253,19 @@ function usePositionRuntime(props: PositionProps) {
 		dragStart: (ev: { clientX: number; clientY: number }, mode: PositionDragMode) =>
 			send({ type: "drag.start", mode, clientX: ev.clientX, clientY: ev.clientY }),
 		className: state.context.input.className
+	};
+}
+
+function readElementRect(
+	element: HTMLElement | null
+): { left: number; top: number; width: number; height: number } | null {
+	if (!element) return null;
+	const rect = element.getBoundingClientRect();
+	return {
+		left: Number(rect.left.toFixed(2)),
+		top: Number(rect.top.toFixed(2)),
+		width: Number(rect.width.toFixed(2)),
+		height: Number(rect.height.toFixed(2))
 	};
 }
 

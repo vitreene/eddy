@@ -33,3 +33,22 @@
 - Les selections UI suivent les creations/modifications (`active-set` vers intro/outro) pour synchroniser ContentInfos.
 - Typecheck valide (`npm run typecheck`).
 - Meme garde-fou porte sur `Rubber` pour retablir la parite de comportement entre les deux vues.
+
+## Reopen - Rubber intro/outro handle availability
+
+### Checklist
+
+- [x] Reouvrir le bug: intro/outro impossibles a creer depuis Rubber quand events absents.
+- [x] Corriger la resolution des handles intro/outro pour fallback deterministe sur 1er/dernier cue meme sans event.
+- [x] Aligner Rubber sur les events/cues resolves (`generateMissingEvents`) pour couvrir le mode auto-events.
+- [x] Considerer les cues techniques auto-generes (`__auto_*`) comme renderables dans Rubber.
+- [ ] Verifier manuellement: item auto-events sans intro/outro persistes -> poignees visibles.
+- [ ] Verifier manuellement: item texte sans intro/outro -> poignees visibles et creation possible apres drag.
+- [x] Activer une trace ciblee Rubber (projection/anchors/binding handles) pour diagnostiquer les cas restants.
+
+### Review
+
+- `resolveCueNameForHandle` ne retourne plus `null` quand `name` est absent pour intro/outro; fallback deterministic sur debut/fin timeline.
+- Les poignees intro/outro restent donc editables meme en absence d'events persistes, ce qui restaure la creation depuis Rubber.
+- Rubber derive maintenant `cues` et `events` depuis `resolveCueWindows(..., generateMissingEvents: true)`, ce qui couvre explicitement les items en mode auto-events.
+- Les cues auto-generes de `resolveCueWindows` (`__auto_*`) sont maintenant rendus comme cues valides, ce qui evite un timeline vide et restaure les ancres de poignees.

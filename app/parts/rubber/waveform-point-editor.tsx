@@ -82,7 +82,9 @@ export function WaveformPointEditor({
 
 			const width = container.clientWidth;
 			const timeSec = layout.xToSec(releaseX, width);
-			onCommit(handle.action, timeSec);
+			if (Math.abs(timeSec - handle.timeSec) > 0.001) {
+				onCommit(handle.action, timeSec);
+			}
 
 			dragPreviewRef.current = null;
 			setDragPreview(null);

@@ -130,6 +130,12 @@ function buildEditorSyncKey(visualState: ReturnType<typeof buildEditableVisualSt
 	].join("|");
 }
 
+function makeSelectionKey(action: string | null, cueSec: number | null): string | null {
+	if (!action) return null;
+	if (typeof cueSec !== "number" || !Number.isFinite(cueSec)) return null;
+	return `${action}:${cueSec.toFixed(4)}`;
+}
+
 type StyleMutationPlan = {
 	stylePatch: EditableStyle;
 	liveStylePatch: EditableStyle;
@@ -212,19 +218,22 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
 	const activeEventAction = SceneLogicContext.useSelector((state) => state.context.active.event ?? null);
 	const activeCueSec = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
-	const activePlaybackAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
 
 	const selectedEvent = item && activeEventAction ? eventsByItem[item.id]?.[activeEventAction] : null;
-	const { decor, editDecor, selectedEventUsesItemDecor } = resolveDecorSelection({
-		item,
-		sceneId,
-		eventsByItem,
-		decors,
-		sceneContents,
-		activeEventAction,
-		itemDecor,
-		selectedEvent
-	});
+	const { decor, editDecor, selectedEventUsesItemDecor } = useMemo(
+		() =>
+			resolveDecorSelection({
+				item,
+				sceneId,
+				eventsByItem,
+				decors,
+				sceneContents,
+				activeEventAction,
+				itemDecor,
+				selectedEvent
+			}),
+		[item, sceneId, eventsByItem, decors, sceneContents, activeEventAction, itemDecor, selectedEvent]
+	);
 
 	const capsule = SceneLogicContext.useSelector((state) => {
 		if (content?.type == "capsule" && content.capsuleId) return state.context.capsules[content.capsuleId];
@@ -379,11 +388,13 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	});
 
 	const desiredEditorSyncKey = buildEditorSyncKey(editableVisualState);
+	const selectionKey = makeSelectionKey(activeEventAction, selectedEventCueSec);
 
 	const [syncState, syncSend] = useMachine(editorSyncMachine, {
 		input: {
 			onSeek: (request) => {
-				if (!request.selectedEventAction) return;
+				if (!request.selectionAction) return;
+				if (typeof request.selectionCueSec !== "number" || !Number.isFinite(request.selectionCueSec)) return;
 				const snapshot = actorRef.getSnapshot();
 				const selectedItemId = request.visualState?.itemId ?? snapshot.context.active.itemId;
 				if (!selectedItemId) return;
@@ -394,14 +405,14 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 					payload: {
 						itemId: currentItem.id,
 						contentId: currentItem.contentId,
-						event: request.selectedEventAction,
+						event: request.selectionAction,
 						action: "seek",
-						cue: request.selectedEventCueSec
+						cue: request.selectionCueSec
 					}
 				});
 			},
 			onProject: (request) => {
-				if (!request.selectedEventAction) return;
+				if (!request.visualState) return;
 				const snapshot = actorRef.getSnapshot();
 				projectEditableVisualStateToNode(snapshot.context.active.node as HTMLElement | null, request.visualState);
 			}
@@ -410,14 +421,13 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 
 	useEffect(() => {
 		syncSend({
-			type: "sync.request",
+			type: "sync.update",
 			payload: {
-				syncKey: desiredEditorSyncKey,
+				visualKey: desiredEditorSyncKey,
 				visualState: editableVisualState,
-				selectedEventAction: activeEventAction,
-				selectedEventCueSec,
-				activeCueSec,
-				activeAction: activePlaybackAction
+				selectionAction: activeEventAction,
+				selectionCueSec: selectedEventCueSec,
+				selectionKey
 			}
 		});
 	}, [
@@ -426,8 +436,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		editableVisualState,
 		activeEventAction,
 		selectedEventCueSec,
-		activeCueSec,
-		activePlaybackAction
+		selectionKey
 	]);
 
 	const onDecorUpdate = useCallback(
@@ -464,7 +473,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		[send]
 	);
 
-	const editorSyncKey = activeEventAction ? syncState.context.projectedSyncKey : desiredEditorSyncKey;
+	const editorSyncKey = activeEventAction ? syncState.context.projectedVisualKey : desiredEditorSyncKey;
 
 	if (!item) return <SceneEdit allContents={allContents} />;
 	const transformValue = editableVisualState?.transform ?? {};

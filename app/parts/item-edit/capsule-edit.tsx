@@ -110,6 +110,8 @@ export function CapsuleEdit({
 							defaultValue={capsule?.name}
 						/>
 					</form>
+
+					<CapsuleGridTypeSelector capsule={capsule} onUpdate={onUpdateCapsule} />
 				</TabsContent>
 
 				<TabsContent value="layout">
@@ -126,8 +128,6 @@ export function CapsuleEdit({
 				</TabsContent>
 
 				<TabsContent value="advanced">
-					<CapsuleGridTypeSelector capsule={capsule} onUpdate={onUpdateCapsule} />
-
 					<CapsuleDefaultTransitions
 						capsule={capsule}
 						onChangeDefaultTransition={onChangeDefaultTransition}

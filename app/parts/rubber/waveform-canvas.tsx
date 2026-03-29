@@ -331,6 +331,7 @@ export function WaveformCanvas() {
 							handles={handles}
 							durationSec={timelineDurationSec}
 							onSelect={(action) => {
+								if (activeEventAction === action) return;
 								sceneLogic.send({ type: "active-set", payload: { event: action } });
 							}}
 							onCommit={onCommitPoint}

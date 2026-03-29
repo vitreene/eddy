@@ -30,7 +30,7 @@ type TelcoController = {
 	syncFromActive: (active: { action: string | null; cue: number | null }) => void;
 };
 
-const onEnd = (t: Timer) => console.log("PLAYER the end", t.duration, t);
+const onEnd = (_timer: Timer) => {};
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
 	const active = SceneLogicContext.useSelector((state) => state.context.active);
@@ -113,8 +113,6 @@ function initializePlayerRuntime({
 	let cancelled = false;
 	let endedSent = false;
 	let player: Player | null = null;
-
-	console.log("SCENE", scene);
 
 	preload(scene.persos).then((persos) => {
 		if (cancelled || !persos.size) return;

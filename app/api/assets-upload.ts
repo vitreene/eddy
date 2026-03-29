@@ -1,4 +1,4 @@
-import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { nanoid } from "nanoid";
 
@@ -66,16 +66,80 @@ export async function loader({ request }: Route.LoaderArgs) {
 	const fullFilePath = path.join(ASSETS_DIR, fileName);
 
 	try {
+		const fileStat = await stat(fullFilePath);
+		const totalSize = fileStat.size;
 		const fileBuffer = await readFile(fullFilePath);
+		const mimeType = getMimeTypeFromExtension(fileName);
+		const range = request.headers.get("range");
+
+		if (range) {
+			const resolvedRange = resolveByteRange(range, totalSize);
+			if (!resolvedRange) {
+				return new Response(null, {
+					status: 416,
+					headers: {
+						"Content-Range": `bytes */${totalSize}`,
+						"Accept-Ranges": "bytes"
+					}
+				});
+			}
+
+			const { start, end } = resolvedRange;
+			const chunk = fileBuffer.subarray(start, end + 1);
+			return new Response(chunk, {
+				status: 206,
+				headers: {
+					"Content-Type": mimeType,
+					"Cache-Control": "public, max-age=31536000, immutable",
+					"Accept-Ranges": "bytes",
+					"Content-Range": `bytes ${start}-${end}/${totalSize}`,
+					"Content-Length": String(chunk.byteLength)
+				}
+			});
+		}
+
 		return new Response(fileBuffer, {
 			headers: {
-				"Content-Type": getMimeTypeFromExtension(fileName),
-				"Cache-Control": "public, max-age=31536000, immutable"
+				"Content-Type": mimeType,
+				"Cache-Control": "public, max-age=31536000, immutable",
+				"Accept-Ranges": "bytes",
+				"Content-Length": String(totalSize)
 			}
 		});
 	} catch {
 		return Response.json({ ok: false, message: "Asset not found" }, { status: 404 });
 	}
+}
+
+function resolveByteRange(rangeHeader: string, totalSize: number): { start: number; end: number } | null {
+	if (!rangeHeader.startsWith("bytes=")) return null;
+	const raw = rangeHeader.slice("bytes=".length).split(",")[0]?.trim();
+	if (!raw) return null;
+
+	const [startRaw, endRaw] = raw.split("-");
+	const hasStart = typeof startRaw === "string" && startRaw.length > 0;
+	const hasEnd = typeof endRaw === "string" && endRaw.length > 0;
+
+	if (!hasStart && !hasEnd) return null;
+
+	if (!hasStart && hasEnd) {
+		const suffixLength = Number(endRaw);
+		if (!Number.isFinite(suffixLength) || suffixLength <= 0) return null;
+		const end = Math.max(0, totalSize - 1);
+		const start = Math.max(0, totalSize - Math.floor(suffixLength));
+		if (start > end) return null;
+		return { start, end };
+	}
+
+	const start = Number(startRaw);
+	const end = hasEnd ? Number(endRaw) : totalSize - 1;
+	if (!Number.isFinite(start) || !Number.isFinite(end)) return null;
+	const normalizedStart = Math.floor(start);
+	const normalizedEnd = Math.min(Math.floor(end), totalSize - 1);
+	if (normalizedStart < 0) return null;
+	if (normalizedStart > normalizedEnd) return null;
+	if (normalizedStart >= totalSize) return null;
+	return { start: normalizedStart, end: normalizedEnd };
 }
 
 function extFromFile(file: File): string {

@@ -185,10 +185,19 @@ export function isItemDecorEventContext(
 	action: string | null | undefined
 ): boolean {
 	if (!action) return false;
+	const itemEvents = context.events?.[itemId] || {};
+	const selectedEvent = itemEvents[action];
+	if (
+		typeof selectedEvent?.decorId == "number" &&
+		Number.isFinite(selectedEvent.decorId) &&
+		selectedEvent.decorId > 0
+	) {
+		return false;
+	}
+
 	if (action === INTRO) return true;
 	if (deriveEventKind(action) !== "custom") return false;
 
-	const itemEvents = context.events?.[itemId] || {};
 	if (itemEvents[INTRO]) return false;
 
 	const orderedCustomActions = Object.values(itemEvents)

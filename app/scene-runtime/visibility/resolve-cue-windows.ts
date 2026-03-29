@@ -135,13 +135,18 @@ export function resolveCueWindows(
 			} else {
 				const capsuleIntroCue = cueByName.get(capsuleIntroName);
 				const capsuleOutroCue = cueByName.get(capsuleOutroName);
-				if (!capsuleIntroCue || !capsuleOutroCue) {
+				if (!capsuleIntroCue && !capsuleOutroCue) {
 					if (capsuleHostItem.capsuleId === snapshot.main) {
 						capsuleStart = sceneBounds.start;
 						capsuleEnd = sceneBounds.end;
 					} else {
 						continue;
 					}
+				} else if (capsuleHostItem.capsuleId === snapshot.main) {
+					capsuleStart = capsuleIntroCue ? Number(capsuleIntroCue.start) : sceneBounds.start;
+					capsuleEnd = capsuleOutroCue ? Number(capsuleOutroCue.end) : sceneBounds.end;
+				} else if (!capsuleIntroCue || !capsuleOutroCue) {
+					continue;
 				} else {
 					capsuleStart = Number(capsuleIntroCue.start);
 					capsuleEnd = Number(capsuleOutroCue.end);

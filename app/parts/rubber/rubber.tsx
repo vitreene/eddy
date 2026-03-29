@@ -195,6 +195,7 @@ export function Rubber() {
 						handles={handles}
 						snapPoints={snapPoints}
 						onSelect={(action) => {
+							if (activeEventAction === action) return;
 							sceneLogic.send({ type: "active-set", payload: { event: action } });
 						}}
 						onCommit={onCommitPoint}

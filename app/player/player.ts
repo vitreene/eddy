@@ -204,14 +204,11 @@ export class Player {
 	};
 
 	private seekMedias = (time: number) => {
-		this.mediaStatus.forEach((ms, id) => {
+		this.mediaStatus.forEach((ms) => {
 			const $node = ms.node as HTMLVideoElement;
-			const currentime = ms.change
-				? ms.change.offset + (time - ms.change.changeAt)
-				: ms.startAt <= time
-					? time - ms.startAt
-					: 0;
-			$node.currentTime = currentime / 1000;
+			const currentTimeMs = resolveMediaTimeAtSeek(ms, time);
+			const clampedTimeSec = clampMediaTimeSec($node, currentTimeMs / 1000);
+			$node.currentTime = clampedTimeSec;
 		});
 	};
 	private seekChanges(time: number) {
@@ -378,11 +375,16 @@ export class Player {
 		}
 
 		if (perso.type == P.VIDEO && change.media) {
+			const changeAt = Number(change.media.changeAt);
+			const offset = Number(change.media.offset);
+			const normalizedChangeAt = Number.isFinite(changeAt) && changeAt >= 0 ? changeAt : 0;
+			const normalizedOffset = Number.isFinite(offset) && offset >= 0 ? offset : 0;
+
 			mediaStatus.change = {
-				changeAt: change.media.changeAt,
-				offset: change.media.offset
+				changeAt: normalizedChangeAt,
+				offset: normalizedOffset
 			};
-			mediaStatus.startAt = time ?? 0;
+			mediaStatus.startAt = normalizedChangeAt - normalizedOffset;
 			mediaStatus.status = change.media.action == "pause" ? "pause" : "play";
 
 			if (duringSeek) {
@@ -390,7 +392,7 @@ export class Player {
 			}
 
 			this.executeMediaAction(mediaStatus.node, change.media.action, {
-				offsetMs: change.media.offset,
+				offsetMs: normalizedOffset,
 				force: false
 			});
 		}
@@ -424,6 +426,24 @@ export class Player {
 		if (!nodeId) return null;
 		return this.$elements.get(nodeId) ?? null;
 	}
+}
+
+function resolveMediaTimeAtSeek(status: MediaStatus, timeMs: number): number {
+	if (status.change) {
+		if (status.status === "pause") return Math.max(0, status.change.offset);
+		return Math.max(0, status.change.offset + (timeMs - status.change.changeAt));
+	}
+
+	if (status.startAt <= timeMs) return Math.max(0, timeMs - status.startAt);
+	return 0;
+}
+
+function clampMediaTimeSec(node: HTMLMediaElement, timeSec: number): number {
+	if (!Number.isFinite(timeSec) || timeSec < 0) return 0;
+	if (Number.isFinite(node.duration) && node.duration > 0) {
+		return Math.min(timeSec, node.duration);
+	}
+	return timeSec;
 }
 
 /* 

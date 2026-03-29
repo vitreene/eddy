@@ -6,7 +6,6 @@ import {
 } from "@/components/position-editor/visual-transform-grid";
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { getValuesFromGridName } from "@/lib/utils";
-import { SCENE_ID } from "@/scene-runtime/constants";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { getAssuredVisibleCue } from "@/provider/active-cue";
 import { createTransformController } from "./item-edit.transform-controller";
@@ -51,7 +50,6 @@ export function EditTransform({
 		return state.context.capsules[item.capsuleId];
 	});
 	const activeCue = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
-	const activeAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
 	const isVisibleAtActiveCue = SceneLogicContext.useSelector((state) => {
 		const itemId = state.context.active.itemId;
 		if (!itemId) return false;
@@ -64,12 +62,12 @@ export function EditTransform({
 		(state) => Number(state.context.active.sequenceFlushToken) || 0
 	);
 
-	const overlayContainer = useMemo(() => {
-		if (!activeNode) return null;
-		return activeNode.ownerDocument.getElementById(SCENE_ID);
-	}, [activeNode]);
+	const overlayContainer: HTMLElement | null = null;
 
-	const isTransformEditorActive = Boolean(activeNode) && isVisibleAtActiveCue && activeAction !== "seek";
+	const isTransformEditorActive = Boolean(activeNode) && isVisibleAtActiveCue;
+	const effectiveEditorMode: "transform" | "position" =
+		resolveCapsuleType(parentCapsuleType) === CAPSULE_TYPES.POSITION ? "position" : "transform";
+	const syncToken = `${item?.id ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`;
 
 	const snapParentId = useMemo(() => {
 		if (!item) return null;
@@ -113,9 +111,6 @@ export function EditTransform({
 			}
 		}
 	}, [parentCapsule]);
-
-	const effectiveEditorMode: "transform" | "position" =
-		resolveCapsuleType(parentCapsuleType) === CAPSULE_TYPES.POSITION ? "position" : "transform";
 
 	const transformController = useMemo(
 		() =>
@@ -170,7 +165,7 @@ export function EditTransform({
 					onCommit={onPositionCommit}
 					snapParentId={snapParentId}
 					snapGrid={snapGrid}
-					syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
+					syncToken={syncToken}
 					overlayContainer={overlayContainer}
 				/>
 			) : (
@@ -181,7 +176,7 @@ export function EditTransform({
 					onCommit={onTransformCommit}
 					snapParentId={snapParentId}
 					snapGrid={snapGrid}
-					syncToken={`${activeAction ?? ""}:${activeCue ?? ""}:${sequenceFlushToken}:${editorSyncKey ?? ""}`}
+					syncToken={syncToken}
 					overlayContainer={overlayContainer}
 				/>
 			)}

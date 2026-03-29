@@ -84,6 +84,8 @@ const emptyScene: SceneComp = {
 	decors: {}
 };
 
+const ACTIVE_SET_SEEK_EPSILON_SEC = 0.0005;
+
 export const sceneLogic = setup({
 	types: {
 		context: {} as SceneComp & { active: ActiveState },
@@ -481,10 +483,20 @@ export const sceneLogic = setup({
 										if (selectedEvent && typeof cue == "number" && Number.isFinite(cue)) {
 											const kind = deriveEventKind(selectedEvent.action);
 											if (kind === "custom" || kind === "intro" || kind === "sustain" || kind === "outro") {
-												nextActive = {
-													...nextActive,
-													action: "seek"
-												};
+												const eventChanged = nextEvent !== context.active.event;
+												const previousCue = context.active.cue;
+												const cueChanged =
+													typeof previousCue !== "number" ||
+													!Number.isFinite(previousCue) ||
+													Math.abs(previousCue - cue) > ACTIVE_SET_SEEK_EPSILON_SEC;
+												const explicitSeek =
+													"action" in payload && typeof payload.action === "string" && payload.action === "seek";
+												if (eventChanged || cueChanged || explicitSeek) {
+													nextActive = {
+														...nextActive,
+														action: "seek"
+													};
+												}
 											}
 										}
 									}

@@ -85,6 +85,7 @@ export async function action({ request, params }: Route.ActionArgs) {
 					duration: (texttime as any).duration,
 					delay: (texttime as any).delay,
 					position: (texttime as any).position,
+					decorId: (texttime as any).decorId,
 					itemId: Number(id)
 				})
 			)

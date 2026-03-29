@@ -49,7 +49,8 @@ suivant, à deplcer après test.
 		let prevPosition = 0;
 		// let prevAction = '';
 
-		this.eventtimes.forEach((evt, position) => {
+		const timelineEntries = [...this.eventtimes.entries()].toSorted((a, b) => a[0] - b[0]);
+		for (const [position, evt] of timelineEntries) {
 			// si c'est une video, completer les changes avec startAt et offset
 
 			//TODO a traiter la récursivité
@@ -85,7 +86,7 @@ suivant, à deplcer après test.
 					}
 				}
 			});
-		});
+		}
 		const positionsSorted = [...positions].sort((a, b) => (a < b ? -1 : 1));
 
 		// console.log("positions", [...positions], positonsSorted, actionChanges);

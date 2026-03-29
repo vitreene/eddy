@@ -325,3 +325,25 @@
 - Quand un handle reference un cue legacy introuvable, ne pas le masquer silencieusement: fournir un ancrage de recuperation pour maintenir l'edition possible.
 - Les conditions de creation intro/outro ne doivent pas se baser sur la simple presence du `name` en event, mais sur l'existence effective d'une poignee resolue dans la vue.
 - Pour "fusionner" des marqueurs techniques adjacents sans casser l'edition, preferer une fusion visuelle (overlap/gap) en conservant un element DOM par cue.
+- Sur editeurs de poignees, ne jamais emettre de mutation quand la position finale est identique (guard no-op), sinon on peut declencher des boucles autosave/seek inutiles.
+- Dans l'orchestrateur de sync edit, bloquer les reseek quand la signature de selection est identique et que l'etat actif est deja `seek`; sinon un drift de cue peut entretenir une boucle.
+- Plus robuste: ne seek que sur changement de signature de selection (`eventAction:cueSec`) et ignorer totalement les variations `activeAction/activeCue` tant que la signature reste identique.
+- Cote reducer `active-set`, ne pas reimposer `action: seek` sur un event deja selectionne si le cue n'a pas change; sinon un clic redundant peut relancer une boucle player->sync.
+- Cote UI des poignees, ignorer `onSelect` si l'action cible est deja active pour couper les emissions redondantes a la source.
+
+## 2026-03-27 — Boucle sync machine: references stables uniquement
+
+- Un `useEffect` qui envoie `sync.request` vers une machine ne doit jamais dependre d'objets reconstruits a chaque render (ex: decor merge), sinon cycle `request -> rerender -> request`.
+- Pour les resolutions composites (`resolveDecorSelection`), memoiser au niveau composant avant de construire les payloads machine (`EditableVisualState`).
+- En debug de boucle, separer clairement les causes: `dispatch-seek` (player) vs `dispatch-project` (reactive rerender local) via traces et IDs d'instance.
+
+## 2026-03-27 — Instrumentation de bug: progression par paliers
+
+- Commencer par une instrumentation minimale sur un seul segment du circuit suspect, puis etendre seulement si le signal reste ambigu.
+- Eviter d'instrumenter toute la chaine d'un coup: trop de logs masque le pattern utile et augmente le bruit de lecture.
+- Une fois la cause racine confirmee, retirer immediatement les logs/debuggers temporaires pour revenir a un flux normal.
+
+## 2026-03-27 — Respect strict des marqueurs inline
+
+- Si un commentaire dit explicitement de conserver un log/debug (`NE PAS RETIRER`), ne jamais le supprimer pendant un refactor sans demande explicite.
+- Avant cleanup, verifier les marqueurs inline critiques dans le fichier cible et les traiter comme contraintes fonctionnelles.

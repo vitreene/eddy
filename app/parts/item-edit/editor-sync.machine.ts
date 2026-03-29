@@ -3,12 +3,11 @@ import { assign, createMachine } from "xstate";
 import type { EditableVisualState } from "./editable-visual-state";
 
 type SyncRequest = {
-	syncKey: string;
+	visualKey: string;
 	visualState: EditableVisualState | null;
-	selectedEventAction: string | null;
-	selectedEventCueSec: number | null;
-	activeCueSec: number | null;
-	activeAction: string | null;
+	selectionAction: string | null;
+	selectionCueSec: number | null;
+	selectionKey: string | null;
 };
 
 type Input = {
@@ -19,20 +18,18 @@ type Input = {
 type Ctx = {
 	input: Input;
 	request: SyncRequest | null;
-	projectedSyncKey: string;
-	lastSelectionSignature: string | null;
+	projectedVisualKey: string;
+	lastSelectionKey: string | null;
 	currentVisualState: EditableVisualState | null;
 	editMode: "idle" | "editing";
 	editedItemId: number | null;
 };
 
 type Ev =
-	| { type: "sync.request"; payload: SyncRequest }
+	| { type: "sync.update"; payload: SyncRequest }
 	| { type: "edit.start"; payload: { itemId: number; visualState: EditableVisualState } }
 	| { type: "edit.commit"; payload: { visualState: EditableVisualState } }
 	| { type: "edit.cancel" };
-
-const SEEK_EPSILON_SEC = 0.0005;
 
 /**
  * Orchestrates edit -> player seek -> DOM projection -> frame sync key publication.
@@ -45,8 +42,8 @@ export const editorSyncMachine = createMachine(
 		context: ({ input }) => ({
 			input,
 			request: null,
-			projectedSyncKey: "",
-			lastSelectionSignature: null,
+			projectedVisualKey: "",
+			lastSelectionKey: null,
 			currentVisualState: null,
 			editMode: "idle",
 			editedItemId: null
@@ -54,7 +51,7 @@ export const editorSyncMachine = createMachine(
 		states: {
 			idle: {
 				on: {
-					"sync.request": {
+					"sync.update": {
 						target: "resolve",
 						actions: assign(({ event }) => ({ request: event.payload }))
 					},
@@ -87,20 +84,31 @@ export const editorSyncMachine = createMachine(
 				}
 			},
 			resolve: {
-				always: [{ target: "seek", guard: "shouldSeek" }, { target: "project" }]
+				always: [
+					{ target: "seekThenProject", guard: "shouldSeekAndProject" },
+					{ target: "seekOnly", guard: "shouldSeek" },
+					{ target: "projectOnly", guard: "shouldProject" },
+					{ target: "publishOnly" }
+				]
 			},
-			seek: {
+			seekThenProject: {
+				entry: ["dispatchSeek", "dispatchProject"],
+				always: "publishOnly"
+			},
+			seekOnly: {
 				entry: "dispatchSeek",
-				always: "project"
+				always: "publishOnly"
 			},
-			project: {
+			projectOnly: {
 				entry: "dispatchProject",
-				always: "publish"
+				always: "publishOnly"
 			},
-			publish: {
+			publishOnly: {
 				entry: assign(({ context }) => ({
-					projectedSyncKey: context.request?.syncKey || "",
-					lastSelectionSignature: buildSelectionSignature(context.request)
+					projectedVisualKey: shouldProjectRequest(context)
+						? context.request?.visualKey || ""
+						: context.projectedVisualKey,
+					lastSelectionKey: context.request?.selectionKey ?? null
 				})),
 				always: "idle"
 			}
@@ -108,35 +116,18 @@ export const editorSyncMachine = createMachine(
 	},
 	{
 		guards: {
+			shouldSeekAndProject: ({ context }) => shouldSeekRequest(context) && shouldProjectRequest(context),
 			shouldSeek: ({ context }) => {
-				const req = context.request;
-				if (!req) return false;
-				if (!req.selectedEventAction) return false;
-				if (typeof req.selectedEventCueSec !== "number" || !Number.isFinite(req.selectedEventCueSec))
-					return false;
-
-				const signature = buildSelectionSignature(req);
-				if (signature && signature !== context.lastSelectionSignature) return true;
-
-				if (
-					req.activeAction === "seek" &&
-					typeof req.activeCueSec === "number" &&
-					Number.isFinite(req.activeCueSec) &&
-					Math.abs(req.activeCueSec) <= SEEK_EPSILON_SEC &&
-					req.selectedEventCueSec > SEEK_EPSILON_SEC
-				) {
-					return false;
-				}
-
-				if (typeof req.activeCueSec !== "number" || !Number.isFinite(req.activeCueSec)) return true;
-				return Math.abs(req.selectedEventCueSec - req.activeCueSec) > SEEK_EPSILON_SEC;
-			}
+				return shouldSeekRequest(context);
+			},
+			shouldProject: ({ context }) => shouldProjectRequest(context)
 		},
 		actions: {
 			dispatchSeek: ({ context }) => {
 				const req = context.request;
 				if (!req) return;
-				if (typeof req.selectedEventCueSec !== "number" || !Number.isFinite(req.selectedEventCueSec)) return;
+				if (!req.selectionAction) return;
+				if (typeof req.selectionCueSec !== "number" || !Number.isFinite(req.selectionCueSec)) return;
 				context.input.onSeek(req);
 			},
 			dispatchProject: ({ context }) => {
@@ -148,10 +139,19 @@ export const editorSyncMachine = createMachine(
 	}
 );
 
-function buildSelectionSignature(request: SyncRequest | null): string | null {
-	if (!request) return null;
-	if (!request.selectedEventAction) return null;
-	if (typeof request.selectedEventCueSec !== "number" || !Number.isFinite(request.selectedEventCueSec))
-		return null;
-	return `${request.selectedEventAction}:${request.selectedEventCueSec.toFixed(4)}`;
+function shouldSeekRequest(context: Ctx): boolean {
+	const request = context.request;
+	if (!request) return false;
+	if (!request.selectionAction) return false;
+	if (typeof request.selectionCueSec !== "number" || !Number.isFinite(request.selectionCueSec)) return false;
+	if (!request.selectionKey) return false;
+	return request.selectionKey !== context.lastSelectionKey;
+}
+
+function shouldProjectRequest(context: Ctx): boolean {
+	const request = context.request;
+	if (!request) return false;
+	if (!request.selectionAction) return false;
+	if (!request.visualState) return false;
+	return request.visualKey !== context.projectedVisualKey;
 }

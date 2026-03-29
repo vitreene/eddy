@@ -17,6 +17,8 @@ type TimelineAnchor = {
 };
 
 const MIDDLE_SNAP_PENALTY_RATIO = 0.1;
+const HANDLE_SIZE_PX = 14;
+const HANDLE_RADIUS_PX = HANDLE_SIZE_PX / 2;
 
 type DragPreview = {
 	action: string;
@@ -47,7 +49,8 @@ export function TimelinePointEditor({
 
 	useEffect(() => {
 		const refreshAnchors = () => {
-			setAnchors(resolveAnchors(containerRef.current, snapPoints));
+			const nextAnchors = resolveAnchors(containerRef.current, snapPoints);
+			setAnchors(nextAnchors);
 		};
 
 		refreshAnchors();
@@ -127,6 +130,11 @@ export function TimelinePointEditor({
 			const distance = Math.hypot(to.x - from.x, to.y - from.y);
 
 			const commit = () => {
+				if (nearestAnchor.cueName === handle.cueName && nearestAnchor.position === handle.position) {
+					dragPreviewRef.current = null;
+					setDragPreview(null);
+					return;
+				}
 				onCommit(handle.action, { cueName: nearestAnchor.cueName, position: nearestAnchor.position });
 				dragPreviewRef.current = null;
 				setDragPreview(null);
@@ -177,7 +185,7 @@ export function TimelinePointEditor({
 						title={handle.action}
 						onPointerDown={(event) => handlePointerDown(event, handle)}
 						className={cx(
-							"pointer-events-auto absolute h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border transition-colors",
+							"pointer-events-auto absolute z-30 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 shadow-sm ring-1 ring-white transition-colors",
 							handle.kind === "intro" &&
 								(handle.isActive ? "border-emerald-700 bg-emerald-400" : "border-emerald-500 bg-emerald-300"),
 							handle.kind === "outro" &&
@@ -226,13 +234,15 @@ function resolveAnchors(
 	for (const point of snapPoints) {
 		const cueRect = rectByCueName.get(point.cueName);
 		if (!cueRect) continue;
-		const x =
+		const rawX =
 			point.position === "start"
 				? cueRect.left - containerRect.left
 				: point.position === "end"
 					? cueRect.right - containerRect.left
 					: cueRect.left - containerRect.left + cueRect.width / 2;
-		const y = cueRect.top - containerRect.top + cueRect.height / 2;
+		const rawY = cueRect.top - containerRect.top + cueRect.height / 2;
+		const x = clamp(rawX, HANDLE_RADIUS_PX, containerRect.width - HANDLE_RADIUS_PX);
+		const y = clamp(rawY, HANDLE_RADIUS_PX, containerRect.height - HANDLE_RADIUS_PX);
 		anchors.push({
 			id: point.id,
 			cueName: point.cueName,
@@ -244,6 +254,12 @@ function resolveAnchors(
 	}
 
 	return anchors;
+}
+
+function clamp(value: number, min: number, max: number): number {
+	if (value < min) return min;
+	if (value > max) return max;
+	return value;
 }
 
 function resolveRelativePointer(container: HTMLUListElement | null, clientX: number, clientY: number) {
