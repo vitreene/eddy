@@ -26,6 +26,7 @@ import { computeCueForSelectedCustomEvent, isItemDecorEventContext } from "@/pro
 
 import type { Content, Decor, SceneComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
+import type { ItemEditTab } from "@/provider/types";
 
 interface EditItemProps {
 	allContents?: Content[];
@@ -218,6 +219,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
 	const activeEventAction = SceneLogicContext.useSelector((state) => state.context.active.event ?? null);
 	const activeCueSec = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
+	const activeItemEditTab = SceneLogicContext.useSelector((state) => state.context.active.itemEditTab);
 
 	const selectedEvent = item && activeEventAction ? eventsByItem[item.id]?.[activeEventAction] : null;
 	const { decor, editDecor, selectedEventUsesItemDecor } = useMemo(
@@ -473,6 +475,13 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		[send]
 	);
 
+	const onTabChange = useCallback(
+		(value: ItemEditTab) => {
+			send({ type: "active-set", payload: { itemEditTab: value } });
+		},
+		[send]
+	);
+
 	const editorSyncKey = activeEventAction ? syncState.context.projectedVisualKey : desiredEditorSyncKey;
 
 	if (!item) return <SceneEdit allContents={allContents} />;
@@ -501,6 +510,8 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 					onReset={onResetStyle}
 					onTextChange={onTextChange}
 					onTextCommit={onTextCommit}
+					activeTab={activeItemEditTab}
+					onTabChange={onTabChange}
 				/>
 			) : (
 				<ItemEditPanel
@@ -510,6 +521,8 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 					onReset={onResetStyle}
 					onTextChange={onTextChange}
 					onTextCommit={onTextCommit}
+					activeTab={activeItemEditTab}
+					onTabChange={onTabChange}
 				/>
 			)}
 		</>

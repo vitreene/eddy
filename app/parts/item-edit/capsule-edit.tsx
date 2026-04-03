@@ -13,10 +13,12 @@ import { CAPSULE_GRID_PRESETS, SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/con
 import { buildEditorGridClassName } from "@/config/class-prefix";
 import { getValuesFromGridName } from "@/lib/utils";
 import { SustainEventParams } from "@/parts/event-edit/sustain-event-params";
+import { isItemEditTab } from "@/provider/scene-logic.ui-preferences";
 
 import type { CapsuleComp, Content, Decor } from "@/api/db";
 import type { GridSize } from "@/components/draw-grid";
 import type { EditableStyle } from "@/components/style-editor/types";
+import type { ItemEditTab } from "@/provider/types";
 
 type CapsuleEditProps = {
 	content: Content;
@@ -26,6 +28,8 @@ type CapsuleEditProps = {
 	onReset: () => void;
 	onTextChange: (value: string) => void;
 	onTextCommit: (value: string) => void;
+	activeTab: ItemEditTab;
+	onTabChange: (value: ItemEditTab) => void;
 };
 
 export function CapsuleEdit({
@@ -35,7 +39,9 @@ export function CapsuleEdit({
 	onChange,
 	onReset,
 	onTextChange,
-	onTextCommit
+	onTextCommit,
+	activeTab,
+	onTabChange
 }: CapsuleEditProps) {
 	const { send } = SceneLogicContext.useActorRef();
 	const onUpdateCapsule = (payload: Partial<CapsuleComp>) => {
@@ -92,7 +98,13 @@ export function CapsuleEdit({
 				</Button>
 			</div>
 
-			<Tabs defaultValue="presets" className="w-full">
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) => {
+					if (isItemEditTab(value)) onTabChange(value);
+				}}
+				className="w-full"
+			>
 				<TabsList>
 					<TabsTrigger value="presets">Presets</TabsTrigger>
 					<TabsTrigger value="layout">Layout</TabsTrigger>

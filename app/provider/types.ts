@@ -1,5 +1,7 @@
 import type { Content, Decor, SceneComp } from "@/api/db";
 
+export type ItemEditTab = "presets" | "layout" | "advanced";
+
 export interface TreeCreateEvent {
 	destinationCapsuleId?: number;
 	afterItemId?: number;
@@ -66,9 +68,12 @@ export interface ActiveState {
 	sequenceTouched: boolean;
 	sequenceFlushToken: number;
 	sequenceFlushReason: string | null;
+	telcoMuted: boolean;
+	itemEditTab: ItemEditTab;
 	eventTouched: boolean;
 	decorTouched: boolean;
 	themeTouched: boolean;
+	capsuleTouched: boolean;
 }
 
 export interface TreeMoveEvent {

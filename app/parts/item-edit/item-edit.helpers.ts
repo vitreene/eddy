@@ -48,11 +48,7 @@ export function resolveDecorAtEventAction(
 	if (!action) return itemDecor;
 
 	const events = context.events[itemId] || {};
-	if (action === INTRO) {
-		const introEvent = events[action];
-		if (!introEvent?.decorId) return itemDecor;
-		return mergeDecorChain(itemDecor, context.decors[introEvent.decorId]);
-	}
+	if (action === INTRO) return itemDecor;
 
 	const orderedCustomEvents = getOrderedCustomEvents(context, events);
 	if (!orderedCustomEvents.length) return itemDecor;

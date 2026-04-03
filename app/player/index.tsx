@@ -40,7 +40,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 	const telcoRef = useRef<TelcoProps | null>(null);
 
 	const [duration, setDuration] = useState(0);
-	const [isMuted, setIsMuted] = useState(false);
+	const isMuted = SceneLogicContext.useSelector((state) => state.context.active.telcoMuted === true);
 
 	const telcoController = useMemo(
 		() =>
@@ -62,13 +62,16 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 				telcoRef.current = telco;
 				setDuration(telco?.duration || 0);
 				if (!telco) return;
-				setIsMuted((currentMuted) => {
-					telco.setMuted(currentMuted);
-					return telco.muted;
-				});
+				telco.setMuted(actorRef.getSnapshot().context.active.telcoMuted === true);
 			}
 		});
 	}, [actorRef, scene, send]);
+
+	useEffect(() => {
+		const telco = telcoRef.current;
+		if (!telco) return;
+		telco.setMuted(isMuted);
+	}, [isMuted]);
 
 	useEffect(() => {
 		telcoController.syncFromActive({ action: active.action, cue: active.cue });
@@ -90,7 +93,8 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 				onSeek={telcoController.seek}
 				onToggleMute={() => {
 					const muted = telcoController.toggleMute();
-					if (typeof muted === "boolean") setIsMuted(muted);
+					if (typeof muted !== "boolean") return;
+					send({ type: "active-set", payload: { telcoMuted: muted } });
 				}}
 			/>
 		</>
@@ -118,6 +122,7 @@ function initializePlayerRuntime({
 		if (cancelled || !persos.size) return;
 		const render = sceneRef.current;
 		if (!render) return;
+		console.log({ persos: scene.persos, eventtimes: scene.events });
 
 		render.innerHTML = "";
 		player = new Player({

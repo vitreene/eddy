@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StyleEditor } from "@/components/style-editor";
 import { applyStyleDefaults } from "@/config/item-style-defaults";
+import { isItemEditTab } from "@/provider/scene-logic.ui-preferences";
 
 import type { Content, Decor } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
+import type { ItemEditTab } from "@/provider/types";
 
 type ItemEditPanelProps = {
 	content: Content;
@@ -15,6 +17,8 @@ type ItemEditPanelProps = {
 	onReset: () => void;
 	onTextChange: (value: string) => void;
 	onTextCommit: (value: string) => void;
+	activeTab: ItemEditTab;
+	onTabChange: (value: ItemEditTab) => void;
 };
 
 export function ItemEditPanel({
@@ -23,7 +27,9 @@ export function ItemEditPanel({
 	onChange,
 	onReset,
 	onTextChange,
-	onTextCommit
+	onTextCommit,
+	activeTab,
+	onTabChange
 }: ItemEditPanelProps) {
 	const value: EditableStyle = {
 		...applyStyleDefaults((decor?.style as EditableStyle) ?? {}, content.type),
@@ -49,7 +55,13 @@ export function ItemEditPanel({
 				</Button>
 			</div>
 
-			<Tabs defaultValue="presets" className="w-full">
+			<Tabs
+				value={activeTab}
+				onValueChange={(value) => {
+					if (isItemEditTab(value)) onTabChange(value);
+				}}
+				className="w-full"
+			>
 				<TabsList>
 					<TabsTrigger value="presets">Presets</TabsTrigger>
 					<TabsTrigger value="layout">Layout</TabsTrigger>

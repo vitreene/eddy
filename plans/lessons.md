@@ -347,3 +347,8 @@
 
 - Si un commentaire dit explicitement de conserver un log/debug (`NE PAS RETIRER`), ne jamais le supprimer pendant un refactor sans demande explicite.
 - Avant cleanup, verifier les marqueurs inline critiques dans le fichier cible et les traiter comme contraintes fonctionnelles.
+
+## 2026-04-03 — Git: ne pas en parler sans demande
+
+- Si l'utilisateur impose "tu ne t'occupes jamais de git", ne jamais proposer commit/branch/push ni next steps git spontanement.
+- Rester strictement sur le code et la verification fonctionnelle tant que l'utilisateur ne demande pas explicitement une action git.

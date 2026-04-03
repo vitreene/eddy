@@ -7,7 +7,7 @@ const context: any = {
 	id: 1,
 	events: {
 		55: {
-			[INTRO]: { id: 1, action: INTRO, name: null, itemId: 55, decorId: null },
+			[INTRO]: { id: 1, action: INTRO, name: null, itemId: 55, decorId: 88 },
 			"custom-1": { id: 2, action: "custom-1", name: "a", position: "middle", itemId: 55, decorId: 86 },
 			"custom-2": { id: 3, action: "custom-2", name: "b", position: "middle", itemId: 55, decorId: 87 },
 			[OUTRO]: { id: 4, action: OUTRO, name: null, itemId: 55, decorId: null }
@@ -15,6 +15,7 @@ const context: any = {
 	},
 	decors: {
 		84: { id: 84, area: "cell-r2-c1", className: null, style: {} },
+		88: { id: 88, area: "cell-r1-c2", className: null, style: {} },
 		86: { id: 86, area: "cell-r2-c2", className: null, style: {} },
 		87: { id: 87, area: "cell-r1-c1", className: null, style: {} }
 	},
@@ -35,7 +36,7 @@ const context: any = {
 const itemDecor: any = context.decors[84];
 
 const introDecor = resolveDecorAtEventAction(context, 55, INTRO, itemDecor) as any;
-assert.equal(introDecor.area, "cell-r2-c1", "intro should resolve base decor area");
+assert.equal(introDecor.area, "cell-r2-c1", "intro should always resolve base decor area");
 
 const custom2Decor = resolveDecorAtEventAction(context, 55, "custom-2", itemDecor) as any;
 assert.equal(custom2Decor.area, "cell-r1-c1", "custom-2 should resolve current custom area");

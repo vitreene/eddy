@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 
 import { INTRO, OUTRO } from "../app/config/constants";
-import { computeCueForSelectedCustomEvent } from "../app/provider/scene-logic.helpers";
+import {
+	computeCueForSelectedCustomEvent,
+	isItemDecorEventContext
+} from "../app/provider/scene-logic.helpers";
 import { resolveDecorAtEventAction } from "../app/parts/item-edit/item-edit.helpers";
 
 const fixture: any = {
@@ -70,5 +73,38 @@ const outroDecor = resolveDecorAtEventAction(fixture, 55, OUTRO, fixture.decors[
 assert.equal(introDecor.area, "cell-r2-c1", "intro should resolve base area");
 assert.equal(custom2Decor.area, "cell-r1-c1", "custom-2 should resolve current custom area");
 assert.equal(outroDecor.area, "cell-r1-c1", "outro should resolve last custom area before transition");
+
+const fixtureIntroDecor: any = {
+	...fixture,
+	events: {
+		...fixture.events,
+		55: {
+			...fixture.events[55],
+			[INTRO]: { ...fixture.events[55][INTRO], decorId: 999 }
+		}
+	}
+};
+assert.equal(
+	isItemDecorEventContext(fixtureIntroDecor, 55, INTRO),
+	true,
+	"intro should keep item decor context even when intro has decorId"
+);
+
+const fixtureWithoutIntro: any = {
+	...fixture,
+	events: {
+		...fixture.events,
+		55: {
+			"custom-1": { ...fixture.events[55]["custom-1"], decorId: null },
+			"custom-2": { ...fixture.events[55]["custom-2"], decorId: null },
+			[OUTRO]: { ...fixture.events[55][OUTRO], decorId: null }
+		}
+	}
+};
+assert.equal(
+	isItemDecorEventContext(fixtureWithoutIntro, 55, "custom-1"),
+	false,
+	"custom should use event decor context and trigger decor creation when missing"
+);
 
 console.log("selection contract lock smoke: all checks passed");

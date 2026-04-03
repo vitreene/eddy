@@ -37,6 +37,10 @@ import {
 	seedCustomEventPlacement,
 	withItemNodeIds
 } from "./scene-logic.helpers";
+import {
+	normalizeSceneLogicUiPreferences,
+	persistSceneLogicUiPreferences
+} from "./scene-logic.ui-preferences";
 import { initializeSceneContext } from "./scene-logic.init";
 import {
 	deleteCustomEventOnServer,
@@ -67,9 +71,12 @@ const active: ActiveState = {
 	sequenceTouched: false,
 	sequenceFlushToken: 0,
 	sequenceFlushReason: null,
+	telcoMuted: false,
+	itemEditTab: "presets",
 	eventTouched: false,
 	decorTouched: false,
-	themeTouched: false
+	themeTouched: false,
+	capsuleTouched: false
 };
 
 const emptyScene: SceneComp = {
@@ -177,6 +184,19 @@ export const sceneLogic = setup({
 			| { type: "theme-update"; payload: Partial<Theme> }
 	},
 	actions: {
+		persistUiPreferencesFromActiveSet: ({ context, event }) => {
+			if (event.type !== "active-set") return;
+			const hasTelcoMuted = Object.prototype.hasOwnProperty.call(event.payload, "telcoMuted");
+			const hasItemEditTab = Object.prototype.hasOwnProperty.call(event.payload, "itemEditTab");
+			if (!hasTelcoMuted && !hasItemEditTab) return;
+
+			persistSceneLogicUiPreferences(
+				normalizeSceneLogicUiPreferences({
+					telcoMuted: hasTelcoMuted ? Boolean(event.payload.telcoMuted) : context.active.telcoMuted,
+					itemEditTab: hasItemEditTab ? event.payload.itemEditTab : context.active.itemEditTab
+				})
+			);
+		},
 		commitTouchedOnSelectionSwitch: ({ context, event, self }) => {
 			if (event.type !== "active-set") return;
 			if (!("itemId" in event.payload)) return;
@@ -402,6 +422,7 @@ export const sceneLogic = setup({
 							actions: [
 								{ type: "commitTouchedOnSelectionSwitch" },
 								{ type: "resetTouchedOnSelectionSwitch" },
+								{ type: "persistUiPreferencesFromActiveSet" },
 								assign(({ context, event }) => {
 									const isSeekAction =
 										"action" in event.payload &&

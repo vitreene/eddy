@@ -5,6 +5,7 @@ import { PlayerRunner, type PlayerProps } from "~/player";
 
 import { EditEvent } from "@/parts/event-edit";
 import { SceneLogicContext } from "@/provider/scene-logic";
+import { loadSceneLogicUiPreferences } from "@/provider/scene-logic.ui-preferences";
 
 import { getAllContents, getScene, getScenes, type Content, type SceneComp, type SceneRef } from "@/api/db";
 import { SceneTreeView } from "@/parts/scene-tree";
@@ -57,6 +58,10 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 
 	useEffect(() => {
 		actorRef.send({ type: "init", payload: data.scene });
+		const uiPreferences = loadSceneLogicUiPreferences();
+		if (uiPreferences) {
+			actorRef.send({ type: "active-set", payload: uiPreferences });
+		}
 	}, [actorRef, data.scene]);
 
 	useEffect(() => {
