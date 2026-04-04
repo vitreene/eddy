@@ -10,6 +10,7 @@ import {
 	resolveCapsuleType,
 	shouldCapsuleUseExplicitArea
 } from "@/config/capsule-types";
+import { normalizePositionZones, type PositionZoneStored } from "@/lib/position-zones";
 
 export async function loader({ params }: Route.LoaderArgs) {
 	const { "*": splat, id } = params;
@@ -72,6 +73,14 @@ export async function action({ params, request }: Route.ActionArgs) {
 		nextProfil.itemDurationSec = normalizeDurationValue(rawData.itemDurationSec);
 	}
 
+	if (formData.has("cardZones")) {
+		const parsed = parseCardZonesField(rawData.cardZones);
+		if (parsed.ok === false) {
+			return Response.json({ ok: false, message: parsed.message }, { status: 400 });
+		}
+		nextProfil.cardZones = parsed.value;
+	}
+
 	const data: Partial<Omit<Capsule, "id" | "itemsId">> = {
 		...(typeof rawData.name == "string" ? { name: rawData.name } : {}),
 		...(typeof rawData.type == "string" ? { type: normalizeCapsuleTypeField(rawData.type) } : {}),
@@ -111,14 +120,32 @@ function parseCapsuleProfil(raw: string | null | undefined): {
 	defaultItemSustainTransition?: string | null;
 	defaultItemSustainAlternate?: boolean;
 	defaultItemOutroTransition?: string | null;
+	cardZones?: PositionZoneStored[];
 } {
 	if (!raw) return {};
 	try {
-		const parsed = JSON.parse(raw);
+		const parsed = JSON.parse(raw) as Record<string, unknown>;
 		if (!parsed || typeof parsed != "object") return {};
-		return parsed;
+		return {
+			...parsed,
+			cardZones: normalizePositionZones(parsed.cardZones)
+		};
 	} catch {
 		return {};
+	}
+}
+
+function parseCardZonesField(
+	value: FormDataEntryValue | undefined
+): { ok: true; value: PositionZoneStored[] } | { ok: false; message: string } {
+	if (typeof value != "string") return { ok: true, value: [] };
+	const raw = value.trim();
+	if (!raw) return { ok: true, value: [] };
+	try {
+		const parsed = JSON.parse(raw);
+		return { ok: true, value: normalizePositionZones(parsed) };
+	} catch {
+		return { ok: false, message: "cardZones invalide: JSON attendu" };
 	}
 }
 

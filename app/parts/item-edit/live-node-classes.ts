@@ -1,8 +1,10 @@
 import { classNameToCssDefinition, gridPlacementClassNameToCssDefinition } from "@/lib/utils";
+import type { PositionZoneRuntime } from "@/lib/position-zones";
 
 import type { ClassNameAction } from "@/player/types";
 
 const LIVE_AREA_STYLE_ID = "eddy-live-area-definitions";
+const LIVE_ZONE_STYLE_ID = "eddy-live-zone-definitions";
 const AUTO_LAYOUT_AREA_TOKEN_RE = /^cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+$/i;
 const EXPLICIT_AREA_TOKEN_RE = /^cell-r\d+-c\d+$/i;
 const LIST_AREA_TOKEN_RE = /^liste-r\d+$/i;
@@ -153,4 +155,51 @@ export function ensureLivePlacementClassDefinitions(node: HTMLElement | null, cl
 		if (!definition) continue;
 		styleEl.textContent = `${styleEl.textContent || ""}\n${definition}`.trim();
 	}
+}
+
+export function syncLiveZoneClassDefinitions(
+	anchorNode: HTMLElement | null,
+	capsuleNodeId: string | null,
+	zones: PositionZoneRuntime[]
+) {
+	if (!anchorNode || !capsuleNodeId) return;
+	const doc = anchorNode.ownerDocument;
+	const head = doc?.head;
+	if (!head) return;
+
+	let styleEl = doc.getElementById(LIVE_ZONE_STYLE_ID) as HTMLStyleElement | null;
+	if (!styleEl) {
+		styleEl = doc.createElement("style");
+		styleEl.id = LIVE_ZONE_STYLE_ID;
+		head.appendChild(styleEl);
+	}
+
+	const key = `capsule-${capsuleNodeId}`;
+	const sectionStart = `/* ${key}:start */`;
+	const sectionEnd = `/* ${key}:end */`;
+	const escapedId =
+		typeof CSS != "undefined" && typeof CSS.escape == "function"
+			? CSS.escape(capsuleNodeId)
+			: capsuleNodeId.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+
+	const sectionBody = zones
+		.map(
+			(zone) =>
+				`#${escapedId} .${zone.className}{grid-row:${zone.rect.row} / span ${zone.rect.spanRow};grid-column:${zone.rect.column} / span ${zone.rect.spanColumn};}`
+		)
+		.join("\n");
+	const nextSection = sectionBody ? `${sectionStart}\n${sectionBody}\n${sectionEnd}` : "";
+
+	const current = styleEl.textContent || "";
+	const startIndex = current.indexOf(sectionStart);
+	const endIndex = current.indexOf(sectionEnd);
+	if (startIndex >= 0 && endIndex > startIndex) {
+		const before = current.slice(0, startIndex).trim();
+		const after = current.slice(endIndex + sectionEnd.length).trim();
+		styleEl.textContent = [before, nextSection, after].filter(Boolean).join("\n").trim();
+		return;
+	}
+
+	if (!nextSection) return;
+	styleEl.textContent = `${current}\n${nextSection}`.trim();
 }

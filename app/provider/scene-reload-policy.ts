@@ -33,6 +33,24 @@ export function requestSequenceFlush(
 	};
 }
 
+export function shouldPreserveSelectionOnFlush(
+	active: ActiveState,
+	reason: SequenceFlushReason,
+	options?: { sequenceAction?: string | null }
+): boolean {
+	const hasSelection = Boolean(active.itemId || active.node || active.contentId || active.event);
+	if (!hasSelection) return false;
+
+	if (reason === "sequence-action") {
+		const isEditing = Boolean(
+			active.eventTouched || active.decorTouched || active.themeTouched || active.capsuleTouched
+		);
+		return isEditing || options?.sequenceAction === "seek";
+	}
+
+	return false;
+}
+
 export function clearSequenceFlushRequest(active: ActiveState): ActiveState {
 	if (!active.sequenceFlushReason) return active;
 	return {

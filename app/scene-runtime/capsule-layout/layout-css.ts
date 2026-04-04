@@ -10,6 +10,7 @@ import {
 	gridClassNameToCssDefinition,
 	gridPlacementClassNameToCssDefinition
 } from "@/lib/utils";
+import { normalizePositionZones, toRuntimePositionZones } from "@/lib/position-zones";
 import { ROOT } from "@/scene-runtime/constants";
 
 type PlacementResult = {
@@ -32,14 +33,15 @@ export function readCardAreasContract(_capsule: CapsuleComp): string[] {
 export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 	const areas = new Set<string>();
 	const itemPlacementClassByItemId: Record<number, string> = {};
+	const zoneDefinitionsByClass = buildZoneDefinitionsByClass(snapshot);
 
 	for (const item of Object.values(snapshot.items || {})) {
 		const decor = snapshot.decors[item.decorId];
 		const capsule = snapshot.capsules[item.capsuleId];
 		if (!capsule) continue;
 		const capsuleType = getCapsuleTypeConfig(capsule.type).type;
-		collectPlacementClassDefinitions(areas, decor?.className);
-		if (hasGridPlacementClass(decor?.className)) {
+		collectPlacementClassDefinitions(areas, decor?.className, zoneDefinitionsByClass);
+		if (hasGridPlacementClass(decor?.className, zoneDefinitionsByClass)) {
 			continue;
 		}
 
@@ -72,7 +74,7 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 		for (const event of Object.values(eventsByAction || {})) {
 			if (!event?.decorId) continue;
 			const eventDecor = snapshot.decors[event.decorId];
-			collectPlacementClassDefinitions(areas, eventDecor?.className);
+			collectPlacementClassDefinitions(areas, eventDecor?.className, zoneDefinitionsByClass);
 			if (!eventDecor?.area) continue;
 			areas.add(classNameToCssDefinition(eventDecor.area));
 		}
@@ -87,28 +89,52 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 	};
 }
 
-function collectPlacementClassDefinitions(target: Set<string>, className: string | null | undefined) {
+function collectPlacementClassDefinitions(
+	target: Set<string>,
+	className: string | null | undefined,
+	zoneDefinitionsByClass: Record<string, string>
+) {
 	if (!className) return;
 	const tokens = className
 		.split(/\s+/)
 		.map((token) => token.trim())
 		.filter(Boolean);
 	for (const token of tokens) {
+		if (zoneDefinitionsByClass[token]) {
+			target.add(zoneDefinitionsByClass[token]);
+			continue;
+		}
 		const definition = gridPlacementClassNameToCssDefinition(token);
 		if (definition) target.add(definition);
 	}
 }
 
-function hasGridPlacementClass(className: string | null | undefined): boolean {
+function hasGridPlacementClass(
+	className: string | null | undefined,
+	zoneDefinitionsByClass: Record<string, string>
+): boolean {
 	if (!className) return false;
 	const tokens = className
 		.split(/\s+/)
 		.map((token) => token.trim())
 		.filter(Boolean);
 	for (const token of tokens) {
+		if (zoneDefinitionsByClass[token]) return true;
 		if (gridPlacementClassNameToCssDefinition(token)) return true;
 	}
 	return false;
+}
+
+function buildZoneDefinitionsByClass(snapshot: SceneComp): Record<string, string> {
+	const byClass: Record<string, string> = {};
+	for (const capsule of Object.values(snapshot.capsules || {})) {
+		for (const zone of toRuntimePositionZones(
+			normalizePositionZones((capsule as CapsuleComp & { cardZones?: unknown }).cardZones)
+		)) {
+			byClass[zone.className] = zone.cssRule;
+		}
+	}
+	return byClass;
 }
 
 /**

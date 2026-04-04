@@ -140,7 +140,8 @@ export async function executePersistTouchedCommits(
 				k == "defaultItemIntroTransition" ||
 				k == "defaultItemSustainTransition" ||
 				k == "defaultItemSustainAlternate" ||
-				k == "defaultItemOutroTransition"
+				k == "defaultItemOutroTransition" ||
+				k == "cardZones"
 			)
 				return;
 			formData.set(k, v == null ? "" : String(v));
@@ -149,6 +150,10 @@ export async function executePersistTouchedCommits(
 		formData.set("defaultItemSustainTransition", sustainSerialized);
 		formData.set("defaultItemSustainAlternate", sustainAlternate);
 		formData.set("defaultItemOutroTransition", outroSerialized);
+		formData.set(
+			"cardZones",
+			JSON.stringify(Array.isArray(capsuleRecord.cardZones) ? capsuleRecord.cardZones : [])
+		);
 
 		fetch(`/api/capsule/${id}`, { method: "POST", body: formData });
 	}

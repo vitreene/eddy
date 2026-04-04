@@ -352,3 +352,75 @@
 
 - Si l'utilisateur impose "tu ne t'occupes jamais de git", ne jamais proposer commit/branch/push ni next steps git spontanement.
 - Rester strictement sur le code et la verification fonctionnelle tant que l'utilisateur ne demande pas explicitement une action git.
+
+## 2026-04-03 — API de generation de classes: rester minimal
+
+- Sur un prototype de generateur de classes, eviter les couches "profil/context/policy" si non demandees.
+- Aligner la proposition sur les patterns existants du codebase: token simple (`cell-rX-cY`, `cell-span-...`) + fonction de definition dediee.
+- Favoriser des entrees de donnees directes (`row`, `col`, `rowSpan`, `colSpan`) et de petites fonctions pures.
+
+## 2026-04-03 — Regles @media: factoriser au niveau moteur
+
+- Quand des variantes `@media` peuvent concerner plusieurs kinds, ne pas dupliquer l'enveloppe media dans chaque definition de kind.
+- Preferer un state interne du generateur (base rules + media buckets) puis une emission unique du stylesheet avec regroupement par query.
+- Sur les appels de generation, garder des inputs metier (donnees) et laisser le routage base/media au moteur global.
+
+## 2026-04-03 — Config classes: expliciter le nom de classe
+
+- Eviter les flags implicites de type `prefixed` dans les rules.
+- Exposer explicitement le `className` racine (ex: `cell-span`) et separer clairement la partie variable (`suffix`).
+- Garder la logique de prefixe globale, hors config de rule, pour une lecture plus claire en prototype.
+
+## 2026-04-03 — Donnees position: utiliser `style.itemPosition`
+
+- Ne pas proposer un nouveau champ BDD dedie (`class_input`) tant que le besoin peut rester dans `decor.style`.
+- Pour ce projet, stocker les variables metier de classes de position sous `decor.style.itemPosition`.
+- Prevoir l'adaptation des fonctions de sanitization/persist pour ne pas perdre `itemPosition`.
+
+## 2026-04-04 — Composants: logique hors React
+
+- Sur ce projet, respecter le pattern: logique metier dans une classe dediee + orchestration d'etat via machine XState.
+- Limiter React aux hooks minimum (wiring local/UI), eviter d'embarquer la logique lourde dans le composant.
+- Pour un nouveau mode d'edition (ex: zones card), construire dans de nouveaux fichiers dedies plutot que d'etendre un composant de demo.
+
+## 2026-04-04 — Overlay zones: etapes visuelles strictes
+
+- Quand la demande dit "premiere etape: clone exact", ne pas ajouter d'interactions (boutons/liste/grille clickable) dans la meme iteration.
+- Pour valider une superposition, partir d'une copie visuelle minimale de la capsule (meme classe CSS, sans enfants) avec la meme mecanique de frame que le cadre existant.
+- Reporter le tracage rectangle et l'edition metier a l'etape suivante, apres validation visuelle de l'alignement.
+
+## 2026-04-04 — Interdiction state React sur composant metier
+
+- Si l'utilisateur demande explicitement "sans state React", ne pas utiliser `useState`/`useReducer` dans le composant cible.
+- Basculer l'etat et la logique dans une machine XState + classe service, puis limiter React au wiring (`useSelector`, `useMachine`, `useEffect` de sync).
+- Quand la contrainte architecture est explicite, la traiter comme un critere bloquant de definition of done.
+
+## 2026-04-04 — Overlay et scroll: alignement viewport strict
+
+- Si la geometrie overlay vient de `getBoundingClientRect`, le host overlay doit etre en `position: fixed` pour rester dans le meme referentiel viewport.
+- Pour eviter les desynchronisations au scroll, gerer le tracking de rect dans le service (pas dans le composant) avec cleanup centralise.
+- Ecouter a la fois `window` (resize/scroll capture) et `visualViewport` (resize/scroll) quand disponible.
+
+## 2026-04-04 — Interface zones: point d'entree SlotEditor
+
+- Si la demande parle de "cote item-edit" avec gestion de zones, l'entree UI doit etre `SlotEditor` (pas un composant lateral parallele).
+- Pour type capsule `position`, preferer remplacer la branche de rendu `SlotEditor` par le gestionnaire de zones.
+- Les operations minimales attendues sur liste de zones: rename, delete, duplicate.
+
+## 2026-04-04 — Validation nom zone: ne pas perturber la saisie
+
+- Eviter toute correction automatique du texte pendant la frappe (ex: normalisation/unique en temps reel).
+- Appliquer le controle de doublon a la sortie d'edition (`blur`) et signaler visuellement (rouge) au lieu de muter la valeur saisie.
+- Preserver les ajustements UI manuels recents de l'utilisateur lors des itérations suivantes.
+
+## 2026-04-04 — ZoneBuilder: discipline useEffect
+
+- Suivre `plans/use-effects-README.md`: eviter les effets pour des transitions purement locales quand un event machine peut porter l'intention.
+- Pour les ponts React -> machine, limiter les `useEffect` a la synchronisation externe (props vers machine, DOM/style tag, cleanup).
+- Pour la persistence/API de zones, emettre sur des moments de commit (`pointerup`, `blur`, delete/duplicate) et pas pendant la frappe.
+
+## 2026-04-04 — Revue ZoneBuilder: effets minimaux
+
+- Si la machine peut orchestrer une transition (persist, sync style, tracking), ne pas la reproduire dans `useEffect`.
+- Cibler un seul effet de sync props -> machine dans le composant, et deleguer le reste aux actions machine/service.
+- Eviter les gardes a base de refs dans React pour du commit metier: preferer des actions explicites sur les evenements de commit.

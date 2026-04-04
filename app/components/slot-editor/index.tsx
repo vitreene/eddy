@@ -2,6 +2,7 @@ import { GridAreaRadioSelector } from "./grid-area-selector";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { getValuesFromGridName } from "@/lib/utils";
 import type { EditableStyle } from "@/components/style-editor/types";
+import { normalizePositionZones, toRuntimePositionZones } from "./zone-builder.service";
 import { HEAVY_GRID_CELL_THRESHOLD } from "@/config/capsule-presets";
 import {
 	CAPSULE_TYPES,
@@ -32,7 +33,50 @@ export function SlotEditor({ value, onChange }: Props) {
 		onChange({ area });
 	};
 
+	const setZoneClass = (zoneClassName: string) => {
+		const zones = toRuntimePositionZones(
+			normalizePositionZones((capsule as { cardZones?: unknown }).cardZones)
+		);
+		const zoneClassSet = new Set(zones.map((zone) => zone.className));
+		const currentTokens = String(value.className || "")
+			.split(/\s+/)
+			.map((token) => token.trim())
+			.filter(Boolean);
+		const keptTokens = currentTokens.filter((token) => !zoneClassSet.has(token));
+		const nextTokens = [...keptTokens, zoneClassName].filter(Boolean);
+		onChange({ className: nextTokens.length ? nextTokens.join(" ") : null, area: null });
+	};
+
 	const capsuleType = resolveCapsuleType(capsule.type);
+	if (capsuleType === CAPSULE_TYPES.POSITION) {
+		const zones = toRuntimePositionZones(
+			normalizePositionZones((capsule as { cardZones?: unknown }).cardZones)
+		);
+		if (!zones.length) return <p className="text-muted-foreground text-xs">Aucune zone disponible</p>;
+		const classTokens = String(value.className || "")
+			.split(/\s+/)
+			.map((token) => token.trim())
+			.filter(Boolean);
+		const selectedZoneClass = zones.find((zone) => classTokens.includes(zone.className))?.className || "";
+		return (
+			<div className="space-y-1 text-xs">
+				<label className="block text-[11px] font-medium">Zone</label>
+				<select
+					className="h-8 rounded border border-stone-300 px-2"
+					value={selectedZoneClass}
+					onChange={(event) => setZoneClass(event.currentTarget.value)}
+				>
+					<option value="">Choisir une zone</option>
+					{zones.map((zone) => (
+						<option key={zone.id} value={zone.className}>
+							{zone.name}
+						</option>
+					))}
+				</select>
+			</div>
+		);
+	}
+
 	if (capsuleType === CAPSULE_TYPES.CARD) {
 		const templateAreas = parseCardTemplateAreas(capsule.grid);
 		if (!templateAreas.length) return null;

@@ -301,7 +301,8 @@ export function hasPositionStyleDelta(
 	return false;
 }
 
-const PLACEMENT_CLASS_TOKEN_RE = /^(?:cell-span-|cell_layout_auto(?:_[a-z0-9_-]+)?-|liste-r\d+$)/i;
+const PLACEMENT_CLASS_TOKEN_RE =
+	/^(?:cell-span-|cell_layout_auto(?:_[a-z0-9_-]+)?-|liste-r\d+$|ed-zone-[a-z0-9_-]+$)/i;
 
 /**
  * Detect placement-related class token changes (grid/list slot tokens).

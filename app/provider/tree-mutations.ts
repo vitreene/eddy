@@ -1,5 +1,6 @@
 import { fromPromise } from "xstate";
 import { buildEditorGridClassName } from "@/config/class-prefix";
+import { normalizePositionZones, type PositionZoneStored } from "@/lib/position-zones";
 
 import type { ItemComp } from "@/api/db";
 import type { SceneTreeContext, TreeCreateEvent, TreeDeleteEvent, TreeMutationResponse } from "./types";
@@ -254,6 +255,7 @@ export function applyTreeMutation(context: SceneTreeContext, output: TreeMutatio
 			defaultItemOutroTransition: profile.defaultItemOutroTransition ?? null,
 			itemDurationMode: profile.itemDurationMode ?? "auto",
 			itemDurationSec: profile.itemDurationSec ?? null,
+			cardZones: profile.cardZones ?? [],
 			itemIds: []
 		};
 	}
@@ -282,12 +284,16 @@ function parseCapsuleProfile(raw: string | null | undefined): {
 	defaultItemOutroTransition?: string | null;
 	itemDurationMode?: "auto" | "fixed";
 	itemDurationSec?: number | null;
+	cardZones?: PositionZoneStored[];
 } {
 	if (!raw) return {};
 	try {
 		const parsed = JSON.parse(raw);
 		if (!parsed || typeof parsed != "object") return {};
-		return parsed;
+		return {
+			...parsed,
+			cardZones: normalizePositionZones((parsed as Record<string, unknown>).cardZones)
+		};
 	} catch {
 		return {};
 	}

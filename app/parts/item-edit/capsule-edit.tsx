@@ -5,6 +5,7 @@ import { StyleEditor } from "@/components/style-editor";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { gridWHClassName, ResizableGridFrame } from "@/components/draw-grid";
+import { ZoneBuilder } from "@/components/slot-editor/zone-builder";
 import { getTransitionOptions, normalizeTransitionRef } from "@/config/transitions";
 import { INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { applyStyleDefaults } from "@/config/item-style-defaults";
@@ -12,6 +13,8 @@ import { CAPSULE_TYPES, getSelectableCapsuleTypeConfigs, resolveCapsuleType } fr
 import { CAPSULE_GRID_PRESETS, SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/config/capsule-presets";
 import { buildEditorGridClassName } from "@/config/class-prefix";
 import { getValuesFromGridName } from "@/lib/utils";
+import { normalizePositionZones } from "@/components/slot-editor/zone-builder.service";
+import type { PositionZoneStored } from "@/lib/position-zones";
 import { SustainEventParams } from "@/parts/event-edit/sustain-event-params";
 import { isItemEditTab } from "@/provider/scene-logic.ui-preferences";
 
@@ -123,7 +126,11 @@ export function CapsuleEdit({
 						/>
 					</form>
 
-					<CapsuleGridTypeSelector capsule={capsule} onUpdate={onUpdateCapsule} />
+					<CapsuleGridTypeSelector
+						capsule={capsule}
+						onUpdate={onUpdateCapsule}
+						isActive={activeTab === "presets"}
+					/>
 				</TabsContent>
 
 				<TabsContent value="layout">
@@ -219,10 +226,12 @@ function CapsuleDefaultTransitions({
 
 function CapsuleGridTypeSelector({
 	capsule,
-	onUpdate
+	onUpdate,
+	isActive
 }: {
 	capsule: CapsuleComp;
 	onUpdate: (payload: Partial<CapsuleComp>) => void;
+	isActive: boolean;
 }) {
 	const selectableTypeConfigs = getSelectableCapsuleTypeConfigs();
 	const resolvedCapsuleType = resolveCapsuleType(capsule.type);
@@ -289,6 +298,10 @@ function CapsuleGridTypeSelector({
 	const onChangeDurationValue = (value: number) => {
 		const duration = Number.isFinite(value) && value > 0 ? Number(value) : null;
 		onUpdate({ itemDurationSec: duration });
+	};
+
+	const onZonesChange = (zones: PositionZoneStored[]) => {
+		onUpdate({ cardZones: zones } as Partial<CapsuleComp>);
 	};
 
 	return (
@@ -387,6 +400,12 @@ function CapsuleGridTypeSelector({
 					<p className="text-muted-foreground">
 						Mode position: move cellule + span. Preset scene par defaut: {SCENE_GRID_WIDTH} x {SCENE_GRID_HEIGHT}.
 					</p>
+					<ZoneBuilder
+						targetCapsuleId={capsule.id}
+						zones={normalizePositionZones((capsule as CapsuleComp & { cardZones?: unknown }).cardZones)}
+						onZonesChange={onZonesChange}
+						active={isActive}
+					/>
 				</div>
 			) : null}
 			{supportsDurationMode ? (

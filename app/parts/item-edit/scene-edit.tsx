@@ -1,7 +1,11 @@
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/config/capsule-presets";
+import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { buildEditorGridClassName } from "@/config/class-prefix";
 import { getValuesFromGridName } from "@/lib/utils";
+import { ZoneBuilder } from "@/components/slot-editor/zone-builder";
+import { normalizePositionZones } from "@/components/slot-editor/zone-builder.service";
+import type { PositionZoneStored } from "@/lib/position-zones";
 import type { Content } from "@/api/db";
 import {
 	getActiveSceneContent,
@@ -18,6 +22,7 @@ type ScenePatch = {
 	contentId?: number | null;
 	totalDuration?: number | null;
 	mainGrid?: string;
+	mainCardZones?: PositionZoneStored[];
 };
 
 function getSafeDurationSec(value: unknown): number {
@@ -88,6 +93,16 @@ export function SceneEdit({ allContents = [] }: SceneEditProps) {
 			payload: {
 				sceneId,
 				patch: { mainGrid: `root-scene ${buildEditorGridClassName(cols, rows)}` }
+			}
+		});
+	};
+
+	const onChangeMainZones = (zones: PositionZoneStored[]) => {
+		send({
+			type: "scene-patch-requested",
+			payload: {
+				sceneId,
+				patch: { mainCardZones: zones }
 			}
 		});
 	};
@@ -163,6 +178,16 @@ export function SceneEdit({ allContents = [] }: SceneEditProps) {
 						}
 					/>
 				</div>
+				{resolveCapsuleType(mainCapsule.type) === CAPSULE_TYPES.POSITION ? (
+					<div className="pt-1">
+						<ZoneBuilder
+							targetCapsuleId={mainCapsule.id}
+							buttonLabel="Mode zones (__MAIN__)"
+							zones={normalizePositionZones((mainCapsule as { cardZones?: unknown }).cardZones)}
+							onZonesChange={onChangeMainZones}
+						/>
+					</div>
+				) : null}
 			</div>
 		</div>
 	);

@@ -1,16 +1,18 @@
 import type { SceneContent } from "@/api/db";
+import type { PositionZoneStored } from "@/lib/position-zones";
 
 export type ScenePatchRequest = {
 	title?: string;
 	contentId?: number | null;
 	totalDuration?: number | null;
 	mainGrid?: string;
+	mainCardZones?: PositionZoneStored[];
 };
 
 export type ScenePatchResponse = {
 	scene?: { title?: string };
 	sceneContent?: SceneContent | null;
-	mainCapsule?: { id: number; grid: string | null } | null;
+	mainCapsule?: { id: number; grid: string | null; cardZones?: PositionZoneStored[] } | null;
 };
 
 type SceneContentPositionCuePatch = {

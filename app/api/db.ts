@@ -29,6 +29,7 @@ import {
 } from "@/scene-runtime/scene-content";
 import { isWaveformPositionCueName } from "@/scene-runtime/waveform-position-cues";
 import { isWaveformDataV1, type WaveformDataV1 } from "@/waveform/payload";
+import { normalizePositionZones, type PositionZoneStored } from "@/lib/position-zones";
 
 export type { Content, ContentEvent };
 
@@ -79,6 +80,7 @@ export interface CapsuleComp {
 	defaultItemOutroTransition?: string | { action?: string; ref?: string } | null;
 	itemDurationMode?: "auto" | "fixed";
 	itemDurationSec?: number | null;
+	cardZones?: PositionZoneStored[];
 }
 
 type CapsuleProfil = {
@@ -88,6 +90,7 @@ type CapsuleProfil = {
 	defaultItemSustainTransition?: string | null;
 	defaultItemSustainAlternate?: boolean;
 	defaultItemOutroTransition?: string | null;
+	cardZones?: PositionZoneStored[];
 };
 
 export interface TextTime {
@@ -499,6 +502,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 				defaultItemSustainAlternate: capsuleProfil.defaultItemSustainAlternate === true,
 				defaultItemOutroTransition: parseCapsuleTransition(capsuleProfil.defaultItemOutroTransition ?? null),
 				itemDurationMode: capsuleProfil.itemDurationMode === "fixed" ? "fixed" : "auto",
+				cardZones: normalizePositionZones(capsuleProfil.cardZones),
 				itemDurationSec:
 					typeof capsuleProfil.itemDurationSec == "number" && Number.isFinite(capsuleProfil.itemDurationSec)
 						? capsuleProfil.itemDurationSec
@@ -1507,7 +1511,10 @@ function parseCapsuleProfil(value: string | null | undefined): CapsuleProfil {
 	try {
 		const parsed = JSON.parse(value) as CapsuleProfil;
 		if (!parsed || typeof parsed != "object") return {};
-		return parsed;
+		return {
+			...parsed,
+			cardZones: normalizePositionZones((parsed as Record<string, unknown>).cardZones)
+		};
 	} catch {
 		return {};
 	}
@@ -1520,7 +1527,8 @@ function defaultCapsuleProfil(): CapsuleProfil {
 		defaultItemIntroTransition: JSON.stringify({ action: "intro", ref: "fade" }),
 		defaultItemSustainTransition: null,
 		defaultItemSustainAlternate: false,
-		defaultItemOutroTransition: JSON.stringify({ action: "outro", ref: "fade" })
+		defaultItemOutroTransition: JSON.stringify({ action: "outro", ref: "fade" }),
+		cardZones: []
 	};
 }
 

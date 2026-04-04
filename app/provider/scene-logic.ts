@@ -24,6 +24,7 @@ import {
 	isSequenceAction,
 	markSequenceTouched,
 	requestSequenceFlush,
+	shouldPreserveSelectionOnFlush,
 	type SequenceFlushReason
 } from "./scene-reload-policy";
 import {
@@ -339,7 +340,11 @@ export const sceneLogic = setup({
 			if (payload.mainCapsule) {
 				self.send({
 					type: "capsule-update",
-					payload: { id: payload.mainCapsule.id, grid: payload.mainCapsule.grid }
+					payload: {
+						id: payload.mainCapsule.id,
+						grid: payload.mainCapsule.grid,
+						cardZones: payload.mainCapsule.cardZones
+					}
 				});
 			}
 		}
@@ -538,9 +543,9 @@ export const sceneLogic = setup({
 									}
 
 									if (isTelcoAction && nextActive.sequenceTouched) {
-										const keepSelectionWhileEditing = Boolean(
-											nextActive.eventTouched || nextActive.decorTouched || nextActive.themeTouched
-										);
+										const keepSelectionWhileEditing = shouldPreserveSelectionOnFlush(nextActive, "sequence-action", {
+											sequenceAction: sequenceActionFromPayload
+										});
 
 										nextActive = requestSequenceFlush(nextActive, "sequence-action", {
 											preserveSelection: keepSelectionWhileEditing
@@ -561,7 +566,9 @@ export const sceneLogic = setup({
 								const reason = event.payload?.reason || "manual";
 								return {
 									...context,
-									active: requestSequenceFlush(context.active, reason)
+									active: requestSequenceFlush(context.active, reason, {
+										preserveSelection: shouldPreserveSelectionOnFlush(context.active, reason)
+									})
 								};
 							})
 						},

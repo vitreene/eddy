@@ -6,12 +6,14 @@ import {
 	getSceneContentDurationSec,
 	SCENE_DEFAULT_DURATION_SEC
 } from "@/scene-runtime/scene-content";
+import { normalizePositionZones, type PositionZoneStored } from "@/lib/position-zones";
 
 type SceneUpdateBody = {
 	title?: string;
 	contentId?: number | null;
 	totalDuration?: number | null;
 	mainGrid?: string | null;
+	mainCardZones?: PositionZoneStored[];
 };
 
 export async function action({ params, request }: Route.ActionArgs) {
@@ -65,6 +67,21 @@ export async function action({ params, request }: Route.ActionArgs) {
 		await prisma.capsule.update({ where: { id: scene.capsuleId }, data: { grid: body.mainGrid || null } });
 	}
 
+	if (Object.prototype.hasOwnProperty.call(body, "mainCardZones") && scene.capsuleId) {
+		const currentCapsule = await prisma.capsule.findUnique({
+			where: { id: scene.capsuleId },
+			select: { profil: true }
+		});
+		if (currentCapsule) {
+			const profil = parseCapsuleProfil(currentCapsule.profil);
+			profil.cardZones = normalizePositionZones(body.mainCardZones);
+			await prisma.capsule.update({
+				where: { id: scene.capsuleId },
+				data: { profil: JSON.stringify(profil) }
+			});
+		}
+	}
+
 	const hasAudioSettingsPatch =
 		Object.prototype.hasOwnProperty.call(body, "contentId") ||
 		Object.prototype.hasOwnProperty.call(body, "totalDuration");
@@ -113,10 +130,40 @@ export async function action({ params, request }: Route.ActionArgs) {
 					totalDuration: durationSec
 				}
 			: null,
-		mainCapsule: scene.capsuleId
-			? await prisma.capsule.findUnique({ where: { id: scene.capsuleId }, select: { id: true, grid: true } })
-			: null
+		mainCapsule: scene.capsuleId ? await resolveMainCapsule(scene.capsuleId) : null
 	});
+}
+
+async function resolveMainCapsule(
+	capsuleId: number
+): Promise<{ id: number; grid: string | null; cardZones: PositionZoneStored[] } | null> {
+	const capsule = await prisma.capsule.findUnique({
+		where: { id: capsuleId },
+		select: { id: true, grid: true, profil: true }
+	});
+	if (!capsule) return null;
+	const profil = parseCapsuleProfil(capsule.profil);
+	return {
+		id: capsule.id,
+		grid: capsule.grid,
+		cardZones: normalizePositionZones(profil.cardZones)
+	};
+}
+
+function parseCapsuleProfil(
+	raw: string | null | undefined
+): Record<string, unknown> & { cardZones?: PositionZoneStored[] } {
+	if (!raw) return {};
+	try {
+		const parsed = JSON.parse(raw) as Record<string, unknown>;
+		if (!parsed || typeof parsed != "object") return {};
+		return {
+			...parsed,
+			cardZones: normalizePositionZones(parsed.cardZones)
+		};
+	} catch {
+		return {};
+	}
 }
 
 function normalizeContentId(value: number | null | undefined): number | null {
