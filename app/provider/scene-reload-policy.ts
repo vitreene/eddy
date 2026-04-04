@@ -36,7 +36,7 @@ export function requestSequenceFlush(
 export function shouldPreserveSelectionOnFlush(
 	active: ActiveState,
 	reason: SequenceFlushReason,
-	options?: { sequenceAction?: string | null }
+	options?: { sequenceAction?: string | null; selectedItemStillExists?: boolean }
 ): boolean {
 	const hasSelection = Boolean(active.itemId || active.node || active.contentId || active.event);
 	if (!hasSelection) return false;
@@ -46,6 +46,10 @@ export function shouldPreserveSelectionOnFlush(
 			active.eventTouched || active.decorTouched || active.themeTouched || active.capsuleTouched
 		);
 		return isEditing || options?.sequenceAction === "seek";
+	}
+
+	if (reason === "tree-mutation") {
+		return Boolean(options?.selectedItemStillExists);
 	}
 
 	return false;

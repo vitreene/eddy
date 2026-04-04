@@ -94,6 +94,141 @@ const emptyScene: SceneComp = {
 
 const ACTIVE_SET_SEEK_EPSILON_SEC = 0.0005;
 
+function applyActivePayload(
+	context: SceneComp & { active: ActiveState },
+	payloadInput: Partial<ActiveState>
+): SceneComp & { active: ActiveState } {
+	const isSeekAction =
+		"action" in payloadInput && typeof payloadInput.action == "string" && payloadInput.action === "seek";
+	const shouldIgnoreSelectionBecausePlaying =
+		context.active.action === "play" && "itemId" in payloadInput && !isSeekAction;
+	const payload = shouldIgnoreSelectionBecausePlaying
+		? { ...payloadInput, itemId: null, node: null, contentId: null, event: null }
+		: payloadInput;
+
+	const itemChanged = "itemId" in payload && payload.itemId !== context.active.itemId;
+	const itemId = "itemId" in payload ? (payload.itemId ?? null) : context.active.itemId;
+	const activeNodeDisconnected = Boolean(context.active.node) && !context.active.node!.isConnected;
+	const shouldResolveNodeFromItem =
+		"itemId" in payload && (itemChanged || !context.active.node || activeNodeDisconnected);
+	const shouldResolveNodeLazily =
+		!("itemId" in payload) &&
+		!("node" in payload) &&
+		(!context.active.node || activeNodeDisconnected) &&
+		Boolean(context.active.itemId);
+	const nextNode =
+		"node" in payload
+			? (payload.node ?? null)
+			: shouldResolveNodeFromItem
+				? itemId
+					? (() => {
+							const item = context.items[itemId];
+							if (!item) return null;
+							const content = context.contents[item.contentId];
+							if (content?.type === "capsule" && content.capsuleId) {
+								return getPlayerNode(buildNodeId("capsule", content.capsuleId));
+							}
+							return getPlayerNode(item.nodeId);
+						})()
+					: null
+				: shouldResolveNodeLazily
+					? (() => {
+							const item = context.items[context.active.itemId as number];
+							if (!item) return context.active.node;
+							const content = context.contents[item.contentId];
+							if (content?.type === "capsule" && content.capsuleId) {
+								return getPlayerNode(buildNodeId("capsule", content.capsuleId));
+							}
+							return getPlayerNode(item.nodeId);
+						})()
+					: context.active.node;
+	const nextEvent = "event" in payload ? (payload.event ?? null) : itemChanged ? null : context.active.event;
+	const sequenceActionFromPayload =
+		"action" in payload && typeof payload.action == "string" ? payload.action : null;
+	const shouldKeepCueOnSequenceDeselection =
+		"itemId" in payload && payload.itemId == null && isSequenceAction(sequenceActionFromPayload);
+	const shouldPreserveCueOnItemReselect =
+		"itemId" in payload &&
+		!itemChanged &&
+		!("cue" in payload) &&
+		!("event" in payload) &&
+		!("action" in payload);
+
+	let cue =
+		"itemId" in payload
+			? shouldPreserveCueOnItemReselect || shouldKeepCueOnSequenceDeselection
+				? context.active.cue
+				: itemId
+					? computeActiveCue(context, itemId)
+					: null
+			: context.active.cue;
+
+	if (itemId && "event" in payload && nextEvent) {
+		const eventCue = computeCueForSelectedCustomEvent(context, itemId, nextEvent);
+		if (typeof eventCue == "number" && Number.isFinite(eventCue)) cue = eventCue;
+	}
+
+	let nextActive = {
+		...context.active,
+		node: nextNode,
+		cue,
+		event: nextEvent,
+		...payload
+	};
+
+	if (itemId && "event" in payload && nextEvent) {
+		const selectedEvent = context.events[itemId]?.[nextEvent];
+		if (selectedEvent && typeof cue == "number" && Number.isFinite(cue)) {
+			const kind = deriveEventKind(selectedEvent.action);
+			if (kind === "custom" || kind === "intro" || kind === "sustain" || kind === "outro") {
+				const eventChanged = nextEvent !== context.active.event;
+				const previousCue = context.active.cue;
+				const cueChanged =
+					typeof previousCue !== "number" ||
+					!Number.isFinite(previousCue) ||
+					Math.abs(previousCue - cue) > ACTIVE_SET_SEEK_EPSILON_SEC;
+				const explicitSeek =
+					"action" in payload && typeof payload.action === "string" && payload.action === "seek";
+				if (eventChanged || cueChanged || explicitSeek) {
+					nextActive = {
+						...nextActive,
+						action: "seek"
+					};
+				}
+			}
+		}
+	}
+
+	const effectiveSequenceAction =
+		typeof nextActive.action == "string" ? nextActive.action : sequenceActionFromPayload;
+	const isTelcoAction = isSequenceAction(effectiveSequenceAction);
+	const isBeingEdited = Boolean(nextActive.eventTouched || nextActive.decorTouched || nextActive.themeTouched);
+
+	if (isTelcoAction && isBeingEdited) {
+		const params = getTouchedParams(context);
+		if (params.length) {
+			void executePersistTouchedCommits(context, params, {
+				onEventsPersisted: () => {}
+			});
+		}
+	}
+
+	if (isTelcoAction && nextActive.sequenceTouched) {
+		const keepSelectionWhileEditing = shouldPreserveSelectionOnFlush(nextActive, "sequence-action", {
+			sequenceAction: effectiveSequenceAction
+		});
+
+		nextActive = requestSequenceFlush(nextActive, "sequence-action", {
+			preserveSelection: keepSelectionWhileEditing
+		});
+	}
+
+	return {
+		...context,
+		active: nextActive
+	};
+}
+
 export const sceneLogic = setup({
 	types: {
 		context: {} as SceneComp & { active: ActiveState },
@@ -103,7 +238,35 @@ export const sceneLogic = setup({
 			| { type: "scene-update"; payload: Partial<Pick<SceneComp, "title">> }
 			| { type: "scene-patch-requested"; payload: { sceneId: number; patch: ScenePatchRequest } }
 			| { type: "persist-touched" }
-			| { type: "active-set"; payload: Partial<ActiveState> }
+			| {
+					type: "selection.item.requested";
+					payload: {
+						itemId: number | null;
+						contentId?: number | null;
+						node?: HTMLElement | null;
+						action?: string | null;
+						cue?: number | null;
+					};
+			  }
+			| { type: "selection.event.requested"; payload: { event: string | null } }
+			| {
+					type: "selection.event.seek.requested";
+					payload: { itemId: number; contentId: number | null; event: string; cue?: number | null };
+			  }
+			| { type: "selection.clear.requested" }
+			| { type: "transport.seek.requested"; payload: { progress?: number | null; cue: number } }
+			| { type: "transport.play.requested" }
+			| { type: "transport.pause.requested" }
+			| { type: "transport.progress.updated"; payload: { progress: number } }
+			| { type: "transport.seek.completed" }
+			| {
+					type: "ui.active.updated";
+					payload: {
+						telcoMuted?: boolean;
+						itemEditTab?: ActiveState["itemEditTab"];
+						timelineView?: string | null;
+					};
+			  }
 			| { type: "sequence-flush-request"; payload?: { reason?: SequenceFlushReason; force?: boolean } }
 			| { type: "sequence-flush-consumed"; payload?: { token?: number } }
 			| { type: "commit"; payload: Partial<ActiveState> }
@@ -185,23 +348,25 @@ export const sceneLogic = setup({
 			| { type: "theme-update"; payload: Partial<Theme> }
 	},
 	actions: {
-		persistUiPreferencesFromActiveSet: ({ context, event }) => {
-			if (event.type !== "active-set") return;
-			const hasTelcoMuted = Object.prototype.hasOwnProperty.call(event.payload, "telcoMuted");
-			const hasItemEditTab = Object.prototype.hasOwnProperty.call(event.payload, "itemEditTab");
+		persistUiPreferencesFromUiUpdate: ({ context, event }) => {
+			if (event.type !== "ui.active.updated") return;
+			const payload = event.payload;
+			const hasTelcoMuted = Object.prototype.hasOwnProperty.call(payload, "telcoMuted");
+			const hasItemEditTab = Object.prototype.hasOwnProperty.call(payload, "itemEditTab");
 			if (!hasTelcoMuted && !hasItemEditTab) return;
 
 			persistSceneLogicUiPreferences(
 				normalizeSceneLogicUiPreferences({
-					telcoMuted: hasTelcoMuted ? Boolean(event.payload.telcoMuted) : context.active.telcoMuted,
-					itemEditTab: hasItemEditTab ? event.payload.itemEditTab : context.active.itemEditTab
+					telcoMuted: hasTelcoMuted ? Boolean(payload.telcoMuted) : context.active.telcoMuted,
+					itemEditTab: hasItemEditTab ? payload.itemEditTab : context.active.itemEditTab
 				})
 			);
 		},
 		commitTouchedOnSelectionSwitch: ({ context, event, self }) => {
-			if (event.type !== "active-set") return;
-			if (!("itemId" in event.payload)) return;
-			if (!event.payload.itemId || event.payload.itemId === context.active.itemId) return;
+			const payload = event.type === "selection.item.requested" ? { itemId: event.payload.itemId } : null;
+			if (!payload) return;
+			if (!("itemId" in payload)) return;
+			if (!payload.itemId || payload.itemId === context.active.itemId) return;
 
 			const params = getTouchedParams(context);
 			if (!params.length) return;
@@ -213,9 +378,10 @@ export const sceneLogic = setup({
 			});
 		},
 		resetTouchedOnSelectionSwitch: assign(({ context, event }) => {
-			if (event.type !== "active-set") return context;
-			if (!("itemId" in event.payload)) return context;
-			if (!event.payload.itemId || event.payload.itemId === context.active.itemId) return context;
+			const payload = event.type === "selection.item.requested" ? { itemId: event.payload.itemId } : null;
+			if (!payload) return context;
+			if (!("itemId" in payload)) return context;
+			if (!payload.itemId || payload.itemId === context.active.itemId) return context;
 			if (!getTouchedParams(context).length) return context;
 
 			return {
@@ -350,13 +516,7 @@ export const sceneLogic = setup({
 		}
 	},
 	guards: {
-		hasTouchedChanges: ({ context }) => getTouchedParams(context).length > 0,
-		hasTouchedChangesOnSelectionSwitch: ({ context, event }) => {
-			if (event.type !== "active-set") return false;
-			if (!("itemId" in event.payload)) return false;
-			if (!event.payload.itemId || event.payload.itemId === context.active.itemId) return false;
-			return getTouchedParams(context).length > 0;
-		}
+		hasTouchedChanges: ({ context }) => getTouchedParams(context).length > 0
 	},
 
 	actors: { capsuleReorder, treeMutation }
@@ -422,141 +582,94 @@ export const sceneLogic = setup({
 				},
 				active: {
 					on: {
-						"active-set": {
+						"selection.item.requested": {
 							target: "#scene.edit",
 							actions: [
 								{ type: "commitTouchedOnSelectionSwitch" },
 								{ type: "resetTouchedOnSelectionSwitch" },
-								{ type: "persistUiPreferencesFromActiveSet" },
-								assign(({ context, event }) => {
-									const isSeekAction =
-										"action" in event.payload &&
-										typeof event.payload.action == "string" &&
-										event.payload.action === "seek";
-									const shouldIgnoreSelectionBecausePlaying =
-										context.active.action === "play" && "itemId" in event.payload && !isSeekAction;
-									const payload = shouldIgnoreSelectionBecausePlaying
-										? { ...event.payload, itemId: null, node: null, contentId: null, event: null }
-										: event.payload;
-
-									const itemChanged = "itemId" in payload && payload.itemId !== context.active.itemId;
-									const itemId = "itemId" in payload ? (payload.itemId ?? null) : context.active.itemId;
-									const activeNodeDisconnected = Boolean(context.active.node) && !context.active.node!.isConnected;
-									const shouldResolveNodeFromItem =
-										"itemId" in payload && (itemChanged || !context.active.node || activeNodeDisconnected);
-									const shouldResolveNodeLazily =
-										!("itemId" in payload) &&
-										!("node" in payload) &&
-										(!context.active.node || activeNodeDisconnected) &&
-										Boolean(context.active.itemId);
-									const nextNode =
-										"node" in payload
-											? (payload.node ?? null)
-											: shouldResolveNodeFromItem
-												? itemId
-													? (() => {
-															const item = context.items[itemId];
-															if (!item) return null;
-															const content = context.contents[item.contentId];
-															if (content?.type === "capsule" && content.capsuleId) {
-																return getPlayerNode(buildNodeId("capsule", content.capsuleId));
-															}
-															return getPlayerNode(item.nodeId);
-														})()
-													: null
-												: shouldResolveNodeLazily
-													? (() => {
-															const item = context.items[context.active.itemId as number];
-															if (!item) return context.active.node;
-															const content = context.contents[item.contentId];
-															if (content?.type === "capsule" && content.capsuleId) {
-																return getPlayerNode(buildNodeId("capsule", content.capsuleId));
-															}
-															return getPlayerNode(item.nodeId);
-														})()
-													: context.active.node;
-									const nextEvent =
-										"event" in payload ? (payload.event ?? null) : itemChanged ? null : context.active.event;
-									const sequenceActionFromPayload =
-										"action" in payload && typeof payload.action == "string" ? payload.action : null;
-									const shouldKeepCueOnSequenceDeselection =
-										"itemId" in payload && payload.itemId == null && isSequenceAction(sequenceActionFromPayload);
-
-									let cue =
-										"itemId" in payload
-											? shouldKeepCueOnSequenceDeselection
-												? context.active.cue
-												: itemId
-													? computeActiveCue(context, itemId)
-													: null
-											: context.active.cue;
-
-									if (itemId && "event" in payload && nextEvent) {
-										const eventCue = computeCueForSelectedCustomEvent(context, itemId, nextEvent);
-										if (typeof eventCue == "number" && Number.isFinite(eventCue)) cue = eventCue;
-									}
-
-									let nextActive = {
-										...context.active,
-										node: nextNode,
-										cue,
-										event: nextEvent,
-										...payload
-									};
-
-									if (itemId && "event" in payload && nextEvent) {
-										const selectedEvent = context.events[itemId]?.[nextEvent];
-										if (selectedEvent && typeof cue == "number" && Number.isFinite(cue)) {
-											const kind = deriveEventKind(selectedEvent.action);
-											if (kind === "custom" || kind === "intro" || kind === "sustain" || kind === "outro") {
-												const eventChanged = nextEvent !== context.active.event;
-												const previousCue = context.active.cue;
-												const cueChanged =
-													typeof previousCue !== "number" ||
-													!Number.isFinite(previousCue) ||
-													Math.abs(previousCue - cue) > ACTIVE_SET_SEEK_EPSILON_SEC;
-												const explicitSeek =
-													"action" in payload && typeof payload.action === "string" && payload.action === "seek";
-												if (eventChanged || cueChanged || explicitSeek) {
-													nextActive = {
-														...nextActive,
-														action: "seek"
-													};
-												}
-											}
-										}
-									}
-
-									const isTelcoAction = isSequenceAction(sequenceActionFromPayload);
-									const isBeingEdited = Boolean(
-										nextActive.eventTouched || nextActive.decorTouched || nextActive.themeTouched
-									);
-
-									// If Telco action during editing, trigger commit first
-									if (isTelcoAction && isBeingEdited) {
-										const params = getTouchedParams(context);
-										if (params.length) {
-											void executePersistTouchedCommits(context, params, {
-												onEventsPersisted: () => {}
-											});
-										}
-									}
-
-									if (isTelcoAction && nextActive.sequenceTouched) {
-										const keepSelectionWhileEditing = shouldPreserveSelectionOnFlush(nextActive, "sequence-action", {
-											sequenceAction: sequenceActionFromPayload
-										});
-
-										nextActive = requestSequenceFlush(nextActive, "sequence-action", {
-											preserveSelection: keepSelectionWhileEditing
-										});
-									}
-
-									return {
-										...context,
-										active: nextActive
-									};
+								assign(({ context, event }) =>
+									applyActivePayload(context, {
+										itemId: event.payload.itemId,
+										...(Object.prototype.hasOwnProperty.call(event.payload, "contentId")
+											? { contentId: event.payload.contentId ?? null }
+											: {}),
+										...(Object.prototype.hasOwnProperty.call(event.payload, "node")
+											? { node: event.payload.node ?? null }
+											: {}),
+										...(Object.prototype.hasOwnProperty.call(event.payload, "action")
+											? { action: event.payload.action ?? null }
+											: {}),
+										...(Object.prototype.hasOwnProperty.call(event.payload, "cue")
+											? { cue: event.payload.cue ?? null }
+											: {})
+									})
+								)
+							]
+						},
+						"selection.event.requested": {
+							target: "#scene.edit",
+							actions: assign(({ context, event }) => applyActivePayload(context, { event: event.payload.event }))
+						},
+						"selection.event.seek.requested": {
+							target: "#scene.edit",
+							actions: assign(({ context, event }) =>
+								applyActivePayload(context, {
+									itemId: event.payload.itemId,
+									contentId: event.payload.contentId,
+									event: event.payload.event,
+									action: "seek",
+									...(Object.prototype.hasOwnProperty.call(event.payload, "cue")
+										? { cue: event.payload.cue ?? null }
+										: {})
 								})
+							)
+						},
+						"selection.clear.requested": {
+							target: "#scene.edit",
+							actions: assign(({ context }) =>
+								applyActivePayload(context, {
+									itemId: null,
+									contentId: null,
+									node: null,
+									event: null
+								})
+							)
+						},
+						"transport.seek.requested": {
+							target: "#scene.edit",
+							actions: assign(({ context, event }) =>
+								applyActivePayload(context, {
+									action: "seek",
+									cue: event.payload.cue,
+									...(Object.prototype.hasOwnProperty.call(event.payload, "progress")
+										? { progress: event.payload.progress ?? null }
+										: {})
+								})
+							)
+						},
+						"transport.play.requested": {
+							target: "#scene.edit",
+							actions: assign(({ context }) => applyActivePayload(context, { action: "play" }))
+						},
+						"transport.pause.requested": {
+							target: "#scene.edit",
+							actions: assign(({ context }) => applyActivePayload(context, { action: "pause" }))
+						},
+						"transport.progress.updated": {
+							target: "#scene.edit",
+							actions: assign(({ context, event }) =>
+								applyActivePayload(context, { progress: event.payload.progress })
+							)
+						},
+						"transport.seek.completed": {
+							target: "#scene.edit",
+							actions: assign(({ context }) => applyActivePayload(context, { action: null }))
+						},
+						"ui.active.updated": {
+							target: "#scene.edit",
+							actions: [
+								{ type: "persistUiPreferencesFromUiUpdate" },
+								assign(({ context, event }) => applyActivePayload(context, event.payload as Partial<ActiveState>))
 							]
 						},
 						"sequence-flush-request": {
@@ -564,10 +677,14 @@ export const sceneLogic = setup({
 								const shouldFlush = event.payload?.force || context.active.sequenceTouched;
 								if (!shouldFlush) return context;
 								const reason = event.payload?.reason || "manual";
+								const selectedItemStillExists =
+									typeof context.active.itemId == "number" && Boolean(context.items[context.active.itemId]);
 								return {
 									...context,
 									active: requestSequenceFlush(context.active, reason, {
-										preserveSelection: shouldPreserveSelectionOnFlush(context.active, reason)
+										preserveSelection: shouldPreserveSelectionOnFlush(context.active, reason, {
+											selectedItemStillExists
+										})
 									})
 								};
 							})
@@ -1146,10 +1263,20 @@ export const sceneLogic = setup({
 												active: markSequenceTouched(nextContext.active)
 											};
 										}),
-										raise(({ event }) => ({
-											type: "active-set",
-											payload: getMutationActivePayload(event.output as TreeMutationResponse)
-										})),
+										raise(({ context, event }) => {
+											const payload = getMutationActivePayload(event.output as TreeMutationResponse);
+											const fallbackItemId = context.active.itemId;
+											const nextItemId = typeof payload.itemId == "number" ? payload.itemId : fallbackItemId;
+											return {
+												type: "selection.item.requested",
+												payload: {
+													itemId: nextItemId ?? null,
+													...(Object.prototype.hasOwnProperty.call(payload, "contentId")
+														? { contentId: payload.contentId ?? null }
+														: {})
+												}
+											};
+										}),
 										raise(() => ({
 											type: "sequence-flush-request",
 											payload: { reason: "tree-mutation", force: true }

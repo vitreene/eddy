@@ -3,10 +3,18 @@ import {
 	useEffect,
 	useRef,
 	useState,
-	type MutableRefObject,
+	type Dispatch,
 	type PointerEvent as ReactPointerEvent,
-	type RefObject
+	type RefObject,
+	type SetStateAction
 } from "react";
+
+import {
+	detachPointerGestureListeners,
+	startPointerGesture,
+	type RefCell,
+	type PointerGestureFrame
+} from "./pointer-gesture-orchestrator";
 
 import type { TimelineEditablePointHandle } from "./timeline-point-editor.model";
 import { WaveformPositionLayout } from "./waveform-position-layout";
@@ -42,59 +50,45 @@ export function WaveformPointEditor({
 
 	useEffect(() => {
 		return () => {
-			detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
+			detachPointerGestureListeners({ moveRef: pointerMoveListenerRef, upRef: pointerUpListenerRef });
 		};
 	}, []);
 
 	const onPointerDown = (event: ReactPointerEvent<HTMLButtonElement>, handle: WaveformHandle) => {
-		event.preventDefault();
-		event.stopPropagation();
 		onSelect?.(handle.action);
 
-		detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
-		const initialX = resolveRelativeX(containerRef.current, event.clientX);
-		if (!Number.isFinite(initialX)) return;
-
-		const preview: DragPreview = { action: handle.action, kind: handle.kind, x: initialX };
-		dragPreviewRef.current = preview;
-		setDragPreview(preview);
-
-		const onMove = (moveEvent: PointerEvent) => {
-			const nextX = resolveRelativeX(containerRef.current, moveEvent.clientX);
-			if (!Number.isFinite(nextX)) return;
-			const current = dragPreviewRef.current;
-			if (!current || current.action !== handle.action) return;
-			const nextPreview = { ...current, x: nextX };
-			dragPreviewRef.current = nextPreview;
-			setDragPreview(nextPreview);
-		};
-
-		const onUp = (upEvent: PointerEvent) => {
-			const container = containerRef.current;
-			const releaseX = resolveRelativeX(container, upEvent.clientX);
-			const current = dragPreviewRef.current;
-			if (!container || !current || current.action !== handle.action || !Number.isFinite(releaseX)) {
+		startPointerGesture<number>({
+			startEvent: event,
+			listenerRefs: { moveRef: pointerMoveListenerRef, upRef: pointerUpListenerRef },
+			resolvePoint: (clientX) => resolveRelativeX(containerRef.current, clientX),
+			onStart: ({ currentPoint }) => {
+				const preview = { action: handle.action, kind: handle.kind, x: currentPoint };
+				dragPreviewRef.current = preview;
+				setDragPreview(preview);
+			},
+			onMove: ({ currentPoint }) => {
+				const current = dragPreviewRef.current;
+				if (!current || current.action !== handle.action) return;
+				const nextPreview = { ...current, x: currentPoint };
+				dragPreviewRef.current = nextPreview;
+				setDragPreview(nextPreview);
+			},
+			onComplete: (frame) => {
+				commitWaveformDrag({
+					frame,
+					handle,
+					containerRef,
+					layout,
+					onCommit,
+					dragPreviewRef,
+					setDragPreview
+				});
+			},
+			onCancel: () => {
 				dragPreviewRef.current = null;
 				setDragPreview(null);
-				detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
-				return;
 			}
-
-			const width = container.clientWidth;
-			const timeSec = layout.xToSec(releaseX, width);
-			if (Math.abs(timeSec - handle.timeSec) > 0.001) {
-				onCommit(handle.action, timeSec);
-			}
-
-			dragPreviewRef.current = null;
-			setDragPreview(null);
-			detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
-		};
-
-		pointerMoveListenerRef.current = onMove;
-		pointerUpListenerRef.current = onUp;
-		window.addEventListener("pointermove", onMove);
-		window.addEventListener("pointerup", onUp);
+		});
 	};
 
 	return (
@@ -136,27 +130,40 @@ export function WaveformPointEditor({
 	);
 }
 
-function resolveRelativeX(container: HTMLDivElement | null, clientX: number): number {
-	if (!container) return Number.NaN;
+function resolveRelativeX(container: HTMLDivElement | null, clientX: number): number | null {
+	if (!container) return null;
 	const rect = container.getBoundingClientRect();
-	if (!Number.isFinite(rect.width) || rect.width <= 0) return Number.NaN;
+	if (!Number.isFinite(rect.width) || rect.width <= 0) return null;
 	const x = clientX - rect.left;
-	if (!Number.isFinite(x)) return Number.NaN;
+	if (!Number.isFinite(x)) return null;
 	if (x < 0) return 0;
 	if (x > rect.width) return rect.width;
 	return x;
 }
 
-function detachActivePointerListeners(
-	pointerMoveListenerRef: MutableRefObject<((event: PointerEvent) => void) | null>,
-	pointerUpListenerRef: MutableRefObject<((event: PointerEvent) => void) | null>
-) {
-	if (pointerMoveListenerRef.current) {
-		window.removeEventListener("pointermove", pointerMoveListenerRef.current);
-		pointerMoveListenerRef.current = null;
+function commitWaveformDrag(params: {
+	frame: PointerGestureFrame<number>;
+	handle: WaveformHandle;
+	containerRef: RefObject<HTMLDivElement | null>;
+	layout: WaveformPositionLayout;
+	onCommit: (action: string, timeSec: number) => void;
+	dragPreviewRef: RefCell<DragPreview | null>;
+	setDragPreview: Dispatch<SetStateAction<DragPreview | null>>;
+}) {
+	const { frame, handle, containerRef, layout, onCommit, dragPreviewRef, setDragPreview } = params;
+	const container = containerRef.current;
+	if (!container) {
+		dragPreviewRef.current = null;
+		setDragPreview(null);
+		return;
 	}
-	if (pointerUpListenerRef.current) {
-		window.removeEventListener("pointerup", pointerUpListenerRef.current);
-		pointerUpListenerRef.current = null;
+
+	const width = container.clientWidth;
+	const timeSec = layout.xToSec(frame.currentPoint, width);
+	if (Math.abs(timeSec - handle.timeSec) > 0.001) {
+		onCommit(handle.action, timeSec);
 	}
+
+	dragPreviewRef.current = null;
+	setDragPreview(null);
 }

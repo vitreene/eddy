@@ -136,7 +136,7 @@ const cases: Case[] = [
 			const actor = createActor(sceneLogic, { input: createSceneBase() });
 			actor.start();
 			actor.send({ type: "init", payload: createSceneBase() });
-			actor.send({ type: "active-set", payload: { itemId: 10, contentId: 100 } });
+			actor.send({ type: "selection.item.requested", payload: { itemId: 10, contentId: 100 } });
 
 			actor.send({ type: "custom-event-create", payload: {} });
 			const afterCreate = actor.getSnapshot().context;
@@ -179,7 +179,7 @@ const cases: Case[] = [
 			const actor = createActor(sceneLogic, { input: base });
 			actor.start();
 			actor.send({ type: "init", payload: base });
-			actor.send({ type: "active-set", payload: { itemId: 10, contentId: 100, cue: 2 } });
+			actor.send({ type: "selection.item.requested", payload: { itemId: 10, contentId: 100, cue: 2 } });
 			actor.send({ type: "custom-event-create", payload: {} });
 
 			const created = actor.getSnapshot().context.events[10]["custom-1"] as any;
@@ -202,7 +202,7 @@ const cases: Case[] = [
 			const actor = createActor(sceneLogic, { input: base });
 			actor.start();
 			actor.send({ type: "init", payload: base });
-			actor.send({ type: "active-set", payload: { itemId: 10, contentId: 100, cue: null } });
+			actor.send({ type: "selection.item.requested", payload: { itemId: 10, contentId: 100, cue: null } });
 			actor.send({ type: "custom-event-create", payload: {} });
 
 			const created = actor.getSnapshot().context.events[10]["custom-1"] as any;
@@ -210,6 +210,23 @@ const cases: Case[] = [
 			assert.equal(created.name, null);
 			assert.equal(created.delay, 0);
 			assert.equal(shouldPersistEventPayload(created.action, created), true);
+
+			actor.stop();
+		}
+	},
+	{
+		name: "sceneLogic keeps cue on same-item reselection",
+		run: () => {
+			const base = createSceneBase();
+			const actor = createActor(sceneLogic, { input: base });
+			actor.start();
+			actor.send({ type: "init", payload: base });
+			actor.send({ type: "selection.item.requested", payload: { itemId: 10, contentId: 100, cue: 4.2 } });
+			actor.send({ type: "selection.item.requested", payload: { itemId: 10 } });
+
+			const snapshot = actor.getSnapshot().context;
+			assert.equal(snapshot.active.itemId, 10);
+			assert.equal(snapshot.active.cue, 4.2);
 
 			actor.stop();
 		}

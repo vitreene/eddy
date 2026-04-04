@@ -1,5 +1,5 @@
 import cx from "classnames";
-import { useEffect, useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent } from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 import type { ContentEvent, SceneComp, TextTime } from "@/api/db";
 import { INTRO, OUTRO } from "@/config/constants";
@@ -24,6 +24,7 @@ import { parseContentTimestampWaveform } from "@/waveform/payload";
 import { buildEditablePointHandles, makeIntroOutroEventPayload } from "./timeline-point-editor.model";
 import { WaveformPointEditor } from "./waveform-point-editor";
 import { WaveformPositionLayout } from "./waveform-position-layout";
+import { detachPointerGestureListeners, startPointerGesture } from "./pointer-gesture-orchestrator";
 
 type GuidanceMarkerKind = "item-intro" | "item-outro" | "capsule-intro" | "capsule-outro";
 type GuidanceMarker = { timeSec: number; kind: GuidanceMarkerKind };
@@ -139,7 +140,7 @@ export function WaveformCanvas() {
 
 	useEffect(() => {
 		return () => {
-			detachPointerListeners(backgroundPointerMoveRef, backgroundPointerUpRef);
+			detachPointerGestureListeners({ moveRef: backgroundPointerMoveRef, upRef: backgroundPointerUpRef });
 		};
 	}, []);
 
@@ -193,7 +194,7 @@ export function WaveformCanvas() {
 					sceneLogic.send({ type: "events-update", payload: outroPayload });
 				}
 
-				sceneLogic.send({ type: "active-set", payload: { event: action } });
+				sceneLogic.send({ type: "selection.event.requested", payload: { event: action } });
 				return;
 			}
 
@@ -207,7 +208,7 @@ export function WaveformCanvas() {
 					delay: null
 				}
 			});
-			sceneLogic.send({ type: "active-set", payload: { event: action } });
+			sceneLogic.send({ type: "selection.event.requested", payload: { event: action } });
 		};
 
 		void persist();
@@ -220,37 +221,33 @@ export function WaveformCanvas() {
 		const container = lineRef.current;
 		if (!container) return;
 
-		event.preventDefault();
-		event.stopPropagation();
+		startPointerGesture<number>({
+			startEvent: event,
+			listenerRefs: { moveRef: backgroundPointerMoveRef, upRef: backgroundPointerUpRef },
+			resolvePoint: (clientX) => {
+				const x = resolveRelativeX(container, clientX);
+				if (typeof x !== "number") return null;
+				return layout.xToSec(x, container.clientWidth);
+			},
+			onComplete: ({ startPoint, currentPoint, moved }) => {
+				const hasIntro = handles.some((handle) => handle.action === INTRO);
+				const hasOutro = handles.some((handle) => handle.action === OUTRO);
 
-		detachPointerListeners(backgroundPointerMoveRef, backgroundPointerUpRef);
+				if (!hasIntro && !hasOutro) {
+					if (moved) {
+						void createIntroOutroFromRange({
+							startSec: startPoint,
+							endSec: currentPoint,
+							events,
+							sceneEventCueNames,
+							sceneLogic: sceneLogic as unknown as SceneLogicSender,
+							persistScenePositionCue
+						});
+						return;
+					}
 
-		const startX = resolveRelativeX(container, event.clientX);
-		if (!Number.isFinite(startX)) return;
-		const startSec = layout.xToSec(startX, container.clientWidth);
-		const dragState = { startX, startSec, moved: false };
-
-		const onMove = (moveEvent: PointerEvent) => {
-			if (Math.abs(moveEvent.clientX - event.clientX) > 4) {
-				dragState.moved = true;
-			}
-		};
-
-		const onUp = (upEvent: PointerEvent) => {
-			detachPointerListeners(backgroundPointerMoveRef, backgroundPointerUpRef);
-
-			const releaseX = resolveRelativeX(container, upEvent.clientX);
-			if (!Number.isFinite(releaseX)) return;
-			const releaseSec = layout.xToSec(releaseX, container.clientWidth);
-
-			const hasIntro = handles.some((handle) => handle.action === INTRO);
-			const hasOutro = handles.some((handle) => handle.action === OUTRO);
-
-			if (!hasIntro && !hasOutro) {
-				if (dragState.moved) {
-					void createIntroOutroFromRange({
-						startSec: dragState.startSec,
-						endSec: releaseSec,
+					void createSingleIntro({
+						timeSec: currentPoint,
 						events,
 						sceneEventCueNames,
 						sceneLogic: sceneLogic as unknown as SceneLogicSender,
@@ -259,30 +256,16 @@ export function WaveformCanvas() {
 					return;
 				}
 
-				void createSingleIntro({
-					timeSec: releaseSec,
-					events,
-					sceneEventCueNames,
-					sceneLogic: sceneLogic as unknown as SceneLogicSender,
-					persistScenePositionCue
-				});
-				return;
-			}
+				if (hasIntro && !hasOutro) {
+					onCommitPoint(OUTRO, currentPoint);
+					return;
+				}
 
-			if (hasIntro && !hasOutro) {
-				onCommitPoint(OUTRO, releaseSec);
-				return;
+				if (!hasIntro && hasOutro) {
+					onCommitPoint(INTRO, currentPoint);
+				}
 			}
-
-			if (!hasIntro && hasOutro) {
-				onCommitPoint(INTRO, releaseSec);
-			}
-		};
-
-		backgroundPointerMoveRef.current = onMove;
-		backgroundPointerUpRef.current = onUp;
-		window.addEventListener("pointermove", onMove);
-		window.addEventListener("pointerup", onUp);
+		});
 	};
 
 	const dimLayers = resolveWaveformDimLayers(guidance, layout);
@@ -332,7 +315,7 @@ export function WaveformCanvas() {
 							durationSec={timelineDurationSec}
 							onSelect={(action) => {
 								if (activeEventAction === action) return;
-								sceneLogic.send({ type: "active-set", payload: { event: action } });
+								sceneLogic.send({ type: "selection.event.requested", payload: { event: action } });
 							}}
 							onCommit={onCommitPoint}
 						/>
@@ -444,7 +427,7 @@ async function createSingleIntro(params: {
 
 	const introPayload = makeIntroOutroEventPayload(events, INTRO, introCueName, "start");
 	sceneLogic.send({ type: "events-update", payload: introPayload });
-	sceneLogic.send({ type: "active-set", payload: { event: INTRO } });
+	sceneLogic.send({ type: "selection.event.requested", payload: { event: INTRO } });
 }
 
 async function createIntroOutroFromRange(params: {
@@ -476,7 +459,7 @@ async function createIntroOutroFromRange(params: {
 	const outroPayload = makeIntroOutroEventPayload(events, OUTRO, outroCueName, "start");
 	sceneLogic.send({ type: "events-update", payload: introPayload });
 	sceneLogic.send({ type: "events-update", payload: outroPayload });
-	sceneLogic.send({ type: "active-set", payload: { event: OUTRO } });
+	sceneLogic.send({ type: "selection.event.requested", payload: { event: OUTRO } });
 }
 
 function resolveRelativeX(container: HTMLDivElement | null, clientX: number): number {
@@ -488,20 +471,6 @@ function resolveRelativeX(container: HTMLDivElement | null, clientX: number): nu
 	if (x < 0) return 0;
 	if (x > rect.width) return rect.width;
 	return x;
-}
-
-function detachPointerListeners(
-	pointerMoveRef: MutableRefObject<((event: PointerEvent) => void) | null>,
-	pointerUpRef: MutableRefObject<((event: PointerEvent) => void) | null>
-) {
-	if (pointerMoveRef.current) {
-		window.removeEventListener("pointermove", pointerMoveRef.current);
-		pointerMoveRef.current = null;
-	}
-	if (pointerUpRef.current) {
-		window.removeEventListener("pointerup", pointerUpRef.current);
-		pointerUpRef.current = null;
-	}
 }
 
 function resolveWaveformGuidance(

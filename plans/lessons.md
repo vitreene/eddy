@@ -1,5 +1,27 @@
 # Lessons
 
+## 2026-04-04 — Orchestrateur gestuel sans logique metier
+
+- Quand on factorise des interactions pointer (clic/glisse), l'orchestrateur doit rester strictement gestuel: collecte des points, seuil de mouvement, cycle start/move/complete/cancel.
+- Interdiction d'ajouter des branches metier (intro/outro/custom, selection, creation) dans l'orchestrateur partage.
+- Toute specialisation de comportement doit vivre dans les adaptateurs appelants (Rubber, Waveform, point editors), via callbacks explicites.
+
+## 2026-04-04 — Eviter les types React deprecies
+
+- Ne pas typer les refs internes avec `MutableRefObject` quand il est deprecie; preferer un type structurel local (`{ current: T }`) partage entre utilitaires.
+- Garder les utilitaires (ex: orchestrateur pointer) decouples des details de typage React pour limiter les regressions de version.
+
+## 2026-04-04 — Contrainte d'alignement des points timeline
+
+- Avant d'imposer une piste unique pour les points event, verifier si la contrainte attendue est en fait "centre sur la ligne de texte" en mode multi-lignes.
+- Pour Rubber multi-lignes: verrouiller le deplacement des handles sur l'axe horizontal en conservant le Y de leur ligne de texte (row-lock), sans forcer un Y global.
+- Eviter le row-lock absolu sur la ligne de depart: il doit rester possible de changer de ligne par deplacement vertical, puis verrouiller horizontalement sur la ligne cible (snap de rangee).
+
+## 2026-04-04 — Reselection item et stabilite du cue
+
+- Ne pas recalculer `cue` sur `selection.item.requested` quand l'item ne change pas et qu'aucun `cue/event/action` explicite n'est fourni; conserver la valeur active courante.
+- Sinon, un rebuild player peut ecraser le cue d'un event tout juste selectionne et annuler l'effet de seek attendu.
+
 ## 2026-03-11 — Diagnostic temporel des custom-events
 
 - Ne pas conclure "event sans name" sans verifier la ligne DB cible (`event.id`) et la presence du cue dans `scene_content.events`.

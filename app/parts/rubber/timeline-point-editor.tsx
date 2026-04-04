@@ -1,22 +1,33 @@
 import cx from "classnames";
 import { animate } from "animejs";
-import { useEffect, useRef, useState } from "react";
+import {
+	useEffect,
+	useRef,
+	useState,
+	type Dispatch,
+	type PointerEvent as ReactPointerEvent,
+	type RefObject,
+	type SetStateAction
+} from "react";
 
 import type { CustomEventPosition } from "@/config/custom-events";
+
+import {
+	detachPointerGestureListeners,
+	startPointerGesture,
+	type RefCell,
+	type PointerGestureFrame
+} from "./pointer-gesture-orchestrator";
+import {
+	buildTimelineAnchors,
+	resolveNearestTimelineAnchor,
+	resolveTimelinePointer,
+	type TimelineAnchorGeometry
+} from "./timeline-anchor-geometry";
 
 import type { RubberCueSnapPoint } from "./rubber-proportional-layout";
 import type { TimelineEditablePointHandle } from "./timeline-point-editor.model";
 
-type TimelineAnchor = {
-	id: string;
-	cueName: string;
-	position: CustomEventPosition;
-	x: number;
-	y: number;
-	cueWidth: number;
-};
-
-const MIDDLE_SNAP_PENALTY_RATIO = 0.1;
 const HANDLE_SIZE_PX = 14;
 const HANDLE_RADIUS_PX = HANDLE_SIZE_PX / 2;
 
@@ -34,13 +45,13 @@ export function TimelinePointEditor({
 	onSelect,
 	onCommit
 }: {
-	containerRef: React.RefObject<HTMLUListElement | null>;
+	containerRef: RefObject<HTMLUListElement | null>;
 	handles: Array<TimelineEditablePointHandle>;
 	snapPoints: Array<RubberCueSnapPoint>;
 	onSelect?: (action: string) => void;
 	onCommit: (action: string, point: { cueName: string; position: CustomEventPosition }) => void;
 }) {
-	const [anchors, setAnchors] = useState<Array<TimelineAnchor>>([]);
+	const [anchors, setAnchors] = useState<Array<TimelineAnchorGeometry>>([]);
 	const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
 	const dragPreviewRef = useRef<DragPreview | null>(null);
 	const animationRef = useRef<ReturnType<typeof animate> | null>(null);
@@ -49,7 +60,9 @@ export function TimelinePointEditor({
 
 	useEffect(() => {
 		const refreshAnchors = () => {
-			const nextAnchors = resolveAnchors(containerRef.current, snapPoints);
+			const nextAnchors = buildTimelineAnchors(containerRef.current, snapPoints, {
+				handleRadiusPx: HANDLE_RADIUS_PX
+			});
 			setAnchors(nextAnchors);
 		};
 
@@ -62,111 +75,53 @@ export function TimelinePointEditor({
 
 	useEffect(() => {
 		return () => {
-			detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
+			detachPointerGestureListeners({ moveRef: pointerMoveListenerRef, upRef: pointerUpListenerRef });
 			animationRef.current?.cancel();
 		};
 	}, []);
 
 	const handlePointerDown = (
-		event: React.PointerEvent<HTMLButtonElement>,
+		event: ReactPointerEvent<HTMLButtonElement>,
 		handle: TimelineEditablePointHandle
 	) => {
-		event.preventDefault();
-		event.stopPropagation();
-
 		onSelect?.(handle.action);
 		animationRef.current?.cancel();
-		detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
 
-		const pointerPosition = resolveRelativePointer(containerRef.current, event.clientX, event.clientY);
-		if (!pointerPosition) return;
-
-		const initialPreview = {
-			action: handle.action,
-			kind: handle.kind,
-			x: pointerPosition.x,
-			y: pointerPosition.y
-		};
-		dragPreviewRef.current = initialPreview;
-		setDragPreview(initialPreview);
-
-		const onMove = (moveEvent: PointerEvent) => {
-			const nextPointerPosition = resolveRelativePointer(
-				containerRef.current,
-				moveEvent.clientX,
-				moveEvent.clientY
-			);
-			if (!nextPointerPosition) return;
-			const current = dragPreviewRef.current;
-			if (!current || current.action !== handle.action) return;
-			const nextPreview = { ...current, x: nextPointerPosition.x, y: nextPointerPosition.y };
-			dragPreviewRef.current = nextPreview;
-			setDragPreview(nextPreview);
-		};
-
-		const onUp = (upEvent: PointerEvent) => {
-			const releasePointer = resolveRelativePointer(containerRef.current, upEvent.clientX, upEvent.clientY);
-			const currentPreview =
-				releasePointer && dragPreviewRef.current
-					? { ...dragPreviewRef.current, x: releasePointer.x, y: releasePointer.y }
-					: dragPreviewRef.current;
-			dragPreviewRef.current = currentPreview;
-			if (!currentPreview || currentPreview.action !== handle.action) {
+		startPointerGesture<{ x: number; y: number }>({
+			startEvent: event,
+			listenerRefs: { moveRef: pointerMoveListenerRef, upRef: pointerUpListenerRef },
+			resolvePoint: (clientX, clientY) => {
+				const pointer = resolveTimelinePointer(containerRef.current, clientX, clientY);
+				if (!pointer) return null;
+				return pointer;
+			},
+			onStart: ({ currentPoint }) => {
+				const snappedPoint = snapPointToAnchorRow(currentPoint, anchors);
+				const preview = {
+					action: handle.action,
+					kind: handle.kind,
+					x: snappedPoint.x,
+					y: snappedPoint.y
+				};
+				dragPreviewRef.current = preview;
+				setDragPreview(preview);
+			},
+			onMove: ({ currentPoint }) => {
+				const current = dragPreviewRef.current;
+				if (!current || current.action !== handle.action) return;
+				const snappedPoint = snapPointToAnchorRow(currentPoint, anchors);
+				const nextPreview = { ...current, x: snappedPoint.x, y: snappedPoint.y };
+				dragPreviewRef.current = nextPreview;
+				setDragPreview(nextPreview);
+			},
+			onComplete: (frame) => {
+				commitTimelineDrag({ frame, handle, anchors, onCommit, dragPreviewRef, setDragPreview, animationRef });
+			},
+			onCancel: () => {
 				dragPreviewRef.current = null;
 				setDragPreview(null);
-				detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
-				return;
 			}
-
-			const nearestAnchor = resolveNearestAnchor(anchors, currentPreview.x, currentPreview.y, handle.kind);
-			if (!nearestAnchor) {
-				setDragPreview(null);
-				detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
-				return;
-			}
-
-			const from = { x: currentPreview.x, y: currentPreview.y };
-			const to = { x: nearestAnchor.x, y: nearestAnchor.y };
-			const distance = Math.hypot(to.x - from.x, to.y - from.y);
-
-			const commit = () => {
-				if (nearestAnchor.cueName === handle.cueName && nearestAnchor.position === handle.position) {
-					dragPreviewRef.current = null;
-					setDragPreview(null);
-					return;
-				}
-				onCommit(handle.action, { cueName: nearestAnchor.cueName, position: nearestAnchor.position });
-				dragPreviewRef.current = null;
-				setDragPreview(null);
-			};
-
-			if (distance < 1) {
-				commit();
-			} else {
-				const vector = { ...from };
-				animationRef.current?.cancel();
-				animationRef.current = animate(vector, {
-					x: to.x,
-					y: to.y,
-					duration: 130,
-					easing: "easeOutQuad",
-					onUpdate: () => {
-						setDragPreview((current) => {
-							if (!current || current.action !== handle.action) return current;
-							return { ...current, x: vector.x, y: vector.y };
-						});
-					},
-					onComplete: commit
-				});
-			}
-
-			detachActivePointerListeners(pointerMoveListenerRef, pointerUpListenerRef);
-		};
-
-		pointerMoveListenerRef.current = onMove;
-		pointerUpListenerRef.current = onUp;
-		window.addEventListener("pointermove", onMove);
-		window.addEventListener("pointerup", onUp);
+		});
 	};
 
 	return (
@@ -213,129 +168,77 @@ export function TimelinePointEditor({
 	);
 }
 
-function resolveAnchors(
-	container: HTMLUListElement | null,
-	snapPoints: Array<RubberCueSnapPoint>
-): Array<TimelineAnchor> {
-	if (!container || !snapPoints.length) return [];
-
-	const containerRect = container.getBoundingClientRect();
-	if (!containerRect.width || !containerRect.height) return [];
-
-	const cueNodes = Array.from(container.querySelectorAll<HTMLElement>("[data-rubber-cue]"));
-	const rectByCueName = new Map<string, DOMRect>();
-	for (const cueNode of cueNodes) {
-		const cueName = cueNode.dataset.rubberCue;
-		if (!cueName) continue;
-		rectByCueName.set(cueName, cueNode.getBoundingClientRect());
+function commitTimelineDrag(params: {
+	frame: PointerGestureFrame<{ x: number; y: number }>;
+	handle: TimelineEditablePointHandle;
+	anchors: Array<TimelineAnchorGeometry>;
+	onCommit: (action: string, point: { cueName: string; position: CustomEventPosition }) => void;
+	dragPreviewRef: RefCell<DragPreview | null>;
+	setDragPreview: Dispatch<SetStateAction<DragPreview | null>>;
+	animationRef: RefCell<ReturnType<typeof animate> | null>;
+}) {
+	const { frame, handle, anchors, onCommit, dragPreviewRef, setDragPreview, animationRef } = params;
+	const snappedPoint = snapPointToAnchorRow(frame.currentPoint, anchors);
+	const nearestAnchor = resolveNearestTimelineAnchor(anchors, snappedPoint.x, snappedPoint.y, {
+		gapPreference: handle.kind === "intro" || handle.kind === "outro" ? handle.kind : null
+	});
+	if (!nearestAnchor) {
+		dragPreviewRef.current = null;
+		setDragPreview(null);
+		return;
 	}
 
-	const anchors: Array<TimelineAnchor> = [];
-	for (const point of snapPoints) {
-		const cueRect = rectByCueName.get(point.cueName);
-		if (!cueRect) continue;
-		const rawX =
-			point.position === "start"
-				? cueRect.left - containerRect.left
-				: point.position === "end"
-					? cueRect.right - containerRect.left
-					: cueRect.left - containerRect.left + cueRect.width / 2;
-		const rawY = cueRect.top - containerRect.top + cueRect.height / 2;
-		const x = clamp(rawX, HANDLE_RADIUS_PX, containerRect.width - HANDLE_RADIUS_PX);
-		const y = clamp(rawY, HANDLE_RADIUS_PX, containerRect.height - HANDLE_RADIUS_PX);
-		anchors.push({
-			id: point.id,
-			cueName: point.cueName,
-			position: point.position,
-			x,
-			y,
-			cueWidth: Math.max(1, cueRect.width)
-		});
-	}
+	const from = { x: snappedPoint.x, y: snappedPoint.y };
+	const to = { x: nearestAnchor.x, y: nearestAnchor.y };
+	const distance = Math.hypot(to.x - from.x, to.y - from.y);
 
-	return anchors;
-}
-
-function clamp(value: number, min: number, max: number): number {
-	if (value < min) return min;
-	if (value > max) return max;
-	return value;
-}
-
-function resolveRelativePointer(container: HTMLUListElement | null, clientX: number, clientY: number) {
-	if (!container) return null;
-	const rect = container.getBoundingClientRect();
-	return {
-		x: clientX - rect.left,
-		y: clientY - rect.top
+	const commit = () => {
+		if (nearestAnchor.cueName === handle.cueName && nearestAnchor.position === handle.position) {
+			dragPreviewRef.current = null;
+			setDragPreview(null);
+			return;
+		}
+		onCommit(handle.action, { cueName: nearestAnchor.cueName, position: nearestAnchor.position });
+		dragPreviewRef.current = null;
+		setDragPreview(null);
 	};
+
+	if (distance < 1) {
+		commit();
+		return;
+	}
+
+	const vector = { ...from };
+	animationRef.current?.cancel();
+	animationRef.current = animate(vector, {
+		x: to.x,
+		y: to.y,
+		duration: 130,
+		easing: "easeOutQuad",
+		onUpdate: () => {
+			setDragPreview((current) => {
+				if (!current || current.action !== handle.action) return current;
+				return { ...current, x: vector.x, y: vector.y };
+			});
+		},
+		onComplete: commit
+	});
 }
 
-function resolveNearestAnchor(
-	anchors: Array<TimelineAnchor>,
-	x: number,
-	y: number,
-	handleKind: TimelineEditablePointHandle["kind"]
-): TimelineAnchor | null {
-	const gapPreferredAnchor = resolveGapPreferredAnchor(anchors, x, y, handleKind);
-	if (gapPreferredAnchor) return gapPreferredAnchor;
-
-	let nearest: TimelineAnchor | null = null;
-	let nearestScore = Number.POSITIVE_INFINITY;
-
-	for (const anchor of anchors) {
-		const distance = Math.hypot(anchor.x - x, anchor.y - y);
-		const middlePenalty = anchor.position === "middle" ? anchor.cueWidth * MIDDLE_SNAP_PENALTY_RATIO : 0;
-		const score = distance + middlePenalty;
-		if (score < nearestScore) {
-			nearest = anchor;
-			nearestScore = score;
+function snapPointToAnchorRow(
+	point: { x: number; y: number },
+	anchors: Array<TimelineAnchorGeometry>
+): { x: number; y: number } {
+	if (!anchors.length) return point;
+	let nearest = anchors[0];
+	let nearestDistance = Math.abs(anchors[0].y - point.y);
+	for (let index = 1; index < anchors.length; index += 1) {
+		const candidate = anchors[index];
+		const distance = Math.abs(candidate.y - point.y);
+		if (distance < nearestDistance) {
+			nearest = candidate;
+			nearestDistance = distance;
 		}
 	}
-
-	return nearest;
-}
-
-function resolveGapPreferredAnchor(
-	anchors: Array<TimelineAnchor>,
-	x: number,
-	y: number,
-	handleKind: TimelineEditablePointHandle["kind"]
-): TimelineAnchor | null {
-	if (handleKind !== "intro" && handleKind !== "outro") return null;
-
-	const ROW_Y_TOLERANCE = 8;
-	const rowAnchors = anchors.filter((anchor) => Math.abs(anchor.y - y) <= ROW_Y_TOLERANCE);
-	if (!rowAnchors.length) return null;
-
-	const startAnchors = rowAnchors
-		.filter((anchor) => anchor.position === "start")
-		.toSorted((a, b) => a.x - b.x);
-	const endAnchors = rowAnchors.filter((anchor) => anchor.position === "end").toSorted((a, b) => a.x - b.x);
-	if (!startAnchors.length || !endAnchors.length) return null;
-
-	for (const endAnchor of endAnchors) {
-		const nextStartAnchor = startAnchors.find((candidate) => candidate.x > endAnchor.x);
-		if (!nextStartAnchor) continue;
-		if (x < endAnchor.x || x > nextStartAnchor.x) continue;
-
-		if (handleKind === "intro") return nextStartAnchor;
-		return endAnchor;
-	}
-
-	return null;
-}
-
-function detachActivePointerListeners(
-	pointerMoveListenerRef: React.MutableRefObject<((event: PointerEvent) => void) | null>,
-	pointerUpListenerRef: React.MutableRefObject<((event: PointerEvent) => void) | null>
-) {
-	if (pointerMoveListenerRef.current) {
-		window.removeEventListener("pointermove", pointerMoveListenerRef.current);
-		pointerMoveListenerRef.current = null;
-	}
-	if (pointerUpListenerRef.current) {
-		window.removeEventListener("pointerup", pointerUpListenerRef.current);
-		pointerUpListenerRef.current = null;
-	}
+	return { x: point.x, y: nearest.y };
 }

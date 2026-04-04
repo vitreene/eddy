@@ -341,7 +341,7 @@ function ContentInfos({ item }: { item: ItemComp | null }) {
 		sceneLogic.send({ type: "custom-event-create", payload: {} });
 	};
 	const setTimelineView = (value: TimelineViewMode) => {
-		sceneLogic.send({ type: "active-set", payload: { timelineView: value } });
+		sceneLogic.send({ type: "ui.active.updated", payload: { timelineView: value } });
 	};
 
 	return (
@@ -420,7 +420,7 @@ function MediaEventTransition({
 	const isActive = activeEvent === event.action;
 
 	const toggleEvent = () => {
-		sceneLogic.send({ type: "active-set", payload: { event: isActive ? null : event.action } });
+		sceneLogic.send({ type: "selection.event.requested", payload: { event: isActive ? null : event.action } });
 	};
 
 	const deleteEvent = () => {

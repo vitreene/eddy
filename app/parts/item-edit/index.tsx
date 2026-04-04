@@ -348,12 +348,11 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		});
 
 		send({
-			type: "active-set",
+			type: "selection.event.seek.requested",
 			payload: {
 				itemId: item.id,
 				contentId: item.contentId,
-				event: INTRO,
-				action: "seek"
+				event: INTRO
 			}
 		});
 	};
@@ -403,12 +402,11 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				const currentItem = snapshot.context.items[selectedItemId];
 				if (!currentItem) return;
 				send({
-					type: "active-set",
+					type: "selection.event.seek.requested",
 					payload: {
 						itemId: currentItem.id,
 						contentId: currentItem.contentId,
 						event: request.selectionAction,
-						action: "seek",
 						cue: request.selectionCueSec
 					}
 				});
@@ -477,7 +475,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 
 	const onTabChange = useCallback(
 		(value: ItemEditTab) => {
-			send({ type: "active-set", payload: { itemEditTab: value } });
+			send({ type: "ui.active.updated", payload: { itemEditTab: value } });
 		},
 		[send]
 	);

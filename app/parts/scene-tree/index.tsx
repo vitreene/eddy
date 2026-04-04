@@ -145,7 +145,7 @@ export function SceneTreeView() {
 			if (!itemId) return;
 			const payload = { itemId, action: "seek" };
 			send({ type: "commit", payload });
-			send({ type: "active-set", payload });
+			send({ type: "selection.item.requested", payload: { itemId, action: "seek" } });
 		},
 		onDrop: (draggedItems, target) => {
 			const sourceId = draggedItems[0]?.getItemData().itemId;
@@ -293,7 +293,7 @@ export function SceneTreeView() {
 		if (!activeItemId) return;
 
 		tree.setSelectedItems([]);
-		send({ type: "active-set", payload: { itemId: null, event: null } });
+		send({ type: "selection.clear.requested" });
 	};
 
 	const getCreatePayload = () => {

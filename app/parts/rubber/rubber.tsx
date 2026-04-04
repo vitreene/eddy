@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 import cx from "classnames";
 
 import type { ContentEvent, SceneComp, TextTime } from "@/api/db";
@@ -23,6 +23,13 @@ import {
 	clampCustomCueNameToIntroOutro,
 	makeIntroOutroEventPayload
 } from "./timeline-point-editor.model";
+import { detachPointerGestureListeners, startPointerGesture } from "./pointer-gesture-orchestrator";
+import {
+	buildTimelineAnchors as buildTimelineAnchorsGeometry,
+	resolveNearestTimelineAnchor as resolveNearestAnchorGeometry,
+	resolveTimelinePointer as resolvePointerGeometry,
+	type TimelineCuePoint
+} from "./timeline-anchor-geometry";
 
 const layout = new RubberProportionalLayout();
 const RUBBER_ITEM_GAP_PX = 4;
@@ -39,6 +46,8 @@ type CapsuleGuidance = {
 
 export function Rubber() {
 	const timelineRef = useRef<HTMLUListElement>(null);
+	const backgroundPointerMoveRef = useRef<((event: PointerEvent) => void) | null>(null);
+	const backgroundPointerUpRef = useRef<((event: PointerEvent) => void) | null>(null);
 	const sceneLogic = SceneLogicContext.useActorRef();
 	const activeItemId = SceneLogicContext.useSelector((state) => state.context.active.itemId);
 	const events = SceneLogicContext.useSelector((state) => {
@@ -89,7 +98,13 @@ export function Rubber() {
 		resolveCapsuleGuidance(state.context as SceneComp, state.context.active.itemId)
 	);
 
-	const onCommitPoint = (action: string, point: { cueName: string; position: "start" | "middle" | "end" }) => {
+	useEffect(() => {
+		return () => {
+			detachPointerGestureListeners({ moveRef: backgroundPointerMoveRef, upRef: backgroundPointerUpRef });
+		};
+	}, []);
+
+	const onCommitPoint = (action: string, point: TimelineCuePoint) => {
 		if (!point.cueName) return;
 
 		if (action === INTRO || action === OUTRO) {
@@ -120,7 +135,7 @@ export function Rubber() {
 				sceneLogic.send({ type: "events-update", payload: outroPayload });
 			}
 
-			sceneLogic.send({ type: "active-set", payload: { event: action } });
+			sceneLogic.send({ type: "selection.event.requested", payload: { event: action } });
 			return;
 		}
 
@@ -142,7 +157,56 @@ export function Rubber() {
 				delay: null
 			}
 		});
-		sceneLogic.send({ type: "active-set", payload: { event: action } });
+		sceneLogic.send({ type: "selection.event.requested", payload: { event: action } });
+	};
+
+	const onTimelineBackgroundPointerDown = (event: ReactPointerEvent<HTMLUListElement>) => {
+		if (!activeItemId) return;
+		if ((event.target as HTMLElement | null)?.closest("button")) return;
+
+		const container = timelineRef.current;
+		if (!container) return;
+
+		startPointerGesture<TimelineCuePoint>({
+			startEvent: event,
+			listenerRefs: { moveRef: backgroundPointerMoveRef, upRef: backgroundPointerUpRef },
+			resolvePoint: (clientX, clientY) =>
+				resolveTimelinePointFromPointer(container, snapPoints, clientX, clientY),
+			onComplete: ({ startPoint, currentPoint, moved }) => {
+				const hasIntro = Boolean(events?.[INTRO]?.name);
+				const hasOutro = Boolean(events?.[OUTRO]?.name);
+
+				if (!hasIntro && !hasOutro) {
+					if (moved) {
+						const points = orderPointsByTime(startPoint, currentPoint, cueByName);
+						const introPoint = points[0];
+						const outroPoint = points[1];
+						if (introPoint.cueName === outroPoint.cueName && introPoint.position === outroPoint.position) {
+							onCommitPoint(INTRO, introPoint);
+							return;
+						}
+						const introPayload = makeIntroOutroEventPayload(events, INTRO, introPoint.cueName, introPoint.position);
+						const outroPayload = makeIntroOutroEventPayload(events, OUTRO, outroPoint.cueName, outroPoint.position);
+						sceneLogic.send({ type: "events-update", payload: introPayload });
+						sceneLogic.send({ type: "events-update", payload: outroPayload });
+						sceneLogic.send({ type: "selection.event.requested", payload: { event: OUTRO } });
+						return;
+					}
+
+					onCommitPoint(INTRO, currentPoint);
+					return;
+				}
+
+				if (hasIntro && !hasOutro) {
+					onCommitPoint(OUTRO, currentPoint);
+					return;
+				}
+
+				if (!hasIntro && hasOutro) {
+					onCommitPoint(INTRO, currentPoint);
+				}
+			}
+		});
 	};
 
 	return (
@@ -151,6 +215,7 @@ export function Rubber() {
 			<div className="relative">
 				<ul
 					ref={timelineRef}
+					onPointerDown={onTimelineBackgroundPointerDown}
 					className="relative flex flex-1 flex-wrap items-start gap-1 rounded border border-amber-200 bg-amber-50/30 p-1 text-[10px]"
 				>
 					{displaySegments.length ? (
@@ -196,7 +261,7 @@ export function Rubber() {
 						snapPoints={snapPoints}
 						onSelect={(action) => {
 							if (activeEventAction === action) return;
-							sceneLogic.send({ type: "active-set", payload: { event: action } });
+							sceneLogic.send({ type: "selection.event.requested", payload: { event: action } });
 						}}
 						onCommit={onCommitPoint}
 					/>
@@ -219,12 +284,12 @@ function isRenderableCue(cue: TextTime): boolean {
 
 function buildOrderedIntroOutroTargets(params: {
 	action: typeof INTRO | typeof OUTRO;
-	pendingPoint: { cueName: string; position: "start" | "middle" | "end" };
+	pendingPoint: TimelineCuePoint;
 	events: Record<string, ContentEvent | undefined> | null;
 	cueByName: Map<string, TextTime>;
 }): {
-	intro: { cueName: string; position: "start" | "middle" | "end" } | null;
-	outro: { cueName: string; position: "start" | "middle" | "end" } | null;
+	intro: TimelineCuePoint | null;
+	outro: TimelineCuePoint | null;
 } {
 	const { action, pendingPoint, events, cueByName } = params;
 	const introEvent = events?.[INTRO];
@@ -277,14 +342,37 @@ function buildOrderedIntroOutroTargets(params: {
 	};
 }
 
-function resolvePointTimeSec(
-	point: { cueName: string; position: "start" | "middle" | "end" } | null,
-	cueByName: Map<string, TextTime>
-): number {
+function resolvePointTimeSec(point: TimelineCuePoint | null, cueByName: Map<string, TextTime>): number {
 	if (!point?.cueName) return Number.NaN;
 	const cue = cueByName.get(point.cueName);
 	if (!cue) return Number.NaN;
 	return getCueTimeAtPosition(cue, point.position);
+}
+
+function orderPointsByTime(
+	a: TimelineCuePoint,
+	b: TimelineCuePoint,
+	cueByName: Map<string, TextTime>
+): [TimelineCuePoint, TimelineCuePoint] {
+	const aTime = resolvePointTimeSec(a, cueByName);
+	const bTime = resolvePointTimeSec(b, cueByName);
+	if (Number.isFinite(aTime) && Number.isFinite(bTime) && aTime > bTime) return [b, a];
+	return [a, b];
+}
+
+function resolveTimelinePointFromPointer(
+	container: HTMLUListElement,
+	snapPoints: Array<TimelineCuePoint>,
+	clientX: number,
+	clientY: number
+): TimelineCuePoint | null {
+	const pointer = resolvePointerGeometry(container, clientX, clientY);
+	if (!pointer) return null;
+	const anchors = buildTimelineAnchorsGeometry(container, snapPoints);
+	if (!anchors.length) return null;
+	const nearest = resolveNearestAnchorGeometry(anchors, pointer.x, pointer.y);
+	if (!nearest) return null;
+	return { cueName: nearest.cueName, position: nearest.position };
 }
 
 function resolveCapsuleGuidance(
@@ -391,7 +479,7 @@ function resolveNearestVisibleCuePoint(
 	cues: Array<TextTime>,
 	targetSec: number,
 	preferredPosition: "start" | "middle" | "end"
-): { cueName: string; position: "start" | "middle" | "end" } | null {
+): TimelineCuePoint | null {
 	if (!Number.isFinite(targetSec) || !cues.length) return null;
 
 	let best: { cueName: string; position: "start" | "middle" | "end"; score: number } | null = null;

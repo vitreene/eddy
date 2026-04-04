@@ -60,7 +60,7 @@ const AppLayout = React.memo(function AppLayout({ data }: { data: HomeProps }) {
 		actorRef.send({ type: "init", payload: data.scene });
 		const uiPreferences = loadSceneLogicUiPreferences();
 		if (uiPreferences) {
-			actorRef.send({ type: "active-set", payload: uiPreferences });
+			actorRef.send({ type: "ui.active.updated", payload: uiPreferences });
 		}
 	}, [actorRef, data.scene]);
 

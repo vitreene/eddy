@@ -30,6 +30,24 @@ type TelcoController = {
 	syncFromActive: (active: { action: string | null; cue: number | null }) => void;
 };
 
+type PlayerActiveEvent =
+	| {
+			type: "selection.item.requested";
+			payload: {
+				itemId: number | null;
+				contentId?: number | null;
+				node?: HTMLElement | null;
+				action?: string | null;
+			};
+	  }
+	| { type: "selection.clear.requested" }
+	| { type: "transport.seek.requested"; payload: { progress?: number | null; cue: number } }
+	| { type: "transport.play.requested" }
+	| { type: "transport.pause.requested" }
+	| { type: "transport.progress.updated"; payload: { progress: number } }
+	| { type: "transport.seek.completed" }
+	| { type: "ui.active.updated"; payload: { telcoMuted?: boolean } };
+
 const onEnd = (_timer: Timer) => {};
 
 export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene: PlayerProps }) {
@@ -94,7 +112,7 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 				onToggleMute={() => {
 					const muted = telcoController.toggleMute();
 					if (typeof muted !== "boolean") return;
-					send({ type: "active-set", payload: { telcoMuted: muted } });
+					send({ type: "ui.active.updated", payload: { telcoMuted: muted } });
 				}}
 			/>
 		</>
@@ -110,7 +128,7 @@ function initializePlayerRuntime({
 }: {
 	scene: PlayerProps;
 	sceneRef: React.RefObject<HTMLDivElement | null>;
-	send: (event: { type: "active-set"; payload: Partial<ActiveState> }) => void;
+	send: (event: PlayerActiveEvent) => void;
 	getActive: () => ActiveState;
 	onTelcoReady: (telco: TelcoProps | null) => void;
 }) {
@@ -133,12 +151,12 @@ function initializePlayerRuntime({
 			onTimelineUpdate: (self, timelineDuration) => {
 				const progress = timelineDuration > 0 ? Math.round((self.currentTime / timelineDuration) * 100) : 0;
 
-				send({ type: "active-set", payload: { progress } });
+				send({ type: "transport.progress.updated", payload: { progress } });
 
 				const ended = timelineDuration > 0 && self.currentTime >= timelineDuration;
 				if (ended && !endedSent) {
 					endedSent = true;
-					send({ type: "active-set", payload: { action: "pause" } });
+					send({ type: "transport.pause.requested" });
 				}
 				if (!ended) endedSent = false;
 			}
@@ -146,7 +164,7 @@ function initializePlayerRuntime({
 
 		setPlayerNodeResolver((nodeId: string) => player?.getNodeByNodeId(nodeId) ?? null);
 		const active = getActive();
-		if (active.itemId) send({ type: "active-set", payload: { itemId: active.itemId } });
+		if (active.itemId) send({ type: "selection.item.requested", payload: { itemId: active.itemId } });
 
 		if (active.action === "play") {
 			player.telco.play();
@@ -178,7 +196,7 @@ function createTelcoController({
 		cue: number | null;
 		progress: number | null;
 	};
-	send: (event: { type: "active-set"; payload: Partial<ActiveState> }) => void;
+	send: (event: PlayerActiveEvent) => void;
 }): TelcoController {
 	let unsubscribeSeekSync: (() => void) | null = null;
 	const subscribeOnce = (subscribe?: () => () => void) => {
@@ -203,28 +221,29 @@ function createTelcoController({
 			if (willPlay) telco.play();
 			else telco.pause();
 
-			send({
-				type: "active-set",
-				payload: {
-					...(shouldRestartFromZero ? { progress: 0, cue: 0 } : {}),
-					action: willPlay ? "play" : "pause",
-					...(willPlay ? { itemId: null, node: null, contentId: null, event: null } : {})
-				}
-			});
+			if (shouldRestartFromZero) {
+				send({ type: "transport.seek.requested", payload: { progress: 0, cue: 0 } });
+			}
+			if (willPlay) {
+				send({ type: "selection.clear.requested" });
+				send({ type: "transport.play.requested" });
+				return;
+			}
+			send({ type: "transport.pause.requested" });
 		},
 		rewind: () => {
 			const telco = getTelco();
 			if (!telco) return;
 			subscribeOnce();
 			telco.seek(0);
-			send({ type: "active-set", payload: { action: "seek", progress: 0, cue: 0 } });
+			send({ type: "transport.seek.requested", payload: { progress: 0, cue: 0 } });
 		},
 		seek: (progress: number, timeMs: number) => {
 			const telco = getTelco();
 			if (!telco) return;
 			subscribeOnce();
 			telco.seek(timeMs);
-			send({ type: "active-set", payload: { action: "seek", progress, cue: timeMs / 1000 } });
+			send({ type: "transport.seek.requested", payload: { progress, cue: timeMs / 1000 } });
 		},
 		toggleMute: () => {
 			const telco = getTelco();
@@ -252,7 +271,7 @@ function createTelcoController({
 				subscribeOnce(() =>
 					telco.subscribe(() => {
 						subscribeOnce();
-						send({ type: "active-set", payload: { action: null } });
+						send({ type: "transport.seek.completed" });
 					})
 				);
 				telco.seek((active.cue ?? 0) * 1000);
