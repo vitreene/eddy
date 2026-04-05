@@ -3,6 +3,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { getValuesFromGridName } from "@/lib/utils";
 import type { EditableStyle } from "@/components/style-editor/types";
 import { normalizePositionZones, toRuntimePositionZones } from "./zone-builder.service";
+import { buildPositionZoneClassName, getPositionZoneClassAliases } from "@/lib/position-zones";
 import { HEAVY_GRID_CELL_THRESHOLD } from "@/config/capsule-presets";
 import {
 	CAPSULE_TYPES,
@@ -15,6 +16,9 @@ interface Props {
 	value: EditableStyle;
 	onChange: (style: EditableStyle) => void;
 }
+
+const POSITION_PLACEMENT_TOKEN_RE =
+	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
 
 export function SlotEditor({ value, onChange }: Props) {
 	const item = SceneLogicContext.useSelector((state) =>
@@ -34,16 +38,7 @@ export function SlotEditor({ value, onChange }: Props) {
 	};
 
 	const setZoneClass = (zoneClassName: string) => {
-		const zones = toRuntimePositionZones(
-			normalizePositionZones((capsule as { cardZones?: unknown }).cardZones)
-		);
-		const zoneClassSet = new Set(zones.map((zone) => zone.className));
-		const currentTokens = String(value.className || "")
-			.split(/\s+/)
-			.map((token) => token.trim())
-			.filter(Boolean);
-		const keptTokens = currentTokens.filter((token) => !zoneClassSet.has(token));
-		const nextTokens = [...keptTokens, zoneClassName].filter(Boolean);
+		const nextTokens = normalizeZoneSelectionClassTokens(value.className, zoneClassName);
 		onChange({ className: nextTokens.length ? nextTokens.join(" ") : null, area: null });
 	};
 
@@ -57,7 +52,14 @@ export function SlotEditor({ value, onChange }: Props) {
 			.split(/\s+/)
 			.map((token) => token.trim())
 			.filter(Boolean);
-		const selectedZoneClass = zones.find((zone) => classTokens.includes(zone.className))?.className || "";
+		const selectedZone = zones.find((zone) => {
+			const aliases = getPositionZoneClassAliases(zone);
+			return aliases.some((alias) => classTokens.includes(alias));
+		});
+		const selectedZoneClass = selectedZone
+			? buildPositionZoneClassName(selectedZone.name, selectedZone.id)
+			: "";
+
 		return (
 			<div className="space-y-1 text-xs">
 				<label className="block text-[11px] font-medium">Zone</label>
@@ -68,7 +70,7 @@ export function SlotEditor({ value, onChange }: Props) {
 				>
 					<option value="">Choisir une zone</option>
 					{zones.map((zone) => (
-						<option key={zone.id} value={zone.className}>
+						<option key={zone.id} value={buildPositionZoneClassName(zone.name, zone.id)}>
 							{zone.name}
 						</option>
 					))}
@@ -87,4 +89,16 @@ export function SlotEditor({ value, onChange }: Props) {
 	if (Math.max(1, w) * Math.max(1, h) > HEAVY_GRID_CELL_THRESHOLD) return null;
 
 	return <GridAreaRadioSelector cols={w} rows={h} value={value.area} onChange={setArea} />;
+}
+
+function normalizeZoneSelectionClassTokens(
+	className: string | null | undefined,
+	zoneClassName: string | null | undefined
+): string[] {
+	const currentTokens = String(className || "")
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	const keptTokens = currentTokens.filter((token) => !POSITION_PLACEMENT_TOKEN_RE.test(token));
+	return [...keptTokens, String(zoneClassName || "").trim()].filter(Boolean);
 }

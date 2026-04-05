@@ -32,6 +32,10 @@ interface EditItemProps {
 	allContents?: Content[];
 }
 
+const POSITION_PLACEMENT_TOKEN_RE =
+	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
+const ZONE_CLASS_TOKEN_RE = /^ed-zone-[a-z0-9_-]+$/i;
+
 function sameStyleValue(a: unknown, b: unknown): boolean {
 	return Object.is(a, b);
 }
@@ -72,6 +76,19 @@ function getNeutralTransformValue(key: string): number | null {
 	if (key === "x" || key === "y" || key === "rotate") return 0;
 	if (key === "scaleX" || key === "scaleY") return 1;
 	return null;
+}
+
+function normalizeZonePlacementClassName(className: string | null | undefined): string | null {
+	const tokens = String(className || "")
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	const zoneTokens = tokens.filter((token) => ZONE_CLASS_TOKEN_RE.test(token));
+	if (!zoneTokens.length) return tokens.length ? tokens.join(" ") : null;
+	const selectedZone = zoneTokens[zoneTokens.length - 1];
+	const keptTokens = tokens.filter((token) => !POSITION_PLACEMENT_TOKEN_RE.test(token));
+	const next = [...keptTokens, selectedZone].join(" ").trim();
+	return next || null;
 }
 
 function resolveDecorSelection(args: {
@@ -184,7 +201,7 @@ function buildStyleMutationPlan(args: {
 
 	const nextArea = hasArea ? (args.normalizedPayload.area ?? null) : (args.targetDecor.area ?? null);
 	const nextClassName = hasClassName
-		? (args.normalizedPayload.className ?? null)
+		? normalizeZonePlacementClassName(args.normalizedPayload.className ?? null)
 		: (args.targetDecor.className ?? null);
 	const areaChanged = hasArea && !sameStyleValue(nextArea, args.targetDecor.area ?? null);
 	const classNameChanged = hasClassName && !sameStyleValue(nextClassName, args.targetDecor.className ?? null);
@@ -442,6 +459,19 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const onDecorUpdate = useCallback(
 		(payload: { id: number; area?: string | null; className?: string | null }) => {
 			if (!item) return;
+			const currentDecor =
+				decors[payload.id] || (selectedEvent?.decorId ? decors[selectedEvent.decorId] : decor || itemDecor);
+			const patch: { area?: string | null; className?: string | null } = {};
+			if (Object.prototype.hasOwnProperty.call(payload, "className")) {
+				const nextClassName = normalizeZonePlacementClassName(payload.className ?? null);
+				if ((currentDecor?.className ?? null) !== nextClassName) patch.className = nextClassName;
+			}
+			if (Object.prototype.hasOwnProperty.call(payload, "area")) {
+				const nextArea = payload.area ?? null;
+				if ((currentDecor?.area ?? null) !== nextArea) patch.area = nextArea;
+			}
+			if (!Object.keys(patch).length) return;
+
 			send({
 				type: "decor-patch-requested",
 				payload: {
@@ -454,16 +484,11 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 						area: (decor || itemDecor)?.area ?? null,
 						style: ((decor || itemDecor)?.style as EditableStyle) ?? {}
 					},
-					patch: {
-						...(Object.prototype.hasOwnProperty.call(payload, "className")
-							? { className: payload.className ?? null }
-							: {}),
-						...(Object.prototype.hasOwnProperty.call(payload, "area") ? { area: payload.area ?? null } : {})
-					}
+					patch
 				}
 			});
 		},
-		[item, send, selectedEvent, selectedEventUsesItemDecor, decor, itemDecor]
+		[item, send, selectedEvent, selectedEventUsesItemDecor, decor, itemDecor, decors]
 	);
 
 	const onTreeMove = useCallback(

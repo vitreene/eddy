@@ -1,4 +1,5 @@
 import {
+	buildPositionZoneClassName,
 	buildPositionZoneCssRule,
 	normalizePositionZones,
 	toRuntimePositionZones,
@@ -89,7 +90,7 @@ export class ZoneBuilderService {
 
 	buildZone(zones: ZoneBuilderZone[], rect: ZoneBuilderZoneRect): ZoneBuilderZone {
 		const name = this.buildNextZoneName(zones);
-		const className = `ed-${name}`;
+		const className = this.buildUniqueZoneClassName(name, zones);
 		const nextId = zones.length ? Math.max(...zones.map((zone) => zone.id)) + 1 : 1;
 		return {
 			id: nextId,
@@ -194,8 +195,18 @@ export class ZoneBuilderService {
 		if (taken.has(finalName.toLowerCase())) {
 			finalName = this.makeUniqueName(finalName, taken);
 		}
+		const finalClassName = this.buildUniqueZoneClassName(finalName, zones, zoneId);
 
-		return zones.map((zone) => (zone.id === zoneId ? { ...zone, name: finalName } : zone));
+		return zones.map((zone) =>
+			zone.id === zoneId
+				? {
+						...zone,
+						name: finalName,
+						className: finalClassName,
+						cssRule: buildPositionZoneCssRule(finalClassName, zone.rect)
+					}
+				: zone
+		);
 	}
 
 	hasDuplicateName(zones: ZoneBuilderZone[], zoneId: number): boolean {
@@ -224,6 +235,27 @@ export class ZoneBuilderService {
 		while (true) {
 			const candidate = `${baseName}-${suffix}`;
 			if (!taken.has(candidate.toLowerCase())) return candidate;
+			suffix += 1;
+		}
+	}
+
+	private buildUniqueZoneClassName(
+		baseName: string,
+		zones: ZoneBuilderZone[],
+		excludeZoneId?: number
+	): string {
+		const baseClassName = buildPositionZoneClassName(baseName, excludeZoneId);
+		const taken = new Set(
+			zones
+				.filter((zone) => zone.id !== excludeZoneId)
+				.map((zone) => zone.className)
+				.filter(Boolean)
+		);
+		if (!taken.has(baseClassName)) return baseClassName;
+		let suffix = 2;
+		while (true) {
+			const candidate = `${baseClassName}-${suffix}`;
+			if (!taken.has(candidate)) return candidate;
 			suffix += 1;
 		}
 	}

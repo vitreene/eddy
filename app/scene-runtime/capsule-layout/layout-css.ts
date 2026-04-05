@@ -10,7 +10,11 @@ import {
 	gridClassNameToCssDefinition,
 	gridPlacementClassNameToCssDefinition
 } from "@/lib/utils";
-import { normalizePositionZones, toRuntimePositionZones } from "@/lib/position-zones";
+import {
+	getPositionZoneClassAliases,
+	normalizePositionZones,
+	toRuntimePositionZones
+} from "@/lib/position-zones";
 import { ROOT } from "@/scene-runtime/constants";
 
 type PlacementResult = {
@@ -99,7 +103,11 @@ function collectPlacementClassDefinitions(
 		.split(/\s+/)
 		.map((token) => token.trim())
 		.filter(Boolean);
+	const hasZoneClassToken = tokens.some((token) => Boolean(zoneDefinitionsByClass[token]));
 	for (const token of tokens) {
+		if (hasZoneClassToken && !zoneDefinitionsByClass[token]) {
+			continue;
+		}
 		if (zoneDefinitionsByClass[token]) {
 			target.add(zoneDefinitionsByClass[token]);
 			continue;
@@ -131,7 +139,11 @@ function buildZoneDefinitionsByClass(snapshot: SceneComp): Record<string, string
 		for (const zone of toRuntimePositionZones(
 			normalizePositionZones((capsule as CapsuleComp & { cardZones?: unknown }).cardZones)
 		)) {
-			byClass[zone.className] = zone.cssRule;
+			for (const className of getPositionZoneClassAliases(zone)) {
+				if (!className) continue;
+				if (byClass[className]) continue;
+				byClass[className] = zone.cssRule;
+			}
 		}
 	}
 	return byClass;

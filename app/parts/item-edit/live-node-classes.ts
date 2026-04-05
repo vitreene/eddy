@@ -1,5 +1,5 @@
 import { classNameToCssDefinition, gridPlacementClassNameToCssDefinition } from "@/lib/utils";
-import type { PositionZoneRuntime } from "@/lib/position-zones";
+import { getPositionZoneClassAliases, type PositionZoneRuntime } from "@/lib/position-zones";
 
 import type { ClassNameAction } from "@/player/types";
 
@@ -181,11 +181,19 @@ export function syncLiveZoneClassDefinitions(
 		typeof CSS != "undefined" && typeof CSS.escape == "function"
 			? CSS.escape(capsuleNodeId)
 			: capsuleNodeId.replace(/[^a-zA-Z0-9_-]/g, "\\$&");
+	const uniqueZonesByClass = new Map<string, PositionZoneRuntime>();
+	for (const zone of zones) {
+		if (!zone.className) continue;
+		if (uniqueZonesByClass.has(zone.className)) continue;
+		uniqueZonesByClass.set(zone.className, zone);
+	}
 
-	const sectionBody = zones
-		.map(
-			(zone) =>
-				`#${escapedId} .${zone.className}{grid-row:${zone.rect.row} / span ${zone.rect.spanRow};grid-column:${zone.rect.column} / span ${zone.rect.spanColumn};}`
+	const sectionBody = [...uniqueZonesByClass.values()]
+		.flatMap((zone) =>
+			getPositionZoneClassAliases(zone).map(
+				(className) =>
+					`#${escapedId} .${className}{grid-row:${zone.rect.row} / span ${zone.rect.spanRow};grid-column:${zone.rect.column} / span ${zone.rect.spanColumn};}`
+			)
 		)
 		.join("\n");
 	const nextSection = sectionBody ? `${sectionStart}\n${sectionBody}\n${sectionEnd}` : "";

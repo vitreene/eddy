@@ -22,6 +22,39 @@
 - Ne pas recalculer `cue` sur `selection.item.requested` quand l'item ne change pas et qu'aucun `cue/event/action` explicite n'est fourni; conserver la valeur active courante.
 - Sinon, un rebuild player peut ecraser le cue d'un event tout juste selectionne et annuler l'effet de seek attendu.
 
+## 2026-04-05 — Position zones: precedence claire des classes
+
+- En capsule `position`, la selection d'une zone via `SlotEditor` doit nettoyer les anciens tokens de placement (`cell-span`, `cell-r`, `cell_layout_auto`, `liste-r`) pour eviter des classes concurrentes.
+- Quand une classe de zone est presente, la generation CSS doit prioriser la zone et ignorer les definitions de placement legacy du meme decor.
+- Les definitions live de zones doivent etre dedupees par `className` pour eviter des regles redondantes en edition.
+- Cote rendu player, eviter le stripping agressif des tokens de placement: la normalisation doit se faire en amont (patch decor), pour ne pas casser les fallback CSS legacy.
+- Convention de nommage: utiliser `ed-zone-<slug(name)>` pour la classe cible d'une zone; ne pas se reposer sur des suffixes numeriques opaques (`ed-zone-04`) pour la selection.
+- Pour ne pas casser l'existant, garder une phase de compatibilite avec alias CSS (classe legacy + classe slug) tant que tous les decors ne sont pas migres.
+
+## 2026-04-05 — Repro precise avant fix de boucle React
+
+- En cas de "Maximum update depth exceeded", verrouiller d'abord le scenario exact utilisateur (ex: changement de position d'un custom-event sur item cible) avant d'optimiser un chemin plus large.
+- Sur les flux seek/edition, ne jamais declencher de flush sequence depuis des updates de progression seules; reserver les flushs aux triggers telco semantiques (`action/cue/event/itemId`).
+
+## 2026-04-05 — Geometrie DOM: pas de state derive en boucle
+
+- Ne pas stocker en `useState` une geometrie DOM derivee (`anchors`) calculee dans un `useEffect`; c'est un anti-pattern qui boucle facilement en mode strict.
+- Pour les evenements externes (resize viewport), preferer `useSyncExternalStore` puis recalculer la geometrie directement au render.
+- Si un `setState` geometrique reste necessaire, il doit etre strictement idempotent et borne a un flux d'evenement explicite.
+
+## 2026-04-05 — Decor patchs: interdire les no-op emissifs
+
+- Avant d'emettre `decor-patch-requested`, comparer `className/area` avec le decor courant et annuler l'emission si le patch est vide.
+- Dans les effets de controleur (mode position), ne pas forcer une normalisation de classe si elle ne produit aucun changement effectif.
+- Sinon on peut recreer le controller, relancer l'effet, et boucler indéfiniment sans stackoverflow explicite.
+- La comparaison de no-op doit se faire sur le **decor cible reel** (`payload.id`) et non sur un decor de contexte (item/event) pour eviter de filtrer un patch valide.
+- Quand un token `ed-zone-*` est present, assainir les classes de placement concurrentes (`cell-span`, `cell-r`, `cell_layout_auto`, `liste-r`) avant persistance pour eviter des classes mixtes incoherentes.
+
+## 2026-04-05 — Custom-event: collision de name et contrainte DB
+
+- Le modele DB impose `@@unique([itemId, name])` sur les events: un custom-event ne doit pas persister avec un `name` deja utilise sur le meme item.
+- Au lieu de laisser echouer la persistence (500), convertir automatiquement en mode delay (`name:null`, `delay` derive du cue selectionne) quand une collision est detectee.
+
 ## 2026-03-11 — Diagnostic temporel des custom-events
 
 - Ne pas conclure "event sans name" sans verifier la ligne DB cible (`event.id`) et la presence du cue dans `scene_content.events`.

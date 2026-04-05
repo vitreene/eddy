@@ -73,22 +73,29 @@ export async function action({ request, params }: Route.ActionArgs) {
 		[x: string]: TextTime;
 	} = body;
 
-	const events = await Promise.all(
-		Object.entries(data)
-			.filter(([action, texttime]) => shouldPersistEventPayload(action, texttime))
-			.map(([action, texttime]) =>
-				addEventToContent({
-					action,
-					id: texttime.id,
-					name: texttime.name,
-					ref: texttime.ref,
-					duration: (texttime as any).duration,
-					delay: (texttime as any).delay,
-					position: (texttime as any).position,
-					decorId: (texttime as any).decorId,
-					itemId: Number(id)
-				})
-			)
-	);
-	return { ok: true, id, events };
+	try {
+		const events = await Promise.all(
+			Object.entries(data)
+				.filter(([action, texttime]) => shouldPersistEventPayload(action, texttime))
+				.map(([action, texttime]) =>
+					addEventToContent({
+						action,
+						id: texttime.id,
+						name: texttime.name,
+						ref: texttime.ref,
+						duration: (texttime as any).duration,
+						delay: (texttime as any).delay,
+						position: (texttime as any).position,
+						decorId: (texttime as any).decorId,
+						itemId: Number(id)
+					})
+				)
+		);
+		return { ok: true, id, events };
+	} catch (error) {
+		return Response.json(
+			{ ok: false, message: error instanceof Error ? error.message : "Event persistence failed" },
+			{ status: 400 }
+		);
+	}
 }

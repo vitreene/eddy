@@ -35,6 +35,7 @@ import {
 	hasOwn,
 	mergeDecorStylePatch,
 	nextCustomAction,
+	resolveCustomEventNameCollision,
 	seedCustomEventPlacement,
 	withItemNodeIds
 } from "./scene-logic.helpers";
@@ -203,6 +204,11 @@ function applyActivePayload(
 		typeof nextActive.action == "string" ? nextActive.action : sequenceActionFromPayload;
 	const isTelcoAction = isSequenceAction(effectiveSequenceAction);
 	const isBeingEdited = Boolean(nextActive.eventTouched || nextActive.decorTouched || nextActive.themeTouched);
+	const hasTelcoTriggerPayload =
+		Object.prototype.hasOwnProperty.call(payload, "action") ||
+		Object.prototype.hasOwnProperty.call(payload, "cue") ||
+		Object.prototype.hasOwnProperty.call(payload, "event") ||
+		Object.prototype.hasOwnProperty.call(payload, "itemId");
 
 	if (isTelcoAction && isBeingEdited) {
 		const params = getTouchedParams(context);
@@ -213,7 +219,7 @@ function applyActivePayload(
 		}
 	}
 
-	if (isTelcoAction && nextActive.sequenceTouched) {
+	if (isTelcoAction && nextActive.sequenceTouched && hasTelcoTriggerPayload) {
 		const keepSelectionWhileEditing = shouldPreserveSelectionOnFlush(nextActive, "sequence-action", {
 			sequenceAction: effectiveSequenceAction
 		});
@@ -1015,16 +1021,22 @@ export const sceneLogic = setup({
 											clearTransforms: event.payload?.clearTransforms
 										})
 									});
+									const conflictSafe = resolveCustomEventNameCollision({
+										context,
+										itemId,
+										action,
+										draft: normalized
+									});
 
 									const customEvent = {
 										id: undefined,
 										action,
 										itemId,
-										name: normalized.name,
+										name: conflictSafe.name,
 										ref: normalized.ref,
-										delay: normalized.delay,
+										delay: conflictSafe.delay,
 										duration: normalized.duration,
-										position: normalized.position,
+										position: conflictSafe.position,
 										decorId: null
 									} as ContentEvent;
 
@@ -1075,6 +1087,12 @@ export const sceneLogic = setup({
 									} as Parameters<typeof normalizeCustomEventDraft>[0];
 
 									const normalized = normalizeCustomEventDraft(nextDraft);
+									const conflictSafe = resolveCustomEventNameCollision({
+										context,
+										itemId,
+										action: event.payload.action,
+										draft: normalized
+									});
 
 									return {
 										...context,
@@ -1084,11 +1102,11 @@ export const sceneLogic = setup({
 												...(context.events[itemId] ?? {}),
 												[event.payload.action]: {
 													...current,
-													name: normalized.name,
+													name: conflictSafe.name,
 													ref: normalized.ref,
-													delay: normalized.delay,
+													delay: conflictSafe.delay,
 													duration: normalized.duration,
-													position: normalized.position
+													position: conflictSafe.position
 												}
 											}
 										},

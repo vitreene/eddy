@@ -2,8 +2,9 @@ import cx from "classnames";
 import { animate } from "animejs";
 import {
 	useEffect,
-	useRef,
 	useState,
+	useSyncExternalStore,
+	useRef,
 	type Dispatch,
 	type PointerEvent as ReactPointerEvent,
 	type RefObject,
@@ -51,27 +52,16 @@ export function TimelinePointEditor({
 	onSelect?: (action: string) => void;
 	onCommit: (action: string, point: { cueName: string; position: CustomEventPosition }) => void;
 }) {
-	const [anchors, setAnchors] = useState<Array<TimelineAnchorGeometry>>([]);
 	const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
 	const dragPreviewRef = useRef<DragPreview | null>(null);
 	const animationRef = useRef<ReturnType<typeof animate> | null>(null);
 	const pointerMoveListenerRef = useRef<((event: PointerEvent) => void) | null>(null);
 	const pointerUpListenerRef = useRef<((event: PointerEvent) => void) | null>(null);
-
-	useEffect(() => {
-		const refreshAnchors = () => {
-			const nextAnchors = buildTimelineAnchors(containerRef.current, snapPoints, {
-				handleRadiusPx: HANDLE_RADIUS_PX
-			});
-			setAnchors(nextAnchors);
-		};
-
-		refreshAnchors();
-		window.addEventListener("resize", refreshAnchors);
-		return () => {
-			window.removeEventListener("resize", refreshAnchors);
-		};
-	}, [containerRef, snapPoints]);
+	const viewportResizeKey = useViewportResizeKey();
+	void viewportResizeKey;
+	const anchors = buildTimelineAnchors(containerRef.current, snapPoints, {
+		handleRadiusPx: HANDLE_RADIUS_PX
+	});
 
 	useEffect(() => {
 		return () => {
@@ -166,6 +156,25 @@ export function TimelinePointEditor({
 			) : null}
 		</div>
 	);
+}
+
+function useViewportResizeKey(): string {
+	return useSyncExternalStore(subscribeViewportResize, getViewportResizeSnapshot, () => "0x0");
+}
+
+function subscribeViewportResize(onStoreChange: () => void): () => void {
+	if (typeof window == "undefined") return () => {};
+	window.addEventListener("resize", onStoreChange);
+	window.visualViewport?.addEventListener("resize", onStoreChange);
+	return () => {
+		window.removeEventListener("resize", onStoreChange);
+		window.visualViewport?.removeEventListener("resize", onStoreChange);
+	};
+}
+
+function getViewportResizeSnapshot(): string {
+	if (typeof window == "undefined") return "0x0";
+	return `${window.innerWidth}x${window.innerHeight}`;
 }
 
 function commitTimelineDrag(params: {

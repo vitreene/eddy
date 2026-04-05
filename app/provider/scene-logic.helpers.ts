@@ -4,6 +4,7 @@ import { normalizeTransitionRef } from "@/config/transitions";
 import { normalizeSustainEffectRef } from "@/config/event-effects";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import {
+	resolveDelayFromCuePoint,
 	getCueTimeAtPosition,
 	resolveClosestCuePointFromDelay
 } from "@/scene-runtime/visibility/custom-event-cue-mapping";
@@ -325,6 +326,72 @@ export function computeCueForSelectedCustomEvent(
 	action: string
 ): number | null {
 	return resolveSelectedEventCueSec(context, itemId, action);
+}
+
+export function resolveCustomEventNameCollision(params: {
+	context: SceneComp & { active: ActiveState };
+	itemId: number;
+	action: string;
+	draft: { name?: string | null; delay?: number | null; position?: CustomEventPosition | null };
+}): { name: string | null; delay: number | null; position: CustomEventPosition | null } {
+	const { context, itemId, action, draft } = params;
+	if (deriveEventKind(action) !== "custom") {
+		return {
+			name: typeof draft.name === "string" && draft.name.trim().length ? draft.name.trim() : null,
+			delay:
+				typeof draft.delay === "number" && Number.isFinite(draft.delay) && draft.delay >= 0 ? draft.delay : null,
+			position: draft.position ?? null
+		};
+	}
+
+	const targetName = typeof draft.name === "string" ? draft.name.trim() : "";
+	const normalizedPosition =
+		draft.position === "middle" || draft.position === "end" || draft.position === "start"
+			? draft.position
+			: "start";
+	if (!targetName) {
+		return {
+			name: null,
+			delay:
+				typeof draft.delay === "number" && Number.isFinite(draft.delay) && draft.delay >= 0 ? draft.delay : null,
+			position: draft.position ?? null
+		};
+	}
+
+	const itemEvents = context.events[itemId] || {};
+	const hasDuplicateName = Object.values(itemEvents).some((event) => {
+		if (!event || event.action === action) return false;
+		if (typeof event.name !== "string") return false;
+		return event.name.trim() === targetName;
+	});
+	if (!hasDuplicateName) {
+		return {
+			name: targetName,
+			delay:
+				typeof draft.delay === "number" && Number.isFinite(draft.delay) && draft.delay >= 0 ? draft.delay : null,
+			position: draft.position ?? null
+		};
+	}
+
+	const sceneContent = getActiveSceneContent(context);
+	const cues = getSceneContentCues(sceneContent);
+	const introName = itemEvents[INTRO]?.name ?? null;
+	const outroName = itemEvents[OUTRO]?.name ?? null;
+	const fallbackDelay =
+		typeof draft.delay === "number" && Number.isFinite(draft.delay) && draft.delay >= 0 ? draft.delay : 0;
+	const resolvedDelay = resolveDelayFromCuePoint({
+		cues,
+		introName,
+		outroName,
+		cueName: targetName,
+		position: normalizedPosition
+	});
+
+	return {
+		name: null,
+		delay: typeof resolvedDelay === "number" && Number.isFinite(resolvedDelay) ? resolvedDelay : fallbackDelay,
+		position: draft.position ?? null
+	};
 }
 
 export function getTouchedParams(context: SceneComp & { active: ActiveState }): string[] {

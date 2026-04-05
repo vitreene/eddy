@@ -32,13 +32,25 @@ function normalizeToken(value: string): string {
 		.replace(/-{2,}/g, "-");
 }
 
+export function buildPositionZoneClassName(name: string, id?: number): string {
+	const token = normalizeToken(name) || `zone-${id ?? 1}`;
+	const core = token.replace(/^zone-+/, "") || token;
+	return `ed-zone-${core}`;
+}
+
+export function getPositionZoneClassAliases(zone: PositionZoneStored | PositionZoneRuntime): string[] {
+	const aliases = new Set<string>();
+	if (zone.className?.trim()) aliases.add(zone.className.trim());
+	aliases.add(buildPositionZoneClassName(zone.name, zone.id));
+	return [...aliases];
+}
+
 function makeDefaultName(index: number): string {
 	return `zone-${String(index + 1).padStart(2, "0")}`;
 }
 
 function makeDefaultClassName(name: string, id: number): string {
-	const token = normalizeToken(name) || `zone-${id}`;
-	return `ed-${token}`;
+	return buildPositionZoneClassName(name, id);
 }
 
 export function buildPositionZoneCssRule(className: string, rect: PositionZoneRect): string {

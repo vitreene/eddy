@@ -78,14 +78,19 @@ export function createTransformController(input: Input) {
 				.includes(POSITION_FULL_SPAN_CLASS)
 				? targetDecor.className
 				: buildSpanClassFromArea(targetDecor.area);
-		if (targetDecor.area || spanClass !== targetDecor.className) {
+		const shouldApplySpanClass = Boolean(spanClass) && spanClass !== targetDecor.className;
+		if (targetDecor.area || shouldApplySpanClass) {
 			clearPlacementAreaTokens(activeNode);
 			if (targetDecor.area) applyAreaClassPatch(activeNode, targetDecor.area, null);
-			if (spanClass) {
+			if (shouldApplySpanClass && spanClass) {
 				ensureLivePlacementClassDefinitions(activeNode, spanClass);
 				applyClassTokenPatch(activeNode, targetDecor.className ?? null, spanClass);
 			}
-			onDecorUpdate({ id: targetDecor.id, area: null, className: spanClass ?? targetDecor.className ?? null });
+			onDecorUpdate({
+				id: targetDecor.id,
+				area: null,
+				className: shouldApplySpanClass ? spanClass : (targetDecor.className ?? null)
+			});
 		}
 	};
 
