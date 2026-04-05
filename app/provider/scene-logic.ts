@@ -18,7 +18,6 @@ import {
 	type CustomEventPosition
 } from "@/config/custom-events";
 import { replaceEventRefPreservingMedia } from "@/lib/event-ref";
-import { traceEddy } from "@/lib/eddy-trace";
 import { getPlayerNode } from "@/scene-runtime/node-resolver";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import {
@@ -169,17 +168,6 @@ function applyActivePayload(
 	if (itemId && "event" in payload && nextEvent) {
 		const eventCue = computeCueForSelectedCustomEvent(context, itemId, nextEvent);
 		if (typeof eventCue == "number" && Number.isFinite(eventCue)) cue = eventCue;
-		traceEddy(
-			"selection",
-			"event-cue-resolved",
-			{
-				event: nextEvent,
-				resolvedCue: typeof eventCue == "number" && Number.isFinite(eventCue) ? eventCue : null,
-				previousCue: context.active.cue,
-				payloadCue: Object.prototype.hasOwnProperty.call(payload, "cue") ? (payload.cue ?? null) : null
-			},
-			{ itemId }
-		);
 	}
 
 	let nextActive = {
@@ -203,21 +191,6 @@ function applyActivePayload(
 					Math.abs(previousCue - cue) > ACTIVE_SET_SEEK_EPSILON_SEC;
 				const explicitSeek =
 					"action" in payload && typeof payload.action === "string" && payload.action === "seek";
-				traceEddy(
-					"selection",
-					"seek-decision",
-					{
-						event: nextEvent,
-						eventKind: kind,
-						previousEvent: context.active.event,
-						eventChanged,
-						previousCue,
-						nextCue: cue,
-						cueChanged,
-						explicitSeek
-					},
-					{ itemId }
-				);
 				if (eventChanged || cueChanged || explicitSeek) {
 					nextActive = {
 						...nextActive,
@@ -255,36 +228,6 @@ function applyActivePayload(
 		nextActive = requestSequenceFlush(nextActive, "sequence-action", {
 			preserveSelection: keepSelectionWhileEditing
 		});
-	}
-
-	if (hasTelcoTriggerPayload) {
-		traceEddy(
-			"selection",
-			"active-apply",
-			{
-				payload: {
-					itemId: Object.prototype.hasOwnProperty.call(payload, "itemId") ? (payload.itemId ?? null) : undefined,
-					event: Object.prototype.hasOwnProperty.call(payload, "event") ? (payload.event ?? null) : undefined,
-					action: Object.prototype.hasOwnProperty.call(payload, "action") ? (payload.action ?? null) : undefined,
-					cue: Object.prototype.hasOwnProperty.call(payload, "cue") ? (payload.cue ?? null) : undefined
-				},
-				activeBefore: {
-					itemId: context.active.itemId,
-					event: context.active.event,
-					action: context.active.action,
-					cue: context.active.cue
-				},
-				activeAfter: {
-					itemId: nextActive.itemId,
-					event: nextActive.event,
-					action: nextActive.action,
-					cue: nextActive.cue
-				},
-				sequenceFlushToken: nextActive.sequenceFlushToken,
-				sequenceFlushReason: nextActive.sequenceFlushReason
-			},
-			{ itemId: itemId ?? null }
-		);
 	}
 
 	return {

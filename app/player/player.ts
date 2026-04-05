@@ -9,27 +9,9 @@ import { P } from "./types";
 import { getAbsoluteCoords, getTransform } from "./deps/utils";
 import { DEFAULT_DURATION } from "../config/constants";
 import { SCENE_ID } from "@/scene-runtime/constants";
-import { shouldUseLastEndCoords, traceEddy } from "@/lib/eddy-trace";
 
 function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: boolean } {
 	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
-}
-
-function getItemIdFromNodeId(nodeId: ID): number | null {
-	if (typeof nodeId !== "string") return null;
-	const match = /^item__?(\d+)$/.exec(nodeId);
-	if (!match) return null;
-	const parsed = Number(match[1]);
-	return Number.isFinite(parsed) ? parsed : null;
-}
-
-function readInlineGeometrySnapshot($el: HTMLElement) {
-	return {
-		inlineWidth: $el.style.width || "",
-		inlineHeight: $el.style.height || "",
-		inlineTransform: $el.style.transform || "",
-		inlineTransformOrigin: $el.style.transformOrigin || ""
-	};
 }
 
 function areRectsClose(
@@ -261,14 +243,6 @@ export class Player {
 		this.lastEndCoords.clear();
 		this.clearChangeSnapshots();
 		this.clearTransientMoveInlineStyles();
-		traceEddy("timeline", "seek", {
-			targetMs: time,
-			clearLastEndCoordsOnSeek: true,
-			clearSnapshotsOnSeek: true,
-			clearTransientInlineOnSeek: true,
-			cachedLastEndCoords: this.lastEndCoords.size,
-			timelineCurrentMs: this.timeLine.currentTime
-		});
 		this.seekChanges(time);
 
 		this.timeLine.seek(+time);
@@ -300,14 +274,8 @@ export class Player {
 		return this.updateRuntime;
 	}
 
-	private resetUpdateRuntimeState(reason: "seek" | "replay" | "revert") {
+	private resetUpdateRuntimeState(_reason: "seek" | "replay" | "revert") {
 		const runtime = this.updateRuntime;
-		const previous = {
-			persoPositions: runtime.persoPositions.size,
-			transitions: runtime.transitions.size,
-			setters: runtime.setters.size,
-			previousTime: runtime.previousTime
-		};
 
 		for (const setter of runtime.setters.values()) {
 			setter.revert();
@@ -317,11 +285,6 @@ export class Player {
 		runtime.transitions.clear();
 		runtime.setters.clear();
 		runtime.previousTime = null;
-
-		traceEddy("timeline", "runtime-reset", {
-			reason,
-			previous
-		});
 	}
 
 	private clearTransientMoveInlineStyles() {
@@ -468,7 +431,7 @@ export class Player {
 
 				// Utiliser les dimensions de fin de la dernière transition si disponibles
 				const lastEndCoords = this.lastEndCoords.get(id);
-				const canUseLastEndCoords = shouldUseLastEndCoords();
+				const canUseLastEndCoords = true;
 				const oldRectFromDom = getAbsoluteCoords($el);
 				const canUseCachedRect =
 					Boolean(canUseLastEndCoords && lastEndCoords) &&
@@ -483,44 +446,12 @@ export class Player {
 				if (!canUseCachedRect && lastEndCoords) {
 					this.lastEndCoords.delete(id);
 				}
-				const classBefore = $el.className || "";
-				const styleBefore = readInlineGeometrySnapshot($el);
 
 				this._applyChanges(id, change);
 				const nex = getAbsoluteCoords($el);
-				const classAfterClassChange = $el.className || "";
-				const styleAfterClassChange = readInlineGeometrySnapshot($el);
 
 				const px = Number(utils.get($el, "x", false));
 				const py = Number(utils.get($el, "y", false));
-
-				traceEddy(
-					"flip",
-					"move-change-auto",
-					{
-						move: change.move,
-						usedLastEndCoords: Boolean(canUseCachedRect && lastEndCoords),
-						lastEndCoordsRejected: Boolean(lastEndCoords) && !canUseCachedRect,
-						lastEndCoords: lastEndCoords
-							? {
-									x: lastEndCoords.x,
-									y: lastEndCoords.y,
-									width: lastEndCoords.width,
-									height: lastEndCoords.height
-								}
-							: null,
-						oldRectFromDom,
-						oldRectUsed: old,
-						nextRect: nex,
-						px,
-						py,
-						classBefore,
-						classAfterClassChange,
-						styleBefore,
-						styleAfterClassChange
-					},
-					{ nodeId: String(id), itemId: getItemIdFromNodeId(id) }
-				);
 
 				return this._createMoveTransition($el, old, nex, px, py, change.move);
 			}
@@ -540,25 +471,11 @@ export class Player {
 		const dx = old.x - nex.x;
 		const dy = old.y - nex.y;
 		if (dx === 0 && dy === 0 && old.width === nex.width && old.height === nex.height) {
-			traceEddy(
-				"flip",
-				"transition-skip-no-delta",
-				{
-					old,
-					next: nex,
-					px,
-					py,
-					moveOptions: moveOptions ?? null
-				},
-				{ nodeId: $el.id, itemId: getItemIdFromNodeId($el.id) }
-			);
 			return undefined;
 		}
 
 		const diff = getTransform($el).translate(-px, -py).invertSelf().transformPoint(new DOMPoint(dx, dy));
 
-		// Jouer l'animation jusqu'à la fin pour placer l'élément à sa position finale
-		// Cela permet à la prochaine transition de lire les bonnes dimensions
 		const animationParams: Parameters<typeof animate>[1] = {
 			x: { from: diff.x + px, to: 0 + px },
 			y: { from: diff.y + py, to: 0 + py },
@@ -580,36 +497,6 @@ export class Player {
 
 		// Stocker les dimensions de fin dans lastEndCoords pour la prochaine transition
 		this.lastEndCoords.set($el.id, { x: nex.x, y: nex.y, width: nex.width, height: nex.height });
-
-		traceEddy(
-			"flip",
-			"transition-create",
-			{
-				dx,
-				dy,
-				old,
-				next: nex,
-				px,
-				py,
-				diff: { x: diff.x, y: diff.y },
-				moveOptions: moveOptions ?? null,
-				animationFromTo: {
-					x: (animationParams as any).x ?? null,
-					y: (animationParams as any).y ?? null,
-					width: (animationParams as any).width ?? null,
-					height: (animationParams as any).height ?? null
-				},
-				styleAfterTransitionBuild: readInlineGeometrySnapshot($el),
-				cachedLastEndCoords: this.lastEndCoords.get($el.id) ?? null
-			},
-			{ nodeId: $el.id, itemId: getItemIdFromNodeId($el.id) }
-		);
-
-		// Jouer jusqu'à la fin pour avoir les dimensions finales
-		animation.seek(animation.duration);
-
-		// Remettre à 0 pour que la timeline puisse jouer la transition
-		animation.seek(0);
 
 		return animation;
 	}

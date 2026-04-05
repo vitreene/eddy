@@ -1,6 +1,5 @@
 import { utils } from "animejs";
 import { getProgression, setNextChange } from "./utils";
-import { traceEddy } from "@/lib/eddy-trace";
 
 import type { Timeline, JSAnimation } from "animejs";
 import type { ID } from "../types";
@@ -53,7 +52,6 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 
 			const $el = this.$elements.get(id);
 
-			// update transition
 			if (change && transitions.has(change)) {
 				const transition = transitions.get(change)!;
 				const progress = resolveChangeProgress(currentTime, change);
@@ -64,45 +62,15 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						clearMoveInlineStyles($el as HTMLElement);
 					}
 					transitions.delete(change);
-					traceEddy(
-						"flip",
-						"transition-complete-forward",
-						{
-							currentTime,
-							window: { curr: change.curr, next: change.next, prev: change.prev },
-							nodeStyleAfterCleanup: $el
-								? {
-										width: ($el as HTMLElement).style.width || "",
-										height: ($el as HTMLElement).style.height || "",
-										transform: ($el as HTMLElement).style.transform || ""
-									}
-								: null
-						},
-						{ nodeId: String(id) }
-					);
 				}
 			}
 
-			// update sets :
 			if (currentTime >= (change!.next ?? Infinity) || currentTime <= (change.curr! ?? 0)) {
 				const nextChange = setNextChange(currentTime, change, changes);
 
 				if (nextChange == null) return;
 
 				persoPositions.set(id, nextChange);
-				traceEddy(
-					"flip",
-					"change-window-enter",
-					{
-						currentTime,
-						isBackward,
-						previousWindow: { curr: change.curr, next: change.next, prev: change.prev },
-						nextWindow: { curr: nextChange.curr, next: nextChange.next, prev: nextChange.prev },
-						nextMove: nextChange.change?.move ?? null,
-						hadPreviousSnapshot: Boolean(change.snapshot)
-					},
-					{ nodeId: String(id) }
-				);
 
 				if (setters.has(id)) {
 					setters.get(id)!.revert();
@@ -114,56 +82,12 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 					if (!isBackward) {
 						previousTransition.progress = 1;
 						clearMoveInlineStyles($el as HTMLElement);
-						traceEddy(
-							"flip",
-							"transition-finalize-forward",
-							{
-								currentTime,
-								window: { curr: change.curr, next: change.next, prev: change.prev },
-								nodeStyleAfterCleanup: {
-									width: ($el as HTMLElement).style.width || "",
-									height: ($el as HTMLElement).style.height || "",
-									transform: ($el as HTMLElement).style.transform || ""
-								}
-							},
-							{ nodeId: String(id) }
-						);
 					}
 					transitions.delete(change);
 				}
 
 				if (change.snapshot && isBackward) {
 					setters.set(id, utils.set($el, change.snapshot));
-					traceEddy(
-						"flip",
-						"snapshot-apply",
-						{
-							currentTime,
-							snapshot: change.snapshot,
-							nodeStyle: {
-								width: ($el as HTMLElement).style.width || "",
-								height: ($el as HTMLElement).style.height || "",
-								transform: ($el as HTMLElement).style.transform || ""
-							}
-						},
-						{ nodeId: String(id) }
-					);
-				} else if (change.snapshot) {
-					traceEddy(
-						"flip",
-						"snapshot-skip-forward",
-						{
-							currentTime,
-							isBackward,
-							snapshot: change.snapshot,
-							nodeStyle: {
-								width: ($el as HTMLElement).style.width || "",
-								height: ($el as HTMLElement).style.height || "",
-								transform: ($el as HTMLElement).style.transform || ""
-							}
-						},
-						{ nodeId: String(id) }
-					);
 				}
 
 				if (
@@ -178,17 +102,6 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						originX: utils.get($el, "originX"),
 						originY: utils.get($el, "originY")
 					};
-					traceEddy(
-						"flip",
-						"snapshot-capture",
-						{
-							currentTime,
-							snapshot: nextChange.snapshot,
-							nextWindow: { curr: nextChange.curr, next: nextChange.next },
-							nextMove: nextChange.change?.move ?? null
-						},
-						{ nodeId: String(id) }
-					);
 
 					if (transitions.has(nextChange)) {
 						const existing = transitions.get(nextChange)!;

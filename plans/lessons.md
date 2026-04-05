@@ -49,11 +49,9 @@
 - Dans le player, ne jamais traiter un `className` action `{add/remove}` comme remplacement total de `element.className`; l'appliquer comme patch sur les classes existantes pour conserver les tokens structurels (`bg-picture`, `ed-item`).
 - Respecter strictement le contrat d'interface: en V1, `{ add/remove }` signifie patch (ajout/retrait) et ne doit jamais declencher un comportement de remplacement total reserve a un autre mode/version.
 - Ne pas "aplatir" un seek en appliquant tous les keyframes <= t: pour conserver les etats intermediaires d'une transition, reconstruire l'etat de base a `curr` puis rejouer la transition active a la progression du temps cible.
-
-## 2026-04-05 — Traces de debug: activation robuste
-
-- Si un utilisateur dit "je n'ai aucune trace", fournir une API globale simple (`window.__EDDY_TRACE__`) et utiliser `console.log` (pas `console.debug`) pour eviter le filtrage implicite.
-- Persist config + dump buffer pour diagnostiquer sans dependre d'un state JS volatil entre rechargements.
+- Ne pas changer les comparateurs de bornes FLIP (`<=`/`<`) sans preuve tracee du defaut exact; ces changements peuvent casser un contrat runtime deja valide.
+- Ne pas changer le referentiel de mesure geometrie (viewport vs offset-parent) sans preuve tracee sur le cas reel; privilegier un diagnostic old/nex + expected/actual avant toute bascule.
+- Si `old/nex` sont corrects mais la largeur effective saute au seed (delta `dw` massif), verifier les contraintes CSS globales (ex: preflight `img{max-width:100%}`) qui peuvent annuler l'interpolation width/height FLIP.
 
 ## 2026-04-05 — Repro precise avant fix de boucle React
 

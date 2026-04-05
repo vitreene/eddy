@@ -1,5 +1,4 @@
 import { applyStyleDefaults } from "@/config/item-style-defaults";
-import { traceEddy } from "@/lib/eddy-trace";
 
 import { applyLiveStyleOnNode } from "./live-node-style";
 import {
@@ -54,13 +53,6 @@ export function projectEditableVisualStateToNode(
 	state: EditableVisualState | null
 ) {
 	if (!node || !state) return;
-	const before = {
-		className: node.className || "",
-		width: node.style.width || "",
-		height: node.style.height || "",
-		transform: node.style.transform || "",
-		transformOrigin: node.style.transformOrigin || ""
-	};
 
 	clearPlacementAreaTokens(node);
 	applyClassTokenPatch(node, null, state.className);
@@ -68,28 +60,6 @@ export function projectEditableVisualStateToNode(
 	ensureLiveAreaClassDefinition(node, state.area);
 	applyAreaClassPatch(node, null, state.area);
 	applyLiveStyleOnNode(node, state.style);
-
-	traceEddy(
-		"selection",
-		"project-visual-state",
-		{
-			eventAction: state.eventAction,
-			cueSec: state.cueSec,
-			decorId: state.decorId,
-			area: state.area,
-			className: state.className,
-			styleKeys: Object.keys(state.style || {}),
-			before,
-			after: {
-				className: node.className || "",
-				width: node.style.width || "",
-				height: node.style.height || "",
-				transform: node.style.transform || "",
-				transformOrigin: node.style.transformOrigin || ""
-			}
-		},
-		{ itemId: state.itemId, nodeId: node.id || null }
-	);
 }
 
 function toFiniteNumber(value: unknown): number | null {
