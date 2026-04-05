@@ -5,7 +5,7 @@ import { computeCueForSelectedCustomEvent } from "../app/provider/scene-logic.he
 
 const scene: any = {
 	id: 1,
-	title: "custom-preflip-selection",
+	title: "custom-selection-anchor",
 	main: 1,
 	events: {
 		10: {
@@ -52,6 +52,6 @@ const scene: any = {
 };
 
 const customCue = computeCueForSelectedCustomEvent(scene, 10, "custom-1");
-assert.equal(customCue, 1.999, "custom selection should seek just before keyframe");
+assert.equal(customCue, 2, "custom selection should seek on keyframe");
 
-console.log("custom event preflip selection smoke: all checks passed");
+console.log("custom event selection anchor smoke: all checks passed");

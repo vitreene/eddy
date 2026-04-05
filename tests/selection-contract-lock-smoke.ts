@@ -63,7 +63,10 @@ const custom2Cue = computeCueForSelectedCustomEvent(fixture, 55, "custom-2");
 const outroCue = computeCueForSelectedCustomEvent(fixture, 55, OUTRO);
 
 assert.equal(introCue, 1.5, "intro should anchor at intro start + default duration");
-assert.equal(custom2Cue, 5.799, "custom should anchor pre-FLIP (1ms before keyframe)");
+assert.ok(
+	typeof custom2Cue === "number" && Math.abs(custom2Cue - 5.8) < 1e-9,
+	"custom should anchor on keyframe"
+);
 assert.equal(outroCue, 5.66, "outro should anchor at outro start (end - default duration)");
 
 const introDecor = resolveDecorAtEventAction(fixture, 55, INTRO, fixture.decors[84] as any) as any;

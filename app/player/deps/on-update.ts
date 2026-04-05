@@ -1,5 +1,6 @@
 import { utils } from "animejs";
 import { getProgression, setNextChange } from "./utils";
+import { traceEddy } from "@/lib/eddy-trace";
 
 import type { Timeline, JSAnimation } from "animejs";
 import type { ID } from "../types";
@@ -11,10 +12,18 @@ function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: bo
 	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
 }
 
+function clearMoveInlineStyles(node: HTMLElement) {
+	node.style.removeProperty("width");
+	node.style.removeProperty("height");
+	node.style.removeProperty("transform");
+	node.style.removeProperty("transform-origin");
+}
+
 export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean {
-	const persoPositions = new Map<ID, Change>();
-	const transitions = new Map<Change, JSAnimation>();
-	const setters = new Map<ID, JSAnimation>();
+	const runtime = this.getUpdateRuntimeState();
+	const persoPositions = runtime.persoPositions;
+	const transitions = runtime.transitions;
+	const setters = runtime.setters;
 
 	const getChange = (id: ID, currentTime: number) => {
 		if (persoPositions.has(id)) return persoPositions.get(id);
@@ -35,6 +44,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 
 	return (self: Timeline) => {
 		const currentTime = self.iterationCurrentTime;
+		const isBackward = typeof runtime.previousTime === "number" && currentTime < runtime.previousTime - 0.001;
 
 		this.persoChanges.forEach((changes, id) => {
 			const change = getChange(id, currentTime);
@@ -48,6 +58,29 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 				const transition = transitions.get(change)!;
 				const progress = resolveChangeProgress(currentTime, change);
 				transition.progress = progress;
+				if (!isBackward && progress >= 0.999) {
+					transition.progress = 1;
+					if ($el) {
+						clearMoveInlineStyles($el as HTMLElement);
+					}
+					transitions.delete(change);
+					traceEddy(
+						"flip",
+						"transition-complete-forward",
+						{
+							currentTime,
+							window: { curr: change.curr, next: change.next, prev: change.prev },
+							nodeStyleAfterCleanup: $el
+								? {
+										width: ($el as HTMLElement).style.width || "",
+										height: ($el as HTMLElement).style.height || "",
+										transform: ($el as HTMLElement).style.transform || ""
+									}
+								: null
+						},
+						{ nodeId: String(id) }
+					);
+				}
 			}
 
 			// update sets :
@@ -57,14 +90,80 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 				if (nextChange == null) return;
 
 				persoPositions.set(id, nextChange);
+				traceEddy(
+					"flip",
+					"change-window-enter",
+					{
+						currentTime,
+						isBackward,
+						previousWindow: { curr: change.curr, next: change.next, prev: change.prev },
+						nextWindow: { curr: nextChange.curr, next: nextChange.next, prev: nextChange.prev },
+						nextMove: nextChange.change?.move ?? null,
+						hadPreviousSnapshot: Boolean(change.snapshot)
+					},
+					{ nodeId: String(id) }
+				);
 
 				if (setters.has(id)) {
 					setters.get(id)!.revert();
 				}
 				if (!$el) return;
 
-				if (change.snapshot) {
+				if (transitions.has(change)) {
+					const previousTransition = transitions.get(change)!;
+					if (!isBackward) {
+						previousTransition.progress = 1;
+						clearMoveInlineStyles($el as HTMLElement);
+						traceEddy(
+							"flip",
+							"transition-finalize-forward",
+							{
+								currentTime,
+								window: { curr: change.curr, next: change.next, prev: change.prev },
+								nodeStyleAfterCleanup: {
+									width: ($el as HTMLElement).style.width || "",
+									height: ($el as HTMLElement).style.height || "",
+									transform: ($el as HTMLElement).style.transform || ""
+								}
+							},
+							{ nodeId: String(id) }
+						);
+					}
+					transitions.delete(change);
+				}
+
+				if (change.snapshot && isBackward) {
 					setters.set(id, utils.set($el, change.snapshot));
+					traceEddy(
+						"flip",
+						"snapshot-apply",
+						{
+							currentTime,
+							snapshot: change.snapshot,
+							nodeStyle: {
+								width: ($el as HTMLElement).style.width || "",
+								height: ($el as HTMLElement).style.height || "",
+								transform: ($el as HTMLElement).style.transform || ""
+							}
+						},
+						{ nodeId: String(id) }
+					);
+				} else if (change.snapshot) {
+					traceEddy(
+						"flip",
+						"snapshot-skip-forward",
+						{
+							currentTime,
+							isBackward,
+							snapshot: change.snapshot,
+							nodeStyle: {
+								width: ($el as HTMLElement).style.width || "",
+								height: ($el as HTMLElement).style.height || "",
+								transform: ($el as HTMLElement).style.transform || ""
+							}
+						},
+						{ nodeId: String(id) }
+					);
 				}
 
 				if (
@@ -79,6 +178,17 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 						originX: utils.get($el, "originX"),
 						originY: utils.get($el, "originY")
 					};
+					traceEddy(
+						"flip",
+						"snapshot-capture",
+						{
+							currentTime,
+							snapshot: nextChange.snapshot,
+							nextWindow: { curr: nextChange.curr, next: nextChange.next },
+							nextMove: nextChange.change?.move ?? null
+						},
+						{ nodeId: String(id) }
+					);
 
 					if (transitions.has(nextChange)) {
 						const existing = transitions.get(nextChange)!;
@@ -101,15 +211,17 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 				this.applyMediaChanges(currentTime, id, nextChange.change);
 			}
 		});
+		runtime.previousTime = currentTime;
 		return true;
 	};
 }
 
 export function resolveTransitionEnd(change: Change): number {
+	const defaultEnd = (change.curr || 0) + DEFAULT_DURATION;
 	if (typeof change.next === "number" && Number.isFinite(change.next) && change.next > change.curr!) {
-		return change.next;
+		return Math.min(change.next, defaultEnd);
 	}
-	return (change.curr || 0) + DEFAULT_DURATION;
+	return defaultEnd;
 }
 
 export function resolveChangeProgress(currentTime: number, change: Change): number {

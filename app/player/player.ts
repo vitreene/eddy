@@ -9,9 +9,56 @@ import { P } from "./types";
 import { getAbsoluteCoords, getTransform } from "./deps/utils";
 import { DEFAULT_DURATION } from "../config/constants";
 import { SCENE_ID } from "@/scene-runtime/constants";
+import { shouldUseLastEndCoords, traceEddy } from "@/lib/eddy-trace";
 
 function isAutoMove(move: unknown): move is { mode: "auto"; clearTransforms?: boolean } {
 	return Boolean(move && typeof move == "object" && (move as any).mode === "auto");
+}
+
+function getItemIdFromNodeId(nodeId: ID): number | null {
+	if (typeof nodeId !== "string") return null;
+	const match = /^item__?(\d+)$/.exec(nodeId);
+	if (!match) return null;
+	const parsed = Number(match[1]);
+	return Number.isFinite(parsed) ? parsed : null;
+}
+
+function readInlineGeometrySnapshot($el: HTMLElement) {
+	return {
+		inlineWidth: $el.style.width || "",
+		inlineHeight: $el.style.height || "",
+		inlineTransform: $el.style.transform || "",
+		inlineTransformOrigin: $el.style.transformOrigin || ""
+	};
+}
+
+function areRectsClose(
+	a: { x: number; y: number; width: number; height: number },
+	b: { x: number; y: number; width: number; height: number },
+	epsilon = 0.75
+): boolean {
+	return (
+		Math.abs(a.x - b.x) <= epsilon &&
+		Math.abs(a.y - b.y) <= epsilon &&
+		Math.abs(a.width - b.width) <= epsilon &&
+		Math.abs(a.height - b.height) <= epsilon
+	);
+}
+
+function resolveTransitionEndAtTime(change: Change): number {
+	const curr = typeof change.curr === "number" && Number.isFinite(change.curr) ? change.curr : 0;
+	const defaultEnd = curr + DEFAULT_DURATION;
+	if (typeof change.next === "number" && Number.isFinite(change.next) && change.next > curr) {
+		return Math.min(change.next, defaultEnd);
+	}
+	return defaultEnd;
+}
+
+function resolveChangeProgressAtTime(currentTime: number, change: Change): number {
+	const curr = typeof change.curr === "number" && Number.isFinite(change.curr) ? change.curr : 0;
+	const end = resolveTransitionEndAtTime(change);
+	if (end <= curr) return 1;
+	return Math.max(0, Math.min(1, (currentTime - curr) / (end - curr)));
 }
 
 import type { Change } from "./deps/static-changes";
@@ -52,6 +99,13 @@ export class Player {
 	onEnd: (tm: Timer) => void = () => {};
 	onTimelineUpdate?: (self: Timeline, duration: number) => void;
 	isMuted = false;
+
+	private updateRuntime = {
+		persoPositions: new Map<ID, Change>(),
+		transitions: new Map<Change, JSAnimation>(),
+		setters: new Map<ID, JSAnimation>(),
+		previousTime: null as number | null
+	};
 
 	// Stocker les dimensions de fin de la dernière transition pour la prochaine transition
 	private lastEndCoords = new Map<ID, { x: number; y: number; width: number; height: number }>();
@@ -172,6 +226,10 @@ export class Player {
 	};
 
 	private replay = () => {
+		this.resetUpdateRuntimeState("replay");
+		this.lastEndCoords.clear();
+		this.clearChangeSnapshots();
+		this.clearTransientMoveInlineStyles();
 		this.timeLine.restart();
 		this.seekChanges(0);
 		this.seekMedias(0);
@@ -186,6 +244,10 @@ export class Player {
 	};
 
 	private revert = () => {
+		this.resetUpdateRuntimeState("revert");
+		this.lastEndCoords.clear();
+		this.clearChangeSnapshots();
+		this.clearTransientMoveInlineStyles();
 		this.timeLine.revert();
 		return this.timeLine;
 	};
@@ -194,6 +256,18 @@ export class Player {
 		this.timeLine.pause();
 		this.mediaStatus.forEach((ms) => {
 			ms.node.pause();
+		});
+		this.resetUpdateRuntimeState("seek");
+		this.lastEndCoords.clear();
+		this.clearChangeSnapshots();
+		this.clearTransientMoveInlineStyles();
+		traceEddy("timeline", "seek", {
+			targetMs: time,
+			clearLastEndCoordsOnSeek: true,
+			clearSnapshotsOnSeek: true,
+			clearTransientInlineOnSeek: true,
+			cachedLastEndCoords: this.lastEndCoords.size,
+			timelineCurrentMs: this.timeLine.currentTime
 		});
 		this.seekChanges(time);
 
@@ -211,20 +285,98 @@ export class Player {
 			$node.currentTime = clampedTimeSec;
 		});
 	};
-	private seekChanges(time: number) {
-		this.persoChanges.forEach((pcs, id) => {
-			const changes = [];
-			let lastParentMove: ID | null = null;
 
-			for (const [t, pc] of Object.entries(pcs)) {
-				if (Number(t) <= time) {
-					changes.push(pc.change);
-					if (typeof pc.change.move === "string") {
-						lastParentMove = pc.change.move;
-					}
-				} else break;
+	private clearChangeSnapshots() {
+		this.persoChanges.forEach((changes) => {
+			Object.values(changes).forEach((change) => {
+				if (change && typeof change == "object" && "snapshot" in change) {
+					delete change.snapshot;
+				}
+			});
+		});
+	}
+
+	getUpdateRuntimeState() {
+		return this.updateRuntime;
+	}
+
+	private resetUpdateRuntimeState(reason: "seek" | "replay" | "revert") {
+		const runtime = this.updateRuntime;
+		const previous = {
+			persoPositions: runtime.persoPositions.size,
+			transitions: runtime.transitions.size,
+			setters: runtime.setters.size,
+			previousTime: runtime.previousTime
+		};
+
+		for (const setter of runtime.setters.values()) {
+			setter.revert();
+		}
+
+		runtime.persoPositions.clear();
+		runtime.transitions.clear();
+		runtime.setters.clear();
+		runtime.previousTime = null;
+
+		traceEddy("timeline", "runtime-reset", {
+			reason,
+			previous
+		});
+	}
+
+	private clearTransientMoveInlineStyles() {
+		this.$elements.forEach(($el) => {
+			$el.style.removeProperty("width");
+			$el.style.removeProperty("height");
+			$el.style.removeProperty("transform");
+			$el.style.removeProperty("transform-origin");
+		});
+	}
+
+	private seekChanges(time: number) {
+		const runtime = this.updateRuntime;
+
+		this.persoChanges.forEach((pcs, id) => {
+			const entries = Object.entries(pcs)
+				.map(([position, change]) => ({ position: Number(position), change }))
+				.filter((entry) => Number.isFinite(entry.position))
+				.sort((a, b) => a.position - b.position);
+			if (!entries.length) return;
+
+			const activeChange =
+				entries.find((entry) => {
+					const curr =
+						typeof entry.change.curr === "number" && Number.isFinite(entry.change.curr)
+							? entry.change.curr
+							: entry.position;
+					const next =
+						typeof entry.change.next === "number" && Number.isFinite(entry.change.next)
+							? entry.change.next
+							: Infinity;
+					return time >= curr && time <= next;
+				})?.change || entries[entries.length - 1].change;
+
+			const activeCurr =
+				typeof activeChange.curr === "number" && Number.isFinite(activeChange.curr) ? activeChange.curr : 0;
+
+			const baselineChanges: Array<Partial<ActionAtributes>> = [];
+			let lastParentMove: ID | null = null;
+			for (const entry of entries) {
+				const curr =
+					typeof entry.change.curr === "number" && Number.isFinite(entry.change.curr)
+						? entry.change.curr
+						: entry.position;
+				if (curr >= activeCurr) break;
+				baselineChanges.push(entry.change.change);
+				if (typeof entry.change.change.move === "string") {
+					lastParentMove = entry.change.change.move;
+				}
 			}
-			const change = changes.reduce((a, c) => ({ ...a, ...c }), {});
+
+			const baseline = baselineChanges.reduce(
+				(acc, current) => ({ ...acc, ...current }),
+				{} as Partial<ActionAtributes>
+			);
 
 			if (lastParentMove) {
 				const $el = this.$elements.get(id);
@@ -234,21 +386,48 @@ export class Player {
 				}
 			}
 
-			if (typeof change.move === "string") {
-				this._moveChange(id, change);
-			} else if (change.move !== true && !isAutoMove(change.move)) {
-				this._moveChange(id, change);
+			if (typeof baseline.move === "string") {
+				this._moveChange(id, baseline);
+			} else if (baseline.move !== true && !isAutoMove(baseline.move)) {
+				this._moveChange(id, baseline);
 			}
-			this._applyChanges(id, change);
-			this.applyMediaChanges(time, id, change, true);
+			this._applyChanges(id, baseline);
+			if (Object.keys(baseline).length) {
+				this.applyMediaChanges(time, id, baseline, true);
+			}
+
+			const activePatch = activeChange.change;
+			if (time >= activeCurr) {
+				if ((typeof activePatch.move === "boolean" && activePatch.move) || isAutoMove(activePatch.move)) {
+					const transition = this._moveChange(id, activePatch);
+					if (transition) {
+						runtime.transitions.set(activeChange, transition);
+						transition.progress = resolveChangeProgressAtTime(time, activeChange);
+					}
+				} else if (typeof activePatch.move === "string") {
+					this._moveChange(id, activePatch);
+					this._applyChanges(id, activePatch);
+				} else {
+					this._applyChanges(id, activePatch);
+				}
+
+				this.applyMediaChanges(time, id, activePatch, true);
+			}
+
+			runtime.persoPositions.set(id, activeChange);
 		});
+
+		runtime.previousTime = time;
 	}
 
 	_applyChanges(id: ID, change: Partial<ActionAtributes>) {
 		const $el = this.$elements.get(id);
 
 		if (change.className) {
-			$el.className = mixClassNames(change.className);
+			$el.className =
+				typeof change.className === "string"
+					? mixClassNames(change.className)
+					: mixClassNames($el.className || "", change.className);
 		}
 		if (change.content) {
 			$el.textContent = change.content;
@@ -289,18 +468,59 @@ export class Player {
 
 				// Utiliser les dimensions de fin de la dernière transition si disponibles
 				const lastEndCoords = this.lastEndCoords.get(id);
+				const canUseLastEndCoords = shouldUseLastEndCoords();
+				const oldRectFromDom = getAbsoluteCoords($el);
+				const canUseCachedRect =
+					Boolean(canUseLastEndCoords && lastEndCoords) &&
+					areRectsClose(oldRectFromDom, lastEndCoords as { x: number; y: number; width: number; height: number });
 
 				// Si on a des dimensions de la transition précédente, les utiliser pour "old"
 				// Sinon mesurer normalement
-				const old = lastEndCoords
-					? { x: lastEndCoords.x, y: lastEndCoords.y, width: lastEndCoords.width, height: lastEndCoords.height }
-					: getAbsoluteCoords($el);
+				const old =
+					canUseCachedRect && lastEndCoords
+						? { x: lastEndCoords.x, y: lastEndCoords.y, width: lastEndCoords.width, height: lastEndCoords.height }
+						: oldRectFromDom;
+				if (!canUseCachedRect && lastEndCoords) {
+					this.lastEndCoords.delete(id);
+				}
+				const classBefore = $el.className || "";
+				const styleBefore = readInlineGeometrySnapshot($el);
 
 				this._applyChanges(id, change);
 				const nex = getAbsoluteCoords($el);
+				const classAfterClassChange = $el.className || "";
+				const styleAfterClassChange = readInlineGeometrySnapshot($el);
 
 				const px = Number(utils.get($el, "x", false));
 				const py = Number(utils.get($el, "y", false));
+
+				traceEddy(
+					"flip",
+					"move-change-auto",
+					{
+						move: change.move,
+						usedLastEndCoords: Boolean(canUseCachedRect && lastEndCoords),
+						lastEndCoordsRejected: Boolean(lastEndCoords) && !canUseCachedRect,
+						lastEndCoords: lastEndCoords
+							? {
+									x: lastEndCoords.x,
+									y: lastEndCoords.y,
+									width: lastEndCoords.width,
+									height: lastEndCoords.height
+								}
+							: null,
+						oldRectFromDom,
+						oldRectUsed: old,
+						nextRect: nex,
+						px,
+						py,
+						classBefore,
+						classAfterClassChange,
+						styleBefore,
+						styleAfterClassChange
+					},
+					{ nodeId: String(id), itemId: getItemIdFromNodeId(id) }
+				);
 
 				return this._createMoveTransition($el, old, nex, px, py, change.move);
 			}
@@ -320,6 +540,18 @@ export class Player {
 		const dx = old.x - nex.x;
 		const dy = old.y - nex.y;
 		if (dx === 0 && dy === 0 && old.width === nex.width && old.height === nex.height) {
+			traceEddy(
+				"flip",
+				"transition-skip-no-delta",
+				{
+					old,
+					next: nex,
+					px,
+					py,
+					moveOptions: moveOptions ?? null
+				},
+				{ nodeId: $el.id, itemId: getItemIdFromNodeId($el.id) }
+			);
 			return undefined;
 		}
 
@@ -348,6 +580,30 @@ export class Player {
 
 		// Stocker les dimensions de fin dans lastEndCoords pour la prochaine transition
 		this.lastEndCoords.set($el.id, { x: nex.x, y: nex.y, width: nex.width, height: nex.height });
+
+		traceEddy(
+			"flip",
+			"transition-create",
+			{
+				dx,
+				dy,
+				old,
+				next: nex,
+				px,
+				py,
+				diff: { x: diff.x, y: diff.y },
+				moveOptions: moveOptions ?? null,
+				animationFromTo: {
+					x: (animationParams as any).x ?? null,
+					y: (animationParams as any).y ?? null,
+					width: (animationParams as any).width ?? null,
+					height: (animationParams as any).height ?? null
+				},
+				styleAfterTransitionBuild: readInlineGeometrySnapshot($el),
+				cachedLastEndCoords: this.lastEndCoords.get($el.id) ?? null
+			},
+			{ nodeId: $el.id, itemId: getItemIdFromNodeId($el.id) }
+		);
 
 		// Jouer jusqu'à la fin pour avoir les dimensions finales
 		animation.seek(animation.duration);

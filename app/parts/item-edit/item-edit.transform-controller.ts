@@ -71,11 +71,13 @@ export function createTransformController(input: Input) {
 		}
 		if (Object.keys(clearPayload).length) onStyleChange(clearPayload);
 
-		const spanClass =
-			parseGridPlacementFromClassName(targetDecor.className ?? null) ||
-			String(targetDecor.className || "")
-				.split(/\s+/)
-				.includes(POSITION_FULL_SPAN_CLASS)
+		const parsedSpan = parseGridPlacementFromClassName(targetDecor.className ?? null);
+		const hasFullSpanToken = String(targetDecor.className || "")
+			.split(/\s+/)
+			.includes(POSITION_FULL_SPAN_CLASS);
+		const spanClass = parsedSpan
+			? buildGridSpanClassName(parsedSpan)
+			: hasFullSpanToken
 				? targetDecor.className
 				: buildSpanClassFromArea(targetDecor.area);
 		const shouldApplySpanClass = Boolean(spanClass) && spanClass !== targetDecor.className;
@@ -183,18 +185,18 @@ export function createTransformController(input: Input) {
 				return;
 			}
 			if (!meta.cell) return;
-			const isFill = String(targetDecor.className || "")
+			const hasLegacyFillToken = String(targetDecor.className || "")
 				.split(/\s+/)
-				.includes(POSITION_FULL_SPAN_CLASS);
+				.includes("cell-span-fill");
 			const baseline = parseGridPlacementFromClassName(targetDecor.className ?? null) ??
-				readGridPlacementFromComputedStyle(activeNode) ?? {
+				(!hasLegacyFillToken ? readGridPlacementFromComputedStyle(activeNode) : null) ?? {
 					row: meta.cell.row,
 					col: meta.cell.col,
 					rowSpan: 1,
 					colSpan: 1
 				};
-			const resolvedRowSpan = isFill ? 1 : baseline.rowSpan;
-			const resolvedColSpan = isFill ? 1 : baseline.colSpan;
+			const resolvedRowSpan = baseline.rowSpan;
+			const resolvedColSpan = baseline.colSpan;
 			const nextRow = Math.max(1, meta.cell.row - Math.floor((resolvedRowSpan - 1) / 2));
 			const nextCol = Math.max(1, meta.cell.col - Math.floor((resolvedColSpan - 1) / 2));
 			const nextSpanToken = buildGridSpanClassName({

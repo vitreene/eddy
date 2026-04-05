@@ -30,6 +30,7 @@ import {
 import { isWaveformPositionCueName } from "@/scene-runtime/waveform-position-cues";
 import { isWaveformDataV1, type WaveformDataV1 } from "@/waveform/payload";
 import { normalizePositionZones, type PositionZoneStored } from "@/lib/position-zones";
+import { buildPositionZoneClassName } from "@/lib/position-zones";
 
 export type { Content, ContentEvent };
 
@@ -281,7 +282,8 @@ export async function getScene(sceneId: number): Promise<SceneComp> {
 	}
 
 	const scene = { ...sceneDB!, capsules };
-	return flattenScene(scene);
+	const flatScene = flattenScene(scene);
+	return await migrateZoneClassNamesToSlug(flatScene);
 }
 
 export async function deleteScene(sceneId: number, options: { keepTexts?: boolean } = {}) {
@@ -544,6 +546,90 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 	}
 
 	return flatScene;
+}
+
+async function migrateZoneClassNamesToSlug(scene: SceneComp): Promise<SceneComp> {
+	const capsuleZoneMapByCapsuleId = new Map<number, Map<string, string>>();
+	const changedCapsules = new Map<number, PositionZoneStored[]>();
+
+	for (const capsule of Object.values(scene.capsules || {})) {
+		const zones = normalizePositionZones((capsule as CapsuleComp & { cardZones?: unknown }).cardZones);
+		if (!zones.length) continue;
+		const replacementMap = new Map<string, string>();
+		let hasZoneClassChange = false;
+		const nextZones = zones.map((zone) => {
+			const canonicalClassName = buildPositionZoneClassName(zone.name, zone.id);
+			if (zone.className !== canonicalClassName) {
+				hasZoneClassChange = true;
+				replacementMap.set(zone.className, canonicalClassName);
+			}
+			return {
+				...zone,
+				className: canonicalClassName
+			};
+		});
+		if (!hasZoneClassChange || !replacementMap.size) continue;
+		changedCapsules.set(capsule.id, nextZones);
+		capsuleZoneMapByCapsuleId.set(capsule.id, replacementMap);
+		scene.capsules[capsule.id] = {
+			...capsule,
+			cardZones: nextZones
+		};
+	}
+
+	if (!changedCapsules.size) return scene;
+
+	const changedDecorClassById = new Map<number, string>();
+	for (const item of Object.values(scene.items || {})) {
+		const replacementMap = capsuleZoneMapByCapsuleId.get(item.capsuleId);
+		if (!replacementMap?.size) continue;
+
+		const rewriteDecorClassName = (decorId: number | null | undefined) => {
+			if (!decorId) return;
+			const decor = scene.decors[decorId];
+			if (!decor?.className) return;
+			const nextClassName = decor.className
+				.split(/\s+/)
+				.map((token) => replacementMap.get(token) ?? token)
+				.filter(Boolean)
+				.join(" ")
+				.trim();
+			if (!nextClassName || nextClassName === decor.className) return;
+			scene.decors[decorId] = {
+				...decor,
+				className: nextClassName
+			};
+			changedDecorClassById.set(decorId, nextClassName);
+		};
+
+		rewriteDecorClassName(item.decorId);
+		const itemEvents = scene.events[item.id] || {};
+		for (const event of Object.values(itemEvents)) {
+			rewriteDecorClassName(event?.decorId ?? null);
+		}
+	}
+
+	await prisma.$transaction(async (tx) => {
+		for (const [capsuleId, nextZones] of changedCapsules.entries()) {
+			const capsule = scene.capsules[capsuleId];
+			const currentProfil = parseCapsuleProfil(capsule?.profil ?? null);
+			await tx.capsule.update({
+				where: { id: capsuleId },
+				data: {
+					profil: serializeCapsuleProfil({
+						...currentProfil,
+						cardZones: nextZones
+					})
+				}
+			});
+		}
+
+		for (const [decorId, className] of changedDecorClassById.entries()) {
+			await tx.decor.update({ where: { id: decorId }, data: { className } });
+		}
+	});
+
+	return scene;
 }
 
 // contentS

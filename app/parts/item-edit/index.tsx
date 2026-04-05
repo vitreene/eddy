@@ -33,7 +33,7 @@ interface EditItemProps {
 }
 
 const POSITION_PLACEMENT_TOKEN_RE =
-	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
+	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-span-fill|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
 const ZONE_CLASS_TOKEN_RE = /^ed-zone-[a-z0-9_-]+$/i;
 
 function sameStyleValue(a: unknown, b: unknown): boolean {
@@ -236,6 +236,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
 	const activeEventAction = SceneLogicContext.useSelector((state) => state.context.active.event ?? null);
 	const activeCueSec = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
+	const activeAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
 	const activeItemEditTab = SceneLogicContext.useSelector((state) => state.context.active.itemEditTab);
 
 	const selectedEvent = item && activeEventAction ? eventsByItem[item.id]?.[activeEventAction] : null;
@@ -267,6 +268,15 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 			const normalizedPayload = normalizeTransformPrecision(payload);
 			const targetDecor = editDecor || itemDecor;
 			if (!targetDecor || !item) return;
+			const hasPlacementIntent =
+				Object.prototype.hasOwnProperty.call(normalizedPayload, "className") ||
+				Object.prototype.hasOwnProperty.call(normalizedPayload, "area");
+			const shouldForceDedicatedEventDecor = Boolean(
+				hasPlacementIntent &&
+				selectedEvent &&
+				!selectedEventUsesItemDecor &&
+				typeof selectedEvent.decorId !== "number"
+			);
 			const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as EditableStyle;
 			const mutationPlan = buildStyleMutationPlan({
 				normalizedPayload,
@@ -278,7 +288,8 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 			if (
 				!Object.keys(mutationPlan.stylePatch).length &&
 				!mutationPlan.areaChanged &&
-				!mutationPlan.classNameChanged
+				!mutationPlan.classNameChanged &&
+				!shouldForceDedicatedEventDecor
 			) {
 				return;
 			}
@@ -303,9 +314,9 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 					targetDecorId: targetDecor.id,
 					selectedEventUsesItemDecor,
 					seed: {
-						className: targetDecor.className ?? null,
-						area: targetDecor.area ?? null,
-						style: (targetDecor.style as EditableStyle) ?? {}
+						className: (decor || itemDecor)?.className ?? targetDecor.className ?? null,
+						area: (decor || itemDecor)?.area ?? targetDecor.area ?? null,
+						style: ((decor || itemDecor)?.style as EditableStyle) ?? (targetDecor.style as EditableStyle) ?? {}
 					},
 					patch: {
 						...(mutationPlan.classNameChanged ? { className: mutationPlan.nextClassName } : {}),
@@ -444,7 +455,11 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				visualState: editableVisualState,
 				selectionAction: activeEventAction,
 				selectionCueSec: selectedEventCueSec,
-				selectionKey
+				selectionKey,
+				activeItemId: item?.id ?? null,
+				activeEvent: activeEventAction,
+				activeCueSec: activeCueSec,
+				activeAction
 			}
 		});
 	}, [
@@ -452,8 +467,11 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		desiredEditorSyncKey,
 		editableVisualState,
 		activeEventAction,
+		activeCueSec,
+		activeAction,
 		selectedEventCueSec,
-		selectionKey
+		selectionKey,
+		item?.id
 	]);
 
 	const onDecorUpdate = useCallback(

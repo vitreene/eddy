@@ -4,7 +4,6 @@ import { normalizeTransitionRef } from "@/config/transitions";
 import { normalizeSustainEffectRef } from "@/config/event-effects";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
 import {
-	resolveDelayFromCuePoint,
 	getCueTimeAtPosition,
 	resolveClosestCuePointFromDelay
 } from "@/scene-runtime/visibility/custom-event-cue-mapping";
@@ -359,12 +358,13 @@ export function resolveCustomEventNameCollision(params: {
 	}
 
 	const itemEvents = context.events[itemId] || {};
-	const hasDuplicateName = Object.values(itemEvents).some((event) => {
-		if (!event || event.action === action) return false;
-		if (typeof event.name !== "string") return false;
-		return event.name.trim() === targetName;
-	});
-	if (!hasDuplicateName) {
+	const takenNames = new Set(
+		Object.values(itemEvents)
+			.filter((event): event is ContentEvent => Boolean(event) && event.action !== action)
+			.map((event) => (typeof event.name === "string" ? event.name.trim() : ""))
+			.filter(Boolean)
+	);
+	if (!takenNames.has(targetName)) {
 		return {
 			name: targetName,
 			delay:
@@ -372,26 +372,23 @@ export function resolveCustomEventNameCollision(params: {
 			position: draft.position ?? null
 		};
 	}
-
-	const sceneContent = getActiveSceneContent(context);
-	const cues = getSceneContentCues(sceneContent);
-	const introName = itemEvents[INTRO]?.name ?? null;
-	const outroName = itemEvents[OUTRO]?.name ?? null;
-	const fallbackDelay =
-		typeof draft.delay === "number" && Number.isFinite(draft.delay) && draft.delay >= 0 ? draft.delay : 0;
-	const resolvedDelay = resolveDelayFromCuePoint({
-		cues,
-		introName,
-		outroName,
-		cueName: targetName,
-		position: normalizedPosition
-	});
+	const uniqueName = buildUniqueNameFromBase(targetName, takenNames);
 
 	return {
-		name: null,
-		delay: typeof resolvedDelay === "number" && Number.isFinite(resolvedDelay) ? resolvedDelay : fallbackDelay,
-		position: draft.position ?? null
+		name: uniqueName,
+		delay: null,
+		position: normalizedPosition
 	};
+}
+
+function buildUniqueNameFromBase(base: string, takenNames: Set<string>): string {
+	if (!takenNames.has(base)) return base;
+	let suffix = 2;
+	while (true) {
+		const candidate = `${base}-${suffix}`;
+		if (!takenNames.has(candidate)) return candidate;
+		suffix += 1;
+	}
 }
 
 export function getTouchedParams(context: SceneComp & { active: ActiveState }): string[] {

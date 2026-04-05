@@ -31,6 +31,30 @@
 - Convention de nommage: utiliser `ed-zone-<slug(name)>` pour la classe cible d'une zone; ne pas se reposer sur des suffixes numeriques opaques (`ed-zone-04`) pour la selection.
 - Pour ne pas casser l'existant, garder une phase de compatibilite avec alias CSS (classe legacy + classe slug) tant que tous les decors ne sont pas migres.
 
+## 2026-04-05 — Regression selection: corriger le contrat, pas ajouter un garde
+
+- En cas d'incoherence selection/player sur un custom-event, corriger d'abord le calcul d'ancre de selection (source de verite), pas bloquer les emissions avec un garde ad hoc.
+- Un garde anti-duplication ne doit intervenir qu'apres preuve qu'il traite la cause racine et pas seulement le symptome.
+
+## 2026-04-05 — FLIP: se mefier des caches de geometrie
+
+- Un cache de dimensions/position inter-transition (`lastEndCoords`) peut masquer un etat stale et produire des sauts width/height.
+- Avant de conserver ce type de cache, instrumenter la pipeline (`seek`, snapshot apply/capture, old/new rect) et prevoir un switch runtime pour desactiver le cache pendant le diagnostic.
+- Sur un `seek`, purger les snapshots/transitoires accumules; sinon des valeurs capturees a un temps precedent peuvent etre reappliquees au mauvais keyframe.
+- En lecture avant (time croissant), ne pas reappliquer un `snapshot` de fenetre precedente: cela reintroduit des dimensions temporaires (width/height) et casse le FLIP suivant.
+- Ne pas inverser la semantique des fenetres de changement (`prev->curr`) sans validation playback: le contrat runtime reste `curr->next`, sinon les keyframes futures s'appliquent trop tot (intro/slot casse).
+- Ne pas etirer un FLIP jusqu'au keyframe suivant lointain: borner la progression a `DEFAULT_DURATION` (ou `next` si plus court) et nettoyer les styles inline du FLIP precedent au switch de fenetre.
+- Nettoyer aussi les styles inline FLIP des que la transition atteint 100% en lecture avant, pas seulement au prochain changement de fenetre.
+- Reinitialiser les conteneurs runtime du player (`persoPositions`, `transitions`, `setters`, `previousTime`) a chaque `seek`/`replay`/`revert`; sinon les relectures accumulees reutilisent des etats stale et degradent les placements.
+- Dans le player, ne jamais traiter un `className` action `{add/remove}` comme remplacement total de `element.className`; l'appliquer comme patch sur les classes existantes pour conserver les tokens structurels (`bg-picture`, `ed-item`).
+- Respecter strictement le contrat d'interface: en V1, `{ add/remove }` signifie patch (ajout/retrait) et ne doit jamais declencher un comportement de remplacement total reserve a un autre mode/version.
+- Ne pas "aplatir" un seek en appliquant tous les keyframes <= t: pour conserver les etats intermediaires d'une transition, reconstruire l'etat de base a `curr` puis rejouer la transition active a la progression du temps cible.
+
+## 2026-04-05 — Traces de debug: activation robuste
+
+- Si un utilisateur dit "je n'ai aucune trace", fournir une API globale simple (`window.__EDDY_TRACE__`) et utiliser `console.log` (pas `console.debug`) pour eviter le filtrage implicite.
+- Persist config + dump buffer pour diagnostiquer sans dependre d'un state JS volatil entre rechargements.
+
 ## 2026-04-05 — Repro precise avant fix de boucle React
 
 - En cas de "Maximum update depth exceeded", verrouiller d'abord le scenario exact utilisateur (ex: changement de position d'un custom-event sur item cible) avant d'optimiser un chemin plus large.
@@ -49,11 +73,30 @@
 - Sinon on peut recreer le controller, relancer l'effet, et boucler indéfiniment sans stackoverflow explicite.
 - La comparaison de no-op doit se faire sur le **decor cible reel** (`payload.id`) et non sur un decor de contexte (item/event) pour eviter de filtrer un patch valide.
 - Quand un token `ed-zone-*` est present, assainir les classes de placement concurrentes (`cell-span`, `cell-r`, `cell_layout_auto`, `liste-r`) avant persistance pour eviter des classes mixtes incoherentes.
+- Pour creation asynchrone de decor custom-event: emettre `decor-created` avec le patch deja fusionne (className/area/style), sinon un etat seed intermediaire peut reintroduire `cell-span-fill`.
+- Pour les intents SlotEditor sur custom-event sans decor, ne pas laisser un garde no-op bloquer `decor-patch-requested`: il faut d'abord materialiser un decor dedie, puis appliquer la classe de slot.
 
 ## 2026-04-05 — Custom-event: collision de name et contrainte DB
 
 - Le modele DB impose `@@unique([itemId, name])` sur les events: un custom-event ne doit pas persister avec un `name` deja utilise sur le meme item.
-- Au lieu de laisser echouer la persistence (500), convertir automatiquement en mode delay (`name:null`, `delay` derive du cue selectionne) quand une collision est detectee.
+- Au lieu de laisser echouer la persistence (500), suffixer automatiquement le nom en cas de collision (`<name>-2`, `<name>-3`, ...) pour garder un custom-event nomme.
+
+## 2026-04-05 — Styles de sequence: source unique builder
+
+- Ne pas injecter de balises `<style>` ad hoc depuis les editeurs (zones/position) pour des regles de sequence.
+- Les regles CSS de placement doivent venir uniquement du style unique produit par le builder.
+- Proscrire aussi les nettoyages defensifs de tags live: la correction doit supprimer le canal de generation, pas le masquer.
+- Quand on introduit des alias de classes (`ed-zone-<slug>`), le builder doit generer la regle CSS pour **chaque alias**, pas seulement pour la classe canonique stockee.
+- Publier les definitions de toutes les zones de capsule dans le style builder, et conserver aussi les defs de fallback placement tokens presents (`cell-span-*`, `cell-span-fill`).
+- Sur le flux SlotEditor, la sanitation des tokens de placement doit inclure `cell-span-fill`; sinon des classes mixtes (`cell-span-fill ed-zone-*`) persistent et la position selectionnee peut etre ignoree.
+- Eviter les classes de placement implicites injectees a la creation d'item (ex: `cell-span-fill`) sans demande explicite: ces defaults caches perturbent la selection de zone et rendent le debug difficile.
+
+## 2026-04-05 — SlotEditor: selection stable par identite
+
+- Ne pas piloter un select de zones par `className` (aliases/legacy causent des decallages); utiliser `zone.id` comme valeur UI et calculer la classe cible depuis la zone selectionnee.
+- En presence de legacy, prevoir une migration donnees (`cardZones` + `decor.className`) vers une convention unique `ed-zone-<slug(name)>` pour supprimer les offsets nom/classe.
+- Si une zone par defaut couvre toute la capsule, ne pas auto-selectionner de zone dans ZoneBuilder et garder la selection explicite via la liste SlotEditor.
+- La creation de zone doit etre refusee sur surface occupee (overlap interdit), pour conserver des zones disjointes et predictibles.
 
 ## 2026-03-11 — Diagnostic temporel des custom-events
 

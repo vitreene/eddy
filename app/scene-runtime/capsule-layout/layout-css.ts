@@ -11,6 +11,7 @@ import {
 	gridPlacementClassNameToCssDefinition
 } from "@/lib/utils";
 import {
+	buildPositionZoneCssRule,
 	getPositionZoneClassAliases,
 	normalizePositionZones,
 	toRuntimePositionZones
@@ -38,6 +39,9 @@ export function buildPlacementCss(snapshot: SceneComp): PlacementResult {
 	const areas = new Set<string>();
 	const itemPlacementClassByItemId: Record<number, string> = {};
 	const zoneDefinitionsByClass = buildZoneDefinitionsByClass(snapshot);
+	for (const definition of Object.values(zoneDefinitionsByClass)) {
+		areas.add(definition);
+	}
 
 	for (const item of Object.values(snapshot.items || {})) {
 		const decor = snapshot.decors[item.decorId];
@@ -99,38 +103,38 @@ function collectPlacementClassDefinitions(
 	zoneDefinitionsByClass: Record<string, string>
 ) {
 	if (!className) return;
-	const tokens = className
-		.split(/\s+/)
-		.map((token) => token.trim())
-		.filter(Boolean);
-	const hasZoneClassToken = tokens.some((token) => Boolean(zoneDefinitionsByClass[token]));
-	for (const token of tokens) {
-		if (hasZoneClassToken && !zoneDefinitionsByClass[token]) {
-			continue;
-		}
-		if (zoneDefinitionsByClass[token]) {
-			target.add(zoneDefinitionsByClass[token]);
-			continue;
-		}
-		const definition = gridPlacementClassNameToCssDefinition(token);
-		if (definition) target.add(definition);
-	}
+	const definition = resolvePlacementDefinitionFromClassName(className, zoneDefinitionsByClass);
+	if (definition) target.add(definition);
 }
 
 function hasGridPlacementClass(
 	className: string | null | undefined,
 	zoneDefinitionsByClass: Record<string, string>
 ): boolean {
-	if (!className) return false;
+	return Boolean(resolvePlacementDefinitionFromClassName(className, zoneDefinitionsByClass));
+}
+
+function resolvePlacementDefinitionFromClassName(
+	className: string | null | undefined,
+	zoneDefinitionsByClass: Record<string, string>
+): string | null {
+	if (!className) return null;
 	const tokens = className
 		.split(/\s+/)
 		.map((token) => token.trim())
 		.filter(Boolean);
+
+	let resolved: string | null = null;
 	for (const token of tokens) {
-		if (zoneDefinitionsByClass[token]) return true;
-		if (gridPlacementClassNameToCssDefinition(token)) return true;
+		if (zoneDefinitionsByClass[token]) {
+			resolved = zoneDefinitionsByClass[token];
+			continue;
+		}
+		const definition = gridPlacementClassNameToCssDefinition(token);
+		if (definition) resolved = definition;
 	}
-	return false;
+
+	return resolved;
 }
 
 function buildZoneDefinitionsByClass(snapshot: SceneComp): Record<string, string> {
@@ -142,7 +146,7 @@ function buildZoneDefinitionsByClass(snapshot: SceneComp): Record<string, string
 			for (const className of getPositionZoneClassAliases(zone)) {
 				if (!className) continue;
 				if (byClass[className]) continue;
-				byClass[className] = zone.cssRule;
+				byClass[className] = buildPositionZoneCssRule(className, zone.rect);
 			}
 		}
 	}

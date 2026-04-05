@@ -1,10 +1,11 @@
 import { applyStyleDefaults } from "@/config/item-style-defaults";
+import { traceEddy } from "@/lib/eddy-trace";
 
 import { applyLiveStyleOnNode } from "./live-node-style";
 import {
 	applyAreaClassPatch,
-	applyClassNameAction,
-	buildClassNameDiff,
+	applyClassTokenPatch,
+	clearPlacementAreaTokens,
 	ensureLiveAreaClassDefinition
 } from "./live-node-classes";
 
@@ -53,16 +54,42 @@ export function projectEditableVisualStateToNode(
 	state: EditableVisualState | null
 ) {
 	if (!node || !state) return;
+	const before = {
+		className: node.className || "",
+		width: node.style.width || "",
+		height: node.style.height || "",
+		transform: node.style.transform || "",
+		transformOrigin: node.style.transformOrigin || ""
+	};
 
-	const currentClassName = node.className || "";
-	const classNameDiff = buildClassNameDiff(currentClassName, state.className);
-	if (classNameDiff) {
-		applyClassNameAction(node, classNameDiff);
-	}
+	clearPlacementAreaTokens(node);
+	applyClassTokenPatch(node, null, state.className);
 
 	ensureLiveAreaClassDefinition(node, state.area);
 	applyAreaClassPatch(node, null, state.area);
 	applyLiveStyleOnNode(node, state.style);
+
+	traceEddy(
+		"selection",
+		"project-visual-state",
+		{
+			eventAction: state.eventAction,
+			cueSec: state.cueSec,
+			decorId: state.decorId,
+			area: state.area,
+			className: state.className,
+			styleKeys: Object.keys(state.style || {}),
+			before,
+			after: {
+				className: node.className || "",
+				width: node.style.width || "",
+				height: node.style.height || "",
+				transform: node.style.transform || "",
+				transformOrigin: node.style.transformOrigin || ""
+			}
+		},
+		{ itemId: state.itemId, nodeId: node.id || null }
+	);
 }
 
 function toFiniteNumber(value: unknown): number | null {

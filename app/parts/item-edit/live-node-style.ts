@@ -1,5 +1,6 @@
 import { applyTransformPreserve, readTransformPreserve } from "@/components/position-editor/lib";
 import { parseRawCssDeclarations } from "@/lib/raw-css";
+import { traceEddy } from "@/lib/eddy-trace";
 
 import type { EditableStyle } from "@/components/style-editor/types";
 
@@ -45,6 +46,13 @@ export function applyLiveStyleOnNode(
 	options?: { currentStyle?: EditableStyle }
 ) {
 	if (!node || !style) return;
+	const styleKeys = Object.keys(style || {});
+	const before = {
+		width: node.style.width || "",
+		height: node.style.height || "",
+		transform: node.style.transform || "",
+		transformOrigin: node.style.transformOrigin || ""
+	};
 
 	const hasTransformPatch = LIVE_TRANSFORM_KEYS.some(
 		(key) =>
@@ -130,6 +138,23 @@ export function applyLiveStyleOnNode(
 	if (typeof nextRawCss !== "undefined") {
 		applyRawCssPatchOnNode(node, previousRawCss, nextRawCss);
 	}
+
+	traceEddy(
+		"selection",
+		"live-style-apply",
+		{
+			styleKeys,
+			hasTransformPatch,
+			before,
+			after: {
+				width: node.style.width || "",
+				height: node.style.height || "",
+				transform: node.style.transform || "",
+				transformOrigin: node.style.transformOrigin || ""
+			}
+		},
+		{ nodeId: node.id || null }
+	);
 }
 
 function applyRawCssPatchOnNode(node: HTMLElement, previousRawCss: string, nextRawCss: string) {

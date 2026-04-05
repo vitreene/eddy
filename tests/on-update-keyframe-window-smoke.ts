@@ -12,16 +12,16 @@ const boundedChange = {
 
 assert.equal(
 	resolveTransitionEnd(boundedChange),
-	2600,
-	"transition end should use next keyframe when defined"
+	2000 + DEFAULT_DURATION,
+	"transition end should be clamped to default FLIP duration"
 );
 assert.equal(resolveChangeProgress(2000, boundedChange), 0, "progress should start at 0 on curr");
 assert.equal(
-	resolveChangeProgress(2300, boundedChange),
+	resolveChangeProgress(2250, boundedChange),
 	0.5,
-	"progress should be normalized in curr->next window"
+	"progress should be normalized in curr->default-duration window"
 );
-assert.equal(resolveChangeProgress(2600, boundedChange), 1, "progress should reach 1 on next keyframe");
+assert.equal(resolveChangeProgress(2600, boundedChange), 1, "progress should remain clamped at 1 after end");
 
 const fallbackChange = {
 	prev: null,

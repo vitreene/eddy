@@ -7,6 +7,7 @@ import { SceneLogicContext } from "@/provider/scene-logic";
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { getValuesFromGridName } from "@/lib/utils";
 import { buildNodeId } from "@/scene-runtime/node-id";
+import { buildPositionZoneClassName, buildPositionZoneCssRule } from "@/lib/position-zones";
 import { Button } from "@/components/ui/button";
 
 import { zoneBuilderMachine } from "./zone-builder.machine";
@@ -150,6 +151,8 @@ export function ZoneBuilder({
 			{state.context.zones.length ? (
 				<div className="max-h-52 space-y-1 overflow-auto rounded border border-stone-300 p-2 text-[11px]">
 					{state.context.zones.map((zone) => {
+						const generatedClassName = buildPositionZoneClassName(zone.name, zone.id);
+						const generatedCssRule = buildPositionZoneCssRule(generatedClassName, zone.rect);
 						const hasConflict = state.context.nameConflictZoneIds.includes(zone.id);
 						const isSelected = state.context.selectedZoneId === zone.id;
 						const rowClassName = hasConflict
@@ -161,7 +164,7 @@ export function ZoneBuilder({
 						return (
 							<div
 								key={zone.id}
-								title={zone.cssRule}
+								title={generatedCssRule}
 								className={`space-y-1 rounded border p-2 ${rowClassName}`}
 								onClick={() => send({ type: "zone.select", zoneId: zone.id })}
 							>
@@ -228,7 +231,7 @@ export function ZoneBuilder({
 												style={{
 													gridRow: `${zone.rect.row} / span ${zone.rect.spanRow}`,
 													gridColumn: `${zone.rect.column} / span ${zone.rect.spanColumn}`,
-													pointerEvents: "auto",
+													pointerEvents: selected ? "auto" : "none",
 													cursor: selected ? "move" : "pointer"
 												}}
 												onPointerDown={(event) => {

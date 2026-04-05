@@ -6,6 +6,7 @@ import { applyTreeMutation, treeMutation } from "./tree-mutations";
 import { computeActiveCue } from "./active-cue";
 
 import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp, SceneContent } from "@/api/db";
+import type { EditableStyle } from "@/components/style-editor/types";
 import type { Theme } from "prisma/generated/prisma/client";
 import { mergeCssStrings } from "@/lib/merge-css-classes";
 import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
@@ -17,6 +18,7 @@ import {
 	type CustomEventPosition
 } from "@/config/custom-events";
 import { replaceEventRefPreservingMedia } from "@/lib/event-ref";
+import { traceEddy } from "@/lib/eddy-trace";
 import { getPlayerNode } from "@/scene-runtime/node-resolver";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import {
@@ -167,6 +169,17 @@ function applyActivePayload(
 	if (itemId && "event" in payload && nextEvent) {
 		const eventCue = computeCueForSelectedCustomEvent(context, itemId, nextEvent);
 		if (typeof eventCue == "number" && Number.isFinite(eventCue)) cue = eventCue;
+		traceEddy(
+			"selection",
+			"event-cue-resolved",
+			{
+				event: nextEvent,
+				resolvedCue: typeof eventCue == "number" && Number.isFinite(eventCue) ? eventCue : null,
+				previousCue: context.active.cue,
+				payloadCue: Object.prototype.hasOwnProperty.call(payload, "cue") ? (payload.cue ?? null) : null
+			},
+			{ itemId }
+		);
 	}
 
 	let nextActive = {
@@ -190,6 +203,21 @@ function applyActivePayload(
 					Math.abs(previousCue - cue) > ACTIVE_SET_SEEK_EPSILON_SEC;
 				const explicitSeek =
 					"action" in payload && typeof payload.action === "string" && payload.action === "seek";
+				traceEddy(
+					"selection",
+					"seek-decision",
+					{
+						event: nextEvent,
+						eventKind: kind,
+						previousEvent: context.active.event,
+						eventChanged,
+						previousCue,
+						nextCue: cue,
+						cueChanged,
+						explicitSeek
+					},
+					{ itemId }
+				);
 				if (eventChanged || cueChanged || explicitSeek) {
 					nextActive = {
 						...nextActive,
@@ -227,6 +255,36 @@ function applyActivePayload(
 		nextActive = requestSequenceFlush(nextActive, "sequence-action", {
 			preserveSelection: keepSelectionWhileEditing
 		});
+	}
+
+	if (hasTelcoTriggerPayload) {
+		traceEddy(
+			"selection",
+			"active-apply",
+			{
+				payload: {
+					itemId: Object.prototype.hasOwnProperty.call(payload, "itemId") ? (payload.itemId ?? null) : undefined,
+					event: Object.prototype.hasOwnProperty.call(payload, "event") ? (payload.event ?? null) : undefined,
+					action: Object.prototype.hasOwnProperty.call(payload, "action") ? (payload.action ?? null) : undefined,
+					cue: Object.prototype.hasOwnProperty.call(payload, "cue") ? (payload.cue ?? null) : undefined
+				},
+				activeBefore: {
+					itemId: context.active.itemId,
+					event: context.active.event,
+					action: context.active.action,
+					cue: context.active.cue
+				},
+				activeAfter: {
+					itemId: nextActive.itemId,
+					event: nextActive.event,
+					action: nextActive.action,
+					cue: nextActive.cue
+				},
+				sequenceFlushToken: nextActive.sequenceFlushToken,
+				sequenceFlushReason: nextActive.sequenceFlushReason
+			},
+			{ itemId: itemId ?? null }
+		);
 	}
 
 	return {
@@ -472,12 +530,28 @@ export const sceneLogic = setup({
 				decorId = ensured.decorId;
 
 				if (ensured.createdDecor) {
+					const hasClassName = Object.prototype.hasOwnProperty.call(params.patch, "className");
+					const hasArea = Object.prototype.hasOwnProperty.call(params.patch, "area");
+					const hasStyle = Object.prototype.hasOwnProperty.call(params.patch, "style");
+					const mergedCreatedDecor: Decor = {
+						...ensured.createdDecor,
+						...(hasClassName ? { className: params.patch.className ?? null } : {}),
+						...(hasArea ? { area: params.patch.area ?? null } : {}),
+						...(hasStyle
+							? {
+									style: {
+										...((ensured.createdDecor.style as EditableStyle) ?? {}),
+										...((params.patch.style as EditableStyle) ?? {})
+									}
+								}
+							: {})
+					};
 					self.send({
 						type: "decor-created",
 						payload: {
 							itemId: params.itemId,
 							action,
-							decor: ensured.createdDecor
+							decor: mergedCreatedDecor
 						}
 					});
 				}

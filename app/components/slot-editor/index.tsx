@@ -18,7 +18,7 @@ interface Props {
 }
 
 const POSITION_PLACEMENT_TOKEN_RE =
-	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
+	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-span-fill|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
 
 export function SlotEditor({ value, onChange }: Props) {
 	const item = SceneLogicContext.useSelector((state) =>
@@ -48,29 +48,42 @@ export function SlotEditor({ value, onChange }: Props) {
 			normalizePositionZones((capsule as { cardZones?: unknown }).cardZones)
 		);
 		if (!zones.length) return <p className="text-muted-foreground text-xs">Aucune zone disponible</p>;
+		const zoneOptions = zones.map((zone) => ({
+			id: zone.id,
+			name: zone.name,
+			generatedClassName: buildPositionZoneClassName(zone.name, zone.id),
+			aliases: getPositionZoneClassAliases(zone)
+		}));
 		const classTokens = String(value.className || "")
 			.split(/\s+/)
 			.map((token) => token.trim())
 			.filter(Boolean);
-		const selectedZone = zones.find((zone) => {
-			const aliases = getPositionZoneClassAliases(zone);
-			return aliases.some((alias) => classTokens.includes(alias));
-		});
-		const selectedZoneClass = selectedZone
-			? buildPositionZoneClassName(selectedZone.name, selectedZone.id)
-			: "";
+		const selectedZone = [...classTokens]
+			.reverse()
+			.map((token) =>
+				zoneOptions.find((zone) => zone.aliases.includes(token) || zone.generatedClassName === token)
+			)
+			.find(Boolean);
+		const selectedZoneId = selectedZone ? String(selectedZone.id) : "";
+		const onSelectZoneById = (zoneIdRaw: string) => {
+			const zoneId = Number(zoneIdRaw);
+			if (!Number.isFinite(zoneId)) return setZoneClass("");
+			const option = zoneOptions.find((zone) => zone.id === zoneId);
+			if (!option) return;
+			setZoneClass(option.generatedClassName);
+		};
 
 		return (
 			<div className="space-y-1 text-xs">
 				<label className="block text-[11px] font-medium">Zone</label>
 				<select
 					className="h-8 rounded border border-stone-300 px-2"
-					value={selectedZoneClass}
-					onChange={(event) => setZoneClass(event.currentTarget.value)}
+					value={selectedZoneId}
+					onChange={(event) => onSelectZoneById(event.currentTarget.value)}
 				>
 					<option value="">Choisir une zone</option>
-					{zones.map((zone) => (
-						<option key={zone.id} value={buildPositionZoneClassName(zone.name, zone.id)}>
+					{zoneOptions.map((zone) => (
+						<option key={zone.id} value={String(zone.id)} title={zone.generatedClassName}>
 							{zone.name}
 						</option>
 					))}

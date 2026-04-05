@@ -1,7 +1,5 @@
 import { assign, createMachine } from "xstate";
 
-import { syncLiveZoneClassDefinitions } from "@/parts/item-edit/live-node-classes";
-
 import type {
 	ZoneBuilderRect,
 	ZoneBuilderService,
@@ -125,12 +123,11 @@ export const zoneBuilderMachine = createMachine(
 							draft: null,
 							activeEditDrag: null,
 							zones: nextZones,
-							selectedZoneId: selectedExists ? context.selectedZoneId : (nextZones[0]?.id ?? null),
+							selectedZoneId: selectedExists ? context.selectedZoneId : null,
 							nameConflictZoneIds: []
 						};
 					}),
-					"syncRectTracking",
-					"syncLiveStyles"
+					"syncRectTracking"
 				]
 			},
 			"rect.sync": {
@@ -198,6 +195,9 @@ export const zoneBuilderMachine = createMachine(
 							context.rows
 						);
 						const zoneRect = context.input.service.toZoneRect(context.draft.start, current);
+						if (context.input.service.hasZoneOverlap(context.zones, zoneRect)) {
+							return { draft: null };
+						}
 						const zone = context.input.service.buildZone(context.zones, zoneRect);
 						return {
 							zones: [...context.zones, zone],
@@ -206,7 +206,6 @@ export const zoneBuilderMachine = createMachine(
 							draft: null
 						};
 					}),
-					"syncLiveStyles",
 					"emitZonesChange"
 				]
 			},
@@ -276,7 +275,6 @@ export const zoneBuilderMachine = createMachine(
 							activeEditDrag: null
 						};
 					}),
-					"syncLiveStyles",
 					"emitZonesChange"
 				]
 			},
@@ -317,7 +315,6 @@ export const zoneBuilderMachine = createMachine(
 							activeEditDrag: null
 						};
 					}),
-					"syncLiveStyles",
 					"emitZonesChange"
 				]
 			},
@@ -335,7 +332,6 @@ export const zoneBuilderMachine = createMachine(
 							selectedZoneId: zones[zones.length - 1]?.id ?? context.selectedZoneId
 						};
 					}),
-					"syncLiveStyles",
 					"emitZonesChange"
 				]
 			},
@@ -352,7 +348,6 @@ export const zoneBuilderMachine = createMachine(
 							nameConflictZoneIds: context.nameConflictZoneIds.filter((id) => id !== zoneId)
 						};
 					}),
-					"syncLiveStyles",
 					"emitZonesChange"
 				]
 			},
@@ -371,7 +366,6 @@ export const zoneBuilderMachine = createMachine(
 							selectedZoneId: zones[zones.length - 1]?.id ?? context.selectedZoneId
 						};
 					}),
-					"syncLiveStyles",
 					"emitZonesChange"
 				]
 			}
@@ -388,9 +382,6 @@ export const zoneBuilderMachine = createMachine(
 				context.input.service.startRectTracking(context.anchorElement, (rect) => {
 					self.send({ type: "rect.sync", rect });
 				});
-			},
-			syncLiveStyles: ({ context }) => {
-				syncLiveZoneClassDefinitions(context.anchorElement, context.capsuleNodeId, context.zones);
 			},
 			emitZonesChange: ({ context }) => {
 				if (!context.onZonesChange) return;

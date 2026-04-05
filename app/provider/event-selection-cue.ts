@@ -7,8 +7,6 @@ import type { ContentEvent, SceneComp, TextTime } from "@/api/db";
 import { findSceneCueByName, getAssuredVisibleCue } from "./active-cue";
 
 const DEFAULT_DURATION_SEC = DEFAULT_DURATION / 1000;
-const CUSTOM_SELECTION_PRE_FLIP_SEC = 0.001;
-
 /**
  * Resolve the seek cue for event selection.
  * Contract:
@@ -23,7 +21,7 @@ export function resolveSelectedEventCueSec(
 ): number | null {
 	// Contract lock:
 	// - INTRO selection anchors on visible start (or explicit intro anchor)
-	// - CUSTOM selection anchors pre-FLIP
+	// - CUSTOM selection anchors on its keyframe
 	// - OUTRO selection anchors on outro start (end - duration), including implicit outro
 	// Keep tests in `event-selection-auto-fallback-smoke.ts` and
 	// `custom-event-preflip-selection-smoke.ts` aligned with any changes here.
@@ -99,7 +97,7 @@ export function resolveEventAnchorSec(
 		const cue = findSceneCueByName(context, event.name);
 		if (!cue) return null;
 		const position = normalizeCustomPosition(event.position);
-		return toPreFlipAnchor(getCueTimeAtPosition(cue, position));
+		return getCueTimeAtPosition(cue, position);
 	}
 
 	if (typeof event.delay === "number" && Number.isFinite(event.delay) && event.delay >= 0) {
@@ -107,7 +105,7 @@ export function resolveEventAnchorSec(
 		if (!introEvent) return null;
 		const introAnchor = resolveIntroAnchorSec(context, introEvent);
 		if (!Number.isFinite(introAnchor)) return null;
-		return toPreFlipAnchor(introAnchor + event.delay);
+		return introAnchor + event.delay;
 	}
 
 	return null;
@@ -183,14 +181,6 @@ function debugEventSelection(
 	resolvedCueSec: number
 ) {
 	if (itemId !== 55) return;
-}
-
-/**
- * Shift custom selection anchor just before keyframe to expose pre-FLIP state.
- */
-function toPreFlipAnchor(keyframeSec: number): number {
-	if (!Number.isFinite(keyframeSec)) return keyframeSec;
-	return Math.max(0, keyframeSec - CUSTOM_SELECTION_PRE_FLIP_SEC);
 }
 
 export function resolveSceneCueByName(

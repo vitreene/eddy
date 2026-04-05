@@ -78,6 +78,25 @@ export class ZoneBuilderService {
 		};
 	}
 
+	hasZoneOverlap(zones: ZoneBuilderZone[], rect: ZoneBuilderZoneRect, excludeZoneId?: number): boolean {
+		const rectTop = rect.row;
+		const rectLeft = rect.column;
+		const rectBottom = rect.row + rect.spanRow - 1;
+		const rectRight = rect.column + rect.spanColumn - 1;
+
+		for (const zone of zones) {
+			if (typeof excludeZoneId === "number" && zone.id === excludeZoneId) continue;
+			const top = zone.rect.row;
+			const left = zone.rect.column;
+			const bottom = zone.rect.row + zone.rect.spanRow - 1;
+			const right = zone.rect.column + zone.rect.spanColumn - 1;
+			const overlaps = !(rectRight < left || rectLeft > right || rectBottom < top || rectTop > bottom);
+			if (overlaps) return true;
+		}
+
+		return false;
+	}
+
 	buildNextZoneName(zones: ZoneBuilderZone[]): string {
 		const names = new Set(zones.map((zone) => zone.name.trim().toLowerCase()));
 		let i = 1;

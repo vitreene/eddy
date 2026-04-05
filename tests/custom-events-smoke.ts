@@ -187,12 +187,10 @@ const cases: Case[] = [
 
 			const created = actor.getSnapshot().context.events[10]["custom-1"] as any;
 			assert.ok(created);
-			assert.equal(created.name === "intro-cue" || created.name === null, true);
+			assert.equal(typeof created.name, "string");
+			assert.equal(String(created.name).startsWith("intro-cue"), true);
 			assert.equal(created.position, "start");
-			assert.equal(
-				created.delay === null || (typeof created.delay === "number" && Number.isFinite(created.delay)),
-				true
-			);
+			assert.equal(created.delay, null);
 
 			actor.stop();
 		}
@@ -221,7 +219,7 @@ const cases: Case[] = [
 		}
 	},
 	{
-		name: "sceneLogic custom event name collision falls back to delay",
+		name: "sceneLogic custom event name collision adds unique suffix",
 		run: () => {
 			const base = createSceneBase();
 			const actor = createActor(sceneLogic, { input: base });
@@ -236,9 +234,11 @@ const cases: Case[] = [
 
 			const updated = actor.getSnapshot().context.events[10]["custom-1"] as any;
 			assert.ok(updated);
-			assert.equal(updated.name, null);
+			assert.equal(typeof updated.name, "string");
+			assert.equal(String(updated.name).startsWith("intro-cue"), true);
+			assert.equal(updated.name, "intro-cue-2");
 			assert.equal(updated.position, "start");
-			assert.equal(updated.delay, 0);
+			assert.equal(updated.delay, null);
 			assert.equal(shouldPersistEventPayload(updated.action, updated), true);
 
 			actor.stop();
