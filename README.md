@@ -86,3 +86,6 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 
 npx prisma generate  
  sqlite3 ./prisma/dev.db < ./prisma/out-202503-10.sql
+
+note
+non, un event se produit une fois et peut s'appliquer à plusieurs items, et represente un seul repere temporel. un event de meme nom peut aussi se répéter a plusieurs moments. dans notre cas, ce sont deux events différents à des temps différents bien que tres proches, il faut les distinguer.
