@@ -5,8 +5,9 @@ import { initMedias } from "./deps/init-medias";
 import { createScene } from "./deps/create-scene";
 import { createElements } from "./deps/create-elements";
 import { mixClassNames, setStaticChanges } from "./deps/static-changes";
+import { restoreNodeFromInitial } from "./deps/initial-state";
 import { P } from "./types";
-import { getAbsoluteCoords, getTransform } from "./deps/utils";
+import { getAbsoluteCoords, getTransform, isChangeActiveAtTime } from "./deps/utils";
 import { DEFAULT_DURATION } from "../config/constants";
 import { SCENE_ID } from "@/scene-runtime/constants";
 
@@ -88,6 +89,7 @@ export class Player {
 		setters: new Map<ID, JSAnimation>(),
 		previousTime: null as number | null
 	};
+	private initialParentById = new Map<ID, HTMLElement | null>();
 
 	// Stocker les dimensions de fin de la dernière transition pour la prochaine transition
 	private lastEndCoords = new Map<ID, { x: number; y: number; width: number; height: number }>();
@@ -125,6 +127,7 @@ export class Player {
 	private init() {
 		this.timeLine = createTimeline(tmDefaults);
 		this.createElements();
+		this.captureInitialParents();
 		this.initMedias();
 		this.setStaticChanges();
 		this.createScene();
@@ -141,6 +144,13 @@ export class Player {
 	private initMedias!: () => void;
 	private setStaticChanges!: () => void;
 	private createScene!: () => void;
+
+	private captureInitialParents() {
+		this.persos.forEach((perso) => {
+			const node = this.$elements.get(perso.initial.id);
+			this.initialParentById.set(perso.initial.id, (node?.parentElement as HTMLElement | null) ?? null);
+		});
+	}
 
 	private onBeforeUpdateTM() {
 		this.timeLine.onBeforeUpdate = (self: Timeline) => {
@@ -212,6 +222,7 @@ export class Player {
 		this.lastEndCoords.clear();
 		this.clearChangeSnapshots();
 		this.clearTransientMoveInlineStyles();
+		this.restoreInitialNodeStates();
 		this.timeLine.restart();
 		this.seekChanges(0);
 		this.seekMedias(0);
@@ -230,6 +241,7 @@ export class Player {
 		this.lastEndCoords.clear();
 		this.clearChangeSnapshots();
 		this.clearTransientMoveInlineStyles();
+		this.restoreInitialNodeStates();
 		this.timeLine.revert();
 		return this.timeLine;
 	};
@@ -243,6 +255,7 @@ export class Player {
 		this.lastEndCoords.clear();
 		this.clearChangeSnapshots();
 		this.clearTransientMoveInlineStyles();
+		this.restoreInitialNodeStates();
 		this.seekChanges(time);
 
 		this.timeLine.seek(+time);
@@ -293,7 +306,27 @@ export class Player {
 			$el.style.removeProperty("height");
 			$el.style.removeProperty("transform");
 			$el.style.removeProperty("transform-origin");
+			$el.style.removeProperty("rotate");
+			$el.style.removeProperty("scale");
+			$el.style.removeProperty("scaleX");
+			$el.style.removeProperty("scaleY");
+			$el.style.removeProperty("originX");
+			$el.style.removeProperty("originY");
 		});
+	}
+
+	private restoreInitialNodeStates() {
+		for (const perso of this.persos.values()) {
+			const initial = perso.initial;
+			const $el = this.$elements.get(initial.id);
+			if (!$el) continue;
+			restoreNodeFromInitial({
+				node: $el,
+				initial,
+				resolveParentById: (id) => this.$elements.get(id) ?? null,
+				resolveDefaultParent: () => this.initialParentById.get(initial.id) ?? null
+			});
+		}
 	}
 
 	private seekChanges(time: number) {
@@ -308,15 +341,18 @@ export class Player {
 
 			const activeChange =
 				entries.find((entry) => {
-					const curr =
-						typeof entry.change.curr === "number" && Number.isFinite(entry.change.curr)
-							? entry.change.curr
-							: entry.position;
-					const next =
-						typeof entry.change.next === "number" && Number.isFinite(entry.change.next)
-							? entry.change.next
-							: Infinity;
-					return time >= curr && time <= next;
+					const normalizedEntry: Change = {
+						...entry.change,
+						curr:
+							typeof entry.change.curr === "number" && Number.isFinite(entry.change.curr)
+								? entry.change.curr
+								: entry.position,
+						next:
+							typeof entry.change.next === "number" && Number.isFinite(entry.change.next)
+								? entry.change.next
+								: Infinity
+					};
+					return isChangeActiveAtTime(time, normalizedEntry);
 				})?.change || entries[entries.length - 1].change;
 
 			const activeCurr =

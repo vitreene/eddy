@@ -143,6 +143,33 @@ try {
 		assertPointClose(frameCorners[i], elementCorners[i], `frame corner ${i} should match element corner`);
 	}
 
+	const fakeElement: any = {
+		__proto__: (globalThis as any).HTMLElement.prototype,
+		offsetWidth: transform.width,
+		offsetHeight: transform.height,
+		getBoxQuads: () => [
+			{
+				p1: expectedElementToViewport.transformPoint({ x: 0, y: 0 }),
+				p2: expectedElementToViewport.transformPoint({ x: transform.width, y: 0 }),
+				p4: expectedElementToViewport.transformPoint({ x: 0, y: transform.height })
+			}
+		]
+	};
+
+	const elementFrame = buildFrame(transform, null, fakeElement as HTMLElement);
+	assert(elementFrame !== null, "frame should be computed from element matrix without offsetParent");
+
+	const elementFrameCorners = [
+		elementFrame!.M.transformPoint({ x: 0, y: 0 }),
+		elementFrame!.M.transformPoint({ x: elementFrame!.w, y: 0 }),
+		elementFrame!.M.transformPoint({ x: elementFrame!.w, y: elementFrame!.h }),
+		elementFrame!.M.transformPoint({ x: 0, y: elementFrame!.h })
+	];
+
+	for (let i = 0; i < 4; i += 1) {
+		assertPointClose(elementFrameCorners[i], elementCorners[i], `element frame corner ${i} should match`);
+	}
+
 	console.log("transform overlay alignment smoke: all checks passed");
 } finally {
 	(globalThis as any).DOMMatrix = previousDOMMatrix;

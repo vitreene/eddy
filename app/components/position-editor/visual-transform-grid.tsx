@@ -161,7 +161,7 @@ function useTransformRuntime(props: TransformProps) {
 		() =>
 			resolveTransformOverlayFrame(
 				state.context.input.element,
-				buildFrame(state.context.t, state.context.offsetParent)
+				buildFrame(state.context.t, state.context.offsetParent, state.context.input.element)
 			),
 		[state.context.input.element, state.context.t, state.context.offsetParent]
 	);

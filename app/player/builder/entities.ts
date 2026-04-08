@@ -435,6 +435,15 @@ function buildTimedActions(input: {
 			if (ev.decorId && ev.action !== INTRO) {
 				const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
 				const targetStyle = getInlineStyle(targetDecor.style);
+				const transitionDurationMs = Math.max(
+					0,
+					(entry.keyframeMs ?? previousKeyframeMs) - (entry.runtimeStartMs ?? previousKeyframeMs)
+				);
+				const decorStyleInterpolation = buildStyleInterpolation(
+					previousStyleState,
+					targetStyle,
+					transitionDurationMs
+				);
 				const nextDynamicClassName = buildDynamicClassName(capsuleType, targetDecor, autoLayoutAreaClassName);
 				const classNameDiff = buildClassNameDiff(previousDynamicClassName, nextDynamicClassName);
 				const placementClassChanged = hasPlacementClassDelta(
@@ -460,6 +469,22 @@ function buildTimedActions(input: {
 							delete (transitionStyle as Record<string, unknown>).width;
 							delete (transitionStyle as Record<string, unknown>).height;
 						}
+						delete decorStyleInterpolation.x;
+						delete decorStyleInterpolation.y;
+						delete decorStyleInterpolation.width;
+						delete decorStyleInterpolation.height;
+					}
+
+					if (Object.keys(decorStyleInterpolation).length) {
+						const transitionStyle = (
+							transitionAction.style && typeof transitionAction.style === "object"
+								? (transitionAction.style as Record<string, unknown>)
+								: {}
+						) as Record<string, unknown>;
+						transitionAction.style = {
+							...transitionStyle,
+							...decorStyleInterpolation
+						};
 					}
 				}
 

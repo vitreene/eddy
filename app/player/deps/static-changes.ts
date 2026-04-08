@@ -7,6 +7,7 @@ export interface Change {
 	prev: number | null;
 	curr: number | null;
 	next: number | null;
+	preserveTransform?: boolean;
 	snapshot?: {
 		x: number | string;
 		y: number | string;
@@ -35,7 +36,7 @@ suivant, à deplcer après test.
 			initialAction.media = { action: "pause", changeAt: 0, offset: 0 };
 		}
 		const actions = perso.actions;
-		const actionChanges: Record<number, { change: Action }> = {
+		const actionChanges: Record<number, { change: Action; preserveTransform?: boolean }> = {
 			0: {
 				change: initialAction
 			}
@@ -59,6 +60,7 @@ suivant, à deplcer après test.
 				const action = actions[e.name];
 				if (action && typeof action !== "boolean") {
 					const { style, ...change } = action;
+					const preserveTransform = hasPersistentTransformStyle(style);
 
 					if (change && isVideo && change.media) {
 						const authoredChangeAt = Number(change.media.changeAt);
@@ -82,7 +84,10 @@ suivant, à deplcer après test.
 					);
 					if (Object.keys(newChange).length) {
 						positions.add(position);
-						actionChanges[position] = { change: newChange };
+						actionChanges[position] = {
+							change: newChange,
+							preserveTransform: Boolean(actionChanges[position]?.preserveTransform || preserveTransform)
+						};
 					}
 				}
 			});
@@ -98,6 +103,7 @@ suivant, à deplcer après test.
 			changes[position].curr = position;
 			changes[position].prev = prev;
 			changes[position].next = next;
+			changes[position].preserveTransform = Boolean(actionChanges[position]?.preserveTransform);
 			if (typeof actionChanges[position].change != "boolean") {
 				const className = actionChanges[position].change.className ?? "";
 				const oldClassName = prev != null ? changes[prev]?.change?.className : "";
@@ -179,4 +185,23 @@ function applyClassNameActions(set: Set<string>, clsAction: ClassNameAction): vo
 	if (clsAction.remove) {
 		for (const cls of splitClasses(clsAction.remove)) set.delete(cls);
 	}
+}
+
+function hasPersistentTransformStyle(style: unknown): boolean {
+	if (!style || typeof style !== "object") return false;
+	const source = style as Record<string, unknown>;
+	const keys = [
+		"rotate",
+		"scale",
+		"scaleX",
+		"scaleY",
+		"skew",
+		"skewX",
+		"skewY",
+		"transform",
+		"transformOrigin",
+		"originX",
+		"originY"
+	] as const;
+	return keys.some((key) => typeof source[key] !== "undefined");
 }

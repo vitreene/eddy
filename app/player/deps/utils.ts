@@ -2,15 +2,13 @@ import type { Change } from "./static-changes";
 
 export function getAbsoluteCoords($el: HTMLElement) {
 	const coords = { x: 0, y: 0 };
-	const rect = $el.getBoundingClientRect();
-
 	traverse($el);
-	const res = coords;
+
 	return {
-		x: res.x,
-		y: res.y,
-		width: rect.width,
-		height: rect.height
+		x: coords.x,
+		y: coords.y,
+		width: $el.offsetWidth,
+		height: $el.offsetHeight
 	};
 
 	function traverse(element: HTMLElement) {
@@ -34,9 +32,15 @@ export function getProgression(value: number, start: number, end: number) {
 	return Math.max(0, Math.min(1, (value - start) / diff));
 }
 
+export function isChangeActiveAtTime(currentTime: number, change: Change): boolean {
+	const curr = typeof change.curr === "number" && Number.isFinite(change.curr) ? change.curr : 0;
+	const next = typeof change.next === "number" && Number.isFinite(change.next) ? change.next : Infinity;
+	return currentTime >= curr && currentTime < next;
+}
+
 export function setNextChange(currentTime: number, change: Change, changes: Record<number, Change>) {
 	let nextChange = change;
-	while (!(currentTime <= (nextChange.next ?? Infinity) && currentTime >= nextChange.curr!)) {
+	while (!isChangeActiveAtTime(currentTime, nextChange)) {
 		nextChange = nextChange.next ? changes[nextChange.next] : changes[0];
 		if (nextChange === change) return null; // never
 	}

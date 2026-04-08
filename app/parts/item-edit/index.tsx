@@ -272,10 +272,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				Object.prototype.hasOwnProperty.call(normalizedPayload, "className") ||
 				Object.prototype.hasOwnProperty.call(normalizedPayload, "area");
 			const shouldForceDedicatedEventDecor = Boolean(
-				hasPlacementIntent &&
-				selectedEvent &&
-				!selectedEventUsesItemDecor &&
-				typeof selectedEvent.decorId !== "number"
+				selectedEvent && !selectedEventUsesItemDecor && typeof selectedEvent.decorId !== "number"
 			);
 			const effectiveCurrentStyle = ((decor?.style as EditableStyle) ?? {}) as EditableStyle;
 			const mutationPlan = buildStyleMutationPlan({

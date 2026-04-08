@@ -40,6 +40,7 @@ type PlayerActiveEvent =
 				action?: string | null;
 			};
 	  }
+	| { type: "selection.event.requested"; payload: { event: string | null } }
 	| { type: "selection.clear.requested" }
 	| { type: "transport.seek.requested"; payload: { progress?: number | null; cue: number } }
 	| { type: "transport.play.requested" }
@@ -235,7 +236,8 @@ function createTelcoController({
 			const telco = getTelco();
 			if (!telco) return;
 			subscribeOnce();
-			telco.seek(0);
+			telco.revert();
+			send({ type: "selection.event.requested", payload: { event: null } });
 			send({ type: "transport.seek.requested", payload: { progress: 0, cue: 0 } });
 		},
 		seek: (progress: number, timeMs: number) => {
@@ -243,6 +245,7 @@ function createTelcoController({
 			if (!telco) return;
 			subscribeOnce();
 			telco.seek(timeMs);
+			send({ type: "selection.event.requested", payload: { event: null } });
 			send({ type: "transport.seek.requested", payload: { progress, cue: timeMs / 1000 } });
 		},
 		toggleMute: () => {

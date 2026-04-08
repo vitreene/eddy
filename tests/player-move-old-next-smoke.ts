@@ -48,6 +48,16 @@ function makeFakeNode() {
 			return node.className.includes("ed-zone-bas") ? 267 : 157;
 		}
 	});
+	Object.defineProperty(node, "offsetWidth", {
+		get() {
+			return node.className.includes("ed-zone-bas") ? 175.28125 : 512.078125;
+		}
+	});
+	Object.defineProperty(node, "offsetHeight", {
+		get() {
+			return node.className.includes("ed-zone-bas") ? 161.5234375 : 244.0078125;
+		}
+	});
 	node.getBoundingClientRect = () => {
 		if (node.className.includes("ed-zone-bas")) {
 			return makeRect({ x: 728, y: 267, width: 175.28125, height: 161.5234375 });

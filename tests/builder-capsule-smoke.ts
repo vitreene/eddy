@@ -437,6 +437,31 @@ const cases: Case[] = [
 		}
 	},
 	{
+		name: "outro decor transform persists at outro keyframe",
+		run: () => {
+			const context = createSceneBase();
+			context.decors[31] = {
+				id: 31,
+				name: null,
+				className: "",
+				area: "",
+				style: { rotate: "90deg" },
+				itemTargetId: null,
+				basedUpon: null
+			} as any;
+			context.events[1] = {
+				intro: { name: "capsule-intro", action: "intro", ref: "fade" } as any,
+				outro: { name: "capsule-outro", action: "outro", ref: "fade", decorId: 31 } as any
+			};
+
+			const scene = buildScene(context);
+			const item1 = getItemPerso(scene, 1);
+			const outroKey = getItemActionName(scene, 1, "outro");
+			assert.equal(item1.actions[outroKey].style.rotate.to, "90deg");
+			assert.equal(item1.actions[outroKey].style.rotate.duration, 0);
+		}
+	},
+	{
 		name: "custom event duration overrides interpolation duration",
 		run: () => {
 			const context = createSceneBase();

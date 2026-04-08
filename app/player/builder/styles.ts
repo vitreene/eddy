@@ -357,7 +357,9 @@ function extractStaticStyleEntries(style: unknown): Array<[string, string | numb
 	return Object.entries(source)
 		.filter(
 			([key, value]) =>
-				STATIC_STYLE_CLASS_KEYS.has(key) && (typeof value == "string" || typeof value == "number")
+				key !== "rawCss" &&
+				STATIC_STYLE_CLASS_KEYS.has(key) &&
+				(typeof value == "string" || typeof value == "number")
 		)
 		.sort(([a], [b]) => (a < b ? -1 : 1)) as Array<[string, string | number]>;
 }

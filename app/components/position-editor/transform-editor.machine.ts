@@ -197,12 +197,20 @@ export const transformEditorMachine = createMachine(
 
 export function buildFrame(
 	t: ElementTransform | null,
-	offsetParent: HTMLElement | null
+	offsetParent: HTMLElement | null,
+	element?: HTMLElement | null
 ): { w: number; h: number; M: DOMMatrix } | null {
-	if (!t || !offsetParent) return null;
-	const parentToViewport = getViewportMatrix(offsetParent);
-	const localToParentMatrix = matrixFromElementTransform(t);
-	const localToViewport = parentToViewport.multiply(localToParentMatrix);
+	if (!t) return null;
+
+	const localToViewport = element
+		? getViewportMatrix(element)
+		: offsetParent
+			? getViewportMatrix(offsetParent).multiply(matrixFromElementTransform(t))
+			: null;
+	if (!localToViewport) return null;
+
+	const localWidth = Math.max(1, element?.offsetWidth ?? t.width);
+	const localHeight = Math.max(1, element?.offsetHeight ?? t.height);
 
 	const scaleX = Math.hypot(localToViewport.a, localToViewport.b) || 1;
 	const scaleY = Math.hypot(localToViewport.c, localToViewport.d) || 1;
@@ -216,8 +224,8 @@ export function buildFrame(
 		localToViewport.f
 	]);
 
-	const displayWidth = Math.max(1, t.width * scaleX);
-	const displayHeight = Math.max(1, t.height * scaleY);
+	const displayWidth = Math.max(1, localWidth * scaleX);
+	const displayHeight = Math.max(1, localHeight * scaleY);
 
 	return { w: displayWidth, h: displayHeight, M: noScaleMatrix };
 }

@@ -538,3 +538,36 @@
 - Quand l'utilisateur signale une incomprehension, reformuler immediatement le plan en vocabulaire courant, sans jargon interne.
 - Donner un exemple de resultat attendu (avant/apres) pour lever toute ambiguite.
 - Eviter les redites: un seul plan net, centre sur la correction racine, sans variantes non demandees.
+
+## 2026-04-08 — Seek vs lecture: source unique obligatoire
+
+- Ne pas corriger uniquement les bornes d'un seul chemin (`seek` ou lecture): la selection d'etat temporel doit passer par une fonction partagee.
+- Si un cache runtime (`lastEndCoords`) existe, eviter toute purge asymetrique entre modes de lecture; sinon `seek` et lecture reconstruisent des etats differents.
+- Avant patch, ecrire une mini-repro de frontiere (`t == next`) pour verifier la parite seek/lecture et eviter les regressions globales.
+
+## 2026-04-08 — FLIP cleanup vs styles persistants
+
+- Le nettoyage de fin de transition FLIP ne doit pas effacer `transform` quand l'action transporte un style transform persistant (ex: `rotate` sur outro).
+- Ajouter un marqueur de changement (`preserveTransform`) depuis la phase static-changes pour guider le cleanup runtime.
+- Sur `seek/replay/revert`, repartir d'un reset explicite depuis `initial` pour eviter la conservation de styles inline stale entre lectures.
+
+## 2026-04-08 — Validation reelle scene/item avant conclure
+
+- Avant d'annoncer "corrige", verifier le cas utilisateur exact (scene + item) et pas seulement un cas synthetique.
+- Si le symptome est temporel (`seek`, `rewind`, `outro`), verifier explicitement les frontieres (`t=0`, arrivee d'etat) et pas seulement les smokes globaux.
+
+## 2026-04-08 — Contrat frontiere keyframe
+
+- Pour garantir la parite lecture/seek, utiliser des fenetres half-open `[curr, next)` dans la selection d'etat actif.
+- Dans le runtime update, ne pas declencher de bascule quand `currentTime == curr` pour le changement deja actif (`< curr`, pas `<= curr`).
+
+## 2026-04-08 — Debug runtime: pas de rustines dans Player
+
+- Ne pas laisser de fonctions de tracing temporaires (`seek-trace`, baselines, hooks ad hoc) dans `Player`.
+- Garder `Player` proche du contrat de branche de depart et sortir le diagnostic dans des scripts/tests externes.
+- Eviter les duplications de reset (`hardReset*` vs `revert`) : factoriser un seul chemin de remise a l'etat initial.
+
+## 2026-04-08 — Edition d'event sans decor dedie
+
+- Pour un event non-intro selectionne avec `decorId = null`, forcer la creation d'un decor dedie des la premiere edition (pas seulement pour les patches de placement).
+- Sinon l'UI peut afficher un style "effectif" (herite des events precedents) et donner l'impression de modifier le mauvais event.
