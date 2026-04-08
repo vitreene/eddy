@@ -12,6 +12,7 @@ import {
 	resolveCueWindows,
 	type ResolveCueWindowsResult
 } from "@/scene-runtime/visibility/resolve-cue-windows";
+import { resolveEventCuePoint } from "@/scene-runtime/visibility/event-cue-name";
 import { readEventTransitionValue } from "@/lib/event-ref";
 
 import type { ContentEvent, ItemComp, SceneComp, TextTime, CapsuleComp } from "@/api/db";
@@ -204,18 +205,18 @@ function resolveEventTiming(
 	}
 
 	if (kind === "outro") {
-		const cue = event.name ? cueByName.get(event.name) : null;
-		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
-		const cueTimeSec = getCueTimeAtPosition(cue, resolveEventPosition(event.position, "end"));
+		const resolved = resolveCueForEvent(event, cueByName, "end");
+		if (!resolved) return { keyframeMs: null, runtimeStartMs: null };
+		const cueTimeSec = getCueTimeAtPosition(resolved.cue, resolved.position);
 		const keyframeMs = Math.round(cueTimeSec * 1000);
 		return { keyframeMs, runtimeStartMs: keyframeMs };
 	}
 
 	if (kind === "intro") {
-		const cue = event.name ? cueByName.get(event.name) : null;
-		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
+		const resolved = resolveCueForEvent(event, cueByName, "start");
+		if (!resolved) return { keyframeMs: null, runtimeStartMs: null };
 		const durationMs = resolveTransitionDurationMs(event);
-		const cueTimeSec = getCueTimeAtPosition(cue, resolveEventPosition(event.position, "start"));
+		const cueTimeSec = getCueTimeAtPosition(resolved.cue, resolved.position);
 		const introStartMs = Math.round(cueTimeSec * 1000);
 		const keyframeMs = introStartMs + durationMs;
 		return {
@@ -225,10 +226,9 @@ function resolveEventTiming(
 	}
 
 	if (event.name) {
-		const cue = cueByName.get(event.name);
-		if (!cue) return { keyframeMs: null, runtimeStartMs: null };
-		const position = resolveEventPosition(event.position, "start");
-		const keyframeMs = Math.round(getCueTimeAtPosition(cue, position) * 1000);
+		const resolved = resolveCueForEvent(event, cueByName, "start");
+		if (!resolved) return { keyframeMs: null, runtimeStartMs: null };
+		const keyframeMs = Math.round(getCueTimeAtPosition(resolved.cue, resolved.position) * 1000);
 		return { keyframeMs, runtimeStartMs: keyframeMs };
 	}
 
@@ -242,9 +242,16 @@ function resolveTransitionDurationMs(event: ContentEvent): number {
 	return DEFAULT_DURATION;
 }
 
-function resolveEventPosition(value: unknown, fallback: CustomEventPosition): CustomEventPosition {
-	if (value === "start" || value === "middle" || value === "end") return value;
-	return fallback;
+function resolveCueForEvent(
+	event: ContentEvent,
+	cueByName: Map<string, TextTime>,
+	fallbackPosition: CustomEventPosition
+): { cue: TextTime; position: CustomEventPosition } | null {
+	const point = resolveEventCuePoint(event.name, event.position, fallbackPosition);
+	if (!point) return null;
+	const cue = cueByName.get(point.cueName);
+	if (!cue) return null;
+	return { cue, position: point.position };
 }
 
 export function resolveSustainWindowMs(
@@ -283,12 +290,14 @@ function resolveSustainTimingMs(
 		Math.round(getSceneContentDurationSec(getActiveSceneContent(snapshot)) * 1000)
 	);
 
-	const introCue = introEvent?.name ? cueByName.get(introEvent.name) : null;
+	const introCueName = resolveEventCuePoint(introEvent?.name, introEvent?.position, "start")?.cueName;
+	const introCue = introCueName ? cueByName.get(introCueName) : null;
 	const introStartMs = introCue ? Math.round(Number(introCue.start) * 1000) : 0;
 	const introDurationMs = introEvent ? resolveTransitionDurationMs(introEvent) : DEFAULT_DURATION;
 	const introEndMs = Math.max(0, introStartMs + introDurationMs);
 
-	const outroCue = outroEvent?.name ? cueByName.get(outroEvent.name) : null;
+	const outroCueName = resolveEventCuePoint(outroEvent?.name, outroEvent?.position, "end")?.cueName;
+	const outroCue = outroCueName ? cueByName.get(outroCueName) : null;
 	const outroDurationMs = outroEvent ? resolveTransitionDurationMs(outroEvent) : DEFAULT_DURATION;
 	const outroStartMs = outroCue
 		? Math.round(Number(outroCue.start) * 1000)

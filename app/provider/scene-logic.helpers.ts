@@ -7,6 +7,7 @@ import {
 	getCueTimeAtPosition,
 	resolveClosestCuePointFromDelay
 } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveCueEntryByEventName } from "@/scene-runtime/visibility/event-cue-name";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { resolveSelectedEventCueSec } from "./event-selection-cue";
@@ -227,9 +228,10 @@ function computeDefaultCustomDelaySec(
 	const sceneContent = getActiveSceneContent(context);
 	const cues = getSceneContentCues(sceneContent);
 	if (!cues.length) return null;
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
 
-	const introCue = cues.find((cue) => cue.name == introName);
-	const outroCue = cues.find((cue) => cue.name == outroName);
+	const introCue = resolveCueEntryByEventName(cueByName, introName)?.cue || null;
+	const outroCue = resolveCueEntryByEventName(cueByName, outroName)?.cue || null;
 	if (!introCue || !outroCue) return null;
 
 	const start = Number(introCue.start);
@@ -262,15 +264,15 @@ function resolveNearestCuePointFromSeek(
 ): { name: string; position: CustomEventPosition } | null {
 	// Resolve nearest cue point around current seek; prefer points within intro/outro bounds.
 	const itemEvents = context.events[itemId] || {};
-	const introName = itemEvents[INTRO]?.name;
-	const outroName = itemEvents[OUTRO]?.name;
+	const introName = itemEvents[INTRO]?.name ?? null;
+	const outroName = itemEvents[OUTRO]?.name ?? null;
 	const sceneContent = getActiveSceneContent(context);
 	const cues = getSceneContentCues(sceneContent);
 	if (!cues.length) return null;
 
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-	const introCue = introName ? cueByName.get(introName) : null;
-	const outroCue = outroName ? cueByName.get(outroName) : null;
+	const introCue = resolveCueEntryByEventName(cueByName, introName)?.cue || null;
+	const outroCue = resolveCueEntryByEventName(cueByName, outroName)?.cue || null;
 
 	const introStart = introCue ? Number(introCue.start) : Number.NaN;
 	const outroEnd = outroCue ? Number(outroCue.end) : Number.NaN;
@@ -305,12 +307,12 @@ function resolveNearestCuePointFromSeek(
 	if (bestInBounds) return { name: bestInBounds.name, position: bestInBounds.position };
 	if (bestAny) return { name: bestAny.name, position: bestAny.position };
 
-	if (introName && outroName) {
+	if (introCue?.name && outroCue?.name) {
 		const delay = computeDefaultCustomDelaySec(context, itemId);
 		const point = resolveClosestCuePointFromDelay({
 			cues,
-			introName,
-			outroName,
+			introName: introCue.name,
+			outroName: outroCue.name,
 			delaySec: delay
 		});
 		if (point) return { name: point.name, position: point.position };

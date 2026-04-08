@@ -1,6 +1,7 @@
 import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
-import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
+import { deriveEventKind } from "@/config/custom-events";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveEventCuePoint } from "@/scene-runtime/visibility/event-cue-name";
 
 import type { ContentEvent, SceneComp, TextTime } from "@/api/db";
 
@@ -93,11 +94,11 @@ export function resolveEventAnchorSec(
 	if (event.action === OUTRO) return resolveOutroAnchorSec(context, event);
 	if (deriveEventKind(event.action) !== "custom") return null;
 
-	if (event.name) {
-		const cue = findSceneCueByName(context, event.name);
+	const customPoint = resolveEventCuePoint(event.name, event.position, "start");
+	if (customPoint) {
+		const cue = findSceneCueByName(context, customPoint.cueName);
 		if (!cue) return null;
-		const position = normalizeCustomPosition(event.position);
-		return getCueTimeAtPosition(cue, position);
+		return getCueTimeAtPosition(cue, customPoint.position);
 	}
 
 	if (typeof event.delay === "number" && Number.isFinite(event.delay) && event.delay >= 0) {
@@ -112,17 +113,21 @@ export function resolveEventAnchorSec(
 }
 
 function resolveIntroAnchorSec(context: SceneComp, event: ContentEvent): number | null {
-	const cue = findSceneCueByName(context, event.name);
+	const point = resolveEventCuePoint(event.name, event.position, "start");
+	if (!point) return null;
+	const cue = findSceneCueByName(context, point.cueName);
 	if (!cue) return null;
-	const cueTime = getCueTimeAtPosition(cue, normalizeEventPositionForAction(event.position, INTRO));
+	const cueTime = getCueTimeAtPosition(cue, point.position);
 	return cueTime + resolveTransitionDurationSec(event);
 }
 
 function resolveOutroAnchorSec(context: SceneComp, event: ContentEvent): number | null {
-	const cue = findSceneCueByName(context, event.name);
+	const point = resolveEventCuePoint(event.name, event.position, "end");
+	if (!point) return null;
+	const cue = findSceneCueByName(context, point.cueName);
 	if (!cue) return null;
 	const durationSec = resolveTransitionDurationSec(event);
-	const cueTime = getCueTimeAtPosition(cue, normalizeEventPositionForAction(event.position, OUTRO));
+	const cueTime = getCueTimeAtPosition(cue, point.position);
 	return cueTime - durationSec;
 }
 
@@ -144,19 +149,6 @@ function resolveTransitionDurationSec(event: ContentEvent): number {
 	return typeof event.duration === "number" && Number.isFinite(event.duration) && event.duration > 0
 		? event.duration
 		: DEFAULT_DURATION_SEC;
-}
-
-function normalizeCustomPosition(position: string | null | undefined): CustomEventPosition {
-	return position === "start" || position === "end" || position === "middle" ? position : "start";
-}
-
-function normalizeEventPositionForAction(
-	position: string | null | undefined,
-	action: string
-): CustomEventPosition {
-	if (position === "start" || position === "middle" || position === "end") return position;
-	if (action === OUTRO) return "end";
-	return "start";
 }
 
 function clampSec(value: number, min: number, max: number): number {

@@ -3,6 +3,11 @@ import { deriveEventKind, type CustomEventPosition } from "@/config/custom-event
 import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
 import { writeEventTransition } from "@/lib/event-ref";
 import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import {
+	buildEventCueName,
+	resolveCueEntryByEventName,
+	resolveEventCuePoint
+} from "@/scene-runtime/visibility/event-cue-name";
 
 import type { ContentEvent, TextTime } from "@/api/db";
 
@@ -26,8 +31,10 @@ export function buildEditablePointHandles(params: {
 
 	const introEvent = events?.[INTRO] ?? null;
 	const outroEvent = events?.[OUTRO] ?? null;
-	const introCueName = resolveCueNameForHandle(cues, introEvent?.name, INTRO);
-	const outroCueName = resolveCueNameForHandle(cues, outroEvent?.name, OUTRO);
+	const introEventPoint = resolveEventCuePoint(introEvent?.name, introEvent?.position, "start");
+	const outroEventPoint = resolveEventCuePoint(outroEvent?.name, outroEvent?.position, "end");
+	const introCueName = resolveCueNameForHandle(cues, introEventPoint?.cueName, INTRO);
+	const outroCueName = resolveCueNameForHandle(cues, outroEventPoint?.cueName, OUTRO);
 
 	const handles: Array<TimelineEditablePointHandle> = [];
 	if (introCueName) {
@@ -35,7 +42,7 @@ export function buildEditablePointHandles(params: {
 			action: INTRO,
 			kind: "intro",
 			cueName: introCueName,
-			position: normalizePositionForAction(introEvent?.position, INTRO),
+			position: introEventPoint?.position ?? normalizePositionForAction(introEvent?.position, INTRO),
 			isActive: activeEventAction === INTRO
 		});
 	}
@@ -44,7 +51,7 @@ export function buildEditablePointHandles(params: {
 			action: OUTRO,
 			kind: "outro",
 			cueName: outroCueName,
-			position: normalizePositionForAction(outroEvent?.position, OUTRO),
+			position: outroEventPoint?.position ?? normalizePositionForAction(outroEvent?.position, OUTRO),
 			isActive: activeEventAction === OUTRO
 		});
 	}
@@ -76,7 +83,7 @@ export function buildEditablePointHandles(params: {
 	return handles;
 }
 
-export function makeIntroOutroEventPayload(
+export function buildEventPayloadFromCuePoint(
 	events: Record<string, { action?: string; name?: string; ref?: unknown } | undefined> | null,
 	action: string,
 	cueName: string,
@@ -85,11 +92,12 @@ export function makeIntroOutroEventPayload(
 	const current = events?.[action] || {};
 	const defaultRef =
 		action === OUTRO ? DEFAULT_TRANSITION_BY_ACTION[OUTRO] : DEFAULT_TRANSITION_BY_ACTION[INTRO];
+	const normalizedPosition = normalizePositionForAction(position, action);
 	return {
 		...current,
 		action,
-		name: cueName,
-		position: normalizePositionForAction(position, action),
+		name: buildEventCueName(cueName, normalizedPosition),
+		position: normalizedPosition,
 		ref: writeEventTransition(current.ref, defaultRef, action)
 	};
 }
@@ -101,10 +109,13 @@ export function clampCustomCueNameToIntroOutro(
 	targetName: string
 ): string | null {
 	if (!targetName) return null;
-	if (!introName || !outroName) return targetName;
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+	const introCueName = resolveCueEntryByEventName(cueByName, introName)?.cueName || null;
+	const outroCueName = resolveCueEntryByEventName(cueByName, outroName)?.cueName || null;
+	if (!introCueName || !outroCueName) return targetName;
 
-	const introIndex = cues.findIndex((cue) => cue.name === introName);
-	const outroIndex = cues.findIndex((cue) => cue.name === outroName);
+	const introIndex = cues.findIndex((cue) => cue.name === introCueName);
+	const outroIndex = cues.findIndex((cue) => cue.name === outroCueName);
 	const targetIndex = cues.findIndex((cue) => cue.name === targetName);
 	if (introIndex < 0 || outroIndex < 0 || targetIndex < 0) return targetName;
 
@@ -137,13 +148,18 @@ function resolveCustomPoint(params: {
 	outroName: string | null;
 }): { cueName: string; position: CustomEventPosition } | null {
 	const { cues, event, introName, outroName } = params;
+	const pointFromName = resolveEventCuePoint(event.name, event.position, "start");
 
-	if (typeof event.name === "string" && event.name && cues.some((cue) => cue.name === event.name)) {
+	if (pointFromName?.cueName && cues.some((cue) => cue.name === pointFromName.cueName)) {
 		return {
 			cueName:
-				clampCustomCueNameToIntroOutro(cues, introName ?? undefined, outroName ?? undefined, event.name) ||
-				event.name,
-			position: sanitizePosition(event.position)
+				clampCustomCueNameToIntroOutro(
+					cues,
+					introName ?? undefined,
+					outroName ?? undefined,
+					pointFromName.cueName
+				) || pointFromName.cueName,
+			position: pointFromName.position
 		};
 	}
 

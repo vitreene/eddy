@@ -1,6 +1,7 @@
 import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveCueEntryByEventName, resolveEventCuePoint } from "@/scene-runtime/visibility/event-cue-name";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import type { ContentEvent, Decor, SceneComp, TextTime } from "@/api/db";
@@ -101,8 +102,8 @@ function getOrderedCustomEvents(
 	const sceneContent = getActiveSceneContent(context);
 	const cues = getSceneContentCues(sceneContent);
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-	const introCue = events[INTRO]?.name ? cueByName.get(events[INTRO]!.name || "") : null;
-	const outroCue = events[OUTRO]?.name ? cueByName.get(events[OUTRO]!.name || "") : null;
+	const introCue = resolveCueEntryByEventName(cueByName, events[INTRO]?.name)?.cue || null;
+	const outroCue = resolveCueEntryByEventName(cueByName, events[OUTRO]?.name)?.cue || null;
 
 	const withTimes = Object.values(events)
 		.filter((event): event is ContentEvent => Boolean(event) && deriveEventKind(event!.action) === "custom")
@@ -125,13 +126,11 @@ function resolveCustomEventTimeSec(
 	outroCue: TextTime | null
 ): number {
 	if (event.name) {
-		const cue = cueByName.get(event.name);
+		const point = resolveEventCuePoint(event.name, event.position, "start");
+		if (!point) return Number.NaN;
+		const cue = cueByName.get(point.cueName);
 		if (!cue) return Number.NaN;
-		const position = (event.position === "end" || event.position === "middle" ? event.position : "start") as
-			| "start"
-			| "middle"
-			| "end";
-		return getCueTimeAtPosition(cue, position);
+		return getCueTimeAtPosition(cue, point.position);
 	}
 
 	if (typeof event.delay == "number" && Number.isFinite(event.delay) && event.delay >= 0 && introCue) {

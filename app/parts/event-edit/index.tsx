@@ -17,6 +17,7 @@ import {
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { Button } from "@/components/ui/button";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
+import { resolveCueEntryByEventName } from "@/scene-runtime/visibility/event-cue-name";
 
 import { Rubber } from "../rubber/rubber";
 import { MediaEventParams } from "./media-event-params";
@@ -35,7 +36,8 @@ function resolveEventLabel(
 	cueName: string | null | undefined
 ): string {
 	if (!cueName) return "(sans repere)";
-	const cue = cues.find((entry) => entry.name === cueName);
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+	const cue = resolveCueEntryByEventName(cueByName, cueName)?.cue || null;
 	if (!cue) return cueName;
 	return cue.text || cue.name;
 }

@@ -14,6 +14,7 @@ import {
 } from "@/scene-runtime/scene-content";
 import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { parseEventCueName, resolveEventCuePoint } from "@/scene-runtime/visibility/event-cue-name";
 import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
 import {
 	buildNextWaveformPositionCueName,
@@ -21,7 +22,7 @@ import {
 } from "@/scene-runtime/waveform-position-cues";
 import { parseContentTimestampWaveform } from "@/waveform/payload";
 
-import { buildEditablePointHandles, makeIntroOutroEventPayload } from "./timeline-point-editor.model";
+import { buildEditablePointHandles, buildEventPayloadFromCuePoint } from "./timeline-point-editor.model";
 import { WaveformPointEditor } from "./waveform-point-editor";
 import { WaveformPositionLayout } from "./waveform-position-layout";
 import { detachPointerGestureListeners, startPointerGesture } from "./pointer-gesture-orchestrator";
@@ -175,7 +176,7 @@ export function WaveformCanvas() {
 				});
 
 				if (ordered.intro) {
-					const introPayload = makeIntroOutroEventPayload(
+					const introPayload = buildEventPayloadFromCuePoint(
 						events,
 						INTRO,
 						ordered.intro.cueName,
@@ -185,7 +186,7 @@ export function WaveformCanvas() {
 				}
 
 				if (ordered.outro) {
-					const outroPayload = makeIntroOutroEventPayload(
+					const outroPayload = buildEventPayloadFromCuePoint(
 						events,
 						OUTRO,
 						ordered.outro.cueName,
@@ -344,6 +345,11 @@ function resolveOrCreateWaveformCueName(
 		usedNames.add(currentName);
 		return currentName;
 	}
+	const normalizedCurrentName = parseEventCueName(currentName)?.cueName || currentName;
+	if (isWaveformPositionCueName(normalizedCurrentName)) {
+		usedNames.add(normalizedCurrentName);
+		return normalizedCurrentName;
+	}
 	const name = buildNextWaveformPositionCueName(usedNames);
 	usedNames.add(name);
 	return name;
@@ -361,8 +367,10 @@ function buildOrderedIntroOutroTargets(params: {
 	outro: { cueName: string; position: "start" } | null;
 } {
 	const { action, pendingCueName, pendingTimeSec, events, cueByName, cueTimeOverrides } = params;
-	const introName = events?.[INTRO]?.name ?? null;
-	const outroName = events?.[OUTRO]?.name ?? null;
+	const introName =
+		resolveEventCuePoint(events?.[INTRO]?.name, events?.[INTRO]?.position, "start")?.cueName ?? null;
+	const outroName =
+		resolveEventCuePoint(events?.[OUTRO]?.name, events?.[OUTRO]?.position, "end")?.cueName ?? null;
 
 	if (action === INTRO) {
 		if (outroName) {
@@ -425,7 +433,7 @@ async function createSingleIntro(params: {
 	const persisted = await persistScenePositionCue(introCueName, timeSec);
 	if (!persisted) return;
 
-	const introPayload = makeIntroOutroEventPayload(events, INTRO, introCueName, "start");
+	const introPayload = buildEventPayloadFromCuePoint(events, INTRO, introCueName, "start");
 	sceneLogic.send({ type: "events-update", payload: introPayload });
 	sceneLogic.send({ type: "selection.event.requested", payload: { event: INTRO } });
 }
@@ -455,8 +463,8 @@ async function createIntroOutroFromRange(params: {
 	const outroPersisted = await persistScenePositionCue(outroCueName, outroSec);
 	if (!outroPersisted) return;
 
-	const introPayload = makeIntroOutroEventPayload(events, INTRO, introCueName, "start");
-	const outroPayload = makeIntroOutroEventPayload(events, OUTRO, outroCueName, "start");
+	const introPayload = buildEventPayloadFromCuePoint(events, INTRO, introCueName, "start");
+	const outroPayload = buildEventPayloadFromCuePoint(events, OUTRO, outroCueName, "start");
 	sceneLogic.send({ type: "events-update", payload: introPayload });
 	sceneLogic.send({ type: "events-update", payload: outroPayload });
 	sceneLogic.send({ type: "selection.event.requested", payload: { event: OUTRO } });
@@ -540,17 +548,11 @@ function resolveEventAnchorSec(
 	action: string,
 	cueByName: Map<string, TextTime>
 ): number {
-	if (!event?.name) return Number.NaN;
-	const cue = cueByName.get(event.name);
+	const point = resolveEventCuePoint(event?.name, event?.position, action === OUTRO ? "end" : "start");
+	if (!point) return Number.NaN;
+	const cue = cueByName.get(point.cueName);
 	if (!cue) return Number.NaN;
-	const position = normalizePositionForAction(event.position, action);
-	return getCueTimeAtPosition(cue, position);
-}
-
-function normalizePositionForAction(position: unknown, action: string): "start" | "middle" | "end" {
-	if (position === "start" || position === "middle" || position === "end") return position;
-	if (action === OUTRO) return "end";
-	return "start";
+	return getCueTimeAtPosition(cue, point.position);
 }
 
 function resolveWaveformDimLayers(

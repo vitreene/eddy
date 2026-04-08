@@ -2,9 +2,9 @@ import type { SceneComp, TextTime } from "@/api/db";
 import { DEFAULT_DURATION, INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind } from "@/config/custom-events";
 import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
-import { applyVisibilityRules } from "@/scene-runtime/visibility/apply-visibility-rules";
 import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveCueEntryByEventName, resolveEventCuePoint } from "@/scene-runtime/visibility/event-cue-name";
 import {
 	getActiveSceneContent,
 	getSceneContentCues,
@@ -37,9 +37,9 @@ export type SafeCueResult = {
 const DEFAULT_DURATION_SEC = DEFAULT_DURATION / 1000;
 
 export function findSceneCueByName(context: SceneComp, cueName: string | null | undefined): TextTime | null {
-	if (!cueName) return null;
 	const sceneContent = getActiveSceneContent(context);
-	const cue = getSceneContentCues(sceneContent).find((event) => event.name === cueName);
+	const cueByName = new Map(getSceneContentCues(sceneContent).map((cue) => [cue.name, cue]));
+	const cue = resolveCueEntryByEventName(cueByName, cueName)?.cue || null;
 	if (cue) return cue;
 
 	return null;
@@ -201,9 +201,8 @@ function clampSec(value: number, min: number, max: number): number {
 }
 
 function deriveItemVisibilityWindows(context: SceneComp): Map<number, VisibilityWindow> {
-	const runtimeSnapshot = applyVisibilityRules(context);
-	const behaviorByCapsuleId = buildCapsuleBehaviorById(runtimeSnapshot);
-	const resolved = resolveCueWindows(runtimeSnapshot, { generateMissingEvents: true, behaviorByCapsuleId });
+	const behaviorByCapsuleId = buildCapsuleBehaviorById(context);
+	const resolved = resolveCueWindows(context, { generateMissingEvents: true, behaviorByCapsuleId });
 	const result = new Map<number, VisibilityWindow>();
 
 	for (const [itemId, cueWindow] of resolved.cueWindowsByItemId.entries()) {
@@ -222,14 +221,11 @@ function getFirstCustomCueSec(context: SceneComp, itemId: number): number | null
 
 	for (const event of Object.values(eventMap)) {
 		if (!event || deriveEventKind(event.action) !== "custom") continue;
-		if (!event.name) continue;
-		const cue = findSceneCueByName(context, event.name);
+		const point = resolveEventCuePoint(event.name, event.position, "start");
+		if (!point) continue;
+		const cue = findSceneCueByName(context, point.cueName);
 		if (!cue) continue;
-		const position =
-			event.position === "start" || event.position === "end" || event.position === "middle"
-				? event.position
-				: "start";
-		const cueSec = getCueTimeAtPosition(cue, position);
+		const cueSec = getCueTimeAtPosition(cue, point.position);
 		if (!Number.isFinite(cueSec)) continue;
 		if (first === null || cueSec < first) first = cueSec;
 	}

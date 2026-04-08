@@ -360,7 +360,12 @@ function buildTimedActions(input: {
 					hasTransitionWindow &&
 					(placementChanged || placementClassChanged || (autoMoveOptions.autoMove && positionStyleChanged));
 
-				const durationMs = Math.max(0, (entry.keyframeMs ?? previousKeyframeMs) - previousKeyframeMs);
+				const cueWindowDurationMs = Math.max(0, (entry.keyframeMs ?? previousKeyframeMs) - previousKeyframeMs);
+				const explicitDurationMs =
+					typeof ev.duration === "number" && Number.isFinite(ev.duration) && ev.duration > 0
+						? Math.round(ev.duration * 1000)
+						: null;
+				const durationMs = explicitDurationMs ?? cueWindowDurationMs;
 				const targetStyleForInterpolation =
 					autoMoveRequested && autoMoveOptions.clearTransforms
 						? {

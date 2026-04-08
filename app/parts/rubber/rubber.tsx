@@ -14,14 +14,15 @@ import {
 import { isWaveformPositionCueName } from "@/scene-runtime/waveform-position-cues";
 import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { buildEventCueName, resolveEventCuePoint } from "@/scene-runtime/visibility/event-cue-name";
 import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
 
 import { RubberProportionalLayout } from "./rubber-proportional-layout";
 import { TimelinePointEditor } from "./timeline-point-editor";
 import {
 	buildEditablePointHandles,
-	clampCustomCueNameToIntroOutro,
-	makeIntroOutroEventPayload
+	buildEventPayloadFromCuePoint,
+	clampCustomCueNameToIntroOutro
 } from "./timeline-point-editor.model";
 import { detachPointerGestureListeners, startPointerGesture } from "./pointer-gesture-orchestrator";
 import {
@@ -116,7 +117,7 @@ export function Rubber() {
 			});
 
 			if (ordered.intro) {
-				const introPayload = makeIntroOutroEventPayload(
+				const introPayload = buildEventPayloadFromCuePoint(
 					events,
 					INTRO,
 					ordered.intro.cueName,
@@ -126,7 +127,7 @@ export function Rubber() {
 			}
 
 			if (ordered.outro) {
-				const outroPayload = makeIntroOutroEventPayload(
+				const outroPayload = buildEventPayloadFromCuePoint(
 					events,
 					OUTRO,
 					ordered.outro.cueName,
@@ -152,7 +153,7 @@ export function Rubber() {
 			type: "custom-event-update",
 			payload: {
 				action,
-				name: boundedCueName,
+				name: buildEventCueName(boundedCueName, point.position),
 				position: point.position,
 				delay: null
 			}
@@ -185,8 +186,18 @@ export function Rubber() {
 							onCommitPoint(INTRO, introPoint);
 							return;
 						}
-						const introPayload = makeIntroOutroEventPayload(events, INTRO, introPoint.cueName, introPoint.position);
-						const outroPayload = makeIntroOutroEventPayload(events, OUTRO, outroPoint.cueName, outroPoint.position);
+						const introPayload = buildEventPayloadFromCuePoint(
+							events,
+							INTRO,
+							introPoint.cueName,
+							introPoint.position
+						);
+						const outroPayload = buildEventPayloadFromCuePoint(
+							events,
+							OUTRO,
+							outroPoint.cueName,
+							outroPoint.position
+						);
 						sceneLogic.send({ type: "events-update", payload: introPayload });
 						sceneLogic.send({ type: "events-update", payload: outroPayload });
 						sceneLogic.send({ type: "selection.event.requested", payload: { event: OUTRO } });
@@ -294,16 +305,18 @@ function buildOrderedIntroOutroTargets(params: {
 	const { action, pendingPoint, events, cueByName } = params;
 	const introEvent = events?.[INTRO];
 	const outroEvent = events?.[OUTRO];
-	const introPoint = introEvent?.name
+	const introResolvedPoint = resolveEventCuePoint(introEvent?.name, introEvent?.position, "start");
+	const outroResolvedPoint = resolveEventCuePoint(outroEvent?.name, outroEvent?.position, "end");
+	const introPoint = introResolvedPoint
 		? {
-				cueName: introEvent.name,
-				position: normalizePositionForAction(introEvent.position, INTRO)
+				cueName: introResolvedPoint.cueName,
+				position: introResolvedPoint.position
 			}
 		: null;
-	const outroPoint = outroEvent?.name
+	const outroPoint = outroResolvedPoint
 		? {
-				cueName: outroEvent.name,
-				position: normalizePositionForAction(outroEvent.position, OUTRO)
+				cueName: outroResolvedPoint.cueName,
+				position: outroResolvedPoint.position
 			}
 		: null;
 
@@ -462,17 +475,11 @@ function resolveEventAnchorSec(
 	action: string,
 	cueByName: Map<string, TextTime>
 ): number {
-	if (!event?.name) return Number.NaN;
-	const cue = cueByName.get(event.name);
+	const point = resolveEventCuePoint(event?.name, event?.position, action === OUTRO ? "end" : "start");
+	if (!point) return Number.NaN;
+	const cue = cueByName.get(point.cueName);
 	if (!cue) return Number.NaN;
-	const position = normalizePositionForAction(event.position, action);
-	return getCueTimeAtPosition(cue, position);
-}
-
-function normalizePositionForAction(position: unknown, action: string): "start" | "middle" | "end" {
-	if (position === "start" || position === "middle" || position === "end") return position;
-	if (action === OUTRO) return "end";
-	return "start";
+	return getCueTimeAtPosition(cue, point.position);
 }
 
 function resolveNearestVisibleCuePoint(

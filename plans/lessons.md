@@ -520,3 +520,21 @@
 - Si la machine peut orchestrer une transition (persist, sync style, tracking), ne pas la reproduire dans `useEffect`.
 - Cibler un seul effet de sync props -> machine dans le composant, et deleguer le reste aux actions machine/service.
 - Eviter les gardes a base de refs dans React pour du commit metier: preferer des actions explicites sur les evenements de commit.
+
+## 2026-04-08 — Reponse scope: distinguer impact et demande
+
+- Quand on mentionne un effet de bord potentiel (tests/logs/nommage), expliciter que c'est une information d'impact observable, pas une tache ajoutee au scope.
+- Eviter les formulations ambiguës qui peuvent faire croire a une extension implicite de la demande.
+- Si l'utilisateur demande une reformulation, fournir une version directe avec trois points: ce que c'est, ce que ca change visiblement, ce que je ne vais pas implementer.
+
+## 2026-04-08 — Evenements globaux: ne pas proposer de scope item
+
+- Ne pas proposer de lier les noms d'actions runtime a `itemId` quand le modele produit dit explicitement que les events restent globaux et partages.
+- Pour diagnostiquer des collisions, verifier d'abord la canonicalisation du nom d'event (ex: suffixes `-middle`/`-end`) avant toute idee de scoping par item.
+- Prioriser des corrections perennes sur la cause (normalisation/contrat de nommage) et eviter les propositions de "durcissement" defensif.
+
+## 2026-04-08 — Communication: plan en langage courant + exemple concret
+
+- Quand l'utilisateur signale une incomprehension, reformuler immediatement le plan en vocabulaire courant, sans jargon interne.
+- Donner un exemple de resultat attendu (avant/apres) pour lever toute ambiguite.
+- Eviter les redites: un seul plan net, centre sur la correction racine, sans variantes non demandees.

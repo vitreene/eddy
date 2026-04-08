@@ -433,7 +433,7 @@ const cases: Case[] = [
 
 			const scene = buildScene(context);
 			const starts = getActionStarts(scene);
-			assert.equal(starts.get("custom-cue-custom-1"), 5000);
+			assert.equal(starts.get("custom-cue-middle-custom-1"), 5000);
 		}
 	},
 	{
@@ -465,10 +465,10 @@ const cases: Case[] = [
 
 			const scene = buildScene(context);
 			const item1 = getItemPerso(scene, 1);
-			const customKey = Object.keys(item1.actions).find((key) => key.endsWith("-custom-1"));
-			assert.ok(customKey);
-			assert.equal(item1.actions[customKey!].style.opacity.to, 0.25);
-			assert.equal(item1.actions[customKey!].style.opacity.duration, 1500);
+			const customTweenKey = Object.keys(item1.actions).find((key) => key.endsWith("-custom-1__tween"));
+			assert.ok(customTweenKey);
+			assert.equal(item1.actions[customTweenKey!].style.opacity.to, 0.25);
+			assert.equal(item1.actions[customTweenKey!].style.opacity.duration, 1500);
 		}
 	},
 	{

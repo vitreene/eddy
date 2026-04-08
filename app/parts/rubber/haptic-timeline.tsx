@@ -6,6 +6,7 @@ import { INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveEventCuePoint } from "@/scene-runtime/visibility/event-cue-name";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import type { TextTime, ContentEvent, SceneComp } from "@/api/db";
@@ -59,24 +60,23 @@ function canFitTap(taps: Tap[], position: number, duration: number): boolean {
 
 function eventsToTaps(cues: TextTime[], events: Record<string, ContentEvent | undefined>): Tap[] {
 	const taps: Tap[] = [];
-	const introName = events[INTRO]?.name;
-	const outroName = events[OUTRO]?.name;
-	const introCue = introName ? cues.find((cue) => cue.name === introName) : null;
-	const outroCue = outroName ? cues.find((cue) => cue.name === outroName) : null;
+	const introPoint = resolveEventCuePoint(events[INTRO]?.name, events[INTRO]?.position, "start");
+	const outroPoint = resolveEventCuePoint(events[OUTRO]?.name, events[OUTRO]?.position, "end");
 
 	for (const event of Object.values(events)) {
 		if (!event || deriveEventKind(event.action) !== "custom") continue;
 
 		let position: number;
 		if (typeof event.name === "string" && event.name) {
-			const cueIdx = cues.findIndex((c) => c.name === event.name);
+			const point = resolveEventCuePoint(event.name, event.position, "start");
+			const cueIdx = point ? cues.findIndex((c) => c.name === point.cueName) : -1;
 			if (cueIdx >= 0) position = cueIdx * 100;
 			else position = 500;
 		} else if (typeof event.delay === "number") {
 			const point = resolveClosestCuePointFromDelay({
 				cues,
-				introName: introCue?.name,
-				outroName: outroCue?.name,
+				introName: introPoint?.cueName,
+				outroName: outroPoint?.cueName,
 				delaySec: event.delay
 			});
 			const cueIdx = point ? cues.findIndex((c) => c.name === point.name) : -1;

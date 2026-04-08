@@ -1,5 +1,6 @@
 import type { TextTime } from "@/api/db";
 import type { CustomEventPosition } from "@/config/custom-events";
+import { resolveCueEntryByEventName } from "@/scene-runtime/visibility/event-cue-name";
 
 export type CuePointMatch = {
 	name: string;
@@ -21,13 +22,13 @@ export function resolveClosestCuePointFromDelay(params: {
 	if (!introName) return null;
 
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-	const introCue = cueByName.get(introName);
+	const introCue = resolveCueEntryByEventName(cueByName, introName)?.cue || null;
 	if (!introCue) return null;
 
 	const introStart = Number(introCue.start);
 	if (!Number.isFinite(introStart)) return null;
 
-	const outroCue = outroName ? cueByName.get(outroName) : null;
+	const outroCue = resolveCueEntryByEventName(cueByName, outroName)?.cue || null;
 	const outroEnd = outroCue ? Number(outroCue.end) : Number.POSITIVE_INFINITY;
 	const boundedTarget = Number.isFinite(outroEnd)
 		? Math.min(Math.max(introStart + delaySec, introStart), outroEnd)
@@ -71,8 +72,8 @@ export function resolveDelayFromCuePoint(params: {
 	if (!introName || !cueName) return null;
 
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-	const introCue = cueByName.get(introName);
-	const targetCue = cueByName.get(cueName);
+	const introCue = resolveCueEntryByEventName(cueByName, introName)?.cue || null;
+	const targetCue = resolveCueEntryByEventName(cueByName, cueName)?.cue || null;
 	if (!introCue || !targetCue) return null;
 
 	const introStart = Number(introCue.start);
@@ -81,7 +82,7 @@ export function resolveDelayFromCuePoint(params: {
 	const cueTime = getCueTimeAtPosition(targetCue, position);
 	if (!Number.isFinite(cueTime)) return null;
 
-	const outroCue = outroName ? cueByName.get(outroName) : null;
+	const outroCue = resolveCueEntryByEventName(cueByName, outroName)?.cue || null;
 	const outroEnd = outroCue ? Number(outroCue.end) : Number.POSITIVE_INFINITY;
 	const boundedTime = Number.isFinite(outroEnd) ? Math.min(Math.max(cueTime, introStart), outroEnd) : cueTime;
 

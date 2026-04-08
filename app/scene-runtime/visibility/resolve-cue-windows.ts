@@ -2,6 +2,7 @@ import type { ContentEvent, ItemComp, SceneComp, TextTime } from "@/api/db";
 import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
 import { getSceneContentCues, SCENE_DEFAULT_DURATION_SEC } from "@/scene-runtime/scene-content";
+import { hasCueByEventName, resolveCueEntryByEventName } from "@/scene-runtime/visibility/event-cue-name";
 
 type Window = { start: number; end: number };
 type Lock = { index: number; start: number; end: number };
@@ -29,6 +30,17 @@ const DEFAULT_CAPSULE_BEHAVIOR: ResolveCueWindowsCapsuleBehavior = {
 	fixedSeconds: 2,
 	generateDefaultOutro: true
 };
+
+function resolveCueByEventName(
+	cueByName: Map<string, TextTime>,
+	eventName: string | null | undefined
+): TextTime | null {
+	return resolveCueEntryByEventName(cueByName, eventName)?.cue || null;
+}
+
+function hasCueForEventName(cueByName: Map<string, TextTime>, eventName: string | null | undefined): boolean {
+	return hasCueByEventName(cueByName, eventName);
+}
 
 /**
  * Resolve intro/outro windows for every item and optionally generate missing events.
@@ -133,8 +145,8 @@ export function resolveCueWindows(
 					continue;
 				}
 			} else {
-				const capsuleIntroCue = cueByName.get(capsuleIntroName);
-				const capsuleOutroCue = cueByName.get(capsuleOutroName);
+				const capsuleIntroCue = resolveCueByEventName(cueByName, capsuleIntroName);
+				const capsuleOutroCue = resolveCueByEventName(cueByName, capsuleOutroName);
 				if (!capsuleIntroCue && !capsuleOutroCue) {
 					if (capsuleHostItem.capsuleId === snapshot.main) {
 						capsuleStart = sceneBounds.start;
@@ -179,8 +191,8 @@ export function resolveCueWindows(
 				const outroName = events[OUTRO]?.name;
 				if (!introName || !outroName) continue;
 
-				const introCue = cueByName.get(introName);
-				const outroCue = cueByName.get(outroName);
+				const introCue = resolveCueByEventName(cueByName, introName);
+				const outroCue = resolveCueByEventName(cueByName, outroName);
 				if (!introCue || !outroCue) continue;
 
 				const start = Number(introCue.start);
@@ -274,8 +286,8 @@ export function resolveCueWindows(
 					});
 				}
 
-				const introCue = currentEvents[INTRO]?.name ? cueByName.get(currentEvents[INTRO]?.name || "") : null;
-				const outroCue = currentEvents[OUTRO]?.name ? cueByName.get(currentEvents[OUTRO]?.name || "") : null;
+				const introCue = resolveCueByEventName(cueByName, currentEvents[INTRO]?.name);
+				const outroCue = resolveCueByEventName(cueByName, currentEvents[OUTRO]?.name);
 
 				cueWindowsByItemId.set(item.id, {
 					start: introCue ? Number(introCue.start) : appliedWindow.start,
@@ -305,7 +317,7 @@ export function resolveCueWindows(
 		const introEvent = events[INTRO];
 		if (
 			introEvent &&
-			(!introEvent.name || !introEvent.name.trim() || !cueByName.has((introEvent.name || "").trim()))
+			(!introEvent.name || !introEvent.name.trim() || !hasCueForEventName(cueByName, introEvent.name))
 		) {
 			introEvent.name = ensureCueAtTime(
 				fallbackWindow.start,
@@ -317,7 +329,7 @@ export function resolveCueWindows(
 		const outroEvent = events[OUTRO];
 		if (
 			outroEvent &&
-			(!outroEvent.name || !outroEvent.name.trim() || !cueByName.has((outroEvent.name || "").trim()))
+			(!outroEvent.name || !outroEvent.name.trim() || !hasCueForEventName(cueByName, outroEvent.name))
 		) {
 			outroEvent.name = ensureCueAtTime(
 				fallbackWindow.end,
