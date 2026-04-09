@@ -567,6 +567,12 @@
 - Garder `Player` proche du contrat de branche de depart et sortir le diagnostic dans des scripts/tests externes.
 - Eviter les duplications de reset (`hardReset*` vs `revert`) : factoriser un seul chemin de remise a l'etat initial.
 
+## 2026-04-08 — Parite seek/lecture: verifier les sauts de fenetre
+
+- Ne pas supposer que `setNextChange` peut sauter directement a la fenetre active sans effet de bord: des changements intermediaires peuvent porter des `move` string structurants.
+- Pour la stabilite, quand un tick saute plusieurs fenetres, resynchroniser via le chemin seek canonique plutot que de perdre des transitions structurelles.
+- Les positions timeline style-only (ex: outro) doivent rester dans les fenetres statiques, sinon les frontieres de fin d'etat disparaissent et creent des incoherences de sortie.
+
 ## 2026-04-08 — Edition d'event sans decor dedie
 
 - Pour un event non-intro selectionne avec `decorId = null`, forcer la creation d'un decor dedie des la premiere edition (pas seulement pour les patches de placement).

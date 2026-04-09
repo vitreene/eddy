@@ -223,6 +223,7 @@ function createTelcoController({
 			else telco.pause();
 
 			if (shouldRestartFromZero) {
+				send({ type: "selection.event.requested", payload: { event: null } });
 				send({ type: "transport.seek.requested", payload: { progress: 0, cue: 0 } });
 			}
 			if (willPlay) {

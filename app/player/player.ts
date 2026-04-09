@@ -218,14 +218,8 @@ export class Player {
 	};
 
 	private replay = () => {
-		this.resetUpdateRuntimeState("replay");
-		this.lastEndCoords.clear();
-		this.clearChangeSnapshots();
-		this.clearTransientMoveInlineStyles();
-		this.restoreInitialNodeStates();
-		this.timeLine.restart();
-		this.seekChanges(0);
-		this.seekMedias(0);
+		this.seekToTime(0, "replay");
+		this.play();
 		return this.timeLine;
 	};
 	private pause = () => {
@@ -237,21 +231,21 @@ export class Player {
 	};
 
 	private revert = () => {
-		this.resetUpdateRuntimeState("revert");
-		this.lastEndCoords.clear();
-		this.clearChangeSnapshots();
-		this.clearTransientMoveInlineStyles();
-		this.restoreInitialNodeStates();
-		this.timeLine.revert();
+		this.seekToTime(0, "revert");
 		return this.timeLine;
 	};
 
 	private seek = (time: number) => {
+		this.seekToTime(time, "seek");
+		return this.timeLine;
+	};
+
+	private seekToTime(time: number, reason: "seek" | "replay" | "revert") {
 		this.timeLine.pause();
 		this.mediaStatus.forEach((ms) => {
 			ms.node.pause();
 		});
-		this.resetUpdateRuntimeState("seek");
+		this.resetUpdateRuntimeState(reason);
 		this.lastEndCoords.clear();
 		this.clearChangeSnapshots();
 		this.clearTransientMoveInlineStyles();
@@ -260,9 +254,7 @@ export class Player {
 
 		this.timeLine.seek(+time);
 		this.seekMedias(+time);
-
-		return this.timeLine;
-	};
+	}
 
 	private seekMedias = (time: number) => {
 		this.mediaStatus.forEach((ms) => {
