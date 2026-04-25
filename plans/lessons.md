@@ -1,5 +1,95 @@
 # Lessons
 
+## 2026-04-25 — Semantique d'ancrage: aligner handle, preview et commit
+
+- Si le handle de position represente l'ancre (ex: losange haut-gauche), le calcul de cible (`probe`), le preview live et le commit final doivent utiliser cette meme ancre.
+- Eviter les conversions implicites "centre" dans le controleur de commit quand le produit attend un ancrage coin haut-gauche.
+- Une divergence ancre UI vs ancre commit cree un ressenti "la position n'est pas fixee" meme si le commit est bien emis.
+
+## 2026-04-25 — Fin de drag: ne pas nettoyer trop tot le preview inline
+
+- Si le commit persiste asynchronement (ou peut etre rejoue), retirer immediatement l'inline preview peut provoquer un retour visuel a l'ancien placement.
+- En succes de commit, finaliser l'inline au placement cible est plus robuste; reserver le rollback inline au cancel/no-op.
+- Pour valider, tester explicitement le scenario "resize visible pendant drag, puis relachement".
+
+## 2026-04-25 — Preview inline style: restaurer vs finaliser selon l'issue du drag
+
+- Pendant un drag grid-native, appliquer `grid-row/grid-column` en inline pour le preview live est acceptable.
+- En fin de drag avec commit valide, ne pas restaurer les anciennes valeurs inline: supprimer les props inline pour laisser la classe committee devenir source de verite.
+- La restauration des anciennes valeurs inline doit etre reservee aux no-op/cancel.
+
+## 2026-04-25 — Interactivite drag en projection grille: separer preview et commit
+
+- Un cadre grid-native ne doit pas lire uniquement le placement DOM persiste (classe/computed style), sinon l'interaction parait "figee" jusqu'au commit.
+- Transporter un `previewPlacement` live dans la machine (`preview.placement`) et le prioriser au rendu pendant le drag.
+- Pour diagnostiquer vite: si `drag.start.after started=true` et `commit.before` existent, le probleme est probablement le canal de preview visuelle, pas la gestuelle.
+
+## 2026-04-25 — Logs "avant/apres": instrumenter le chemin actif, pas seulement les couches basses
+
+- Quand l'utilisateur demande des logs "before/after", les placer explicitement sur le composant actif (event UI), puis sur la machine (callback metier) pour borner le point de rupture.
+- Une instrumentation utile minimum pour un drag: `pointerdown.before`, `pointerdown.after-send`, `commit.before-callback`, `commit.after-callback`.
+- Eviter de supposer que les logs existants en service suffisent si le nouveau composant remplace le chemin precedent.
+
+## 2026-04-25 — Si l'utilisateur demande un nouveau composant separe, ne pas refactorer l'existant
+
+- Quand la demande explicite est "nouveau composant, nouveau fichier", appliquer cette separation strictement pour permettre comparaison legacy vs nouveau.
+- Pour une contrainte "tout via XState local", supprimer toute orchestration React (`useEffect`, `useMemo`) du nouveau chemin et utiliser une initialisation machine par remount controle.
+- En cas de plainte interactivite (drag/resize), prioriser une architecture minimale et testable (nouveau composant isole) avant d'accumuler des correctifs dans le composant historique.
+
+## 2026-04-25 — Regression position: corriger l'architecture de projection, pas le calcul pixel
+
+- Quand le besoin metier est "position par grille", eviter de projeter le cadre via matrices XY; dupliquer la grille parente et positionner le frame en `grid-row/grid-column`.
+- Garder le moteur de drag XState/service, mais separer clairement l'orchestration (machine) du mode de rendu (projection grille native).
+- En cas de correction utilisateur explicite sur la direction architecturale, conserver l'ancien chemin en legacy desactive plutot que le supprimer.
+
+## 2026-04-25 — Selection frame: eviter `offsetWidth` pour la precision visuelle
+
+- Pour un cadre overlay aligne au pixel (surtout sur elements tres fins), ne pas baser `w/h` sur `offsetWidth/offsetHeight` (arrondis entiers).
+- Utiliser `getBoundingClientRect().width/height` pour la taille affichee du frame; reserver les tailles entieres aux besoins layout non visuels.
+- Un diagnostic `dx/dy=0` avec `dw/dh!=0` indique un probleme de mesure de taille, pas de position.
+
+## 2026-04-25 — Sync editeur: ne jamais dependre du token seul
+
+- Un `syncToken` peut changer sans swap de node, mais l'inverse est aussi vrai (node remplace sans nouveau token).
+- Pour les overlays relies au DOM (`usePositionRuntime`), inclure la reference `element` dans la synchro machine (ou synchroniser sur props completes) pour eviter un frame stale.
+- Eviter les remounts forces par `key` comme mecanisme principal de sync quand la source de verite est un node DOM vivant.
+
+## 2026-04-25 — Scope debug: verifier le type de node actif (item vs capsule)
+
+- Sur les cas d'edition position, le node actif peut etre `capsule__*` (si `content.type = capsule`) et non `item__*`.
+- Ne pas filtrer les logs debug uniquement par `itemId`; inclure l'id de node effectivement resolu dans `active.node`.
+- Si aucun log n'apparait, verifier d'abord la resolution de node (`buildNodeId("item")` vs `buildNodeId("capsule")`) avant de supposer un probleme d'instrumentation.
+
+## 2026-04-25 — Quand un fix frame ne suffit pas: instrumenter la chaine complete
+
+- Si la correction proposee ne regle pas la regression visuelle, passer immediatement en mode debug avec logs avant/apres commit, pas seulement sur un point du flux.
+- Tracer les 4 etapes ensemble: service de drag (commit), controleur (patch decor), machine (resync), rendu frame overlay.
+- Pour les regressions ciblees, activer un scope debug item-specifique (ex: `item__104`) afin d'eviter le bruit global.
+
+## 2026-04-25 — Position runtime sync: token parent > deps manuelles
+
+- Eviter les listes de dependances longues dans `usePositionRuntime` pour `props.sync`: elles finissent incompletes et fragiles.
+- Piloter la resync depuis le parent avec un `syncToken` explicite (et remount si necessaire) pour fiabiliser le recalage du cadre.
+- En correction de regression de frame, privilegier un signal de sync unique et intentionnel plutot qu'un couplage aux rerenders React.
+
+## 2026-04-25 — Position editor: resync post-commit pilote par machine
+
+- Ne pas faire dependre la coherence du cadre de position d'un rerender React (`props.sync`) quand le commit provoque un flush asynchrone du player.
+- En mode `position`, declencher un resync DOM multi-frame apres `drag.end` depuis la machine XState pour absorber la propagation layout/CSS apres commit.
+- Garder le cycle de vie des services DOM dans les machines (creation + dispose), et laisser React en adaptateur de rendu/evenements.
+
+## 2026-04-25 — Regressions: localiser d'abord, proposer ensuite
+
+- Face a une regression, commencer par identifier le commit/cause precise (blame + diff) avant de proposer un nouveau mecanisme.
+- Eviter les solutions structurelles lourdes tant que le comportement pre-regression peut etre restaure proprement.
+- Employer un vocabulaire technique concret et verifiable; bannir les formulations floues qui ne decrivent pas un mecanisme observable.
+
+## 2026-04-25 — Editor runtime: React mince, XState central
+
+- Dans `visual-transform-grid`, eviter de faire porter a React la coordination runtime (memo de paquets de props, derivees runtime memoisees) ; deleguer l'orchestration a XState.
+- Garder React comme adaptateur de rendu DOM + forwarding d'evenements (`props.sync`, pointer handlers), avec des services DOM singletons explicites.
+- Quand une revue signale une derive architecturale, corriger d'abord la structure du flux (qui pilote l'etat) avant d'ajouter des rustines comportementales.
+
 ## 2026-04-04 — Orchestrateur gestuel sans logique metier
 
 - Quand on factorise des interactions pointer (clic/glisse), l'orchestrateur doit rester strictement gestuel: collecte des points, seuil de mouvement, cycle start/move/complete/cancel.

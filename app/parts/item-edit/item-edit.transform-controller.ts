@@ -197,11 +197,9 @@ export function createTransformController(input: Input) {
 				};
 			const resolvedRowSpan = baseline.rowSpan;
 			const resolvedColSpan = baseline.colSpan;
-			const nextRow = Math.max(1, meta.cell.row - Math.floor((resolvedRowSpan - 1) / 2));
-			const nextCol = Math.max(1, meta.cell.col - Math.floor((resolvedColSpan - 1) / 2));
 			const nextSpanToken = buildGridSpanClassName({
-				row: nextRow,
-				col: nextCol,
+				row: Math.max(1, meta.cell.row),
+				col: Math.max(1, meta.cell.col),
 				rowSpan: resolvedRowSpan,
 				colSpan: resolvedColSpan
 			});

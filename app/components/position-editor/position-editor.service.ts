@@ -55,6 +55,7 @@ type StartPositionDragInput = {
 	snapGrid?: PositionSnapGridSpec | null;
 	portalHost: HTMLElement | null;
 	onPreview: (preview: { width: number; height: number } | null) => void;
+	onPreviewPlacement: (placement: { row: number; col: number; rowSpan: number; colSpan: number } | null) => void;
 	onOverlayHidden: (hidden: boolean) => void;
 	onCommit: (mode: PositionDragMode["kind"], meta: PositionDragCommitMeta) => void;
 	onEnd: () => void;
@@ -64,6 +65,8 @@ export class PositionEditorDomService {
 	private portalHost: HTMLElement | null = null;
 	private portalContainer: HTMLElement | null = null;
 	private pointerCleanup: (() => void) | null = null;
+	private previewPlacementElement: HTMLElement | null = null;
+	private previewPlacementRestore: { gridRow: string; gridColumn: string } | null = null;
 
 	attachOverlayHost(element: HTMLElement, overlayContainer: HTMLElement | null): HTMLElement | null {
 		const container = overlayContainer ?? element.ownerDocument.body;
@@ -89,6 +92,7 @@ export class PositionEditorDomService {
 
 	dispose() {
 		this.stopPointerSession();
+		this.restorePreviewPlacement();
 		this.detachOverlayHost();
 	}
 
@@ -103,16 +107,17 @@ export class PositionEditorDomService {
 			snapGrid,
 			portalHost,
 			onPreview,
+			onPreviewPlacement,
 			onOverlayHidden,
 			onCommit,
 			onEnd
 		} = input;
 
 		let cellSnap: CellSnapSession | null = null;
-		let gridPlacement = mode.kind === "resize-grid-se" ? readCurrentGridPlacement(element) : null;
+		let gridPlacement = readCurrentGridPlacement(element);
 		let didDrag = false;
 		const dragStartPointer = { x: clientX, y: clientY };
-		if (mode.kind === "resize-grid-se" && !gridPlacement) return false;
+		if (!gridPlacement) gridPlacement = { row: 1, col: 1, rowSpan: 1, colSpan: 1 };
 
 		if (mode.kind === "cell-snap") {
 			if (!snapGrid) return false;
@@ -133,6 +138,7 @@ export class PositionEditorDomService {
 
 		const win = element.ownerDocument.defaultView;
 		if (!win) return false;
+		this.beginPreviewPlacement(element);
 
 		const onMove = (e: PointerEvent) => {
 			if (!didDrag) {
@@ -142,7 +148,7 @@ export class PositionEditorDomService {
 			}
 
 			if (mode.kind === "resize-grid-se") {
-				if (!snapGrid || snapGrid.kind !== "grid" || !gridPlacement) return;
+				if (!snapGrid || snapGrid.kind !== "grid") return;
 				const parentRect = (snapParentElement || element.parentElement || element).getBoundingClientRect();
 				const cols = Math.max(1, snapGrid.cols);
 				const rows = Math.max(1, snapGrid.rows);
@@ -165,6 +171,8 @@ export class PositionEditorDomService {
 					width: Math.max(1, (parentRect.width * gridPlacement.colSpan) / cols),
 					height: Math.max(1, (parentRect.height * gridPlacement.rowSpan) / rows)
 				});
+				this.applyPreviewPlacement(gridPlacement);
+				onPreviewPlacement(gridPlacement);
 
 				return;
 			}
@@ -173,20 +181,87 @@ export class PositionEditorDomService {
 				moveGhostToPointer(cellSnap, e.clientX, e.clientY);
 				const probe = getSessionProbePointFromPointer(cellSnap, e.clientX, e.clientY);
 				updateCellSnapSessionPointer(cellSnap, probe.x, probe.y);
+				const liveCell = resolveActiveCellTarget(cellSnap);
+				if (liveCell) {
+					const livePlacement = {
+						row: liveCell.row,
+						col: liveCell.col,
+						rowSpan: gridPlacement?.rowSpan || 1,
+						colSpan: gridPlacement?.colSpan || 1
+					};
+					this.applyPreviewPlacement(livePlacement);
+					onPreviewPlacement({
+						row: livePlacement.row,
+						col: livePlacement.col,
+						rowSpan: livePlacement.rowSpan,
+						colSpan: livePlacement.colSpan
+					});
+				}
 			}
 		};
 
-		const onUp = () => {
+		const recomputeGridResizeAtPointer = (clientX: number, clientY: number) => {
+			if (mode.kind !== "resize-grid-se") return;
+			if (!snapGrid || snapGrid.kind !== "grid") return;
+			const parentRect = (snapParentElement || element.parentElement || element).getBoundingClientRect();
+			const cols = Math.max(1, snapGrid.cols);
+			const rows = Math.max(1, snapGrid.rows);
+			const col = clamp(
+				Math.floor(((clientX - parentRect.left) / Math.max(1, parentRect.width)) * cols) + 1,
+				gridPlacement.col,
+				cols
+			);
+			const row = clamp(
+				Math.floor(((clientY - parentRect.top) / Math.max(1, parentRect.height)) * rows) + 1,
+				gridPlacement.row,
+				rows
+			);
+			gridPlacement = {
+				...gridPlacement,
+				rowSpan: Math.max(1, row - gridPlacement.row + 1),
+				colSpan: Math.max(1, col - gridPlacement.col + 1)
+			};
+			onPreview({
+				width: Math.max(1, (parentRect.width * gridPlacement.colSpan) / cols),
+				height: Math.max(1, (parentRect.height * gridPlacement.rowSpan) / rows)
+			});
+			this.applyPreviewPlacement(gridPlacement);
+			onPreviewPlacement(gridPlacement);
+		};
+
+		const recomputeCellSnapAtPointer = (clientX: number, clientY: number) => {
+			if (mode.kind !== "cell-snap" || !cellSnap) return;
+			moveGhostToPointer(cellSnap, clientX, clientY);
+			const probe = getSessionProbePointFromPointer(cellSnap, clientX, clientY);
+			updateCellSnapSessionPointer(cellSnap, probe.x, probe.y);
+			const liveCell = resolveActiveCellTarget(cellSnap);
+			if (!liveCell) return;
+			const livePlacement = {
+				row: liveCell.row,
+				col: liveCell.col,
+				rowSpan: gridPlacement?.rowSpan || 1,
+				colSpan: gridPlacement?.colSpan || 1
+			};
+			this.applyPreviewPlacement(livePlacement);
+			onPreviewPlacement(livePlacement);
+		};
+
+		const onUp = (e: PointerEvent) => {
+			recomputeGridResizeAtPointer(e.clientX, e.clientY);
+			recomputeCellSnapAtPointer(e.clientX, e.clientY);
+
 			if (cellSnap) destroyCellSnapSession(cellSnap);
 			this.stopPointerSession();
 			if (!didDrag) {
 				onPreview(null);
+				onPreviewPlacement(null);
+				this.restorePreviewPlacement();
 				onOverlayHidden(false);
 				onEnd();
 				return;
 			}
 			const finalCellTarget = cellSnap ? resolveActiveCellTarget(cellSnap) : null;
-			onCommit(mode.kind, {
+			const commitMeta = {
 				...(gridPlacement ? { gridPlacement } : {}),
 				...(finalCellTarget
 					? {
@@ -194,8 +269,12 @@ export class PositionEditorDomService {
 							reorderIndex: finalCellTarget.reorderIndex
 						}
 					: {})
-			});
+			};
+			const finalPlacement = resolveFinalPreviewPlacement(mode.kind, gridPlacement, finalCellTarget);
+			onCommit(mode.kind, commitMeta);
 			onPreview(null);
+			onPreviewPlacement(null);
+			this.finalizePreviewPlacement(finalPlacement);
 			onOverlayHidden(false);
 			onEnd();
 		};
@@ -215,6 +294,73 @@ export class PositionEditorDomService {
 		if (this.pointerCleanup) this.pointerCleanup();
 		this.pointerCleanup = null;
 	}
+
+	private beginPreviewPlacement(element: HTMLElement) {
+		if (this.previewPlacementElement === element && this.previewPlacementRestore) return;
+		this.restorePreviewPlacement();
+		this.previewPlacementElement = element;
+		this.previewPlacementRestore = {
+			gridRow: element.style.gridRow,
+			gridColumn: element.style.gridColumn
+		};
+	}
+
+	private applyPreviewPlacement(placement: { row: number; col: number; rowSpan: number; colSpan: number }) {
+		if (!this.previewPlacementRestore || !this.previewPlacementElement) return;
+		this.previewPlacementElement.style.gridRow = `${placement.row} / span ${placement.rowSpan}`;
+		this.previewPlacementElement.style.gridColumn = `${placement.col} / span ${placement.colSpan}`;
+	}
+
+	private restorePreviewPlacement() {
+		if (!this.previewPlacementRestore || !this.previewPlacementElement) {
+			this.previewPlacementElement = null;
+			this.previewPlacementRestore = null;
+			return;
+		}
+		this.previewPlacementElement.style.gridRow = this.previewPlacementRestore.gridRow;
+		this.previewPlacementElement.style.gridColumn = this.previewPlacementRestore.gridColumn;
+		this.previewPlacementRestore = null;
+		this.previewPlacementElement = null;
+	}
+
+	private clearPreviewPlacementToClass() {
+		if (!this.previewPlacementElement) {
+			this.previewPlacementRestore = null;
+			return;
+		}
+		this.previewPlacementElement.style.removeProperty("grid-row");
+		this.previewPlacementElement.style.removeProperty("grid-column");
+		this.previewPlacementRestore = null;
+		this.previewPlacementElement = null;
+	}
+
+	private finalizePreviewPlacement(placement: { row: number; col: number; rowSpan: number; colSpan: number } | null) {
+		if (!placement || !this.previewPlacementElement) {
+			this.restorePreviewPlacement();
+			return;
+		}
+		this.previewPlacementElement.style.gridRow = `${placement.row} / span ${placement.rowSpan}`;
+		this.previewPlacementElement.style.gridColumn = `${placement.col} / span ${placement.colSpan}`;
+		this.previewPlacementRestore = null;
+		this.previewPlacementElement = null;
+	}
+}
+
+function resolveFinalPreviewPlacement(
+	mode: PositionDragMode["kind"],
+	gridPlacement: { row: number; col: number; rowSpan: number; colSpan: number } | null,
+	finalCellTarget: CellDropTarget | null
+): { row: number; col: number; rowSpan: number; colSpan: number } | null {
+	if (mode === "resize-grid-se" && gridPlacement) return gridPlacement;
+	if (mode === "cell-snap" && finalCellTarget) {
+		return {
+			row: finalCellTarget.row,
+			col: finalCellTarget.col,
+			rowSpan: gridPlacement?.rowSpan || 1,
+			colSpan: gridPlacement?.colSpan || 1
+		};
+	}
+	return null;
 }
 
 // shared helper block (cell-snap + large grid strategy)
@@ -357,8 +503,8 @@ function getSessionProbePointFromPointer(
 	const ghostRect = session.ghost.getBoundingClientRect();
 	if (ghostRect.width > 0 && ghostRect.height > 0) {
 		return {
-			x: ghostRect.left + ghostRect.width / 2,
-			y: ghostRect.top + ghostRect.height / 2
+			x: ghostRect.left,
+			y: ghostRect.top
 		};
 	}
 	return {

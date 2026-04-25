@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo } from "react";
 
 import {
-	ItemTransformEditorPosition,
 	ItemTransformEditorTransform
 } from "@/components/position-editor/visual-transform-grid";
+import { ItemTransformEditorPositionGridNative } from "@/components/position-editor/visual-transform-grid-grid-native";
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { getValuesFromGridName } from "@/lib/utils";
 import { buildNodeId } from "@/scene-runtime/node-id";
@@ -159,7 +159,8 @@ export function EditTransform({
 				</button>
 			</div>
 			{effectiveEditorMode === "position" ? (
-				<ItemTransformEditorPosition
+				<ItemTransformEditorPositionGridNative
+					key={`position-grid-native-${syncToken}:${activeNode?.id ?? "none"}`}
 					element={activeNode}
 					active={isTransformEditorActive}
 					onCommit={onPositionCommit}

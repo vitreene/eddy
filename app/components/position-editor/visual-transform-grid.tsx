@@ -1,53 +1,14 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useMachine } from "@xstate/react";
 
 import type { ElementTransform } from "./lib.types";
-import { buildFrame, transformEditorMachine, type Ev } from "./transform-editor.machine";
 import {
-	type DragMode,
-	type DragCommitMeta,
-	type SnapGridSpec,
-	TransformEditorDomService
-} from "./transform-editor.service";
-import { positionEditorMachine } from "./position-editor.machine";
-import {
-	PositionEditorDomService,
-	type PositionDragCommitMeta,
-	type PositionDragMode,
-	type PositionSnapGridSpec
-} from "./position-editor.service";
-
-function useElementRetry(element: HTMLElement | null, isActive: boolean, send: { (event: Ev): void }) {
-	const retryCountRef = useRef(0);
-	const maxRetries = 10;
-
-	useEffect(() => {
-		if (!element || !isActive) {
-			retryCountRef.current = 0;
-			return;
-		}
-
-		const checkDimensions = () => {
-			if (retryCountRef.current >= maxRetries) return;
-
-			const rect = element.getBoundingClientRect();
-			if (rect.width <= 1 || rect.height <= 1) {
-				retryCountRef.current++;
-				const win = element.ownerDocument.defaultView;
-				if (win) {
-					win.requestAnimationFrame(() => {
-						send({ type: "sync.retry" });
-					});
-				}
-			} else {
-				retryCountRef.current = 0;
-			}
-		};
-
-		checkDimensions();
-	}, [element, isActive, send]);
-}
+	type TransformEditorMachineInput,
+	buildFrame,
+	transformEditorMachine
+} from "./transform-editor.machine";
+import { type DragCommitMeta, type DragMode, type SnapGridSpec } from "./transform-editor.service";
 
 type SharedProps = {
 	element: HTMLElement | null;
@@ -68,14 +29,10 @@ type TransformProps = SharedProps & {
 	minHeight?: number;
 };
 
-type PositionProps = SharedProps & {
-	onCommit: (mode: PositionDragMode["kind"], meta: PositionDragCommitMeta) => void;
-	snapGrid?: PositionSnapGridSpec | null;
-};
-
 export function ItemTransformEditorTransform(props: TransformProps) {
 	const runtime = useTransformRuntime(props);
 	if (!runtime) return null;
+
 	return (
 		<OverlayPortal
 			className={runtime.className}
@@ -106,65 +63,39 @@ export function ItemTransformEditorTransform(props: TransformProps) {
 	);
 }
 
-export function ItemTransformEditorPosition(props: PositionProps) {
-	const runtime = usePositionRuntime(props);
-	if (!runtime) return null;
-	return (
-		<OverlayPortal
-			className={runtime.className}
-			frame={runtime.frame}
-			hidden={runtime.hidden}
-			portalContainer={runtime.portalContainer}
-		>
-			<div
-				style={boxPositionDragStyle}
-				onPointerDown={(e) => startPositionDrag(e, runtime.dragStart, { kind: "cell-snap" })}
-			/>
-			<DiamondHandle left="50%" top="50%" transform="translate(-50%, -50%) rotate(45deg)" />
-			<ResizeHandle onPointerDown={(e) => startPositionDrag(e, runtime.dragStart, { kind: "resize-grid-se" })} />
-		</OverlayPortal>
-	);
-}
-
 function useTransformRuntime(props: TransformProps) {
-	const service = useMemo(() => new TransformEditorDomService(), []);
-	const runtimeInput = useMemo(
-		() => ({ service, ...props, disableLiveTransform: false, alwaysResyncOnCommit: false }),
-		[
-			service,
-			props.element,
-			props.active,
-			props.onCommit,
-			props.snapParentElement,
-			props.snapParentId,
-			props.overlayContainer,
-			props.className,
-			props.syncToken,
-			props.snapGrid,
-			props.value,
-			props.applyToElement,
-			props.minWidth,
-			props.minHeight
-		]
-	);
+	const runtimeInput = toTransformMachineInput(props);
 	const [state, send] = useMachine(transformEditorMachine, {
 		input: runtimeInput
 	});
+
 	useEffect(() => {
-		send({ type: "props.sync", input: runtimeInput });
-	}, [send, runtimeInput]);
-	useEffect(() => () => service.dispose(), [service]);
+		send({
+			type: "props.sync",
+			input: toTransformMachineInput(props)
+		});
+	}, [
+		send,
+		props.element,
+		props.active,
+		props.onCommit,
+		props.snapParentElement,
+		props.snapParentId,
+		props.snapGrid,
+		props.value,
+		props.applyToElement,
+		props.minWidth,
+		props.minHeight,
+		props.overlayContainer,
+		props.className,
+		props.syncToken
+	]);
 
-	useElementRetry(state.context.input.element, state.context.input.active ?? true, send);
-
-	const frame = useMemo(
-		() =>
-			resolveTransformOverlayFrame(
-				state.context.input.element,
-				buildFrame(state.context.t, state.context.offsetParent, state.context.input.element)
-			),
-		[state.context.input.element, state.context.t, state.context.offsetParent]
+	const frame = resolveTransformOverlayFrame(
+		state.context.input.element,
+		buildFrame(state.context.t, state.context.offsetParent, state.context.input.element)
 	);
+
 	if (
 		!state.context.domOk ||
 		!(state.context.input.active ?? true) ||
@@ -174,6 +105,7 @@ function useTransformRuntime(props: TransformProps) {
 		!frame
 	)
 		return null;
+
 	return {
 		hidden: state.context.hideOverlayFrame,
 		portalContainer: state.context.portalHost,
@@ -182,6 +114,14 @@ function useTransformRuntime(props: TransformProps) {
 		dragStart: (ev: { clientX: number; clientY: number }, mode: DragMode) =>
 			send({ type: "drag.start", mode, clientX: ev.clientX, clientY: ev.clientY }),
 		className: state.context.input.className
+	};
+}
+
+function toTransformMachineInput(props: TransformProps): TransformEditorMachineInput {
+	return {
+		...props,
+		disableLiveTransform: false,
+		alwaysResyncOnCommit: false
 	};
 }
 
@@ -205,55 +145,9 @@ function resolveTransformOverlayFrame(
 
 	const dx = Math.abs(rawFrame.M.e - rect.left);
 	const dy = Math.abs(rawFrame.M.f - rect.top);
-	if (dx > 1 || dy > 1) {
-		return rectFrame;
-	}
+	if (dx > 1 || dy > 1) return rectFrame;
 
 	return rawFrame;
-}
-
-function usePositionRuntime(props: PositionProps) {
-	const service = useMemo(() => new PositionEditorDomService(), []);
-	const runtimeInput = useMemo(
-		() => ({ service, ...props }),
-		[
-			service,
-			props.element,
-			props.active,
-			props.onCommit,
-			props.snapParentElement,
-			props.snapParentId,
-			props.overlayContainer,
-			props.className,
-			props.syncToken,
-			props.snapGrid
-		]
-	);
-	const [state, send] = useMachine(positionEditorMachine, {
-		input: runtimeInput
-	});
-	useEffect(() => {
-		send({ type: "props.sync", input: runtimeInput });
-	}, [send, runtimeInput]);
-	useEffect(() => () => service.dispose(), [service]);
-
-	if (
-		!state.context.domOk ||
-		!(state.context.input.active ?? true) ||
-		!state.context.input.element ||
-		!state.context.portalHost ||
-		!state.context.frame
-	)
-		return null;
-
-	return {
-		hidden: state.context.hideOverlayFrame,
-		portalContainer: state.context.portalHost,
-		frame: state.context.frame,
-		dragStart: (ev: { clientX: number; clientY: number }, mode: PositionDragMode) =>
-			send({ type: "drag.start", mode, clientX: ev.clientX, clientY: ev.clientY }),
-		className: state.context.input.className
-	};
 }
 
 function readElementRect(
@@ -294,6 +188,7 @@ function OverlayPortal({
 		pointerEvents: "auto",
 		zIndex: 9999
 	};
+
 	return createPortal(
 		<div className={className} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
 			<div style={{ ...frameStyle, display: hidden ? "none" : "block" }}>{children}</div>
@@ -342,17 +237,6 @@ function startTransformDrag(
 	dragStart(e, mode);
 }
 
-function startPositionDrag(
-	e: React.PointerEvent<HTMLDivElement>,
-	dragStart: (ev: { clientX: number; clientY: number }, mode: PositionDragMode) => void,
-	mode: PositionDragMode
-) {
-	if (e.button !== 0) return;
-	e.preventDefault();
-	e.stopPropagation();
-	dragStart(e, mode);
-}
-
 const boxStyle: React.CSSProperties = {
 	position: "absolute",
 	inset: 0,
@@ -361,12 +245,7 @@ const boxStyle: React.CSSProperties = {
 	boxSizing: "border-box",
 	cursor: "move"
 };
-const boxStaticStyle: React.CSSProperties = { ...boxStyle, cursor: "default" };
-const boxPositionDragStyle: React.CSSProperties = {
-	...boxStaticStyle,
-	cursor: "alias",
-	pointerEvents: "auto"
-};
+
 const rotHandleStyle: React.CSSProperties = {
 	position: "absolute",
 	top: -26,
@@ -379,6 +258,7 @@ const rotHandleStyle: React.CSSProperties = {
 	cursor: "grab",
 	pointerEvents: "auto"
 };
+
 const rotStemStyle: React.CSSProperties = {
 	position: "absolute",
 	top: -14,
@@ -387,6 +267,7 @@ const rotStemStyle: React.CSSProperties = {
 	transform: "translate(-50%, 0)",
 	background: "rgba(37,99,235,0.8)"
 };
+
 const originHandleStyle: React.CSSProperties = {
 	position: "absolute",
 	width: 14,
@@ -398,6 +279,7 @@ const originHandleStyle: React.CSSProperties = {
 	pointerEvents: "auto",
 	cursor: "move"
 };
+
 const originCrossH: React.CSSProperties = {
 	position: "absolute",
 	left: "50%",
@@ -407,6 +289,7 @@ const originCrossH: React.CSSProperties = {
 	background: "white",
 	transform: "translate(-50%, -50%)"
 };
+
 const originCrossV: React.CSSProperties = {
 	position: "absolute",
 	left: "50%",
@@ -416,6 +299,7 @@ const originCrossV: React.CSSProperties = {
 	background: "white",
 	transform: "translate(-50%, -50%)"
 };
+
 const diamondStyle: React.CSSProperties = {
 	position: "absolute",
 	width: 16,
@@ -426,6 +310,7 @@ const diamondStyle: React.CSSProperties = {
 	cursor: "alias",
 	pointerEvents: "auto"
 };
+
 const resizeStyle: React.CSSProperties = {
 	position: "absolute",
 	right: -10,

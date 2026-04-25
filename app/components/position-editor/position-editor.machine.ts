@@ -9,7 +9,7 @@ import {
 } from "./position-editor.service";
 
 export type PositionEditorMachineInput = {
-	service: PositionEditorDomService;
+	service?: PositionEditorDomService;
 	element: HTMLElement | null;
 	active?: boolean;
 	onCommit: (mode: PositionDragMode["kind"], meta: PositionDragCommitMeta) => void;
@@ -22,6 +22,7 @@ export type PositionEditorMachineInput = {
 };
 
 type Ctx = {
+	service: PositionEditorDomService;
 	input: PositionEditorMachineInput;
 	domOk: boolean;
 	frame: { w: number; h: number; M: DOMMatrix } | null;
@@ -30,15 +31,23 @@ type Ctx = {
 	hideOverlayFrame: boolean;
 	isDragging: boolean;
 	previewSize: { width: number; height: number } | null;
+	previewPlacement: { row: number; col: number; rowSpan: number; colSpan: number } | null;
 };
 
 type Ev =
 	| { type: "props.sync"; input: PositionEditorMachineInput }
 	| { type: "overlay.hide"; hidden: boolean }
 	| { type: "drag.session"; active: boolean }
-	| { type: "preview.update"; preview: { width: number; height: number } | null }
+	| { type: "preview.size"; preview: { width: number; height: number } | null }
+	| {
+			type: "preview.placement";
+			placement: { row: number; col: number; rowSpan: number; colSpan: number } | null;
+	  }
+	| { type: "frame.resync" }
 	| { type: "drag.start"; mode: PositionDragMode; clientX: number; clientY: number }
 	| { type: "drag.end" };
+
+const POST_COMMIT_RESYNC_FRAMES = 8;
 
 export const positionEditorMachine = createMachine(
 	{
@@ -49,7 +58,9 @@ export const positionEditorMachine = createMachine(
 			const domOk = canUseDOM(input.element);
 			const offsetParent = input.element ? getOffsetParent(input.element) : null;
 			const frame = active && input.element ? buildPositionFrame(input.element, null) : null;
+			const service = input.service ?? new PositionEditorDomService();
 			return {
+				service,
 				input,
 				domOk,
 				frame,
@@ -57,10 +68,12 @@ export const positionEditorMachine = createMachine(
 				portalHost: null,
 				hideOverlayFrame: false,
 				isDragging: false,
-				previewSize: null
+				previewSize: null,
+				previewPlacement: null
 			};
 		},
 		entry: ["syncFromInput"],
+		exit: ["disposeService"],
 		on: {
 			"props.sync": {
 				actions: [assign(({ event }) => ({ input: event.input })), "syncFromInput"]
@@ -71,7 +84,7 @@ export const positionEditorMachine = createMachine(
 			"drag.session": {
 				actions: [assign(({ event }) => ({ isDragging: event.active }))]
 			},
-			"preview.update": {
+			"preview.size": {
 				actions: [
 					assign(({ context, event }) => ({
 						previewSize: event.preview,
@@ -79,11 +92,21 @@ export const positionEditorMachine = createMachine(
 					}))
 				]
 			},
+			"preview.placement": {
+				actions: [
+					assign(({ event }) => ({
+						previewPlacement: event.placement
+					}))
+				]
+			},
+			"frame.resync": {
+				actions: ["resyncFrameFromDom"]
+			},
 			"drag.start": {
 				actions: ["startDrag"]
 			},
 			"drag.end": {
-				actions: ["stopDrag", "stopDragSession"]
+				actions: ["stopDrag", "stopDragSession", "schedulePostCommitResync"]
 			}
 		}
 	},
@@ -91,28 +114,32 @@ export const positionEditorMachine = createMachine(
 		actions: {
 			syncFromInput: assign(({ context }) => {
 				const input = context.input;
+				const service = context.service;
 				const active = input.active ?? true;
 				const domOk = canUseDOM(input.element);
 				const offsetParent = input.element ? getOffsetParent(input.element) : null;
 				const frame = active && input.element ? buildPositionFrame(input.element, context.previewSize) : null;
 				const portalHost =
 					domOk && active && input.element
-						? input.service.attachOverlayHost(input.element, input.overlayContainer ?? null)
+						? service.attachOverlayHost(input.element, input.overlayContainer ?? null)
 						: null;
 
 				if (!domOk || !active || !input.element) {
-					input.service.stopPointerSession();
-					input.service.detachOverlayHost();
+					service.stopPointerSession();
+					service.detachOverlayHost();
 				}
 
 				return { domOk, offsetParent, frame, portalHost };
 			}),
+			resyncFrameFromDom: assign(({ context }) => ({
+				frame: rebuildFrame(context, null)
+			})),
 			startDrag: ({ context, event, self }) => {
 				if (event.type !== "drag.start") return;
 				const input = context.input;
+				const service = context.service;
 				if (!context.domOk || !input.element) return;
-
-				const started = input.service.startDrag({
+				const started = service.startDrag({
 					element: input.element,
 					mode: event.mode,
 					clientX: event.clientX,
@@ -121,21 +148,43 @@ export const positionEditorMachine = createMachine(
 					snapParentId: input.snapParentId,
 					snapGrid: input.snapGrid,
 					portalHost: context.portalHost,
-					onPreview: (preview) => self.send({ type: "preview.update", preview }),
+					onPreview: (preview) => self.send({ type: "preview.size", preview }),
+					onPreviewPlacement: (placement) => self.send({ type: "preview.placement", placement }),
 					onOverlayHidden: (hidden) => self.send({ type: "overlay.hide", hidden }),
-					onCommit: (mode, meta) => input.onCommit(mode, meta),
+					onCommit: (mode, meta) => {
+						input.onCommit(mode, meta);
+					},
 					onEnd: () => self.send({ type: "drag.end" })
 				});
-
 				self.send({ type: "drag.session", active: started });
 				if (!started) self.send({ type: "overlay.hide", hidden: false });
 			},
 			stopDrag: ({ context }) => {
-				context.input.service.stopPointerSession();
+				context.service.stopPointerSession();
 			},
 			stopDragSession: ({ self }) => {
 				self.send({ type: "drag.session", active: false });
-				self.send({ type: "preview.update", preview: null });
+				self.send({ type: "preview.size", preview: null });
+				self.send({ type: "preview.placement", placement: null });
+			},
+			schedulePostCommitResync: ({ context, self }) => {
+				const input = context.input;
+				if (!context.domOk || !(input.active ?? true) || !input.element) return;
+				const win = input.element.ownerDocument.defaultView;
+				if (!win) return;
+				let remaining = POST_COMMIT_RESYNC_FRAMES;
+				const tick = () => {
+					if (remaining <= 0) return;
+					self.send({ type: "frame.resync" });
+					remaining -= 1;
+					if (remaining > 0) win.requestAnimationFrame(tick);
+				};
+				win.requestAnimationFrame(() => {
+					win.requestAnimationFrame(tick);
+				});
+			},
+			disposeService: ({ context }) => {
+				context.service.dispose();
 			}
 		}
 	}
@@ -151,6 +200,7 @@ function buildPositionFrame(
 	preview: { width: number; height: number } | null
 ): { w: number; h: number; M: DOMMatrix } {
 	const localToViewport = getViewportMatrix(element);
+	const rect = element.getBoundingClientRect();
 	const scaleX = Math.hypot(localToViewport.a, localToViewport.b) || 1;
 	const scaleY = Math.hypot(localToViewport.c, localToViewport.d) || 1;
 	const noScaleMatrix = new DOMMatrix([
@@ -161,9 +211,7 @@ function buildPositionFrame(
 		localToViewport.e,
 		localToViewport.f
 	]);
-	const measuredWidth = Math.max(1, element.offsetWidth || element.getBoundingClientRect().width || 1);
-	const measuredHeight = Math.max(1, element.offsetHeight || element.getBoundingClientRect().height || 1);
-	const width = (preview?.width ?? measuredWidth) * scaleX;
-	const height = (preview?.height ?? measuredHeight) * scaleY;
+	const width = preview ? Math.max(1, preview.width * scaleX) : Math.max(1, rect.width || 1);
+	const height = preview ? Math.max(1, preview.height * scaleY) : Math.max(1, rect.height || 1);
 	return { w: width, h: height, M: noScaleMatrix };
 }

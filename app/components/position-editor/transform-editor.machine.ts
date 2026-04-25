@@ -17,7 +17,7 @@ import {
 } from "./transform-editor.service";
 
 export type TransformEditorMachineInput = {
-	service: TransformEditorDomService;
+	service?: TransformEditorDomService;
 	element: HTMLElement | null;
 	active?: boolean;
 	onCommit: (t: ElementTransform, mode: DragMode["kind"], meta: DragCommitMeta) => void;
@@ -36,6 +36,7 @@ export type TransformEditorMachineInput = {
 };
 
 type Ctx = {
+	service: TransformEditorDomService;
 	input: TransformEditorMachineInput;
 	domOk: boolean;
 	t: ElementTransform | null;
@@ -44,8 +45,11 @@ type Ctx = {
 	portalHost: HTMLElement | null;
 	hideOverlayFrame: boolean;
 	isDragging: boolean;
+	syncRetryCount: number;
 	nonce: number;
 };
+
+const MAX_SYNC_RETRIES = 10;
 
 export type Ev =
 	| { type: "props.sync"; input: TransformEditorMachineInput }
@@ -81,7 +85,9 @@ export const transformEditorMachine = createMachine(
 			const active = input.active ?? true;
 			const domOk = canUseDOM(input.element);
 			const t = domOk && active && input.element ? readTransformPreserve(input.element) : null;
+			const service = input.service ?? new TransformEditorDomService();
 			return {
+				service,
 				input,
 				domOk,
 				t,
@@ -90,16 +96,23 @@ export const transformEditorMachine = createMachine(
 				portalHost: null,
 				hideOverlayFrame: false,
 				isDragging: false,
+				syncRetryCount: 0,
 				nonce: 0
 			};
 		},
 		entry: ["syncFromInput"],
+		exit: ["disposeService"],
 		on: {
 			"props.sync": {
-				actions: [assign(({ event }) => ({ input: event.input })), "syncFromInput", "applyLiveTransform"]
+				actions: [
+					assign(({ event }) => ({ input: event.input })),
+					"syncFromInput",
+					"scheduleRetryIfNeeded",
+					"applyLiveTransform"
+				]
 			},
 			"sync.retry": {
-				actions: ["syncFromInput"]
+				actions: ["syncFromInput", "scheduleRetryIfNeeded"]
 			},
 			bump: {
 				actions: assign(({ context }) => ({ nonce: context.nonce + 1 }))
@@ -128,8 +141,10 @@ export const transformEditorMachine = createMachine(
 		actions: {
 			syncFromInput: assign(({ context }) => {
 				const input = context.input;
+				const service = context.service;
 				const active = input.active ?? true;
 				const domOk = canUseDOM(input.element);
+				const elementRect = input.element?.getBoundingClientRect() ?? null;
 				const offsetParent = input.element ? getOffsetParent(input.element) : null;
 				const measured = domOk && active && input.element ? readTransformPreserve(input.element) : null;
 				const t = measured ? mergeTransformFromInput(measured, input.value) : null;
@@ -137,22 +152,37 @@ export const transformEditorMachine = createMachine(
 					domOk && input.element && t ? getBasePositionWithoutTranslate(input.element, t) : null;
 				const portalHost =
 					domOk && active && input.element
-						? input.service.attachOverlayHost(input.element, input.overlayContainer ?? null)
+						? service.attachOverlayHost(input.element, input.overlayContainer ?? null)
 						: null;
+				const shouldRetry = Boolean(domOk && active && elementRect && (elementRect.width <= 1 || elementRect.height <= 1));
+				const syncRetryCount = shouldRetry ? context.syncRetryCount + 1 : 0;
 
 				if (!domOk || !active || !input.element) {
-					input.service.stopPointerSession();
-					input.service.detachOverlayHost();
+					service.stopPointerSession();
+					service.detachOverlayHost();
 				}
 
-				return { domOk, offsetParent, t, basePosition, portalHost };
+				return { domOk, offsetParent, t, basePosition, portalHost, syncRetryCount };
 			}),
+			scheduleRetryIfNeeded: ({ context, self }) => {
+				const input = context.input;
+				if (!input.element || !(input.active ?? true)) return;
+				if (context.syncRetryCount < 1 || context.syncRetryCount > MAX_SYNC_RETRIES) return;
+				const rect = input.element.getBoundingClientRect();
+				if (rect.width > 1 && rect.height > 1) return;
+				const win = input.element.ownerDocument.defaultView;
+				if (!win) return;
+				win.requestAnimationFrame(() => {
+					self.send({ type: "sync.retry" });
+				});
+			},
 			startDrag: ({ context, event, self }) => {
 				if (event.type !== "drag.start") return;
 				const input = context.input;
+				const service = context.service;
 				if (!context.domOk || !input.element || !context.offsetParent || !context.t) return;
 
-				const started = input.service.startDrag({
+				const started = service.startDrag({
 					element: input.element,
 					offsetParent: context.offsetParent,
 					mode: event.mode,
@@ -178,15 +208,18 @@ export const transformEditorMachine = createMachine(
 				if (!started) self.send({ type: "overlay.hide", hidden: false });
 			},
 			stopDrag: ({ context }) => {
-				context.input.service.stopPointerSession();
+				context.service.stopPointerSession();
 			},
 			stopDragSession: ({ self }) => {
 				self.send({ type: "drag.session", active: false });
 			},
+			disposeService: ({ context }) => {
+				context.service.dispose();
+			},
 			applyLiveTransform: ({ context }) => {
 				if (!context.isDragging) return;
 				if (context.input.disableLiveTransform) return;
-				context.input.service.applyTransformLive(context.input.element, context.t, context.basePosition, {
+				context.service.applyTransformLive(context.input.element, context.t, context.basePosition, {
 					applyToElement: context.input.applyToElement ?? true,
 					hidden: context.hideOverlayFrame
 				});
