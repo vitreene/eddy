@@ -68,6 +68,16 @@ export function mapEvents(snapshot: SceneComp) {
 				keyframeExisting.push(keyframeMapped);
 				map.set(entry.keyframeMs, keyframeExisting);
 			} else {
+				if (kind === "outro" && ev.decorId && previousKeyframeMs < entry.keyframeMs) {
+					const tweenMapped = {
+						name: buildCustomTweenActionName(ev),
+						start: previousKeyframeMs
+					};
+					const tweenExisting = map.get(previousKeyframeMs) || [];
+					tweenExisting.push(tweenMapped);
+					map.set(previousKeyframeMs, tweenExisting);
+				}
+
 				const mapped = {
 					name: buildEventActionName(ev),
 					start: entry.runtimeStartMs

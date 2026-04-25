@@ -10,6 +10,7 @@ import type { EditableStyle } from "@/components/style-editor/types";
 import type { Theme } from "prisma/generated/prisma/client";
 import { mergeCssStrings } from "@/lib/merge-css-classes";
 import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
+import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
 import {
 	deriveEventKind,
 	normalizeCustomEventDraft,
@@ -34,6 +35,7 @@ import {
 	getMutationActivePayload,
 	getTouchedParams,
 	hasOwn,
+	isItemDecorEventContext,
 	mergeDecorStylePatch,
 	nextCustomAction,
 	resolveCustomEventNameCollision,
@@ -95,6 +97,38 @@ const emptyScene: SceneComp = {
 };
 
 const ACTIVE_SET_SEEK_EPSILON_SEC = 0.0005;
+
+function buildFallbackTransitionEvent(action: string, itemId: number): ContentEvent | null {
+	if (action === INTRO || action === OUTRO) {
+		return {
+			id: undefined,
+			action,
+			itemId,
+			name: null,
+			ref: DEFAULT_TRANSITION_BY_ACTION[action],
+			delay: null,
+			duration: null,
+			position: null,
+			decorId: null
+		} as ContentEvent;
+	}
+
+	if (action === SUSTAIN) {
+		return {
+			id: undefined,
+			action,
+			itemId,
+			name: null,
+			ref: null,
+			delay: null,
+			duration: null,
+			position: null,
+			decorId: null
+		} as ContentEvent;
+	}
+
+	return null;
+}
 
 function applyActivePayload(
 	context: SceneComp & { active: ActiveState },
@@ -458,10 +492,14 @@ export const sceneLogic = setup({
 			}
 		) => {
 			let decorId = params.targetDecorId;
-			const action = params.action;
+			const snapshotContext = self.getSnapshot().context as SceneComp & { active: ActiveState };
+			const activeSelectionAction =
+				snapshotContext.active.itemId === params.itemId ? snapshotContext.active.event ?? null : null;
+			const action = params.action ?? activeSelectionAction;
+			const selectedEventUsesItemDecor =
+				typeof action == "string" ? isItemDecorEventContext(snapshotContext, params.itemId, action) : true;
 
-			if (action && !params.selectedEventUsesItemDecor) {
-				const snapshotContext = self.getSnapshot().context as SceneComp & { active: ActiveState };
+			if (action && !selectedEventUsesItemDecor) {
 				const ensured = await ensureEventDecorId({
 					context: snapshotContext,
 					itemId: params.itemId,
@@ -930,7 +968,9 @@ export const sceneLogic = setup({
 								assign(({ context, event }) => {
 									const currentItemEvents = context.events[event.payload.itemId] || {};
 									const currentEvent = currentItemEvents[event.payload.action];
-									if (!currentEvent) return context;
+									const fallbackEvent = buildFallbackTransitionEvent(event.payload.action, event.payload.itemId);
+									const upsertableEvent = currentEvent || fallbackEvent;
+									if (!upsertableEvent) return context;
 
 									return {
 										...context,
@@ -943,7 +983,7 @@ export const sceneLogic = setup({
 											[event.payload.itemId]: {
 												...currentItemEvents,
 												[event.payload.action]: {
-													...currentEvent,
+													...upsertableEvent,
 													decorId: event.payload.decor.id
 												}
 											}

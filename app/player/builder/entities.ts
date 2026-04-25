@@ -435,9 +435,15 @@ function buildTimedActions(input: {
 			if (ev.decorId && ev.action !== INTRO) {
 				const targetDecor = getEventDecor(snapshot, ev.decorId, previousClassDecor);
 				const targetStyle = getInlineStyle(targetDecor.style);
+				const cueWindowDurationMs = Math.max(0, (entry.keyframeMs ?? previousKeyframeMs) - previousKeyframeMs);
 				const transitionDurationMs = Math.max(
 					0,
 					(entry.keyframeMs ?? previousKeyframeMs) - (entry.runtimeStartMs ?? previousKeyframeMs)
+				);
+				const outroTweenStyleInterpolation = buildStyleInterpolation(
+					previousStyleState,
+					targetStyle,
+					cueWindowDurationMs
 				);
 				const decorStyleInterpolation = buildStyleInterpolation(
 					previousStyleState,
@@ -457,22 +463,39 @@ function buildTimedActions(input: {
 				const hasTransitionWindow = entry.keyframeMs !== null && entry.keyframeMs > previousKeyframeMs;
 				const hasPreviousScheduledAction =
 					lastScheduledStartMs !== null && lastScheduledStartMs <= previousKeyframeMs;
+				const hasImplicitBaseState =
+					lastScheduledStartMs === null && previousKeyframeMs === 0 && eventKind === "outro";
+				const canApplyDecorDelta = hasPreviousScheduledAction || hasImplicitBaseState;
 
-				if (!hasTransitionWindow || !hasPreviousScheduledAction) {
+				if (!hasTransitionWindow || !canApplyDecorDelta) {
 					initialDecorState = targetDecor;
 				} else {
-					if (classNameDiff) transitionAction.className = classNameDiff;
+					const outroTweenActionName = buildCustomTweenActionName(ev);
+					const tweenAction: Record<string, unknown> = {};
+					if (classNameDiff) tweenAction.className = classNameDiff;
 					if (placementChanged || placementClassChanged || positionStyleChanged) {
-						transitionAction.move = { mode: "auto" };
+						tweenAction.move = { mode: "auto" };
 						const { style: transitionStyle } = transitionAction;
 						if (transitionStyle && typeof transitionStyle === "object") {
 							delete (transitionStyle as Record<string, unknown>).width;
 							delete (transitionStyle as Record<string, unknown>).height;
 						}
+						delete outroTweenStyleInterpolation.x;
+						delete outroTweenStyleInterpolation.y;
+						delete outroTweenStyleInterpolation.width;
+						delete outroTweenStyleInterpolation.height;
 						delete decorStyleInterpolation.x;
 						delete decorStyleInterpolation.y;
 						delete decorStyleInterpolation.width;
 						delete decorStyleInterpolation.height;
+					}
+
+					if (Object.keys(outroTweenStyleInterpolation).length) {
+						tweenAction.style = outroTweenStyleInterpolation;
+					}
+
+					if (Object.keys(tweenAction).length) {
+						actions[outroTweenActionName] = tweenAction;
 					}
 
 					if (Object.keys(decorStyleInterpolation).length) {

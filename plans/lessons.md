@@ -1,5 +1,11 @@
 # Lessons
 
+## 2026-04-25 — "undo" utilisateur: annuler uniquement la session courante et eviter tout git destructif
+
+- Si l'utilisateur dit "undo", annuler uniquement les changements faits dans l'echange en cours, puis confirmer explicitement ce qui a ete retire.
+- Ne jamais utiliser de commande git ecriture/suppression sans autorisation explicite; limiter git a la lecture (`status/log/diff`) tant que la contrainte est active.
+- En regression, prioriser un correctif minimal sur les chemins existants plutot que d'ajouter de nouveaux artefacts de support.
+
 ## 2026-04-25 — Semantique d'ancrage: aligner handle, preview et commit
 
 - Si le handle de position represente l'ancre (ex: losange haut-gauche), le calcul de cible (`probe`), le preview live et le commit final doivent utiliser cette meme ancre.

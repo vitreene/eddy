@@ -549,8 +549,11 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 }
 
 async function migrateZoneClassNamesToSlug(scene: SceneComp): Promise<SceneComp> {
+	// Read-path compatibility only:
+	// normalize legacy zone class tokens in-memory without mutating DB.
+	// Persistent rewrites must run in dedicated write/migration flows.
 	const capsuleZoneMapByCapsuleId = new Map<number, Map<string, string>>();
-	const changedCapsules = new Map<number, PositionZoneStored[]>();
+	let hasInMemoryChanges = false;
 
 	for (const capsule of Object.values(scene.capsules || {})) {
 		const zones = normalizePositionZones((capsule as CapsuleComp & { cardZones?: unknown }).cardZones);
@@ -569,7 +572,7 @@ async function migrateZoneClassNamesToSlug(scene: SceneComp): Promise<SceneComp>
 			};
 		});
 		if (!hasZoneClassChange || !replacementMap.size) continue;
-		changedCapsules.set(capsule.id, nextZones);
+		hasInMemoryChanges = true;
 		capsuleZoneMapByCapsuleId.set(capsule.id, replacementMap);
 		scene.capsules[capsule.id] = {
 			...capsule,
@@ -577,9 +580,8 @@ async function migrateZoneClassNamesToSlug(scene: SceneComp): Promise<SceneComp>
 		};
 	}
 
-	if (!changedCapsules.size) return scene;
+	if (!hasInMemoryChanges) return scene;
 
-	const changedDecorClassById = new Map<number, string>();
 	for (const item of Object.values(scene.items || {})) {
 		const replacementMap = capsuleZoneMapByCapsuleId.get(item.capsuleId);
 		if (!replacementMap?.size) continue;
@@ -599,7 +601,6 @@ async function migrateZoneClassNamesToSlug(scene: SceneComp): Promise<SceneComp>
 				...decor,
 				className: nextClassName
 			};
-			changedDecorClassById.set(decorId, nextClassName);
 		};
 
 		rewriteDecorClassName(item.decorId);
@@ -608,26 +609,6 @@ async function migrateZoneClassNamesToSlug(scene: SceneComp): Promise<SceneComp>
 			rewriteDecorClassName(event?.decorId ?? null);
 		}
 	}
-
-	await prisma.$transaction(async (tx) => {
-		for (const [capsuleId, nextZones] of changedCapsules.entries()) {
-			const capsule = scene.capsules[capsuleId];
-			const currentProfil = parseCapsuleProfil(capsule?.profil ?? null);
-			await tx.capsule.update({
-				where: { id: capsuleId },
-				data: {
-					profil: serializeCapsuleProfil({
-						...currentProfil,
-						cardZones: nextZones
-					})
-				}
-			});
-		}
-
-		for (const [decorId, className] of changedDecorClassById.entries()) {
-			await tx.decor.update({ where: { id: decorId }, data: { className } });
-		}
-	});
 
 	return scene;
 }

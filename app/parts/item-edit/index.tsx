@@ -268,6 +268,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 			const normalizedPayload = normalizeTransformPrecision(payload);
 			const targetDecor = editDecor || itemDecor;
 			if (!targetDecor || !item) return;
+			const effectiveAction = activeEventAction ?? selectedEvent?.action ?? null;
 			const hasPlacementIntent =
 				Object.prototype.hasOwnProperty.call(normalizedPayload, "className") ||
 				Object.prototype.hasOwnProperty.call(normalizedPayload, "area");
@@ -307,7 +308,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				type: "decor-patch-requested",
 				payload: {
 					itemId: item.id,
-					action: selectedEvent?.action ?? null,
+					action: effectiveAction,
 					targetDecorId: targetDecor.id,
 					selectedEventUsesItemDecor,
 					seed: {
@@ -327,6 +328,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 			editDecor,
 			itemDecor,
 			item,
+			activeEventAction,
 			decor,
 			content?.type,
 			activeNode,
@@ -474,6 +476,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const onDecorUpdate = useCallback(
 		(payload: { id: number; area?: string | null; className?: string | null }) => {
 			if (!item) return;
+			const effectiveAction = activeEventAction ?? selectedEvent?.action ?? null;
 			const currentDecor =
 				decors[payload.id] || (selectedEvent?.decorId ? decors[selectedEvent.decorId] : decor || itemDecor);
 			const patch: { area?: string | null; className?: string | null } = {};
@@ -491,7 +494,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				type: "decor-patch-requested",
 				payload: {
 					itemId: item.id,
-					action: selectedEvent?.action ?? null,
+					action: effectiveAction,
 					targetDecorId: selectedEvent?.decorId ?? payload.id,
 					selectedEventUsesItemDecor,
 					seed: {
@@ -503,7 +506,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				}
 			});
 		},
-		[item, send, selectedEvent, selectedEventUsesItemDecor, decor, itemDecor, decors]
+		[item, send, selectedEvent, activeEventAction, selectedEventUsesItemDecor, decor, itemDecor, decors]
 	);
 
 	const onTreeMove = useCallback(
