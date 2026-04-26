@@ -14,6 +14,7 @@ import {
 } from "@/scene-runtime/scene-content";
 import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveEffectiveItemEvents } from "@/scene-runtime/visibility/effective-events";
 import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
 import {
 	buildNextWaveformPositionCueName,
@@ -64,7 +65,7 @@ export function WaveformCanvas() {
 	const events = SceneLogicContext.useSelector((state) => {
 		const itemId = state.context.active.itemId;
 		if (!itemId) return null;
-		return state.context.events[itemId] || null;
+		return resolveEffectiveItemEvents(state.context as SceneComp, itemId).eventMap || null;
 	});
 	const guidance = SceneLogicContext.useSelector((state) =>
 		resolveWaveformGuidance(state.context as SceneComp, state.context.active.itemId)

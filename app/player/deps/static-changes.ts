@@ -1,4 +1,5 @@
 import { P } from "../types";
+import { traceLog } from "@/lib/debug-trace";
 
 import type { Player } from "../player";
 import type { Action, ActionAtributes, ClassNameAction } from "../types";
@@ -120,6 +121,23 @@ suivant, à deplcer après test.
 		// console.log("changes", changes);
 
 		this.persoChanges.set(id, changes);
+		traceLog({
+			scope: "static-changes",
+			itemId: String(id),
+			onceKey: `static:${String(id)}:${Object.keys(changes).join(",")}`,
+			payload: {
+				id,
+				keys: Object.keys(changes),
+				entries: Object.entries(changes).map(([key, value]) => ({
+					key,
+					prev: value.prev,
+					curr: value.curr,
+					next: value.next,
+					move: value.change?.move,
+					className: value.change?.className
+				}))
+			}
+		});
 	});
 }
 

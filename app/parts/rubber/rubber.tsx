@@ -14,6 +14,7 @@ import {
 import { isWaveformPositionCueName } from "@/scene-runtime/waveform-position-cues";
 import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveEffectiveItemEvents } from "@/scene-runtime/visibility/effective-events";
 import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
 
 import { RubberProportionalLayout } from "./rubber-proportional-layout";
@@ -44,7 +45,7 @@ export function Rubber() {
 	const events = SceneLogicContext.useSelector((state) => {
 		const itemId = state.context.active.itemId;
 		if (!itemId) return null;
-		return state.context.events[itemId] || null;
+		return resolveEffectiveItemEvents(state.context as SceneComp, itemId).eventMap || null;
 	});
 	const activeEventAction = SceneLogicContext.useSelector(
 		(state) => state.context.active.event as string | null

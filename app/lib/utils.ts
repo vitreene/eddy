@@ -130,6 +130,7 @@ export function gridClassNameToCssDefinition(gridClassName = ""): string | undef
 
 	const styles: Record<string, string> = {
 		display: "grid",
+		isolation: "isolate",
 		...(w > 1 && { gridTemplateColumns: `repeat(${w}, minmax(0, 1fr))` }),
 		...(h > 1 && { gridTemplateRows: `repeat(${h}, minmax(0, 1fr))` }),
 		// ...(w === 1 && h === 1 && { "& *": "grid-area: 1 / -1" }),

@@ -154,7 +154,7 @@ function buildGridDefinitions(snapshot: SceneComp): string[] {
 		const type = getCapsuleTypeConfig(capsule.type).type;
 		for (const className of classNames) {
 			if (className === ROOT) {
-				definitions.add(`.${className}{display:grid}`);
+				definitions.add(`.${className}{display:grid;isolation:isolate}`);
 				continue;
 			}
 

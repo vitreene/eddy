@@ -1,9 +1,11 @@
 import { DEFAULT_DURATION, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { deriveEventKind, type CustomEventPosition } from "@/config/custom-events";
+import { traceLog } from "@/lib/debug-trace";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
-import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
-import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
-import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
+import {
+	resolveEffectiveEventForAction,
+	resolveEffectiveItemEvents
+} from "@/scene-runtime/visibility/effective-events";
 
 import type { ContentEvent, SceneComp, TextTime } from "@/api/db";
 
@@ -30,7 +32,18 @@ export function resolveSelectedEventCueSec(
 	// - OUTRO selection anchors on outro start (end - duration), including implicit outro
 	// Keep tests in `event-selection-auto-fallback-smoke.ts` and
 	// `custom-event-preflip-selection-smoke.ts` aligned with any changes here.
-	const event = resolveSelectionEvent(context, itemId, action);
+	const kind = deriveEventKind(action);
+	const effectiveTransitions = resolveEffectiveItemEvents(context, itemId);
+	const transitionResolution =
+		action === INTRO
+			? effectiveTransitions.intro
+			: action === OUTRO
+				? effectiveTransitions.outro
+				: null;
+	const event =
+		kind === "intro" || kind === "outro"
+			? transitionResolution?.event || null
+			: resolveEffectiveEventForAction(context, itemId, action);
 	const assured = getAssuredVisibleCue(context, itemId);
 
 	if (!event) {
@@ -52,7 +65,18 @@ export function resolveSelectedEventCueSec(
 		return null;
 	}
 
-	const anchorSec = resolveEventAnchorSec(context, itemId, event);
+	let anchorSec = resolveEventAnchorSec(context, itemId, event);
+	if ((kind === "intro" || kind === "outro") && transitionResolution?.event) {
+		if (transitionResolution.source !== "explicit") {
+			anchorSec =
+				action === INTRO
+					? assured.window.startSec
+					: resolveImplicitOutroStartSec(
+							assured.window.endSec,
+							resolveTransitionDurationSec(transitionResolution.event)
+						);
+		}
+	}
 
 	if (!Number.isFinite(assured.window.startSec) || !Number.isFinite(assured.window.endSec)) {
 		return Number.isFinite(anchorSec) ? anchorSec : null;
@@ -79,102 +103,26 @@ export function resolveSelectedEventCueSec(
 	}
 
 	const resolved = clampSec(anchorSec, assured.window.startSec, assured.window.endSec);
+	if (kind === "intro" || kind === "outro") {
+		traceLog({
+			scope: "selection-cue",
+			itemId,
+			onceKey: `selection:${itemId}:${action}:${resolved.toFixed(3)}:${transitionResolution?.source || "na"}`,
+			payload: {
+				action,
+				source: transitionResolution?.source || null,
+				eventName: event?.name ?? null,
+				anchorSec,
+				resolvedSec: resolved,
+				window: assured.window
+			}
+		});
+	}
 	if (itemId === 55 && action === OUTRO) {
 		debugEventSelection(itemId, action, "explicit", assured.window.startSec, assured.window.endSec, resolved);
 	}
 	return resolved;
 }
-
-function resolveSelectionEvent(
-	context: SceneComp,
-	itemId: number,
-	action: string
-): ContentEvent | null {
-	const explicit = context.events?.[itemId]?.[action] ?? null;
-	const kind = deriveEventKind(action);
-	if (kind !== "intro" && kind !== "outro") return explicit;
-
-	const explicitName = typeof explicit?.name === "string" ? explicit.name.trim() : "";
-	const explicitCue = explicitName ? findSceneCueByName(context, explicitName) : null;
-	if (explicitName.length > 0 && explicitCue) return explicit;
-
-	const generated = resolveGeneratedTransitionEvent(context, itemId, action);
-	const generatedName =
-		typeof generated?.name === "string" && generated.name.trim().length > 0 ? generated.name.trim() : null;
-	const generatedCue = generatedName ? findSceneCueByName(context, generatedName) : null;
-	if (!generatedName || !generatedCue) {
-		const fallbackName = resolveFallbackTransitionCueName(context, itemId, action);
-		if (!fallbackName) return explicit;
-		const defaultPosition = action === OUTRO ? "end" : "start";
-		if (!explicit) {
-			return {
-				id: -1,
-				itemId,
-				action,
-				name: fallbackName,
-				ref: null,
-				duration: null,
-				delay: null,
-				position: defaultPosition,
-				decorId: null
-			};
-		}
-		return {
-			...explicit,
-			name: fallbackName,
-			position: explicit.position ?? defaultPosition
-		};
-	}
-	if (!explicit) return { ...generated, name: generatedName };
-
-	return {
-		...explicit,
-		name: generatedName,
-		position: explicit.position ?? generated.position
-	};
-}
-
-function resolveFallbackTransitionCueName(
-	context: SceneComp,
-	itemId: number,
-	action: string
-): string | null {
-	const sceneContent = getActiveSceneContent(context);
-	const cues = getSceneContentCues(sceneContent);
-	if (!cues.length) return null;
-
-	const defaultPosition: CustomEventPosition = action === OUTRO ? "end" : "start";
-	const assured = getAssuredVisibleCue(context, itemId);
-	const targetSec = action === OUTRO ? assured.window.endSec : assured.window.startSec;
-
-	let nearestCueName: string | null = null;
-	let nearestDistance = Number.POSITIVE_INFINITY;
-	for (const cue of cues) {
-		const cueSec = getCueTimeAtPosition(cue, defaultPosition);
-		if (!Number.isFinite(cueSec)) continue;
-		const distance = Math.abs(cueSec - targetSec);
-		if (distance < nearestDistance) {
-			nearestDistance = distance;
-			nearestCueName = cue.name;
-		}
-	}
-
-	return nearestCueName;
-}
-
-function resolveGeneratedTransitionEvent(
-	context: SceneComp,
-	itemId: number,
-	action: string
-): ContentEvent | null {
-	const behaviorByCapsuleId = buildCapsuleBehaviorById(context);
-	const resolved = resolveCueWindows(context, {
-		generateMissingEvents: true,
-		behaviorByCapsuleId
-	});
-	return resolved.resolvedEvents[itemId]?.[action] ?? null;
-}
-
 /**
  * Resolve the semantic anchor for the selected event.
  */

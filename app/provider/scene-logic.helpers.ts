@@ -7,12 +7,13 @@ import {
 	getCueTimeAtPosition,
 	resolveClosestCuePointFromDelay
 } from "@/scene-runtime/visibility/custom-event-cue-mapping";
-import { buildCapsuleBehaviorById } from "@/scene-runtime/visibility/capsule-behavior";
-import { resolveCueWindows } from "@/scene-runtime/visibility/resolve-cue-windows";
+import {
+	resolveEffectiveEventForAction as resolveEffectiveEventForActionFromRuntime,
+	resolveEffectiveItemEvents
+} from "@/scene-runtime/visibility/effective-events";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { resolveSelectedEventCueSec } from "./event-selection-cue";
-import { getAssuredVisibleCue } from "./active-cue";
 
 import type { Decor, ContentEvent, ItemComp, SceneComp } from "@/api/db";
 import type { ActiveState, TreeMutationResponse } from "./types";
@@ -222,7 +223,7 @@ function computeDefaultCustomDelaySec(
 	context: SceneComp & { active: ActiveState },
 	itemId: number
 ): number | null {
-	const itemEvents = context.events[itemId] || {};
+	const itemEvents = resolveEffectiveItemEvents(context, itemId).eventMap;
 	const introName = itemEvents[INTRO]?.name;
 	const outroName = itemEvents[OUTRO]?.name;
 	if (!introName || !outroName) return null;
@@ -264,7 +265,7 @@ function resolveNearestCuePointFromSeek(
 	itemId: number
 ): { name: string; position: CustomEventPosition } | null {
 	// Resolve nearest cue point around current seek; prefer points within intro/outro bounds.
-	const itemEvents = context.events[itemId] || {};
+	const itemEvents = resolveEffectiveItemEvents(context, itemId).eventMap;
 	const introName = itemEvents[INTRO]?.name;
 	const outroName = itemEvents[OUTRO]?.name;
 	const sceneContent = getActiveSceneContent(context);
@@ -335,63 +336,7 @@ export function resolveEffectiveEventForAction(
 	itemId: number,
 	action: string | null | undefined
 ): ContentEvent | null {
-	if (!action) return null;
-	const explicit = context.events?.[itemId]?.[action];
-	if (explicit) return explicit;
-	if (action !== INTRO && action !== OUTRO) return null;
-
-	const behaviorByCapsuleId = buildCapsuleBehaviorById(context);
-	const resolved = resolveCueWindows(context, {
-		generateMissingEvents: true,
-		behaviorByCapsuleId
-	});
-	const generated = resolved.resolvedEvents[itemId]?.[action] || null;
-	if (generated) return generated;
-
-	const defaultPosition = action === OUTRO ? "end" : "start";
-	const sceneContent = getActiveSceneContent(context);
-	const cues = getSceneContentCues(sceneContent);
-	if (!cues.length) {
-		return {
-			id: -1,
-			itemId,
-			action,
-			name: null,
-			ref: null,
-			duration: null,
-			delay: null,
-			position: defaultPosition,
-			decorId: null
-		};
-	}
-
-	const assured = getAssuredVisibleCue(context, itemId);
-	const targetSec = action === OUTRO ? assured.window.endSec : assured.window.startSec;
-
-	let nearestCueName: string | null = null;
-	let nearestDistance = Number.POSITIVE_INFINITY;
-	for (const cue of cues) {
-		const cueSec = getCueTimeAtPosition(cue, defaultPosition);
-		if (!Number.isFinite(cueSec)) continue;
-		const distance = Math.abs(cueSec - targetSec);
-		if (distance < nearestDistance) {
-			nearestDistance = distance;
-			nearestCueName = cue.name;
-		}
-	}
-	if (!nearestCueName) return null;
-
-	return {
-		id: -1,
-		itemId,
-		action,
-		name: nearestCueName,
-		ref: null,
-		duration: null,
-		delay: null,
-		position: defaultPosition,
-		decorId: null
-	};
+	return resolveEffectiveEventForActionFromRuntime(context, itemId, action);
 }
 
 export function getTouchedParams(context: SceneComp & { active: ActiveState }): string[] {

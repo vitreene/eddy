@@ -1,6 +1,7 @@
 import { deriveEventKind } from "@/config/custom-events";
 import { INTRO, OUTRO } from "@/config/constants";
 import { getCueTimeAtPosition } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveEffectiveItemEvents } from "@/scene-runtime/visibility/effective-events";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import type { ContentEvent, Decor, SceneComp, TextTime } from "@/api/db";
@@ -13,7 +14,7 @@ export function resolveDecorBeforeCustomEvent(
 	itemDecor: Decor | undefined
 ): Decor | undefined {
 	const events = context.events[itemId] || {};
-	const orderedCustomEvents = getOrderedCustomEvents(context, events);
+	const orderedCustomEvents = getOrderedCustomEvents(context, itemId, events);
 	const currentIndex = orderedCustomEvents.findIndex((entry) => entry.event.action === currentAction);
 	if (currentIndex < 0) return itemDecor;
 
@@ -50,7 +51,7 @@ export function resolveDecorAtEventAction(
 	const events = context.events[itemId] || {};
 	if (action === INTRO) return itemDecor;
 
-	const orderedCustomEvents = getOrderedCustomEvents(context, events);
+	const orderedCustomEvents = getOrderedCustomEvents(context, itemId, events);
 
 	if (action === OUTRO) {
 		let resolved = itemDecor;
@@ -97,13 +98,15 @@ export function mergeDecorChain(base: Decor | undefined, override: Decor | undef
 
 function getOrderedCustomEvents(
 	context: SceneComp,
+	itemId: number,
 	events: Record<string, ContentEvent | undefined>
 ): Array<{ event: ContentEvent; timeSec: number }> {
 	const sceneContent = getActiveSceneContent(context);
 	const cues = getSceneContentCues(sceneContent);
 	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
-	const introCue = events[INTRO]?.name ? cueByName.get(events[INTRO]!.name || "") : null;
-	const outroCue = events[OUTRO]?.name ? cueByName.get(events[OUTRO]!.name || "") : null;
+	const effectiveEvents = resolveEffectiveItemEvents(context, itemId).eventMap;
+	const introCue = effectiveEvents[INTRO]?.name ? cueByName.get(effectiveEvents[INTRO]!.name || "") : null;
+	const outroCue = effectiveEvents[OUTRO]?.name ? cueByName.get(effectiveEvents[OUTRO]!.name || "") : null;
 
 	const withTimes = Object.values(events)
 		.filter((event): event is ContentEvent => Boolean(event) && deriveEventKind(event!.action) === "custom")

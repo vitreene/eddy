@@ -484,3 +484,15 @@
 - Dans `active-set`, ne jamais conditionner le passage a `action: "seek"` a l'existence d'un event explicite; les events implicites (`intro/outro`) doivent forcer le seek aussi.
 - Un `event.name` non vide n'est pas suffisant: verifier qu'il resolve un cue reel. Les noms auto-fallback non resolubles doivent retomber sur un cue explicite le plus proche.
 - Ajouter un smoke machine sur la selection `intro` implicite pour verrouiller: `event` selectionne, `action: seek`, et `cue` positionne sur l'ancre intro.
+
+## 2026-04-26 — Implicites: generation seule ne suffit pas, unifier la consommation
+
+- Si `resolveCueWindows(generateMissingEvents: true)` existe mais que des UIs lisent encore `context.events[itemId]` explicite-only, on obtient des divergences de placement (seek ok, handles faux, bounds custom faux).
+- Regle: exposer une couche `effective-events` partagee et l'utiliser partout (selection, item-edit, rubber/waveform/haptic) avant de corriger des symptomes locaux.
+- Ne pas se contenter d'un fallback ponctuel dans un composant: tant que les consommateurs ne partagent pas la meme map effective, les regressions reviennent.
+
+## 2026-04-26 — Intro implicite: la fenetre effective doit primer sur les noms d'event
+
+- Pour la selection intro/outro implicite, ne jamais deduire l'ancre uniquement depuis `event.name` (surtout avec noms auto/fallback): utiliser la fenetre effective (`assured.window.start/end`) comme reference runtime.
+- `resolveCueWindows` doit toujours produire `cueWindowsByItemId` pour tous les items (y compris hors fenetrage capsule explicite), sinon `assured.window` retombe a `0..inf` et casse le seek intro.
+- Symptome typique: cadre de position visible mais element absent au select intro (seek trop tot). Correction: ancrer intro sur `window.startSec` pour les transitions non-explicites.

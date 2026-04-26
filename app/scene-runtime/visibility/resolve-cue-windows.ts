@@ -325,6 +325,18 @@ export function resolveCueWindows(
 				fallbackWindow.end <= fallbackWindow.start ? "maximal" : "auto"
 			);
 		}
+
+		if (!cueWindowsByItemId.has(item.id)) {
+			const introCueName = events[INTRO]?.name ? events[INTRO]!.name!.trim() : "";
+			const outroCueName = events[OUTRO]?.name ? events[OUTRO]!.name!.trim() : "";
+			const introCue = introCueName ? cueByName.get(introCueName) : null;
+			const outroCue = outroCueName ? cueByName.get(outroCueName) : null;
+			const start = introCue ? Number(introCue.start) : sceneBounds.start;
+			const end = outroCue ? Number(outroCue.end) : sceneBounds.end;
+			if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+				cueWindowsByItemId.set(item.id, { start, end });
+			}
+		}
 	}
 
 	return { resolvedEvents: baseEvents, resolvedSceneContentEvents, cueWindowsByItemId, cueByName };

@@ -1,5 +1,6 @@
 import { utils } from "animejs";
 import { getProgression, setNextChange } from "./utils";
+import { traceLog } from "@/lib/debug-trace";
 
 import type { Timeline, JSAnimation } from "animejs";
 import type { ID } from "../types";
@@ -15,6 +16,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 	const persoPositions = new Map<ID, Change>();
 	const transitions = new Map<Change, JSAnimation>();
 	const setters = new Map<ID, JSAnimation>();
+	const lastBoundaryKey = new Map<ID, string>();
 
 	const getChange = (id: ID, currentTime: number) => {
 		if (persoPositions.has(id)) return persoPositions.get(id);
@@ -52,6 +54,25 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 
 			// update sets :
 			if (currentTime >= (change!.next ?? Infinity) || currentTime <= (change.curr! ?? 0)) {
+				const boundaryKey = `${Math.round(currentTime)}:${change.curr ?? "null"}->${change.next ?? "null"}`;
+				if (lastBoundaryKey.get(id) !== boundaryKey) {
+					lastBoundaryKey.set(id, boundaryKey);
+					traceLog({
+						scope: "on-update-boundary",
+						itemId: String(id),
+						payload: {
+							itemId: id,
+							currentTime,
+							change: {
+								prev: change.prev,
+								curr: change.curr,
+								next: change.next,
+								move: change.change?.move,
+								className: change.change?.className
+							}
+						}
+					});
+				}
 				const nextChange = setNextChange(currentTime, change, changes);
 
 				if (nextChange == null) return;
@@ -71,14 +92,12 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 					(typeof nextChange.change?.move === "boolean" && nextChange.change.move) ||
 					isAutoMove(nextChange.change?.move)
 				) {
-					nextChange.snapshot = {
-						x: utils.get($el, "x"),
-						y: utils.get($el, "y"),
-						width: utils.get($el, "width"),
-						height: utils.get($el, "height"),
-						originX: utils.get($el, "originX"),
-						originY: utils.get($el, "originY")
-					};
+						nextChange.snapshot = {
+							x: utils.get($el, "x"),
+							y: utils.get($el, "y"),
+							width: utils.get($el, "width"),
+							height: utils.get($el, "height")
+						};
 
 					if (transitions.has(nextChange)) {
 						const existing = transitions.get(nextChange)!;

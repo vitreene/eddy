@@ -17,6 +17,7 @@ import {
 	type CustomEventPosition
 } from "@/config/custom-events";
 import { replaceEventRefPreservingMedia } from "@/lib/event-ref";
+import { traceLog } from "@/lib/debug-trace";
 import { getPlayerNode } from "@/scene-runtime/node-resolver";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import {
@@ -475,10 +476,19 @@ export const sceneLogic = setup({
 															return getPlayerNode(item.nodeId);
 														})()
 													: context.active.node;
-									const nextEvent =
-										"event" in payload ? (payload.event ?? null) : itemChanged ? null : context.active.event;
 									const sequenceActionFromPayload =
 										"action" in payload && typeof payload.action == "string" ? payload.action : null;
+									const isImplicitSelectionSeek =
+										itemChanged &&
+										!Object.prototype.hasOwnProperty.call(payload, "event") &&
+										sequenceActionFromPayload === "seek";
+									const nextEvent = "event" in payload
+										? (payload.event ?? null)
+										: isImplicitSelectionSeek
+											? INTRO
+											: itemChanged
+												? null
+												: context.active.event;
 									const shouldKeepCueOnSequenceDeselection =
 										"itemId" in payload && payload.itemId == null && isSequenceAction(sequenceActionFromPayload);
 
@@ -491,7 +501,7 @@ export const sceneLogic = setup({
 													: null
 											: context.active.cue;
 
-									if (itemId && "event" in payload && nextEvent) {
+									if (itemId && ("event" in payload || isImplicitSelectionSeek) && nextEvent) {
 										const eventCue = computeCueForSelectedCustomEvent(context, itemId, nextEvent);
 										if (typeof eventCue == "number" && Number.isFinite(eventCue)) cue = eventCue;
 									}
@@ -547,6 +557,35 @@ export const sceneLogic = setup({
 
 										nextActive = requestSequenceFlush(nextActive, "sequence-action", {
 											preserveSelection: keepSelectionWhileEditing
+										});
+									}
+
+									const shouldTraceSelectionChange =
+										("itemId" in payload && payload.itemId !== context.active.itemId) ||
+										("event" in payload && payload.event !== context.active.event) ||
+										("action" in payload && payload.action === "seek") ||
+										(Math.abs((Number(nextActive.cue) || 0) - (Number(context.active.cue) || 0)) >
+											ACTIVE_SET_SEEK_EPSILON_SEC &&
+											nextActive.action === "seek");
+									if (shouldTraceSelectionChange) {
+										traceLog({
+											scope: "active-set",
+											itemId,
+											payload: {
+												incoming: payload,
+												prev: {
+													itemId: context.active.itemId,
+													event: context.active.event,
+													cue: context.active.cue,
+													action: context.active.action
+												},
+												next: {
+													itemId: nextActive.itemId,
+													event: nextActive.event,
+													cue: nextActive.cue,
+													action: nextActive.action
+												}
+											}
 										});
 									}
 

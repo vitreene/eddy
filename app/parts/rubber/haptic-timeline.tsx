@@ -6,6 +6,7 @@ import { INTRO, OUTRO } from "@/config/constants";
 import { deriveEventKind } from "@/config/custom-events";
 import { SceneLogicContext } from "@/provider/scene-logic";
 import { resolveClosestCuePointFromDelay } from "@/scene-runtime/visibility/custom-event-cue-mapping";
+import { resolveEffectiveItemEvents } from "@/scene-runtime/visibility/effective-events";
 import { getActiveSceneContent, getSceneContentCues } from "@/scene-runtime/scene-content";
 
 import type { TextTime, ContentEvent, SceneComp } from "@/api/db";
@@ -205,9 +206,10 @@ export function HapticTimeline() {
 	const timelineRef = useRef<HTMLDivElement>(null);
 	const tapRefs = useRef<Map<string, HTMLDivElement>>(new Map());
 
-	const events = SceneLogicContext.useSelector((s) => {
-		if (s.context.active.itemId) return s.context.events[s.context.active.itemId] || null;
-		return null;
+	const effectiveEvents = SceneLogicContext.useSelector((s) => {
+		const itemId = s.context.active.itemId;
+		if (!itemId) return null;
+		return resolveEffectiveItemEvents(s.context as SceneComp, itemId).eventMap || null;
 	});
 
 	const sceneContents = SceneLogicContext.useSelector((s): any => getActiveSceneContent(s.context as any));
@@ -226,11 +228,11 @@ export function HapticTimeline() {
 	const prevTapsRef = useRef<Tap[]>([]);
 
 	useEffect(() => {
-		if (events && cues.length) {
-			const taps = eventsToTaps(cues, events);
+		if (effectiveEvents && cues.length) {
+			const taps = eventsToTaps(cues, effectiveEvents);
 			dispatch({ type: "LOAD_TAPS", taps });
 		}
-	}, [events, cues]);
+	}, [effectiveEvents, cues]);
 
 	useEffect(() => {
 		const prevIds = new Set(prevTapsRef.current.map((t) => t.id));
@@ -254,7 +256,11 @@ export function HapticTimeline() {
 	}, [state.taps]);
 
 	const selecteds = state.taps.map((t) => t.id);
-	const customBounds = getIntroOutroBounds(cues, events?.[INTRO]?.name, events?.[OUTRO]?.name);
+	const customBounds = getIntroOutroBounds(
+		cues,
+		effectiveEvents?.[INTRO]?.name,
+		effectiveEvents?.[OUTRO]?.name
+	);
 
 	const handleTimelineClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
 		if (e.target !== e.currentTarget) return;

@@ -12,6 +12,8 @@ import type { Decor } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
 import type { ElementTransform } from "@/components/position-editor/lib.types";
 
+const STRUCTURAL_CLASS_RE = /^(?:ed-caps|ed-item|ed-grid-[a-z0-9_-]+)$/i;
+
 export type EditableVisualState = {
 	itemId: number;
 	eventAction: string | null;
@@ -55,7 +57,8 @@ export function projectEditableVisualStateToNode(
 	if (!node || !state) return;
 
 	const currentClassName = node.className || "";
-	const classNameDiff = buildClassNameDiff(currentClassName, state.className);
+	const targetClassName = mergeProjectedStructuralClasses(currentClassName, state.className);
+	const classNameDiff = buildClassNameDiff(currentClassName, targetClassName);
 	if (classNameDiff) {
 		applyClassNameAction(node, classNameDiff);
 	}
@@ -63,6 +66,31 @@ export function projectEditableVisualStateToNode(
 	ensureLiveAreaClassDefinition(node, state.area);
 	applyAreaClassPatch(node, null, state.area);
 	applyLiveStyleOnNode(node, state.style);
+}
+
+export function mergeProjectedStructuralClasses(
+	currentClassName: string | null | undefined,
+	nextClassName: string | null | undefined
+): string | null {
+	const currentTokens = String(currentClassName || "")
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	const nextTokens = new Set(
+		String(nextClassName || "")
+			.split(/\s+/)
+			.map((token) => token.trim())
+			.filter(Boolean)
+	);
+
+	for (const token of currentTokens) {
+		if (STRUCTURAL_CLASS_RE.test(token)) {
+			nextTokens.add(token);
+		}
+	}
+
+	const merged = Array.from(nextTokens).join(" ").trim();
+	return merged || null;
 }
 
 function toFiniteNumber(value: unknown): number | null {

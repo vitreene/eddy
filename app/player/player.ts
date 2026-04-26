@@ -1,4 +1,5 @@
 import { animate, createTimeline, JSAnimation, Timeline, Timer, utils } from "animejs";
+import { traceLog } from "@/lib/debug-trace";
 
 import { PubSub, type Subscribed } from "./deps/pubsub";
 import { initMedias } from "./deps/init-medias";
@@ -214,17 +215,32 @@ export class Player {
 	private seekChanges(time: number) {
 		this.persoChanges.forEach((pcs, id) => {
 			const changes = [];
+			const appliedKeys: number[] = [];
 			let lastParentMove: ID | null = null;
 
 			for (const [t, pc] of Object.entries(pcs)) {
 				if (Number(t) <= time) {
 					changes.push(pc.change);
+					appliedKeys.push(Number(t));
 					if (typeof pc.change.move === "string") {
 						lastParentMove = pc.change.move;
 					}
 				} else break;
 			}
 			const change = changes.reduce((a, c) => ({ ...a, ...c }), {});
+			traceLog({
+				scope: "seek-changes",
+				itemId: String(id),
+				payload: {
+					itemId: id,
+					seekMs: time,
+					appliedKeys,
+					resolved: {
+						move: (change as any).move,
+						className: (change as any).className
+					}
+				}
+			});
 
 			if (lastParentMove) {
 				const $el = this.$elements.get(id);
@@ -246,9 +262,11 @@ export class Player {
 
 	_applyChanges(id: ID, change: Partial<ActionAtributes>) {
 		const $el = this.$elements.get(id);
+		if (!$el) return;
 
 		if (change.className) {
-			$el.className = mixClassNames(change.className);
+			const incomingClassName = mixClassNames(change.className);
+			$el.className = mergeRuntimeClassNamePreservingStructural($el.className, incomingClassName, id);
 		}
 		if (change.content) {
 			$el.textContent = change.content;
@@ -256,6 +274,7 @@ export class Player {
 		if (change.attr) {
 			Object.entries(change.attr).forEach(([key, value]) => $el.setAttribute(key, value));
 		}
+		sanitizeRuntimeElementAttributes($el);
 	}
 
 	_moveChange(id: ID, change: Partial<ActionAtributes>): JSAnimation | undefined {
@@ -270,6 +289,7 @@ export class Player {
 				{
 					const parent = this.$elements.get(change.move);
 					if (parent) parent.appendChild($el);
+					sanitizeRuntimeElementAttributes($el);
 				}
 				break;
 			//
@@ -282,7 +302,9 @@ export class Player {
 				const px = toFiniteNumber(utils.get($el, "x", false), 0);
 				const py = toFiniteNumber(utils.get($el, "y", false), 0);
 
-				return this._createMoveTransition($el, old, nex, px, py, undefined);
+				const transition = this._createMoveTransition($el, old, nex, px, py, undefined);
+				sanitizeRuntimeElementAttributes($el);
+				return transition;
 			}
 			case "object": {
 				if (!isAutoMove(change.move)) break;
@@ -302,11 +324,14 @@ export class Player {
 				const px = toFiniteNumber(utils.get($el, "x", false), 0);
 				const py = toFiniteNumber(utils.get($el, "y", false), 0);
 
-				return this._createMoveTransition($el, old, nex, px, py, change.move);
+				const transition = this._createMoveTransition($el, old, nex, px, py, change.move);
+				sanitizeRuntimeElementAttributes($el);
+				return transition;
 			}
 			default:
 				break;
 		}
+		sanitizeRuntimeElementAttributes($el);
 	}
 
 	private _createMoveTransition(
@@ -340,8 +365,6 @@ export class Player {
 			animationParams.rotate = { from: toFiniteNumber(utils.get($el, "rotate", false), 0), to: 0 };
 			animationParams.scaleX = { from: toFiniteNumber(utils.get($el, "scaleX", false), 1), to: 1 };
 			animationParams.scaleY = { from: toFiniteNumber(utils.get($el, "scaleY", false), 1), to: 1 };
-			animationParams.originX = { from: toFiniteNumber(utils.get($el, "originX", false), 0.5), to: 0.5 };
-			animationParams.originY = { from: toFiniteNumber(utils.get($el, "originY", false), 0.5), to: 0.5 };
 		}
 
 		const animation = animate($el, animationParams);
@@ -453,6 +476,41 @@ function clampMediaTimeSec(node: HTMLMediaElement, timeSec: number): number {
 		return Math.min(timeSec, node.duration);
 	}
 	return timeSec;
+}
+
+function sanitizeRuntimeElementAttributes($el: HTMLElement): void {
+	if (typeof SVGElement !== "undefined" && $el instanceof SVGElement) return;
+	for (const attribute of ["x", "y", "originx", "originy"]) {
+		if ($el.hasAttribute(attribute)) $el.removeAttribute(attribute);
+	}
+}
+
+function mergeRuntimeClassNamePreservingStructural(
+	currentClassName: string,
+	incomingClassName: string,
+	id: ID
+): string {
+	const incoming = new Set(
+		String(incomingClassName || "")
+			.split(/\s+/)
+			.map((token) => token.trim())
+			.filter(Boolean)
+	);
+	const current = String(currentClassName || "")
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+
+	const isCapsule = String(id).startsWith("capsule__");
+	if (isCapsule) {
+		for (const token of current) {
+			if (token === "ed-caps" || /^ed-grid-[a-z0-9_-]+$/i.test(token)) {
+				incoming.add(token);
+			}
+		}
+	}
+
+	return Array.from(incoming).join(" ");
 }
 
 /* 

@@ -6,11 +6,13 @@ import { Play, Pause, RotateCcwIcon, Volume2, VolumeX } from "lucide-react";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
 import type { ActiveState } from "@/provider/types";
+import { traceLog } from "@/lib/debug-trace";
 
 import { preload } from "~/player/preload";
 import { Player, type TelcoProps } from "~/player/player";
 import { SCENE_ID } from "@/scene-runtime/constants";
 import { setPlayerNodeResolver } from "@/scene-runtime/node-resolver";
+import { resolveSeekMsForActive } from "./seek-policy";
 
 import playerCss from "~/player/player.css?inline";
 
@@ -27,7 +29,7 @@ type TelcoController = {
 	rewind: () => void;
 	seek: (progress: number, timeMs: number) => void;
 	toggleMute: () => boolean | null;
-	syncFromActive: (active: { action: string | null; cue: number | null }) => void;
+	syncFromActive: (active: { action: string | null; cue: number | null; event: string | null }) => void;
 };
 
 const onEnd = (_timer: Timer) => {};
@@ -74,8 +76,8 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 	}, [isMuted]);
 
 	useEffect(() => {
-		telcoController.syncFromActive({ action: active.action, cue: active.cue });
-	}, [active.action, active.cue, telcoController]);
+		telcoController.syncFromActive({ action: active.action, cue: active.cue, event: active.event });
+	}, [active.action, active.cue, active.event, telcoController]);
 
 	const styles = `@scope{${playerCss} ${scene.styles}}`;
 
@@ -146,13 +148,36 @@ function initializePlayerRuntime({
 
 		setPlayerNodeResolver((nodeId: string) => player?.getNodeByNodeId(nodeId) ?? null);
 		const active = getActive();
+		traceLog({
+			scope: "player-bootstrap",
+			itemId: active.itemId,
+			payload: {
+				activeAtBootstrap: {
+					itemId: active.itemId,
+					event: active.event,
+					cue: active.cue,
+					action: active.action
+				}
+			}
+		});
 		if (active.itemId) send({ type: "active-set", payload: { itemId: active.itemId } });
 
 		if (active.action === "play") {
 			player.telco.play();
 		} else {
 			player.telco.pause();
-			player.telco.seek((active.cue ?? 0) * 1000);
+			const seekMs = resolveSeekMsForActive({ action: active.action, cue: active.cue, event: active.event });
+			player.telco.seek(seekMs);
+			traceLog({
+				scope: "player-seek",
+				itemId: active.itemId,
+				payload: {
+					origin: "bootstrap",
+					cueSec: active.cue ?? 0,
+					seekMs,
+					action: active.action
+				}
+			});
 		}
 
 		onTelcoReady(player.telco);
@@ -174,7 +199,9 @@ function createTelcoController({
 }: {
 	getTelco: () => TelcoProps | null;
 	getActive: () => {
+		itemId: number | null;
 		action: string | null;
+		event: string | null;
 		cue: number | null;
 		progress: number | null;
 	};
@@ -248,18 +275,31 @@ function createTelcoController({
 			}
 
 			if (active.action === "seek") {
+				const seekMs = resolveSeekMsForActive(active);
 				telco.pause();
+				traceLog({
+					scope: "player-seek",
+					itemId: getActive().itemId,
+					payload: {
+						origin: "syncFromActive",
+						cueSec: active.cue ?? 0,
+						seekMs,
+						event: active.event,
+						action: active.action
+					}
+				});
 				subscribeOnce(() =>
 					telco.subscribe(() => {
 						subscribeOnce();
 						send({ type: "active-set", payload: { action: null } });
 					})
 				);
-				telco.seek((active.cue ?? 0) * 1000);
+				telco.seek(seekMs);
 			}
 		}
 	};
 }
+
 
 function TelcoPanel({
 	progress,

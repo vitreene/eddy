@@ -84,10 +84,7 @@ function getNeutralTransformValue(key: string): number | null {
 
 function resolveDecorSelection(args: {
 	item: any;
-	sceneId: number;
-	eventsByItem: any;
-	decors: Record<number, Decor>;
-	sceneContents: any;
+	sceneSnapshot: SceneComp;
 	activeEventAction: string | null;
 	itemDecor: Decor | undefined;
 	selectedEvent: any;
@@ -100,12 +97,7 @@ function resolveDecorSelection(args: {
 		};
 	}
 
-	const context = {
-		id: args.sceneId,
-		events: args.eventsByItem,
-		decors: args.decors,
-		sceneContents: args.sceneContents
-	} as SceneComp;
+	const context = args.sceneSnapshot;
 
 	const resolvedDecor = resolveDecorAtEventAction(
 		context,
@@ -117,7 +109,7 @@ function resolveDecorSelection(args: {
 	const selectedEventDecor = selectedEventUsesItemDecor
 		? args.itemDecor
 		: args.selectedEvent?.decorId
-			? args.decors[args.selectedEvent.decorId]
+			? args.sceneSnapshot.decors[args.selectedEvent.decorId]
 			: args.itemDecor;
 
 	return {
@@ -220,8 +212,6 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const content: Content = SceneLogicContext.useSelector((state) => state.context.contents[item?.contentId]);
 	const decors = SceneLogicContext.useSelector((state) => state.context.decors);
 	const eventsByItem = SceneLogicContext.useSelector((state) => state.context.events);
-	const sceneContents = SceneLogicContext.useSelector((state) => state.context.sceneContents);
-	const sceneId = SceneLogicContext.useSelector((state) => state.context.id);
 	const sceneSnapshot = SceneLogicContext.useSelector((state) => state.context as SceneComp);
 
 	const itemDecor = item?.decorId ? decors[item.decorId] : undefined;
@@ -239,15 +229,12 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 		() =>
 			resolveDecorSelection({
 				item,
-				sceneId,
-				eventsByItem,
-				decors,
-				sceneContents,
+				sceneSnapshot,
 				activeEventAction,
 				itemDecor,
 				selectedEvent
 			}),
-		[item, sceneId, eventsByItem, decors, sceneContents, activeEventAction, itemDecor, selectedEvent]
+		[item, sceneSnapshot, activeEventAction, itemDecor, selectedEvent]
 	);
 
 	const capsule = SceneLogicContext.useSelector((state) => {
