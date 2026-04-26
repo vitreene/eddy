@@ -27,3 +27,29 @@ export function buildDefaultTransitionEventPatch(
 		position: null
 	};
 }
+
+export function buildMaterializedTransitionEventPatch(args: {
+	action: typeof INTRO | typeof OUTRO;
+	itemId: number;
+	explicitEvent: ContentEvent | undefined;
+	resolvedEvent: ContentEvent | null;
+}): Partial<ContentEvent> {
+	const { action, itemId, explicitEvent, resolvedEvent } = args;
+	const explicitRef = typeof explicitEvent?.ref === "string" ? explicitEvent.ref.trim() : "";
+	const resolvedRef = typeof resolvedEvent?.ref === "string" ? resolvedEvent.ref.trim() : "";
+	const ref = explicitRef || resolvedRef || DEFAULT_TRANSITION_BY_ACTION[action];
+
+	return {
+		action,
+		itemId,
+		name: resolvedEvent?.name ?? explicitEvent?.name ?? null,
+		position: resolvedEvent?.position ?? explicitEvent?.position ?? null,
+		duration:
+			typeof explicitEvent?.duration === "number" && Number.isFinite(explicitEvent.duration) && explicitEvent.duration > 0
+				? explicitEvent.duration
+				: null,
+		delay: null,
+		ref,
+		decorId: explicitEvent?.decorId ?? null
+	};
+}

@@ -10,8 +10,13 @@ import { getMediaUrl } from "@/lib/media-url";
 import type { CapsuleComp, ContentEvent, ItemComp, SceneComp } from "@/api/db";
 import { P, type ID } from "../types";
 import { SCENE_ID } from "@/scene-runtime/constants";
-import { buildCustomTweenActionName, buildEventActionName } from "./lib";
-import { getOrderedEventsForItem, getTransitionPresetForEvent, resolveSustainWindowMs } from "./events";
+import { buildCustomTweenActionName, buildEventActionName, buildEventTweenActionName } from "./lib";
+import {
+	getOrderedEventsForItem,
+	getTransitionPresetForEvent,
+	resolveInitialTimelineKeyframeBaselineMs,
+	resolveSustainWindowMs
+} from "./events";
 import {
 	buildClassNameDiff,
 	buildDynamicClassName,
@@ -281,7 +286,7 @@ function buildTimedActions(input: {
 		const sustainWindow = !hasCustomEvents ? resolveSustainWindowMs(snapshot, events, item.id) : null;
 		const hasExplicitIntroEvent = Boolean(events[INTRO]);
 		let firstCustomHandled = false;
-		let previousKeyframeMs = 0;
+		let previousKeyframeMs = resolveInitialTimelineKeyframeBaselineMs(events, orderedEvents);
 		let lastScheduledStartMs: number | null = null;
 		let previousStyleState = getInlineStyle(baseDecor.style);
 
@@ -443,17 +448,51 @@ function buildTimedActions(input: {
 				const hasTransitionWindow = entry.keyframeMs !== null && entry.keyframeMs > previousKeyframeMs;
 				const hasPreviousScheduledAction =
 					lastScheduledStartMs !== null && lastScheduledStartMs <= previousKeyframeMs;
+				const canApplyEventAsTransition =
+					hasTransitionWindow && (hasPreviousScheduledAction || eventKind === "outro");
 
-				if (!hasTransitionWindow || !hasPreviousScheduledAction) {
+				if (!canApplyEventAsTransition) {
 					initialDecorState = targetDecor;
 				} else {
-					if (classNameDiff) transitionAction.className = classNameDiff;
-					if (placementChanged || placementClassChanged || positionStyleChanged) {
-						transitionAction.move = { mode: "auto" };
-						const { style: transitionStyle } = transitionAction;
-						if (transitionStyle && typeof transitionStyle === "object") {
-							delete (transitionStyle as Record<string, unknown>).width;
-							delete (transitionStyle as Record<string, unknown>).height;
+					const shouldMoveForOutro = placementChanged || placementClassChanged;
+					const shouldMoveForTransition = placementChanged || placementClassChanged || positionStyleChanged;
+					if (eventKind === "outro") {
+						const durationMs = Math.max(0, (entry.keyframeMs ?? previousKeyframeMs) - previousKeyframeMs);
+						const tweenStyle = buildStyleInterpolation(previousStyleState, targetStyle, durationMs);
+						const tweenActionName = buildEventTweenActionName(ev);
+						const tweenAction = {
+							...(((actions[tweenActionName] as Record<string, unknown> | undefined) || {}) as Record<
+								string,
+								unknown
+							>)
+						} as Record<string, unknown>;
+						if (Object.keys(tweenStyle).length) {
+							tweenAction.style = tweenStyle;
+						}
+						if (classNameDiff) tweenAction.className = classNameDiff;
+						if (shouldMoveForOutro) {
+							tweenAction.move = { mode: "auto" };
+							if (tweenAction.style && typeof tweenAction.style === "object") {
+								delete (tweenAction.style as Record<string, unknown>).x;
+								delete (tweenAction.style as Record<string, unknown>).y;
+								delete (tweenAction.style as Record<string, unknown>).width;
+								delete (tweenAction.style as Record<string, unknown>).height;
+							}
+						}
+						if (Object.keys(tweenAction).length) {
+							actions[tweenActionName] = tweenAction;
+						}
+					}
+
+					if (eventKind !== "outro") {
+						if (classNameDiff) transitionAction.className = classNameDiff;
+						if (shouldMoveForTransition) {
+							transitionAction.move = { mode: "auto" };
+							const { style: transitionStyle } = transitionAction;
+							if (transitionStyle && typeof transitionStyle === "object") {
+								delete (transitionStyle as Record<string, unknown>).width;
+								delete (transitionStyle as Record<string, unknown>).height;
+							}
 						}
 					}
 				}

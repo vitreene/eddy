@@ -424,3 +424,63 @@
 - Si la machine peut orchestrer une transition (persist, sync style, tracking), ne pas la reproduire dans `useEffect`.
 - Cibler un seul effet de sync props -> machine dans le composant, et deleguer le reste aux actions machine/service.
 - Eviter les gardes a base de refs dans React pour du commit metier: preferer des actions explicites sur les evenements de commit.
+
+## 2026-04-25 — Outro: pas de phase "pre-outro" metier
+
+- Ne pas introduire de concept intermediaire "pre-outro" quand le produit parle d'un event normal: `outro` suit le meme contrat d'interpolation que les autres events.
+- Formuler la spec d'animation en termes de transition entre deux etats d'events consecutifs (precedent -> courant), puis appliquer les exceptions explicites seulement (`intro` dans `initial`, transitions nommees intro/outro).
+- Avant de proposer un plan, verifier que le vocabulaire technique colle strictement aux termes utilisateur pour eviter des hypotheses de pipeline non demandees.
+
+## 2026-04-25 — Ciblage decor event: interdire le partage non-intro
+
+- Ne jamais reutiliser le `decorId` de l'item pour `outro` ou `custom`; si un event non-intro pointe deja vers le decor item, forcer la creation d'un decor event dedie au premier patch.
+- Sinon, les edits item-edit peuvent sembler appliques en live mais persister dans le mauvais decor, avec effet secondaire UI (pastille/couleur non refletee) et perte fonctionnelle au reload.
+- Regle de verification apres patch: valider `style`, `className` et `area` sur le meme chemin `decor-patch-requested` en contexte outro/custom.
+
+## 2026-04-25 — Outro seul: ne jamais deriver l'etat initial depuis le decor outro
+
+- Quand un item/capsule n'a qu'un `outro`, ne pas plier le `decor` outro dans `initialDecorState`; garder l'etat initial sur le decor de base.
+- L'alignement UI attendu est: item-edit sans event actif doit refleter l'etat initial visible (toutes proprietes), puis l'event `outro` applique sa cible via tween/transition au moment attendu.
+- Ajouter un smoke de non-regression sur toutes proprietes item-edit (style/className/area) pour eviter les decalages "node vs item-edit" apres chargement de sequence.
+
+## 2026-04-25 — Outro sans custom: appliquer quand meme le decor outro en item-edit
+
+- Dans `resolveDecorAtEventAction`, ne jamais court-circuiter `OUTRO` quand la liste des customs est vide: le decor outro doit toujours s'appliquer.
+- Sinon, la selection `outro` n'actualise pas item-edit (couleur/pastille et autres proprietes), ce qui cree une regression visible de synchro UI.
+- Ajouter un smoke specifique `outro sans custom` qui verifie `style`, `className` et `area` pour verrouiller ce contrat.
+
+## 2026-04-25 — Outro: slot/move doit etre timeline comme les autres props
+
+- Sur `outro`, ne pas laisser les changements de slot (`area`/classes de placement) uniquement sur l'action de transition nommee; ils doivent etre portes par l'action `__tween` sur la fenetre precedente.
+- Sinon le move se declenche "apres l'event" (dans l'effet de sortie) alors que la couleur est deja interpolee avant, ce qui casse le contrat "toutes les props item-edit traitees pareil".
+- Garder l'exception: pour `outro`, le move auto du tween doit viser les deltas de placement; ne pas forcer ce move pour un simple delta `x/y/width/height` afin de conserver l'interpolation style.
+
+## 2026-04-25 — Merge static-changes: ne pas ecraser `move:auto` a t=0
+
+- Quand une action `__tween` tombe au meme timestamp que l'initial (ex: item sans intro explicite), `mergeActionChangesAtSamePosition` ne doit pas remplacer `move:auto` par le `move` parent string de l'initial.
+- Sinon: aucun glissement, classes appliquees instantanement, effets de layout secondaires (elements caches / debordements apparents) et comportement incoherent avec la timeline.
+- Regle: conserver `move` initial seulement si l'incoming n'en fournit pas; si incoming contient un `move` explicite, il prime.
+
+## 2026-04-25 — FLIP move: parser robustement les valeurs animejs
+
+- Ne pas convertir les valeurs `utils.get(...)` via `Number(...)` directement: selon les cas elles peuvent etre des strings (`"0px"`, etc.) et produire `NaN`.
+- En `move:auto`, un `NaN` sur `x/y/rotate/scale/origin` neutralise ou casse la transition FLIP (symptome: pas de glissement alors que les classes changent).
+- Regle: normaliser avec `parseFloat` + fallback finite explicite avant de construire l'animation.
+
+## 2026-04-25 — Outro seul: baseline temporelle implicite obligatoire
+
+- Si un item n'a pas d'intro temporel resolu mais a un outro, ne jamais demarrer `outro__tween` a `0ms`; utiliser une baseline implicite d'intro (`DEFAULT_DURATION`) pour conserver un intervalle de transition.
+- Sinon l'element apparait directement a l'etat outro au chargement, et le FLIP ne peut pas s'exprimer (pas de fenetre temporelle utile).
+- Aligner cette baseline a la fois dans la map timeline (`mapEvents`) et dans le builder d'actions (duree d'interpolation), sinon decalage runtime entre positionnement et style.
+
+## 2026-04-25 — Artefacts intro/outro: verifier `on-update` avant builder
+
+- Si les positions semblent correctes en donnees mais que la transition casse visuellement (rupture dimensions/position), inspecter d'abord la bascule runtime `on-update` (snapshot/setter), pas seulement le builder.
+- Regle: ne pas reappliquer `change.snapshot` quand le prochain change n'est pas un move transition; sinon on injecte un etat stale au keyframe et on casse la continuite visuelle.
+- Ajouter un smoke cible sur la decision "appliquer snapshot ou non" aux frontieres de changes.
+
+## 2026-04-26 — Selection intro implicite: valider `action: seek` + ancre resoluble
+
+- Dans `active-set`, ne jamais conditionner le passage a `action: "seek"` a l'existence d'un event explicite; les events implicites (`intro/outro`) doivent forcer le seek aussi.
+- Un `event.name` non vide n'est pas suffisant: verifier qu'il resolve un cue reel. Les noms auto-fallback non resolubles doivent retomber sur un cue explicite le plus proche.
+- Ajouter un smoke machine sur la selection `intro` implicite pour verrouiller: `event` selectionne, `action: seek`, et `cue` positionne sur l'ancre intro.

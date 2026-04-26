@@ -63,7 +63,7 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 				}
 				if (!$el) return;
 
-				if (change.snapshot) {
+				if (change.snapshot && shouldApplySnapshotForNextChange(nextChange)) {
 					setters.set(id, utils.set($el, change.snapshot));
 				}
 
@@ -103,6 +103,13 @@ export function onUpdateStaticChanges(this: Player): (self: Timeline) => boolean
 		});
 		return true;
 	};
+}
+
+export function shouldApplySnapshotForNextChange(nextChange: Change): boolean {
+	return (
+		(typeof nextChange.change?.move === "boolean" && nextChange.change.move) ||
+		isAutoMove(nextChange.change?.move)
+	);
 }
 
 export function resolveTransitionEnd(change: Change): number {

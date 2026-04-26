@@ -40,7 +40,7 @@ const scene: any = {
 const introCue = computeCueForSelectedCustomEvent(scene, 10, INTRO);
 const outroCue = computeCueForSelectedCustomEvent(scene, 10, OUTRO);
 
-assert.equal(introCue, 0, "intro without cue name should fallback to visible window start");
+assert.equal(introCue, 0.5, "intro without cue name should resolve to effective intro anchor");
 assert.equal(outroCue, 9.5, "outro without cue name should fallback to implicit outro start");
 
 const sceneWithoutOutro: any = {

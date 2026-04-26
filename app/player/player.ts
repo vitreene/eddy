@@ -279,8 +279,8 @@ export class Player {
 				this._applyChanges(id, change);
 				const nex = getAbsoluteCoords($el);
 
-				const px = utils.get($el, "x", false);
-				const py = utils.get($el, "y", false);
+				const px = toFiniteNumber(utils.get($el, "x", false), 0);
+				const py = toFiniteNumber(utils.get($el, "y", false), 0);
 
 				return this._createMoveTransition($el, old, nex, px, py, undefined);
 			}
@@ -299,8 +299,8 @@ export class Player {
 				this._applyChanges(id, change);
 				const nex = getAbsoluteCoords($el);
 
-				const px = Number(utils.get($el, "x", false));
-				const py = Number(utils.get($el, "y", false));
+				const px = toFiniteNumber(utils.get($el, "x", false), 0);
+				const py = toFiniteNumber(utils.get($el, "y", false), 0);
 
 				return this._createMoveTransition($el, old, nex, px, py, change.move);
 			}
@@ -337,11 +337,11 @@ export class Player {
 			composition: "merge"
 		};
 		if (moveOptions?.clearTransforms) {
-			animationParams.rotate = { from: Number(utils.get($el, "rotate", false)), to: 0 };
-			animationParams.scaleX = { from: Number(utils.get($el, "scaleX", false)), to: 1 };
-			animationParams.scaleY = { from: Number(utils.get($el, "scaleY", false)), to: 1 };
-			animationParams.originX = { from: Number(utils.get($el, "originX", false)), to: 0.5 };
-			animationParams.originY = { from: Number(utils.get($el, "originY", false)), to: 0.5 };
+			animationParams.rotate = { from: toFiniteNumber(utils.get($el, "rotate", false), 0), to: 0 };
+			animationParams.scaleX = { from: toFiniteNumber(utils.get($el, "scaleX", false), 1), to: 1 };
+			animationParams.scaleY = { from: toFiniteNumber(utils.get($el, "scaleY", false), 1), to: 1 };
+			animationParams.originX = { from: toFiniteNumber(utils.get($el, "originX", false), 0.5), to: 0.5 };
+			animationParams.originY = { from: toFiniteNumber(utils.get($el, "originY", false), 0.5), to: 0.5 };
 		}
 
 		const animation = animate($el, animationParams);
@@ -426,6 +426,15 @@ export class Player {
 		if (!nodeId) return null;
 		return this.$elements.get(nodeId) ?? null;
 	}
+}
+
+function toFiniteNumber(value: unknown, fallback: number): number {
+	if (typeof value === "number" && Number.isFinite(value)) return value;
+	if (typeof value === "string") {
+		const parsed = Number.parseFloat(value);
+		if (Number.isFinite(parsed)) return parsed;
+	}
+	return fallback;
 }
 
 function resolveMediaTimeAtSeek(status: MediaStatus, timeMs: number): number {

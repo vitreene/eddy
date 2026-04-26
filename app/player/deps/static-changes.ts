@@ -59,6 +59,9 @@ suivant, à deplcer après test.
 				const action = actions[e.name];
 				if (action && typeof action !== "boolean") {
 					const { style, ...change } = action;
+					const hasStylePayload = Boolean(
+						style && typeof style === "object" && Object.keys(style as Record<string, unknown>).length
+					);
 
 					if (change && isVideo && change.media) {
 						const authoredChangeAt = Number(change.media.changeAt);
@@ -80,7 +83,7 @@ suivant, à deplcer après test.
 						((actionChanges[position]?.change as Partial<ActionAtributes>) || {}) as Partial<ActionAtributes>,
 						change as Partial<ActionAtributes>
 					);
-					if (Object.keys(newChange).length) {
+					if (Object.keys(newChange).length || hasStylePayload) {
 						positions.add(position);
 						actionChanges[position] = { change: newChange };
 					}
@@ -128,8 +131,12 @@ function mergeActionChangesAtSamePosition(
 
 	const baseMove = base.move;
 	const incomingMove = incoming.move;
-	if (typeof baseMove === "string" && typeof incomingMove !== "string") {
+	if (typeof baseMove === "string" && typeof incomingMove === "undefined") {
 		merged.move = baseMove;
+	}
+
+	if (typeof base.className !== "undefined" && typeof incoming.className !== "undefined") {
+		merged.className = mixClassNames(base.className as any, incoming.className as any);
 	}
 
 	return merged;

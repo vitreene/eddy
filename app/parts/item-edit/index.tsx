@@ -19,12 +19,20 @@ import {
 	ensureLiveAreaClassDefinition
 } from "./live-node-classes";
 import { resolveDecorAtEventAction } from "./item-edit.helpers";
-import { buildDefaultTransitionEventPatch, getCustomEventActions } from "./item-edit.reset";
+import {
+	buildDefaultTransitionEventPatch,
+	buildMaterializedTransitionEventPatch,
+	getCustomEventActions
+} from "./item-edit.reset";
 import { buildEditableVisualState, projectEditableVisualStateToNode } from "./editable-visual-state";
 import { editorSyncMachine } from "./editor-sync.machine";
-import { computeCueForSelectedCustomEvent, isItemDecorEventContext } from "@/provider/scene-logic.helpers";
+import {
+	computeCueForSelectedCustomEvent,
+	isItemDecorEventContext,
+	resolveEffectiveEventForAction
+} from "@/provider/scene-logic.helpers";
 
-import type { Content, Decor, SceneComp } from "@/api/db";
+import type { Content, ContentEvent, Decor, SceneComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
 import type { ItemEditTab } from "@/provider/types";
 
@@ -214,6 +222,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const eventsByItem = SceneLogicContext.useSelector((state) => state.context.events);
 	const sceneContents = SceneLogicContext.useSelector((state) => state.context.sceneContents);
 	const sceneId = SceneLogicContext.useSelector((state) => state.context.id);
+	const sceneSnapshot = SceneLogicContext.useSelector((state) => state.context as SceneComp);
 
 	const itemDecor = item?.decorId ? decors[item.decorId] : undefined;
 	const activeNode = SceneLogicContext.useSelector((state) => state.context.active.node as HTMLElement | null);
@@ -221,7 +230,11 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const activeCueSec = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
 	const activeItemEditTab = SceneLogicContext.useSelector((state) => state.context.active.itemEditTab);
 
-	const selectedEvent = item && activeEventAction ? eventsByItem[item.id]?.[activeEventAction] : null;
+	const selectedEvent = useMemo(() => {
+		if (!item || !activeEventAction) return null;
+		return resolveEffectiveEventForAction(sceneSnapshot, item.id, activeEventAction);
+	}, [item, activeEventAction, sceneSnapshot]);
+	const explicitSelectedEvent = item && activeEventAction ? eventsByItem[item.id]?.[activeEventAction] : null;
 	const { decor, editDecor, selectedEventUsesItemDecor } = useMemo(
 		() =>
 			resolveDecorSelection({
@@ -278,11 +291,27 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				applyAreaClassPatch(activeNode, targetDecor.area ?? null, mutationPlan.nextArea);
 			}
 
+			const shouldMaterializeOutroEvent =
+				activeEventAction === OUTRO &&
+				Boolean(item) &&
+				(!explicitSelectedEvent || !explicitSelectedEvent.name || !explicitSelectedEvent.name.trim());
+			if (shouldMaterializeOutroEvent && item) {
+				send({
+					type: "events-update",
+					payload: buildMaterializedTransitionEventPatch({
+						action: OUTRO,
+						itemId: item.id,
+						explicitEvent: explicitSelectedEvent as ContentEvent | undefined,
+						resolvedEvent: selectedEvent as ContentEvent | null
+					})
+				});
+			}
+
 			send({
 				type: "decor-patch-requested",
 				payload: {
 					itemId: item.id,
-					action: selectedEvent?.action ?? null,
+					action: activeEventAction ?? null,
 					targetDecorId: targetDecor.id,
 					selectedEventUsesItemDecor,
 					seed: {
@@ -306,7 +335,9 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 			content?.type,
 			activeNode,
 			send,
+			activeEventAction,
 			selectedEvent,
+			explicitSelectedEvent,
 			selectedEventUsesItemDecor
 		]
 	);
@@ -444,11 +475,25 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const onDecorUpdate = useCallback(
 		(payload: { id: number; area?: string | null; className?: string | null }) => {
 			if (!item) return;
+			const shouldMaterializeOutroEvent =
+				activeEventAction === OUTRO &&
+				(!explicitSelectedEvent || !explicitSelectedEvent.name || !explicitSelectedEvent.name.trim());
+			if (shouldMaterializeOutroEvent) {
+				send({
+					type: "events-update",
+					payload: buildMaterializedTransitionEventPatch({
+						action: OUTRO,
+						itemId: item.id,
+						explicitEvent: explicitSelectedEvent as ContentEvent | undefined,
+						resolvedEvent: selectedEvent as ContentEvent | null
+					})
+				});
+			}
 			send({
 				type: "decor-patch-requested",
 				payload: {
 					itemId: item.id,
-					action: selectedEvent?.action ?? null,
+					action: activeEventAction ?? null,
 					targetDecorId: selectedEvent?.decorId ?? payload.id,
 					selectedEventUsesItemDecor,
 					seed: {
@@ -465,7 +510,16 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				}
 			});
 		},
-		[item, send, selectedEvent, selectedEventUsesItemDecor, decor, itemDecor]
+		[
+			item,
+			send,
+			selectedEvent,
+			explicitSelectedEvent,
+			activeEventAction,
+			selectedEventUsesItemDecor,
+			decor,
+			itemDecor
+		]
 	);
 
 	const onTreeMove = useCallback(

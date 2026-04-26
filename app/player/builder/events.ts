@@ -15,7 +15,7 @@ import {
 import { readEventTransitionValue } from "@/lib/event-ref";
 
 import type { ContentEvent, ItemComp, SceneComp, TextTime, CapsuleComp } from "@/api/db";
-import { buildCustomTweenActionName, buildEventActionName } from "./lib";
+import { buildCustomTweenActionName, buildEventActionName, buildEventTweenActionName } from "./lib";
 
 type OrderedEvent = {
 	event: ContentEvent;
@@ -42,7 +42,7 @@ export function mapEvents(snapshot: SceneComp) {
 	for (const item of Object.values(snapshot.items || {})) {
 		const events = snapshot.events[item.id] || {};
 		const orderedEvents = getOrderedEventsForItem(snapshot, events, item.id);
-		let previousKeyframeMs = 0;
+		let previousKeyframeMs = resolveInitialTimelineKeyframeBaselineMs(events, orderedEvents);
 		for (const entry of orderedEvents) {
 			const ev = entry.event;
 			if (entry.keyframeMs === null || entry.runtimeStartMs === null) continue;
@@ -66,6 +66,24 @@ export function mapEvents(snapshot: SceneComp) {
 				const keyframeExisting = map.get(entry.keyframeMs) || [];
 				keyframeExisting.push(keyframeMapped);
 				map.set(entry.keyframeMs, keyframeExisting);
+			} else if (kind === "outro") {
+				const tweenStart = previousKeyframeMs;
+				const tweenMapped = {
+					name: buildEventTweenActionName(ev),
+					start: tweenStart
+				};
+				const tweenExisting = map.get(tweenStart) || [];
+				tweenExisting.push(tweenMapped);
+				map.set(tweenStart, tweenExisting);
+
+				const mapped = {
+					name: buildEventActionName(ev),
+					start: entry.runtimeStartMs
+				};
+
+				const existing = map.get(entry.runtimeStartMs) || [];
+				existing.push(mapped);
+				map.set(entry.runtimeStartMs, existing);
 			} else {
 				const mapped = {
 					name: buildEventActionName(ev),
@@ -85,6 +103,24 @@ export function mapEvents(snapshot: SceneComp) {
 	sceneEndExisting.push({ name: SCENE_END_MARKER_ACTION, start: sceneDurationMs });
 	map.set(sceneDurationMs, sceneEndExisting);
 	return map;
+}
+
+export function resolveInitialTimelineKeyframeBaselineMs(
+	eventsByAction: Record<string, ContentEvent | undefined>,
+	orderedEvents: Array<{ event: ContentEvent; keyframeMs: number | null }>
+): number {
+	const hasTimedIntro = orderedEvents.some(
+		(entry) => deriveEventKind(entry.event.action) === "intro" && entry.keyframeMs !== null
+	);
+	if (hasTimedIntro) return 0;
+
+	const firstTimed = orderedEvents.find((entry) => entry.keyframeMs !== null);
+	if (!firstTimed) return 0;
+	if (deriveEventKind(firstTimed.event.action) !== "outro") return 0;
+
+	const introEvent = eventsByAction[INTRO];
+	const durationMs = introEvent ? resolveTransitionDurationMs(introEvent) : DEFAULT_DURATION;
+	return Math.max(0, durationMs);
 }
 
 /**

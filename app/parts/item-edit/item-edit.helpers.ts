@@ -51,7 +51,6 @@ export function resolveDecorAtEventAction(
 	if (action === INTRO) return itemDecor;
 
 	const orderedCustomEvents = getOrderedCustomEvents(context, events);
-	if (!orderedCustomEvents.length) return itemDecor;
 
 	if (action === OUTRO) {
 		let resolved = itemDecor;
@@ -67,6 +66,8 @@ export function resolveDecorAtEventAction(
 		}
 		return resolved;
 	}
+
+	if (!orderedCustomEvents.length) return itemDecor;
 
 	const currentEvent = events[action];
 	if (!currentEvent || deriveEventKind(currentEvent.action) !== "custom") return itemDecor;

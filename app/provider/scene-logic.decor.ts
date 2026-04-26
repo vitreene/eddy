@@ -1,4 +1,5 @@
 import type { Decor, SceneComp } from "@/api/db";
+import { INTRO } from "@/config/constants";
 
 import { createDecorOnServer } from "./scene-logic.api";
 
@@ -17,7 +18,19 @@ export async function ensureEventDecorId(args: {
 	seed?: DecorSeed;
 }): Promise<{ decorId: number | null; createdDecor: Decor | null }> {
 	const existingDecorId = args.context.events[args.itemId]?.[args.action]?.decorId;
-	if (typeof existingDecorId == "number" && Number.isFinite(existingDecorId)) {
+	const itemDecorId = args.context.items?.[args.itemId]?.decorId;
+	const sharedWithItemDecor =
+		typeof existingDecorId == "number" &&
+		Number.isFinite(existingDecorId) &&
+		typeof itemDecorId == "number" &&
+		Number.isFinite(itemDecorId) &&
+		existingDecorId === itemDecorId;
+
+	if (
+		typeof existingDecorId == "number" &&
+		Number.isFinite(existingDecorId) &&
+		(args.action === INTRO || !sharedWithItemDecor)
+	) {
 		return { decorId: existingDecorId, createdDecor: null };
 	}
 

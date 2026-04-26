@@ -9,8 +9,12 @@ export function buildEventActionName(event: ContentEvent): string {
 	return `${label}-${event.action}`;
 }
 
-export function buildCustomTweenActionName(event: ContentEvent): string {
+export function buildEventTweenActionName(event: ContentEvent): string {
 	return `${buildEventActionName(event)}__tween`;
+}
+
+export function buildCustomTweenActionName(event: ContentEvent): string {
+	return buildEventTweenActionName(event);
 }
 
 /**
