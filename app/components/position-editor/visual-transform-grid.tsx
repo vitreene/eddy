@@ -101,14 +101,14 @@ function useTransformRuntime(props: TransformProps) {
 		!(state.context.input.active ?? true) ||
 		!state.context.input.element ||
 		!state.context.t ||
-		!state.context.portalHost ||
+		!state.context.overlayContainer ||
 		!frame
 	)
 		return null;
 
 	return {
 		hidden: state.context.hideOverlayFrame,
-		portalContainer: state.context.portalHost,
+		portalContainer: state.context.overlayContainer,
 		frame,
 		t: state.context.t,
 		dragStart: (ev: { clientX: number; clientY: number }, mode: DragMode) =>

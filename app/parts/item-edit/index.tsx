@@ -339,7 +339,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	);
 
 	const onResetStyle = () => {
-		if (!item || !editDecor) return;
+		if (!item || !itemDecor) return;
 		const itemEvents = eventsByItem[item.id] || null;
 		const customActions = getCustomEventActions(itemEvents);
 		for (const action of customActions) {
@@ -366,7 +366,7 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 			type: "item-update",
 			payload: {
 				decor: {
-					id: editDecor.id,
+					id: itemDecor.id,
 					className: null,
 					area: null,
 					style: null

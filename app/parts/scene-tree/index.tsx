@@ -143,8 +143,6 @@ export function SceneTreeView() {
 		onPrimaryAction: (item) => {
 			const itemId = item.getItemData().itemId;
 			if (!itemId) return;
-			const payload = { itemId, action: "seek" };
-			send({ type: "commit", payload });
 			send({ type: "selection.item.requested", payload: { itemId, action: "seek" } });
 		},
 		onDrop: (draggedItems, target) => {

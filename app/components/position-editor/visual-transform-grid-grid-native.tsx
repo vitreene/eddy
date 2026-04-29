@@ -1,4 +1,5 @@
 import { createPortal } from "react-dom";
+import { useEffect } from "react";
 import { useMachine } from "@xstate/react";
 
 import { type PositionEditorMachineInput, positionEditorMachine } from "./position-editor.machine";
@@ -29,11 +30,13 @@ type PositionGridPlacement = {
 
 type PositionGridOverlay = {
 	parentRect: { left: number; top: number; width: number; height: number };
+	parentClassName: string;
+	positionClassName: string;
 	gridTemplateColumns: string;
 	gridTemplateRows: string;
 	columnGap: string;
 	rowGap: string;
-	placement: PositionGridPlacement;
+	placement: PositionGridPlacement | null;
 };
 
 export function ItemTransformEditorPositionGridNative(props: PositionProps) {
@@ -41,11 +44,29 @@ export function ItemTransformEditorPositionGridNative(props: PositionProps) {
 		input: toPositionMachineInput(props)
 	});
 
+	useEffect(() => {
+		send({
+			type: "props.sync",
+			input: toPositionMachineInput(props)
+		});
+	}, [
+		send,
+		props.element,
+		props.active,
+		props.snapParentElement,
+		props.snapParentId,
+		props.overlayContainer,
+		props.className,
+		props.syncToken,
+		props.onCommit,
+		props.snapGrid
+	]);
+
 	if (
 		!state.context.domOk ||
 		!(state.context.input.active ?? true) ||
 		!state.context.input.element ||
-		!state.context.portalHost
+		!state.context.overlayContainer
 	)
 		return null;
 
@@ -57,7 +78,7 @@ export function ItemTransformEditorPositionGridNative(props: PositionProps) {
 			className={state.context.input.className}
 			overlay={overlay}
 			hidden={state.context.hideOverlayFrame}
-			portalContainer={state.context.portalHost}
+			portalContainer={state.context.overlayContainer}
 		>
 			<div style={boxPositionFrameStyle} />
 			<DiamondHandle
@@ -89,45 +110,18 @@ function resolvePositionGridOverlay(
 	if (!parentRect || parentRect.width <= 0 || parentRect.height <= 0) return null;
 
 	const parentStyle = getComputedStyle(parent);
+	const positionClassName = extractPositionClassName(element.className || "");
 	const placement = previewPlacement ?? readPositionGridPlacement(element);
-	if (!placement) return null;
-	const snapGridLayout = buildOverlayGridLayoutFromSnapGrid(input.snapGrid);
 
 	return {
 		parentRect,
-		gridTemplateColumns: snapGridLayout?.columns ?? resolveGridTemplateColumns(parentStyle, input.snapGrid),
-		gridTemplateRows: snapGridLayout?.rows ?? resolveGridTemplateRows(parentStyle, input.snapGrid),
-		columnGap: snapGridLayout?.columnGap ?? normalizeGapValue(parentStyle.columnGap),
-		rowGap: snapGridLayout?.rowGap ?? normalizeGapValue(parentStyle.rowGap),
+		parentClassName: parent.className || "",
+		positionClassName,
+		gridTemplateColumns: resolveGridTemplateColumns(parentStyle, input.snapGrid),
+		gridTemplateRows: resolveGridTemplateRows(parentStyle, input.snapGrid),
+		columnGap: normalizeGapValue(parentStyle.columnGap),
+		rowGap: normalizeGapValue(parentStyle.rowGap),
 		placement
-	};
-}
-
-function buildOverlayGridLayoutFromSnapGrid(
-	snapGrid?: PositionSnapGridSpec | null
-): { columns: string; rows: string; columnGap: string; rowGap: string } | null {
-	if (!snapGrid) return null;
-	if (snapGrid.kind === "grid") {
-		return {
-			columns: `repeat(${Math.max(1, snapGrid.cols)}, minmax(0, 1fr))`,
-			rows: `repeat(${Math.max(1, snapGrid.rows)}, minmax(0, 1fr))`,
-			columnGap: "0px",
-			rowGap: "0px"
-		};
-	}
-	if (snapGrid.orientation === "horizontal") {
-		return {
-			columns: `repeat(${Math.max(1, snapGrid.cells)}, minmax(0, 1fr))`,
-			rows: "repeat(1, minmax(0, 1fr))",
-			columnGap: "0px",
-			rowGap: "0px"
-		};
-	}
-	return {
-		columns: "repeat(1, minmax(0, 1fr))",
-		rows: `repeat(${Math.max(1, snapGrid.cells)}, minmax(0, 1fr))`,
-		columnGap: "0px",
-		rowGap: "0px"
 	};
 }
 
@@ -162,14 +156,157 @@ function resolveOverlayGridParent(element: HTMLElement, input: PositionEditorMac
 	return element.parentElement instanceof HTMLElement ? element.parentElement : null;
 }
 
+function extractPositionClassName(className: string): string {
+	const tokens = className
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	const positionTokens = tokens.filter((token) => isPositionClassToken(token));
+	return positionTokens.join(" ");
+}
+
+function isPositionClassToken(token: string): boolean {
+	if (/^cell-r\d+-c\d+$/.test(token)) return true;
+	if (/^cell-span-r\d+-c\d+-rs\d+-cs\d+$/.test(token)) return true;
+	if (/^cell-span-fill$/.test(token)) return true;
+	if (/^cell_layout_auto(?:_[\w-]+)?$/.test(token)) return true;
+	if (/^liste-r\d+$/.test(token)) return true;
+	if (/^ed-zone-[\w-]+$/.test(token)) return true;
+	return false;
+}
+
 function readPositionGridPlacement(element: HTMLElement): PositionGridPlacement | null {
 	const cs = getComputedStyle(element);
 	const classPlacement = parseGridPlacementFromClassTokens(element.className || "");
-	const row = parseGridLineStart(cs.gridRowStart) || classPlacement?.row || 1;
-	const col = parseGridLineStart(cs.gridColumnStart) || classPlacement?.col || 1;
-	const rowSpan = parseGridLineSpan(cs.gridRowEnd) || classPlacement?.rowSpan || 1;
-	const colSpan = parseGridLineSpan(cs.gridColumnEnd) || classPlacement?.colSpan || 1;
-	return { row, col, rowSpan, colSpan };
+	const row = parseGridLineStart(cs.gridRowStart) || classPlacement?.row || null;
+	const col = parseGridLineStart(cs.gridColumnStart) || classPlacement?.col || null;
+	const rowSpan =
+		parseGridLineSpan(cs.gridRowEnd) ||
+		resolveSpanFromGridEdges(cs.gridRowStart, cs.gridRowEnd) ||
+		classPlacement?.rowSpan ||
+		null;
+	const colSpan =
+		parseGridLineSpan(cs.gridColumnEnd) ||
+		resolveSpanFromGridEdges(cs.gridColumnStart, cs.gridColumnEnd) ||
+		classPlacement?.colSpan ||
+		null;
+
+	if (row && col && rowSpan && colSpan) {
+		return { row, col, rowSpan, colSpan };
+	}
+
+	const stylesheetPlacement = readPlacementFromClassRules(element);
+	if (stylesheetPlacement) return stylesheetPlacement;
+
+	if (!row || !col) return null;
+	return {
+		row,
+		col,
+		rowSpan: rowSpan || 1,
+		colSpan: colSpan || 1
+	};
+}
+
+function readPlacementFromClassRules(node: HTMLElement): PositionGridPlacement | null {
+	const classTokens = (node.className || "")
+		.split(/\s+/)
+		.map((token) => token.trim())
+		.filter(Boolean);
+	if (!classTokens.length) return null;
+	const ownerDocument = node.ownerDocument;
+	if (!ownerDocument) return null;
+
+	for (const classToken of classTokens) {
+		const ruleStyle = findClassRuleStyle(ownerDocument, classToken);
+		if (!ruleStyle) continue;
+		const placement = placementFromRuleStyle(ruleStyle);
+		if (placement) return placement;
+	}
+	return null;
+}
+
+function findClassRuleStyle(doc: Document, classToken: string): CSSStyleDeclaration | null {
+	const selector = `.${classToken}`;
+	for (const sheet of Array.from(doc.styleSheets || [])) {
+		const style = findClassRuleStyleInSheet(sheet, selector);
+		if (style) return style;
+	}
+	return null;
+}
+
+function findClassRuleStyleInSheet(sheet: CSSStyleSheet, selector: string): CSSStyleDeclaration | null {
+	let rules: CSSRuleList;
+	try {
+		rules = sheet.cssRules;
+	} catch {
+		return null;
+	}
+	return findClassRuleStyleInRules(rules, selector);
+}
+
+function findClassRuleStyleInRules(rules: CSSRuleList, selector: string): CSSStyleDeclaration | null {
+	for (const rule of Array.from(rules)) {
+		if (rule instanceof CSSStyleRule) {
+			const selectors = rule.selectorText
+				.split(",")
+				.map((value) => value.trim());
+			if (selectors.includes(selector)) return rule.style;
+			continue;
+		}
+		if (rule instanceof CSSGroupingRule) {
+			const nested = findClassRuleStyleInRules(rule.cssRules, selector);
+			if (nested) return nested;
+		}
+	}
+	return null;
+}
+
+function placementFromRuleStyle(style: CSSStyleDeclaration): PositionGridPlacement | null {
+	const rowParsed = parseGridTrackShorthand(style.getPropertyValue("grid-row"));
+	const colParsed = parseGridTrackShorthand(style.getPropertyValue("grid-column"));
+
+	const row =
+		rowParsed?.start ||
+		parseGridLineStart(style.getPropertyValue("grid-row-start")) ||
+		parseGridLineStart(style.gridRowStart);
+	const col =
+		colParsed?.start ||
+		parseGridLineStart(style.getPropertyValue("grid-column-start")) ||
+		parseGridLineStart(style.gridColumnStart);
+	const rowSpan =
+		rowParsed?.span ||
+		parseGridLineSpan(style.getPropertyValue("grid-row-end")) ||
+		resolveSpanFromGridEdges(style.getPropertyValue("grid-row-start"), style.getPropertyValue("grid-row-end")) ||
+		parseGridLineSpan(style.gridRowEnd) ||
+		resolveSpanFromGridEdges(style.gridRowStart, style.gridRowEnd);
+	const colSpan =
+		colParsed?.span ||
+		parseGridLineSpan(style.getPropertyValue("grid-column-end")) ||
+		resolveSpanFromGridEdges(
+			style.getPropertyValue("grid-column-start"),
+			style.getPropertyValue("grid-column-end")
+		) ||
+		parseGridLineSpan(style.gridColumnEnd) ||
+		resolveSpanFromGridEdges(style.gridColumnStart, style.gridColumnEnd);
+
+	if (!row || !col) return null;
+	return {
+		row,
+		col,
+		rowSpan: rowSpan || 1,
+		colSpan: colSpan || 1
+	};
+}
+
+function parseGridTrackShorthand(value: string): { start: number | null; span: number | null } | null {
+	const raw = String(value || "").trim();
+	if (!raw) return null;
+	const parts = raw.split("/").map((part) => part.trim());
+	if (!parts.length) return null;
+	const start = parseGridLineStart(parts[0]);
+	let span = parts.length > 1 ? parseGridLineSpan(parts[1]) : null;
+	if (!span && parts.length > 1) span = resolveSpanFromGridEdges(parts[0], parts[1]);
+	return { start, span };
 }
 
 function parseGridPlacementFromClassTokens(className: string): PositionGridPlacement | null {
@@ -182,16 +319,19 @@ function parseGridPlacementFromClassTokens(className: string): PositionGridPlace
 	let col = 1;
 	let rowSpan = 1;
 	let colSpan = 1;
+	let matched = false;
 
 	for (const token of tokens) {
 		const areaMatch = /^cell-r(\d+)-c(\d+)$/.exec(token);
 		if (areaMatch) {
+			matched = true;
 			row = Math.max(1, Number(areaMatch[1]) || 1);
 			col = Math.max(1, Number(areaMatch[2]) || 1);
 			continue;
 		}
 		const spanMatch = /^cell-span-r(\d+)-c(\d+)-rs(\d+)-cs(\d+)$/.exec(token);
 		if (spanMatch) {
+			matched = true;
 			row = Math.max(1, Number(spanMatch[1]) || 1);
 			col = Math.max(1, Number(spanMatch[2]) || 1);
 			rowSpan = Math.max(1, Number(spanMatch[3]) || 1);
@@ -199,6 +339,7 @@ function parseGridPlacementFromClassTokens(className: string): PositionGridPlace
 		}
 	}
 
+	if (!matched) return null;
 	return { row, col, rowSpan, colSpan };
 }
 
@@ -221,6 +362,17 @@ function parseGridLineSpan(value: string): number | null {
 	if (!Number.isFinite(n) || n < 1) return null;
 	return Math.round(n);
 }
+
+function resolveSpanFromGridEdges(startValue: string, endValue: string): number | null {
+	const start = parseGridLineStart(startValue);
+	if (!start) return null;
+	const end = parseGridLineStart(endValue);
+	if (!end) return null;
+	const span = end - start;
+	if (!Number.isFinite(span) || span < 1) return null;
+	return Math.round(span);
+}
+
 
 function readElementRect(
 	element: HTMLElement | null
@@ -261,22 +413,34 @@ function GridOverlayPortal({
 		rowGap: overlay.rowGap,
 		pointerEvents: "none"
 	};
-	const frameStyle: React.CSSProperties = {
-		gridRow: `${overlay.placement.row} / span ${overlay.placement.rowSpan}`,
-		gridColumn: `${overlay.placement.col} / span ${overlay.placement.colSpan}`,
-		position: "relative",
-		minWidth: 0,
-		minHeight: 0,
-		alignSelf: "stretch",
-		justifySelf: "stretch",
-		pointerEvents: "auto",
-		zIndex: 9999
-	};
+	const frameStyle: React.CSSProperties = overlay.placement
+		? {
+				gridRow: `${overlay.placement.row} / span ${overlay.placement.rowSpan}`,
+				gridColumn: `${overlay.placement.col} / span ${overlay.placement.colSpan}`,
+				position: "relative",
+				minWidth: 0,
+				minHeight: 0,
+				alignSelf: "stretch",
+				justifySelf: "stretch",
+				pointerEvents: "auto",
+				zIndex: 9999
+			}
+		: {
+				position: "relative",
+				minWidth: 0,
+				minHeight: 0,
+				alignSelf: "stretch",
+				justifySelf: "stretch",
+				pointerEvents: "auto",
+				zIndex: 9999
+			};
 
 	return createPortal(
 		<div className={className} style={{ position: "absolute", inset: 0, pointerEvents: "none", zIndex: 9999 }}>
-			<div style={{ ...rootStyle, display: hidden ? "none" : "grid" }}>
-				<div style={frameStyle}>{children}</div>
+			<div className={overlay.parentClassName} style={{ ...rootStyle, display: hidden ? "none" : "grid" }}>
+				<div className={overlay.positionClassName} style={frameStyle}>
+					{children}
+				</div>
 			</div>
 		</div>,
 		portalContainer

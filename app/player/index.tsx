@@ -96,11 +96,13 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 		telcoController.syncFromActive({ action: active.action, cue: active.cue });
 	}, [active.action, active.cue, telcoController]);
 
-	const styles = `@scope{${playerCss} ${scene.styles}}`;
+	const playerScopedStyles = `@scope{${playerCss}}`;
+	const editorSceneStyles = scene.styles || "";
 
 	return (
 		<>
-			<style>{styles}</style>
+			<style>{playerScopedStyles}</style>
+			<style>{editorSceneStyles}</style>
 			<div ref={sceneRef} id={SCENE_ID} className="aspect-video flex-1" />
 			<TelcoPanel
 				progress={active.progress ?? 0}
@@ -254,9 +256,9 @@ function createTelcoController({
 			if (!telco) return null;
 			return telco.toggleMute();
 		},
-		syncFromActive: (active) => {
-			const telco = getTelco();
-			if (!telco) return;
+			syncFromActive: (active) => {
+				const telco = getTelco();
+				if (!telco) return;
 
 			if (active.action === "play") {
 				subscribeOnce();
@@ -270,10 +272,15 @@ function createTelcoController({
 				return;
 			}
 
-			if (active.action === "seek") {
-				telco.pause();
-				subscribeOnce(() =>
-					telco.subscribe(() => {
+				if (active.action === "seek") {
+					console.debug("[telco-sync]", {
+						action: active.action,
+						cueSec: active.cue,
+						seekMs: (active.cue ?? 0) * 1000
+					});
+					telco.pause();
+					subscribeOnce(() =>
+						telco.subscribe(() => {
 						subscribeOnce();
 						send({ type: "transport.seek.completed" });
 					})

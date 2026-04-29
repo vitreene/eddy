@@ -1450,12 +1450,10 @@ export async function addEventToContent({
 			: null;
 
 		const currentDecorId = targetById?.decorId ?? existingByNaturalKey?.decorId ?? null;
-		let resolvedDecorId: number | null = null;
-		if (typeof decorId == "number" && Number.isFinite(decorId)) {
-			resolvedDecorId = decorId;
-		} else if (typeof currentDecorId == "number") {
-			resolvedDecorId = currentDecorId;
-		}
+		const resolvedDecorId = resolveEventDecorIdForPersist({
+			incomingDecorId: decorId,
+			currentDecorId
+		});
 
 		const data = {
 			name: normalizedName,
@@ -1478,6 +1476,20 @@ export async function addEventToContent({
 
 		return tx.event.create({ data: data as any });
 	});
+}
+
+export function resolveEventDecorIdForPersist(input: {
+	incomingDecorId: number | null | undefined;
+	currentDecorId: number | null | undefined;
+}): number | null {
+	if (input.incomingDecorId === null) return null;
+	if (typeof input.incomingDecorId == "number" && Number.isFinite(input.incomingDecorId)) {
+		return input.incomingDecorId;
+	}
+	if (typeof input.currentDecorId == "number" && Number.isFinite(input.currentDecorId)) {
+		return input.currentDecorId;
+	}
+	return null;
 }
 
 export async function removeEventFromcontent(id: number) {

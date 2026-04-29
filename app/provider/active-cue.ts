@@ -182,15 +182,96 @@ export function computeActiveCue(context: SceneComp, itemId: number): number | n
 	const assured = getAssuredVisibleCue(context, itemId);
 	const itemEvents = context.events?.[itemId] ?? {};
 	const hasExplicitIntro = Boolean(itemEvents[INTRO]?.name);
+	const introEvent = itemEvents[INTRO] || null;
+	const introCue = introEvent?.name ? findSceneCueByName(context, introEvent.name) : null;
+	const introDurationSec =
+		typeof introEvent?.duration == "number" && Number.isFinite(introEvent.duration) && introEvent.duration > 0
+			? introEvent.duration
+			: DEFAULT_DURATION_SEC;
+	const resolvedIntroStartSec =
+		hasExplicitIntro && !introCue ? resolveIntroStartSecFromCueWindows(context, itemId) : null;
+	const introVisibleSec = introCue
+		? introCue.start + introDurationSec
+		: typeof resolvedIntroStartSec == "number" && Number.isFinite(resolvedIntroStartSec)
+			? resolvedIntroStartSec + introDurationSec
+			: hasExplicitIntro
+				? assured.window.startSec + introDurationSec
+				: null;
+
+	if (typeof introVisibleSec == "number" && Number.isFinite(introVisibleSec)) {
+		const resolvedCueSec = Math.max(assured.window.startSec, introVisibleSec);
+		const boundedCueSec =
+			Number.isFinite(assured.window.endSec) && resolvedCueSec > assured.window.endSec
+				? assured.window.startSec
+				: resolvedCueSec;
+		console.debug("[selection-cue]", {
+			itemId,
+			reason: "intro-visible",
+			hasExplicitIntro,
+			introName: introEvent?.name ?? null,
+			introCueStart: introCue?.start ?? null,
+			resolvedIntroStartSec,
+			introDurationSec,
+			introVisibleSec,
+			assuredCueSec: assured.cueSec,
+			assuredWindowStart: assured.window.startSec,
+			assuredWindowEnd: assured.window.endSec,
+			firstCustomCue: null,
+			resolvedCueSec: boundedCueSec
+		});
+		return boundedCueSec;
+	}
 
 	if (!hasExplicitIntro) {
 		const firstCustomCue = getFirstCustomCueSec(context, itemId);
 		if (typeof firstCustomCue == "number" && Number.isFinite(firstCustomCue)) {
-			return Math.max(assured.window.startSec, firstCustomCue);
+			const resolvedCueSec = Math.max(assured.window.startSec, firstCustomCue);
+			console.debug("[selection-cue]", {
+				itemId,
+				reason: "first-custom-fallback",
+				hasExplicitIntro,
+				introName: introEvent?.name ?? null,
+				introCueStart: introCue?.start ?? null,
+				resolvedIntroStartSec,
+				introDurationSec,
+				introVisibleSec,
+				assuredCueSec: assured.cueSec,
+				assuredWindowStart: assured.window.startSec,
+				assuredWindowEnd: assured.window.endSec,
+				firstCustomCue,
+				resolvedCueSec
+			});
+			return resolvedCueSec;
 		}
 	}
 
+	console.debug("[selection-cue]", {
+		itemId,
+		reason: "assured-window",
+		hasExplicitIntro,
+		introName: introEvent?.name ?? null,
+		introCueStart: introCue?.start ?? null,
+		resolvedIntroStartSec,
+		introDurationSec,
+		introVisibleSec,
+		assuredCueSec: assured.cueSec,
+		assuredWindowStart: assured.window.startSec,
+		assuredWindowEnd: assured.window.endSec,
+		firstCustomCue: null,
+		resolvedCueSec: assured.cueSec
+	});
+
 	return assured.cueSec;
+}
+
+function resolveIntroStartSecFromCueWindows(context: SceneComp, itemId: number): number | null {
+	const behaviorByCapsuleId = buildCapsuleBehaviorById(context);
+	const resolved = resolveCueWindows(context, { generateMissingEvents: true, behaviorByCapsuleId });
+	const window = resolved.cueWindowsByItemId.get(itemId) || null;
+	if (!window) return null;
+	const startSec = Number(window.start);
+	if (!Number.isFinite(startSec)) return null;
+	return startSec;
 }
 
 function clampSec(value: number, min: number, max: number): number {

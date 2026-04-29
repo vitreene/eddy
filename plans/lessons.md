@@ -1,5 +1,46 @@
 # Lessons
 
+## 2026-04-29 — Corrections approuvees: verrouiller par tests avant tout nouveau fix
+
+- Quand un correctif est valide par l'utilisateur (ex: visibilite a la selection), ajouter immediatement un test de contrat qui casse si le comportement retombe.
+- Avant de livrer un fix adjacent (ex: persistance decor/events), re-executer les smokes du contrat approuve pour garantir la constance.
+- Ne plus considerer un correctif "stable" sans verrou explicite sur les invariants utilisateur (cue visible, anchor conservee, nom de cue preserve).
+
+## 2026-04-29 — Plan de reference: attendre confirmation de resolution
+
+- Si l'utilisateur demande un plan de reference "une fois le bug resolu", ne pas ecrire ce plan avant confirmation explicite utilisateur.
+- Pendant le diagnostic/fix, limiter la documentation a l'analyse technique minimale; produire le plan final uniquement apres validation fonctionnelle cote utilisateur.
+
+## 2026-04-29 — Selection seek: une seule emission d'intention
+
+- Pour une selection item avec seek, emettre une seule intention `selection.item.requested` (avec `action: "seek"`).
+- Eviter le double envoi `commit` puis `selection.item.requested` sur le meme clic: cela peut provoquer des updates actives concurrentes et des regressions de cue.
+- En cas de regression de position de tete de lecture, verifier d'abord l'ordre et la cardinalite des emissions d'evenements avant d'ajouter des gardes.
+
+## 2026-04-28 — Fin de resize: re-lire le placement reel depuis l'element
+
+- Ne pas laisser l'overlay retomber sur un etat "classe only" apres `drag.end` quand le commit applique une taille/placement inline temporaire.
+- En sortie de preview (`previewPlacement` null), recalculer explicitement la geometrie de grille depuis l'element courant (computed style + regles CSS resolues) pour garder cadre et element synchronises.
+- Eviter les parseurs permissifs qui fabriquent `row=1,col=1` en absence de signal fiable; cela masque la cause et degrade la coherence post-commit.
+
+## 2026-04-28 — Styles scoped player vs overlay editeur
+
+- Si un overlay editeur vit hors du subtree player, les classes generees injectees via `@scope` dans le player ne sont pas reutilisables par cet overlay.
+- Pour partager les memes classes CSS (capsule parente + position item), exposer les styles de scene dans une balise style non scopee dediee, tout en gardant le CSS runtime player scoped si besoin.
+- Toujours verifier explicitement l'accessibilite du scope CSS avant d'attribuer une regression d'alignement a la geometrie.
+
+## 2026-04-28 — Stabiliser un fix cross-path (position + transform)
+
+- Quand un bug existe sur des chemins freres (ici `position-editor` et `transform-editor`), verifier les deux implementations avant d'annoncer la correction.
+- Si un pattern legacy de creation DOM imperatif existe dans un chemin (host overlay), rechercher le meme pattern dans l'autre chemin et aligner l'architecture.
+- Ajouter une verification explicite post-fix par recherche globale de marqueurs (`data-vte-*overlay-host`) pour eviter les regressions de duplication.
+
+## 2026-04-28 — Overlay position: respecter le contrat CSS grille, pas de projection XY
+
+- Quand l'utilisateur demande un overlay base sur la capsule parente + classe de position item, ne pas introduire de `left/top/width/height` derives de `getBoundingClientRect` pour le cadre idle.
+- L'overlay doit reprendre la classe CSS de la capsule parente et le cadre doit reprendre les tokens de classe de position de l'element; les conversions souris restent limitees a la gestuelle drag.
+- En cas de doute sur l'alignement, privilegier un fallback CSS (`grid-row/grid-column`) plutot qu'un fallback geometrique viewport.
+
 ## 2026-04-25 — "undo" utilisateur: annuler uniquement la session courante et eviter tout git destructif
 
 - Si l'utilisateur dit "undo", annuler uniquement les changements faits dans l'echange en cours, puis confirmer explicitement ce qui a ete retire.

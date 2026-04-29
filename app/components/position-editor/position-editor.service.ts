@@ -53,7 +53,7 @@ type StartPositionDragInput = {
 	snapParentElement?: HTMLElement | null;
 	snapParentId?: string | null;
 	snapGrid?: PositionSnapGridSpec | null;
-	portalHost: HTMLElement | null;
+	overlayContainer: HTMLElement | null;
 	onPreview: (preview: { width: number; height: number } | null) => void;
 	onPreviewPlacement: (placement: { row: number; col: number; rowSpan: number; colSpan: number } | null) => void;
 	onOverlayHidden: (hidden: boolean) => void;
@@ -62,38 +62,13 @@ type StartPositionDragInput = {
 };
 
 export class PositionEditorDomService {
-	private portalHost: HTMLElement | null = null;
-	private portalContainer: HTMLElement | null = null;
 	private pointerCleanup: (() => void) | null = null;
 	private previewPlacementElement: HTMLElement | null = null;
 	private previewPlacementRestore: { gridRow: string; gridColumn: string } | null = null;
 
-	attachOverlayHost(element: HTMLElement, overlayContainer: HTMLElement | null): HTMLElement | null {
-		const container = overlayContainer ?? element.ownerDocument.body;
-		if (this.portalContainer === container && this.portalHost?.isConnected) return this.portalHost;
-		this.detachOverlayHost();
-		const host = element.ownerDocument.createElement("div");
-		host.setAttribute("data-vte-position-overlay-host", "");
-		host.style.position = "absolute";
-		host.style.inset = "0";
-		host.style.pointerEvents = "none";
-		host.style.zIndex = "9999";
-		container.appendChild(host);
-		this.portalContainer = container;
-		this.portalHost = host;
-		return host;
-	}
-
-	detachOverlayHost() {
-		if (this.portalHost?.parentNode) this.portalHost.parentNode.removeChild(this.portalHost);
-		this.portalHost = null;
-		this.portalContainer = null;
-	}
-
 	dispose() {
 		this.stopPointerSession();
 		this.restorePreviewPlacement();
-		this.detachOverlayHost();
 	}
 
 	startDrag(input: StartPositionDragInput): boolean {
@@ -105,7 +80,7 @@ export class PositionEditorDomService {
 			snapParentElement,
 			snapParentId,
 			snapGrid,
-			portalHost,
+			overlayContainer,
 			onPreview,
 			onPreviewPlacement,
 			onOverlayHidden,
@@ -129,7 +104,7 @@ export class PositionEditorDomService {
 				element,
 				parent: resolvedSnapParent,
 				grid: snapGrid,
-				overlayHost: portalHost,
+				overlayContainer,
 				pointer: { x: clientX, y: clientY }
 			});
 			if (!cellSnap) return false;
@@ -368,16 +343,16 @@ function createCellSnapSession({
 	element,
 	parent,
 	grid,
-	overlayHost,
+	overlayContainer,
 	pointer
 }: {
 	element: HTMLElement;
 	parent: HTMLElement;
 	grid: PositionSnapGridSpec;
-	overlayHost: HTMLElement | null;
+	overlayContainer: HTMLElement | null;
 	pointer: { x: number; y: number };
 }): CellSnapSession | null {
-	if (!overlayHost) return null;
+	if (!overlayContainer) return null;
 	const doc = element.ownerDocument;
 	const parentRect = parent.getBoundingClientRect();
 	if (parentRect.width <= 0 || parentRect.height <= 0) return null;
@@ -454,7 +429,7 @@ function createCellSnapSession({
 
 	root.appendChild(clone);
 	root.appendChild(ghost);
-	overlayHost.appendChild(root);
+	overlayContainer.appendChild(root);
 
 	const session: CellSnapSession = {
 		root,

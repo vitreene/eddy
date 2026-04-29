@@ -27,7 +27,7 @@ type Ctx = {
 	domOk: boolean;
 	frame: { w: number; h: number; M: DOMMatrix } | null;
 	offsetParent: HTMLElement | null;
-	portalHost: HTMLElement | null;
+	overlayContainer: HTMLElement | null;
 	hideOverlayFrame: boolean;
 	isDragging: boolean;
 	previewSize: { width: number; height: number } | null;
@@ -65,7 +65,7 @@ export const positionEditorMachine = createMachine(
 				domOk,
 				frame,
 				offsetParent,
-				portalHost: null,
+				overlayContainer: null,
 				hideOverlayFrame: false,
 				isDragging: false,
 				previewSize: null,
@@ -119,17 +119,16 @@ export const positionEditorMachine = createMachine(
 				const domOk = canUseDOM(input.element);
 				const offsetParent = input.element ? getOffsetParent(input.element) : null;
 				const frame = active && input.element ? buildPositionFrame(input.element, context.previewSize) : null;
-				const portalHost =
+				const overlayContainer =
 					domOk && active && input.element
-						? service.attachOverlayHost(input.element, input.overlayContainer ?? null)
+						? (input.overlayContainer ?? input.element.ownerDocument.body)
 						: null;
 
 				if (!domOk || !active || !input.element) {
 					service.stopPointerSession();
-					service.detachOverlayHost();
 				}
 
-				return { domOk, offsetParent, frame, portalHost };
+				return { domOk, offsetParent, frame, overlayContainer };
 			}),
 			resyncFrameFromDom: assign(({ context }) => ({
 				frame: rebuildFrame(context, null)
@@ -147,7 +146,7 @@ export const positionEditorMachine = createMachine(
 					snapParentElement: input.snapParentElement,
 					snapParentId: input.snapParentId,
 					snapGrid: input.snapGrid,
-					portalHost: context.portalHost,
+					overlayContainer: context.overlayContainer,
 					onPreview: (preview) => self.send({ type: "preview.size", preview }),
 					onPreviewPlacement: (placement) => self.send({ type: "preview.placement", placement }),
 					onOverlayHidden: (hidden) => self.send({ type: "overlay.hide", hidden }),

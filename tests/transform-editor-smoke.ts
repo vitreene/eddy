@@ -20,10 +20,6 @@ class MockService extends TransformEditorDomService {
 	startCalled = false;
 	lastHidden = false;
 	lastCommitMode: string | null = null;
-	override attachOverlayHost(): HTMLElement | null {
-		return null;
-	}
-	override detachOverlayHost() {}
 	override stopPointerSession() {}
 	override startDrag(input: any) {
 		this.startCalled = true;

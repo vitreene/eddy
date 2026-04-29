@@ -42,7 +42,7 @@ type Ctx = {
 	t: ElementTransform | null;
 	basePosition: { x: number; y: number } | null;
 	offsetParent: HTMLElement | null;
-	portalHost: HTMLElement | null;
+	overlayContainer: HTMLElement | null;
 	hideOverlayFrame: boolean;
 	isDragging: boolean;
 	syncRetryCount: number;
@@ -93,7 +93,7 @@ export const transformEditorMachine = createMachine(
 				t,
 				basePosition: domOk && input.element && t ? getBasePositionWithoutTranslate(input.element, t) : null,
 				offsetParent: input.element ? getOffsetParent(input.element) : null,
-				portalHost: null,
+				overlayContainer: null,
 				hideOverlayFrame: false,
 				isDragging: false,
 				syncRetryCount: 0,
@@ -150,19 +150,18 @@ export const transformEditorMachine = createMachine(
 				const t = measured ? mergeTransformFromInput(measured, input.value) : null;
 				const basePosition =
 					domOk && input.element && t ? getBasePositionWithoutTranslate(input.element, t) : null;
-				const portalHost =
+				const overlayContainer =
 					domOk && active && input.element
-						? service.attachOverlayHost(input.element, input.overlayContainer ?? null)
+						? (input.overlayContainer ?? input.element.ownerDocument.body)
 						: null;
 				const shouldRetry = Boolean(domOk && active && elementRect && (elementRect.width <= 1 || elementRect.height <= 1));
 				const syncRetryCount = shouldRetry ? context.syncRetryCount + 1 : 0;
 
 				if (!domOk || !active || !input.element) {
 					service.stopPointerSession();
-					service.detachOverlayHost();
 				}
 
-				return { domOk, offsetParent, t, basePosition, portalHost, syncRetryCount };
+				return { domOk, offsetParent, t, basePosition, overlayContainer, syncRetryCount };
 			}),
 			scheduleRetryIfNeeded: ({ context, self }) => {
 				const input = context.input;
@@ -195,7 +194,7 @@ export const transformEditorMachine = createMachine(
 					snapParentElement: input.snapParentElement,
 					snapParentId: input.snapParentId,
 					snapGrid: input.snapGrid,
-					portalHost: context.portalHost,
+					overlayContainer: context.overlayContainer,
 					onTransform: (transform) => self.send({ type: "transform.update", transform }),
 					onResyncTransform: (transform, base) => self.send({ type: "transform.resync", transform, base }),
 					onOverlayHidden: (hidden) => self.send({ type: "overlay.hide", hidden }),

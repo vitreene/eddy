@@ -88,7 +88,7 @@ type StartDragInput = {
 	snapParentElement?: HTMLElement | null;
 	snapParentId?: string | null;
 	snapGrid?: SnapGridSpec | null;
-	portalHost: HTMLElement | null;
+	overlayContainer: HTMLElement | null;
 	onTransform: (next: ElementTransform) => void;
 	onResyncTransform: (next: ElementTransform, base: { x: number; y: number }) => void;
 	onOverlayHidden: (hidden: boolean) => void;
@@ -115,38 +115,11 @@ export function computeNextResizeScale({
 }
 
 export class TransformEditorDomService {
-	private portalHost: HTMLElement | null = null;
-	private portalContainer: HTMLElement | null = null;
 	private pointerCleanup: (() => void) | null = null;
 	private ptr = createPointerConverters();
 
-	attachOverlayHost(element: HTMLElement, overlayContainer: HTMLElement | null): HTMLElement | null {
-		const container = overlayContainer ?? element.ownerDocument.body;
-		if (this.portalContainer === container && this.portalHost?.isConnected) {
-			return this.portalHost;
-		}
-		this.detachOverlayHost();
-		const host = element.ownerDocument.createElement("div");
-		host.setAttribute("data-vte-grid-overlay-host", "");
-		host.style.position = "absolute";
-		host.style.inset = "0";
-		host.style.pointerEvents = "none";
-		host.style.zIndex = "9999";
-		container.appendChild(host);
-		this.portalContainer = container;
-		this.portalHost = host;
-		return host;
-	}
-
-	detachOverlayHost() {
-		if (this.portalHost?.parentNode) this.portalHost.parentNode.removeChild(this.portalHost);
-		this.portalHost = null;
-		this.portalContainer = null;
-	}
-
 	dispose() {
 		this.stopPointerSession();
-		this.detachOverlayHost();
 	}
 
 	applyTransformLive(
@@ -179,7 +152,7 @@ export class TransformEditorDomService {
 			snapParentElement,
 			snapParentId,
 			snapGrid,
-			portalHost,
+			overlayContainer,
 			alwaysResyncOnCommit,
 			onTransform,
 			onResyncTransform,
@@ -213,7 +186,7 @@ export class TransformEditorDomService {
 				element,
 				parent: resolvedSnapParent,
 				grid: snapGrid,
-				overlayHost: portalHost,
+				overlayContainer,
 				pointer: { x: clientX, y: clientY }
 			});
 			if (!dragState.cellSnap) return false;
@@ -445,16 +418,16 @@ function createCellSnapSession({
 	element,
 	parent,
 	grid,
-	overlayHost,
+	overlayContainer,
 	pointer
 }: {
 	element: HTMLElement;
 	parent: HTMLElement;
 	grid: SnapGridSpec;
-	overlayHost: HTMLElement | null;
+	overlayContainer: HTMLElement | null;
 	pointer: Pt;
 }): CellSnapSession | null {
-	if (!overlayHost) return null;
+	if (!overlayContainer) return null;
 	const doc = element.ownerDocument;
 	const parentRect = parent.getBoundingClientRect();
 	if (parentRect.width <= 0 || parentRect.height <= 0) return null;
@@ -529,7 +502,7 @@ function createCellSnapSession({
 
 	root.appendChild(clone);
 	root.appendChild(ghost);
-	overlayHost.appendChild(root);
+	overlayContainer.appendChild(root);
 
 	const session: CellSnapSession = {
 		root,

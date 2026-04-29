@@ -24,6 +24,7 @@ export function buildDefaultTransitionEventPatch(
 		ref: action === SUSTAIN ? null : DEFAULT_TRANSITION_BY_ACTION[action],
 		duration: null,
 		delay: null,
-		position: null
+		position: null,
+		decorId: null
 	};
 }
