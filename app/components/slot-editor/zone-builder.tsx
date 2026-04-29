@@ -22,6 +22,7 @@ import {
 type ZoneBuilderProps = {
 	targetCapsuleId?: number | null;
 	buttonLabel?: string;
+	gridClassName?: string | null;
 	zones?: ZoneBuilderZonePersisted[];
 	onZonesChange?: (zones: ZoneBuilderZonePersisted[]) => void;
 	active?: boolean;
@@ -41,6 +42,7 @@ const HANDLE_LAYOUT: Array<{ handle: ZoneHandle; className: string; cursor: stri
 export function ZoneBuilder({
 	targetCapsuleId,
 	buttonLabel = "Mode zones",
+	gridClassName,
 	zones,
 	onZonesChange,
 	active = true
@@ -54,7 +56,7 @@ export function ZoneBuilder({
 	);
 
 	const isPosition = resolveCapsuleType(capsule?.type) === CAPSULE_TYPES.POSITION;
-	const grid = getValuesFromGridName(capsule?.grid);
+	const grid = getValuesFromGridName(gridClassName || capsule?.grid || "");
 	const cols = Math.max(1, grid.w);
 	const rows = Math.max(1, grid.h);
 	const capsuleNodeId = capsuleId ? buildNodeId("capsule", capsuleId) : null;

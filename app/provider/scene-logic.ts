@@ -10,6 +10,7 @@ import type { EditableStyle } from "@/components/style-editor/types";
 import type { Theme } from "prisma/generated/prisma/client";
 import { mergeCssStrings } from "@/lib/merge-css-classes";
 import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
+import { DEFAULT_EDITOR_PREVIEW_ORIENTATION } from "@/config/orientation";
 import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
 import {
 	deriveEventKind,
@@ -77,6 +78,7 @@ const active: ActiveState = {
 	sequenceFlushToken: 0,
 	sequenceFlushReason: null,
 	telcoMuted: false,
+	previewOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION,
 	itemEditTab: "presets",
 	eventTouched: false,
 	decorTouched: false,
@@ -304,6 +306,7 @@ export const sceneLogic = setup({
 					type: "ui.active.updated";
 					payload: {
 						telcoMuted?: boolean;
+						previewOrientation?: ActiveState["previewOrientation"];
 						itemEditTab?: ActiveState["itemEditTab"];
 						timelineView?: string | null;
 					};
@@ -393,12 +396,16 @@ export const sceneLogic = setup({
 			if (event.type !== "ui.active.updated") return;
 			const payload = event.payload;
 			const hasTelcoMuted = Object.prototype.hasOwnProperty.call(payload, "telcoMuted");
+			const hasPreviewOrientation = Object.prototype.hasOwnProperty.call(payload, "previewOrientation");
 			const hasItemEditTab = Object.prototype.hasOwnProperty.call(payload, "itemEditTab");
-			if (!hasTelcoMuted && !hasItemEditTab) return;
+			if (!hasTelcoMuted && !hasPreviewOrientation && !hasItemEditTab) return;
 
 			persistSceneLogicUiPreferences(
 				normalizeSceneLogicUiPreferences({
 					telcoMuted: hasTelcoMuted ? Boolean(payload.telcoMuted) : context.active.telcoMuted,
+					previewOrientation: hasPreviewOrientation
+						? payload.previewOrientation
+						: context.active.previewOrientation,
 					itemEditTab: hasItemEditTab ? payload.itemEditTab : context.active.itemEditTab
 				})
 			);
@@ -570,7 +577,8 @@ export const sceneLogic = setup({
 					payload: {
 						id: payload.mainCapsule.id,
 						grid: payload.mainCapsule.grid,
-						cardZones: payload.mainCapsule.cardZones
+						cardZones: payload.mainCapsule.cardZones,
+						orientationGrid: payload.mainCapsule.orientationGrid
 					}
 				});
 			}

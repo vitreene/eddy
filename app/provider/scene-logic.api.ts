@@ -5,14 +5,20 @@ export type ScenePatchRequest = {
 	title?: string;
 	contentId?: number | null;
 	totalDuration?: number | null;
-	mainGrid?: string;
+	mainGrid?: string | null;
+	mainOrientationGrid?: { portrait?: string | null; landscape?: string | null };
 	mainCardZones?: PositionZoneStored[];
 };
 
 export type ScenePatchResponse = {
 	scene?: { title?: string };
 	sceneContent?: SceneContent | null;
-	mainCapsule?: { id: number; grid: string | null; cardZones?: PositionZoneStored[] } | null;
+	mainCapsule?: {
+		id: number;
+		grid: string | null;
+		cardZones?: PositionZoneStored[];
+		orientationGrid?: { portrait?: string | null; landscape?: string | null };
+	} | null;
 };
 
 type SceneContentPositionCuePatch = {

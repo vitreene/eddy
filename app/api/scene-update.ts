@@ -7,12 +7,14 @@ import {
 	SCENE_DEFAULT_DURATION_SEC
 } from "@/scene-runtime/scene-content";
 import { normalizePositionZones, type PositionZoneStored } from "@/lib/position-zones";
+import { extractEditorGridClassName } from "@/lib/orientation-grid";
 
 type SceneUpdateBody = {
 	title?: string;
 	contentId?: number | null;
 	totalDuration?: number | null;
 	mainGrid?: string | null;
+	mainOrientationGrid?: { portrait?: string | null; landscape?: string | null };
 	mainCardZones?: PositionZoneStored[];
 };
 
@@ -64,7 +66,8 @@ export async function action({ params, request }: Route.ActionArgs) {
 	}
 
 	if (typeof body.mainGrid == "string" && scene.capsuleId) {
-		await prisma.capsule.update({ where: { id: scene.capsuleId }, data: { grid: body.mainGrid || null } });
+		const nextMainGrid = normalizeMainGrid(body.mainGrid);
+		await prisma.capsule.update({ where: { id: scene.capsuleId }, data: { grid: nextMainGrid } });
 	}
 
 	if (Object.prototype.hasOwnProperty.call(body, "mainCardZones") && scene.capsuleId) {
@@ -75,6 +78,21 @@ export async function action({ params, request }: Route.ActionArgs) {
 		if (currentCapsule) {
 			const profil = parseCapsuleProfil(currentCapsule.profil);
 			profil.cardZones = normalizePositionZones(body.mainCardZones);
+			await prisma.capsule.update({
+				where: { id: scene.capsuleId },
+				data: { profil: JSON.stringify(profil) }
+			});
+		}
+	}
+
+	if (Object.prototype.hasOwnProperty.call(body, "mainOrientationGrid") && scene.capsuleId) {
+		const currentCapsule = await prisma.capsule.findUnique({
+			where: { id: scene.capsuleId },
+			select: { profil: true }
+		});
+		if (currentCapsule) {
+			const profil = parseCapsuleProfil(currentCapsule.profil);
+			profil.orientationGrid = normalizeOrientationGrid(body.mainOrientationGrid);
 			await prisma.capsule.update({
 				where: { id: scene.capsuleId },
 				data: { profil: JSON.stringify(profil) }
@@ -136,7 +154,12 @@ export async function action({ params, request }: Route.ActionArgs) {
 
 async function resolveMainCapsule(
 	capsuleId: number
-): Promise<{ id: number; grid: string | null; cardZones: PositionZoneStored[] } | null> {
+): Promise<{
+	id: number;
+	grid: string | null;
+	cardZones: PositionZoneStored[];
+	orientationGrid: { portrait?: string | null; landscape?: string | null };
+} | null> {
 	const capsule = await prisma.capsule.findUnique({
 		where: { id: capsuleId },
 		select: { id: true, grid: true, profil: true }
@@ -146,24 +169,46 @@ async function resolveMainCapsule(
 	return {
 		id: capsule.id,
 		grid: capsule.grid,
-		cardZones: normalizePositionZones(profil.cardZones)
+		cardZones: normalizePositionZones(profil.cardZones),
+		orientationGrid: normalizeOrientationGrid(profil.orientationGrid)
 	};
 }
 
 function parseCapsuleProfil(
 	raw: string | null | undefined
-): Record<string, unknown> & { cardZones?: PositionZoneStored[] } {
+): Record<string, unknown> & {
+	cardZones?: PositionZoneStored[];
+	orientationGrid?: { portrait?: string | null; landscape?: string | null };
+} {
 	if (!raw) return {};
 	try {
 		const parsed = JSON.parse(raw) as Record<string, unknown>;
 		if (!parsed || typeof parsed != "object") return {};
 		return {
 			...parsed,
-			cardZones: normalizePositionZones(parsed.cardZones)
+			cardZones: normalizePositionZones(parsed.cardZones),
+			orientationGrid: normalizeOrientationGrid(parsed.orientationGrid)
 		};
 	} catch {
 		return {};
 	}
+}
+
+function normalizeOrientationGrid(value: unknown): { portrait?: string | null; landscape?: string | null } {
+	if (!value || typeof value != "object") return { portrait: null, landscape: null };
+	const record = value as Record<string, unknown>;
+	return {
+		portrait: extractEditorGridClassName(record.portrait),
+		landscape: extractEditorGridClassName(record.landscape)
+	};
+}
+
+function normalizeMainGrid(value: unknown): string | null {
+	const source = typeof value == "string" ? value.trim() : "";
+	const gridClass = extractEditorGridClassName(source);
+	if (gridClass) return `root-scene ${gridClass}`;
+	if (/\broot-scene\b/.test(source)) return "root-scene";
+	return null;
 }
 
 function normalizeContentId(value: number | null | undefined): number | null {

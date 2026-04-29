@@ -1,4 +1,5 @@
 import type { Content, Decor, SceneComp } from "@/api/db";
+import type { OrientationMode } from "@/config/orientation";
 
 export type ItemEditTab = "presets" | "layout" | "advanced";
 
@@ -69,6 +70,7 @@ export interface ActiveState {
 	sequenceFlushToken: number;
 	sequenceFlushReason: string | null;
 	telcoMuted: boolean;
+	previewOrientation: OrientationMode;
 	itemEditTab: ItemEditTab;
 	eventTouched: boolean;
 	decorTouched: boolean;

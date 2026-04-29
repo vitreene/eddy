@@ -18,7 +18,7 @@ interface Props {
 }
 
 const POSITION_PLACEMENT_TOKEN_RE =
-	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-span-fill|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
+	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-span-fill|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+|ed-posv1-.*)$/i;
 
 export function SlotEditor({ value, onChange }: Props) {
 	const item = SceneLogicContext.useSelector((state) =>

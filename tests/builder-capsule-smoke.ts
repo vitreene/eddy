@@ -580,6 +580,43 @@ const cases: Case[] = [
 		}
 	},
 	{
+		name: "main orientation grid emits preview and media root rules",
+			run: () => {
+				const context = createSceneBase();
+				(context.capsules[1] as any).orientationGrid = {
+					portrait: "ed-grid-w9-h16",
+					landscape: "ed-grid-w16-h9"
+				};
+
+			const scene = buildScene(context);
+			const styles = scene.styles || "";
+
+			assert.equal(styles.includes(".root-scene.ed-preview-orientation--portrait"), true);
+			assert.equal(styles.includes(".root-scene.ed-preview-orientation--landscape"), true);
+			assert.equal(styles.includes("@media (orientation: portrait){.root-scene"), true);
+			assert.equal(styles.includes("@media (orientation: landscape){.root-scene"), true);
+			assert.equal(styles.includes("grid-template-columns:repeat(9, minmax(0, 1fr))"), true);
+			assert.equal(styles.includes("grid-template-rows:repeat(16, minmax(0, 1fr))"), true);
+		}
+	},
+	{
+		name: "main orientation grid derives missing variant from base grid",
+			run: () => {
+				const context = createSceneBase();
+				(context.capsules[1] as any).orientationGrid = {
+					portrait: "ed-grid-w9-h16"
+				};
+
+			const scene = buildScene(context);
+			const styles = scene.styles || "";
+
+			assert.equal(styles.includes(".root-scene.ed-preview-orientation--portrait"), true);
+			assert.equal(styles.includes(".root-scene.ed-preview-orientation--landscape"), true);
+			assert.equal(styles.includes("grid-template-columns:repeat(16, minmax(0, 1fr))"), true);
+			assert.equal(styles.includes("grid-template-rows:repeat(9, minmax(0, 1fr))"), true);
+		}
+	},
+	{
 		name: "missing decor does not crash builder",
 		run: () => {
 			const context = createSceneBase();

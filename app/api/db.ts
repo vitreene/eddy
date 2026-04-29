@@ -31,6 +31,7 @@ import { isWaveformPositionCueName } from "@/scene-runtime/waveform-position-cue
 import { isWaveformDataV1, type WaveformDataV1 } from "@/waveform/payload";
 import { normalizePositionZones, type PositionZoneStored } from "@/lib/position-zones";
 import { buildPositionZoneClassName } from "@/lib/position-zones";
+import { extractEditorGridClassName } from "@/lib/orientation-grid";
 
 export type { Content, ContentEvent };
 
@@ -74,6 +75,10 @@ export interface CapsuleComp {
 	type: string | null;
 	grid: string | null;
 	profil?: string | null;
+	orientationGrid?: {
+		portrait?: string | null;
+		landscape?: string | null;
+	};
 	itemIds: number[];
 	defaultItemIntroTransition?: string | { action?: string; ref?: string } | null;
 	defaultItemSustainTransition?: string | null;
@@ -87,6 +92,10 @@ export interface CapsuleComp {
 type CapsuleProfil = {
 	itemDurationMode?: "auto" | "fixed";
 	itemDurationSec?: number | null;
+	orientationGrid?: {
+		portrait?: string | null;
+		landscape?: string | null;
+	};
 	defaultItemIntroTransition?: string | null;
 	defaultItemSustainTransition?: string | null;
 	defaultItemSustainAlternate?: boolean;
@@ -493,12 +502,13 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 
 	// Capsules and items
 	if (scene.capsules) {
-		scene.capsules.forEach(({ items: items, ...capsule }) => {
+			scene.capsules.forEach(({ items: items, ...capsule }) => {
 			const capsuleProfil = parseCapsuleProfil(capsule.profil);
 			const itemIds: number[] = items.map((item) => item.id);
 
 			flatScene.capsules[capsule.id] = {
 				...capsule,
+				orientationGrid: normalizeOrientationGrid(capsuleProfil.orientationGrid),
 				defaultItemIntroTransition: parseCapsuleTransition(capsuleProfil.defaultItemIntroTransition ?? null),
 				defaultItemSustainTransition: parseCapsuleSustain(capsuleProfil.defaultItemSustainTransition ?? null),
 				defaultItemSustainAlternate: capsuleProfil.defaultItemSustainAlternate === true,
@@ -1592,6 +1602,7 @@ function parseCapsuleProfil(value: string | null | undefined): CapsuleProfil {
 		if (!parsed || typeof parsed != "object") return {};
 		return {
 			...parsed,
+			orientationGrid: normalizeOrientationGrid((parsed as Record<string, unknown>).orientationGrid),
 			cardZones: normalizePositionZones((parsed as Record<string, unknown>).cardZones)
 		};
 	} catch {
@@ -1603,6 +1614,10 @@ function defaultCapsuleProfil(): CapsuleProfil {
 	return {
 		itemDurationMode: "auto",
 		itemDurationSec: null,
+		orientationGrid: {
+			portrait: null,
+			landscape: null
+		},
 		defaultItemIntroTransition: JSON.stringify({ action: "intro", ref: "fade" }),
 		defaultItemSustainTransition: null,
 		defaultItemSustainAlternate: false,
@@ -1613,6 +1628,14 @@ function defaultCapsuleProfil(): CapsuleProfil {
 
 function serializeCapsuleProfil(profil: CapsuleProfil): string {
 	return JSON.stringify(profil);
+}
+
+function normalizeOrientationGrid(value: unknown): { portrait?: string | null; landscape?: string | null } {
+	if (!value || typeof value != "object") return { portrait: null, landscape: null };
+	const record = value as Record<string, unknown>;
+	const portrait = extractEditorGridClassName(record.portrait);
+	const landscape = extractEditorGridClassName(record.landscape);
+	return { portrait, landscape };
 }
 
 function parseCapsuleTransition(

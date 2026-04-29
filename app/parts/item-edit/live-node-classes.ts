@@ -5,6 +5,7 @@ const EXPLICIT_AREA_TOKEN_RE = /^cell-r\d+-c\d+$/i;
 const LIST_AREA_TOKEN_RE = /^liste-r\d+$/i;
 const SPAN_LAYOUT_AREA_TOKEN_RE = /^cell-span-r\d+-c\d+-rs\d+-cs\d+$/i;
 const ZONE_CLASS_TOKEN_RE = /^ed-zone-[a-z0-9_-]+$/i;
+const ORIENTED_PLACEMENT_TOKEN_RE = /^ed-posv1-/i;
 
 export function clearPlacementAreaTokens(node: HTMLElement | null) {
 	if (!node) return;
@@ -18,7 +19,8 @@ export function clearPlacementAreaTokens(node: HTMLElement | null) {
 				EXPLICIT_AREA_TOKEN_RE.test(token) ||
 				LIST_AREA_TOKEN_RE.test(token) ||
 				SPAN_LAYOUT_AREA_TOKEN_RE.test(token) ||
-				ZONE_CLASS_TOKEN_RE.test(token)
+				ZONE_CLASS_TOKEN_RE.test(token) ||
+				ORIENTED_PLACEMENT_TOKEN_RE.test(token)
 		);
 	if (tokens.length) node.classList.remove(...tokens);
 }

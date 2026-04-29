@@ -6,6 +6,7 @@ export type GridPlacement = {
 };
 
 const GRID_SPAN_TOKEN_RE = /^cell-span-r(\d+)-c(\d+)-rs(\d+)-cs(\d+)$/;
+const ORIENTED_PLACEMENT_TOKEN_RE = /^ed-posv1-/i;
 const AUTO_LAYOUT_AREA_TOKEN_RE = /^cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+$/i;
 const EXPLICIT_AREA_TOKEN_RE = /^cell-r\d+-c\d+$/i;
 const LIST_AREA_TOKEN_RE = /^liste-r\d+$/i;
@@ -49,7 +50,8 @@ export function mergeGridPlacementClassName(existing: string | null | undefined,
 			GRID_SPAN_TOKEN_RE.test(token) ||
 			AUTO_LAYOUT_AREA_TOKEN_RE.test(token) ||
 			EXPLICIT_AREA_TOKEN_RE.test(token) ||
-			LIST_AREA_TOKEN_RE.test(token)
+			LIST_AREA_TOKEN_RE.test(token) ||
+			ORIENTED_PLACEMENT_TOKEN_RE.test(token)
 		)
 			tokens.delete(token);
 	}

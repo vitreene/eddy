@@ -1,5 +1,18 @@
 # Lessons
 
+## 2026-04-29 — Orientation scene: ne jamais supprimer le fallback auto col/row
+
+- Quand on retire une mutation ad hoc cote UI (toggle orientation), verifier immediatement que le comportement implicite equivalent existe encore cote modele/builder.
+- Pour la grille scene root, conserver un fallback deterministe: si une variante orientation manque, la deriver par permutation `w/h` depuis la variante opposee ou la grille de base.
+- Verrouiller ce contrat par tests dedies (resolver pur + builder runtime), sinon la regression reapparait au prochain refactor.
+
+## 2026-04-29 — Orientation: activer le mode dual-context uniquement a la demande
+
+- Ne pas generaliser un modele orientation sur tous les decors par defaut.
+- Conserver le flux courant tant qu'un decor n'a qu'une seule position slot.
+- N'activer `portrait/paysage` qu'au moment explicite ou une seconde position est creee pour le meme decor.
+- Le visual editor doit etre strictement contextuel: edition d'un contexte ne doit jamais modifier l'autre.
+
 ## 2026-04-29 — Corrections approuvees: verrouiller par tests avant tout nouveau fix
 
 - Quand un correctif est valide par l'utilisateur (ex: visibilite a la selection), ajouter immediatement un test de contrat qui casse si le comportement retombe.

@@ -10,8 +10,11 @@ import {
 	gridClassNameToCssDefinition,
 	gridPlacementClassNameToCssDefinition
 } from "@/lib/utils";
+import { orientationPlacementTokenToCssDefinition } from "@/lib/oriented-placement";
+import { resolveSceneGridPairWithFallback } from "@/lib/orientation-grid";
 import {
 	buildPositionZoneCssRule,
+	buildPositionZoneOrientationCssRules,
 	getPositionZoneClassAliases,
 	normalizePositionZones,
 	toRuntimePositionZones
@@ -131,6 +134,11 @@ function resolvePlacementDefinitionFromClassName(
 			continue;
 		}
 		const definition = gridPlacementClassNameToCssDefinition(token);
+		const orientationDefinition = orientationPlacementTokenToCssDefinition(token);
+		if (orientationDefinition) {
+			resolved = orientationDefinition;
+			continue;
+		}
 		if (definition) resolved = definition;
 	}
 
@@ -146,7 +154,8 @@ function buildZoneDefinitionsByClass(snapshot: SceneComp): Record<string, string
 			for (const className of getPositionZoneClassAliases(zone)) {
 				if (!className) continue;
 				if (byClass[className]) continue;
-				byClass[className] = buildPositionZoneCssRule(className, zone.rect);
+				const orientationRules = buildPositionZoneOrientationCssRules(className, zone.variants || {});
+				byClass[className] = orientationRules || buildPositionZoneCssRule(className, zone.rect);
 			}
 		}
 	}
@@ -158,6 +167,9 @@ function buildZoneDefinitionsByClass(snapshot: SceneComp): Record<string, string
  */
 function buildGridDefinitions(snapshot: SceneComp): string[] {
 	const definitions = new Set<string>();
+	for (const definition of buildRootOrientationGridDefinitions(snapshot)) {
+		definitions.add(definition);
+	}
 
 	for (const capsule of Object.values(snapshot.capsules || {})) {
 		if (!capsule?.grid) continue;
@@ -180,6 +192,40 @@ function buildGridDefinitions(snapshot: SceneComp): string[] {
 	}
 
 	return [...definitions];
+}
+
+function buildRootOrientationGridDefinitions(snapshot: SceneComp): string[] {
+	if (typeof snapshot.main != "number") return [];
+	const mainCapsule = snapshot.capsules?.[snapshot.main];
+	if (!mainCapsule) return [];
+	const resolved = resolveSceneGridPairWithFallback({
+		baseGrid: mainCapsule.grid,
+		orientationGrid: (mainCapsule as CapsuleComp & {
+		orientationGrid?: { portrait?: string | null; landscape?: string | null };
+		}).orientationGrid
+	});
+	if (!resolved) return [];
+
+	const portraitDecl = gridTemplateDeclarationsFromGridClassName(resolved.portrait);
+	const landscapeDecl = gridTemplateDeclarationsFromGridClassName(resolved.landscape);
+	if (!portraitDecl || !landscapeDecl) return [];
+
+	return [
+		`.${ROOT}.ed-preview-orientation--portrait{${portraitDecl}}`,
+		`.${ROOT}.ed-preview-orientation--landscape{${landscapeDecl}}`,
+		`@media (orientation: portrait){.${ROOT}{${portraitDecl}}}`,
+		`@media (orientation: landscape){.${ROOT}{${landscapeDecl}}}`
+	];
+}
+
+function gridTemplateDeclarationsFromGridClassName(grid: string): string | null {
+	const match = /\bed-grid-w(\d+)-h(\d+)\b/.exec(grid);
+	if (!match) return null;
+	const w = Math.max(1, Number(match[1]) || 1);
+	const h = Math.max(1, Number(match[2]) || 1);
+	const gridTemplateColumns = w > 1 ? `repeat(${w}, minmax(0, 1fr))` : "1fr";
+	const gridTemplateRows = h > 1 ? `repeat(${h}, minmax(0, 1fr))` : "1fr";
+	return `grid-template-columns:${gridTemplateColumns};grid-template-rows:${gridTemplateRows};`;
 }
 
 /**

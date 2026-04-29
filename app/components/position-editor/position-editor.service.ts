@@ -1,5 +1,7 @@
 import { clamp } from "./lib";
 import { HEAVY_GRID_CELL_THRESHOLD } from "@/config/capsule-presets";
+import { ORIENTATION_LANDSCAPE } from "@/config/orientation";
+import { getPlacementForOrientation, parseOrientedPlacementFromClassName } from "@/lib/oriented-placement";
 
 const DRAG_ACTIVATION_DISTANCE_PX = 4;
 
@@ -690,6 +692,17 @@ function parseGridPlacementFromClassTokens(className: string): {
 	rowSpan: number;
 	colSpan: number;
 } | null {
+	const oriented = parseOrientedPlacementFromClassName(className);
+	if (oriented) {
+		const resolved = getPlacementForOrientation(oriented.variants, ORIENTATION_LANDSCAPE);
+		return {
+			row: resolved.row,
+			col: resolved.col,
+			rowSpan: resolved.rowSpan,
+			colSpan: resolved.colSpan
+		};
+	}
+
 	const tokens = className
 		.split(/\s+/)
 		.map((token) => token.trim())

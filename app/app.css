@@ -170,6 +170,43 @@ body {
 .layout-player {
 	grid-area: player;
 	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
+	overflow: hidden;
+}
+
+.player-runner {
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
+	height: 100%;
+	min-height: 0;
+}
+
+.player-viewport {
+	min-height: 0;
+	min-width: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+}
+
+.player-scene {
+	max-width: 100%;
+	max-height: 100%;
+	min-width: 0;
+	min-height: 0;
+}
+
+.player-scene--landscape {
+	width: 100%;
+	height: auto;
+	aspect-ratio: 16 / 9;
+}
+
+.player-scene--portrait {
+	height: 100%;
+	width: auto;
+	aspect-ratio: 9 / 16;
 }
 
 .layout-infos {

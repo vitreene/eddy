@@ -12,9 +12,18 @@ import { applyStyleDefaults } from "@/config/item-style-defaults";
 import { CAPSULE_TYPES, getSelectableCapsuleTypeConfigs, resolveCapsuleType } from "@/config/capsule-types";
 import { CAPSULE_GRID_PRESETS, SCENE_GRID_HEIGHT, SCENE_GRID_WIDTH } from "@/config/capsule-presets";
 import { buildEditorGridClassName } from "@/config/class-prefix";
+import {
+	DEFAULT_EDITOR_PREVIEW_ORIENTATION,
+	type OrientationMode
+} from "@/config/orientation";
 import { getValuesFromGridName } from "@/lib/utils";
 import { normalizePositionZones } from "@/components/slot-editor/zone-builder.service";
-import type { PositionZoneStored } from "@/lib/position-zones";
+import {
+	mergeZonesFromOrientationEdit,
+	projectZonesForOrientation,
+	type PositionZoneStored
+} from "@/lib/position-zones";
+import { resolveSceneGridForOrientation } from "@/lib/orientation-grid";
 import { SustainEventParams } from "@/parts/event-edit/sustain-event-params";
 import { isItemEditTab } from "@/provider/scene-logic.ui-preferences";
 
@@ -235,15 +244,29 @@ function CapsuleGridTypeSelector({
 }) {
 	const selectableTypeConfigs = getSelectableCapsuleTypeConfigs();
 	const resolvedCapsuleType = resolveCapsuleType(capsule.type);
-	const gridValues = getValuesFromGridName(capsule.grid);
-	const lineOrientation = gridValues.h == 1 ? "horizontal" : "vertical";
-	const lineCells = Math.max(gridValues.w, gridValues.h, 1);
 	const isCarousel = resolvedCapsuleType == CAPSULE_TYPES.CARROUSEL;
 	const isLine = resolvedCapsuleType == CAPSULE_TYPES.RANGEE;
 	const isList = resolvedCapsuleType == CAPSULE_TYPES.LISTE;
 	const isGrid = resolvedCapsuleType == CAPSULE_TYPES.GRILLE;
 	const isCard = resolvedCapsuleType == CAPSULE_TYPES.CARD;
 	const isPosition = resolvedCapsuleType == CAPSULE_TYPES.POSITION;
+	const previewOrientation = SceneLogicContext.useSelector(
+		(state) => (state.context.active.previewOrientation as OrientationMode) || DEFAULT_EDITOR_PREVIEW_ORIENTATION
+	);
+	const effectiveCapsuleGrid =
+		resolvedCapsuleType === CAPSULE_TYPES.POSITION
+			? resolveSceneGridForOrientation({
+					baseGrid: capsule.grid,
+					orientationGrid: (capsule as CapsuleComp & { orientationGrid?: unknown }).orientationGrid,
+					orientation: previewOrientation,
+					defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+				}) || capsule.grid
+			: capsule.grid;
+	const gridValues = getValuesFromGridName(effectiveCapsuleGrid || "");
+	const lineOrientation = gridValues.h == 1 ? "horizontal" : "vertical";
+	const lineCells = Math.max(gridValues.w, gridValues.h, 1);
+	const normalizedCapsuleZones = normalizePositionZones((capsule as CapsuleComp & { cardZones?: unknown }).cardZones);
+	const projectedCapsuleZones = projectZonesForOrientation(normalizedCapsuleZones, previewOrientation);
 	const listOrientation = capsule.grid?.includes("horizontal") ? "horizontal" : "vertical";
 	const supportsDurationMode = isCarousel || isLine || isGrid || isList || isPosition;
 	const durationMode = (capsule as any).itemDurationMode === "fixed" ? "fixed" : "auto";
@@ -301,7 +324,13 @@ function CapsuleGridTypeSelector({
 	};
 
 	const onZonesChange = (zones: PositionZoneStored[]) => {
-		onUpdate({ cardZones: zones } as Partial<CapsuleComp>);
+		const merged = mergeZonesFromOrientationEdit({
+			baseZones: normalizedCapsuleZones,
+			editedZones: zones,
+			orientation: previewOrientation,
+			defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+		});
+		onUpdate({ cardZones: merged } as Partial<CapsuleComp>);
 	};
 
 	return (
@@ -402,7 +431,8 @@ function CapsuleGridTypeSelector({
 					</p>
 					<ZoneBuilder
 						targetCapsuleId={capsule.id}
-						zones={normalizePositionZones((capsule as CapsuleComp & { cardZones?: unknown }).cardZones)}
+						gridClassName={effectiveCapsuleGrid}
+						zones={projectedCapsuleZones}
 						onZonesChange={onZonesChange}
 						active={isActive}
 					/>

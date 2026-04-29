@@ -1,5 +1,15 @@
 import { CAPSULE_TYPES, resolveCapsuleType } from "@/config/capsule-types";
 import { POSITION_FULL_SPAN_CLASS } from "@/config/capsule-presets";
+import {
+	DEFAULT_EDITOR_PREVIEW_ORIENTATION,
+	type OrientationMode
+} from "@/config/orientation";
+import {
+	collapseToSimplePlacementClassName,
+	toGridPlacementRectFromSpanToken,
+	updateOrCreateOrientedPlacementToken,
+	type GridPlacementRect
+} from "@/lib/oriented-placement";
 
 import {
 	applyAreaClassPatch,
@@ -43,6 +53,7 @@ type Input = {
 	decor?: Decor;
 	editDecor?: Decor;
 	parentCapsuleType?: string | null;
+	previewOrientation: OrientationMode;
 	item?: ItemComp;
 	activeNode: HTMLElement | null;
 	onStyleChange: (payload: EditableStyle) => void;
@@ -94,6 +105,20 @@ export function createTransformController(input: Input) {
 				className: shouldApplySpanClass ? spanClass : (targetDecor.className ?? null)
 			});
 		}
+	};
+
+	const onReturnToSimplePlacement = () => {
+		const targetDecor = editDecor || decor;
+		if (!targetDecor) return;
+		const nextClassName = collapseToSimplePlacementClassName({
+			className: targetDecor.className ?? null,
+			defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+		});
+		if ((targetDecor.className ?? null) === (nextClassName ?? null)) return;
+		clearPlacementAreaTokens(activeNode);
+		ensureLivePlacementClassDefinitions(activeNode, nextClassName ?? null);
+		applyClassTokenPatch(activeNode, targetDecor.className ?? null, nextClassName ?? null);
+		onDecorUpdate({ id: targetDecor.id, className: nextClassName ?? null });
 	};
 
 	const onTransformCommit = (
@@ -168,7 +193,13 @@ export function createTransformController(input: Input) {
 
 		if (mode === "resize-grid-se" && meta.gridPlacement) {
 			const nextSpanToken = buildGridSpanClassName(meta.gridPlacement);
-			const nextClassName = mergeGridPlacementClassName(targetDecor.className ?? null, nextSpanToken);
+			const nextClassName = resolvePlacementClassNameForOrientation({
+				existingClassName: targetDecor.className ?? null,
+				nextSpanToken,
+				activeNode,
+				activeOrientation: input.previewOrientation,
+				defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+			});
 			clearPlacementAreaTokens(activeNode);
 			ensureLivePlacementClassDefinitions(activeNode, nextClassName);
 			applyClassTokenPatch(activeNode, targetDecor.className ?? null, nextClassName);
@@ -203,7 +234,13 @@ export function createTransformController(input: Input) {
 				rowSpan: resolvedRowSpan,
 				colSpan: resolvedColSpan
 			});
-			const nextClassName = mergeGridPlacementClassName(targetDecor.className ?? null, nextSpanToken);
+			const nextClassName = resolvePlacementClassNameForOrientation({
+				existingClassName: targetDecor.className ?? null,
+				nextSpanToken,
+				activeNode,
+				activeOrientation: input.previewOrientation,
+				defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+			});
 			clearPlacementAreaTokens(activeNode);
 			ensureLivePlacementClassDefinitions(activeNode, nextClassName);
 			applyClassTokenPatch(activeNode, targetDecor.className ?? null, nextClassName);
@@ -216,7 +253,8 @@ export function createTransformController(input: Input) {
 		onTransformCommit,
 		onPositionCommit,
 		onResetTransform,
-		onTransformModeChange
+		onTransformModeChange,
+		onReturnToSimplePlacement
 	};
 }
 
@@ -235,4 +273,33 @@ function buildSpanClassFromArea(area: string | null | undefined): string | null 
 	const row = Math.max(1, Number(match[1]) || 1);
 	const col = Math.max(1, Number(match[2]) || 1);
 	return buildGridSpanClassName({ row, col, rowSpan: 1, colSpan: 1 });
+}
+
+function resolvePlacementClassNameForOrientation(args: {
+	existingClassName: string | null;
+	nextSpanToken: string;
+	activeNode: HTMLElement | null;
+	activeOrientation: OrientationMode;
+	defaultOrientation: OrientationMode;
+}): string {
+	const nextRect = toGridPlacementRectFromSpanToken(args.nextSpanToken);
+	if (!nextRect) return mergeGridPlacementClassName(args.existingClassName ?? null, args.nextSpanToken);
+	const seedRect =
+		parseGridPlacementFromClassName(args.existingClassName ?? null) ??
+		readGridPlacementFromComputedStyle(args.activeNode) ??
+		nextRect;
+	const seed: GridPlacementRect = {
+		row: seedRect.row,
+		col: seedRect.col,
+		rowSpan: seedRect.rowSpan,
+		colSpan: seedRect.colSpan
+	};
+
+	return updateOrCreateOrientedPlacementToken({
+		className: args.existingClassName,
+		activeOrientation: args.activeOrientation,
+		defaultOrientation: args.defaultOrientation,
+		nextPlacement: nextRect,
+		seedPlacement: seed
+	});
 }

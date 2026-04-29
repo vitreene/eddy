@@ -3,6 +3,12 @@ import React from "react";
 import { Timer } from "animejs";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Play, Pause, RotateCcwIcon, Volume2, VolumeX } from "lucide-react";
+import {
+	DEFAULT_EDITOR_PREVIEW_ORIENTATION,
+	ORIENTATION_LANDSCAPE,
+	ORIENTATION_PORTRAIT,
+	type OrientationMode
+} from "@/config/orientation";
 
 import { SceneLogicContext } from "@/provider/scene-logic";
 import type { ActiveState } from "@/provider/types";
@@ -47,7 +53,10 @@ type PlayerActiveEvent =
 	| { type: "transport.pause.requested" }
 	| { type: "transport.progress.updated"; payload: { progress: number } }
 	| { type: "transport.seek.completed" }
-	| { type: "ui.active.updated"; payload: { telcoMuted?: boolean } };
+	| {
+			type: "ui.active.updated";
+			payload: { telcoMuted?: boolean; previewOrientation?: OrientationMode };
+	  };
 
 const onEnd = (_timer: Timer) => {};
 
@@ -60,6 +69,9 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 
 	const [duration, setDuration] = useState(0);
 	const isMuted = SceneLogicContext.useSelector((state) => state.context.active.telcoMuted === true);
+	const previewOrientation = SceneLogicContext.useSelector(
+		(state) => (state.context.active.previewOrientation as OrientationMode) || DEFAULT_EDITOR_PREVIEW_ORIENTATION
+	);
 
 	const telcoController = useMemo(
 		() =>
@@ -93,31 +105,61 @@ export const PlayerRunner = React.memo(function PlayerRunner({ scene }: { scene:
 	}, [isMuted]);
 
 	useEffect(() => {
+		const render = sceneRef.current;
+		if (!render) return;
+		const root = render.querySelector(".root-scene") as HTMLElement | null;
+		if (!root) return;
+		root.classList.remove("ed-preview-orientation--portrait", "ed-preview-orientation--landscape");
+		root.classList.add(
+			previewOrientation === ORIENTATION_PORTRAIT
+				? "ed-preview-orientation--portrait"
+				: "ed-preview-orientation--landscape"
+		);
+	}, [previewOrientation, scene]);
+
+	useEffect(() => {
 		telcoController.syncFromActive({ action: active.action, cue: active.cue });
 	}, [active.action, active.cue, telcoController]);
 
 	const playerScopedStyles = `@scope{${playerCss}}`;
 	const editorSceneStyles = scene.styles || "";
+	const sceneViewportClassName =
+		previewOrientation === ORIENTATION_PORTRAIT
+			? "player-scene player-scene--portrait"
+			: "player-scene player-scene--landscape";
 
 	return (
 		<>
 			<style>{playerScopedStyles}</style>
 			<style>{editorSceneStyles}</style>
-			<div ref={sceneRef} id={SCENE_ID} className="aspect-video flex-1" />
-			<TelcoPanel
-				progress={active.progress ?? 0}
-				isPlaying={active.action === "play"}
-				isMuted={isMuted}
-				duration={duration}
-				onTogglePlay={telcoController.togglePlay}
-				onRewind={telcoController.rewind}
-				onSeek={telcoController.seek}
-				onToggleMute={() => {
-					const muted = telcoController.toggleMute();
-					if (typeof muted !== "boolean") return;
-					send({ type: "ui.active.updated", payload: { telcoMuted: muted } });
-				}}
-			/>
+			<div className="player-runner">
+				<div className="player-viewport">
+					<div ref={sceneRef} id={SCENE_ID} className={sceneViewportClassName} />
+				</div>
+				<TelcoPanel
+					progress={active.progress ?? 0}
+					isPlaying={active.action === "play"}
+					isMuted={isMuted}
+					previewOrientation={previewOrientation}
+					duration={duration}
+					onTogglePlay={telcoController.togglePlay}
+					onRewind={telcoController.rewind}
+					onSeek={telcoController.seek}
+					onToggleOrientation={() => {
+						const nextOrientation =
+							previewOrientation === ORIENTATION_PORTRAIT ? ORIENTATION_LANDSCAPE : ORIENTATION_PORTRAIT;
+						send({
+							type: "ui.active.updated",
+							payload: { previewOrientation: nextOrientation }
+						});
+					}}
+					onToggleMute={() => {
+						const muted = telcoController.toggleMute();
+						if (typeof muted !== "boolean") return;
+						send({ type: "ui.active.updated", payload: { telcoMuted: muted } });
+					}}
+				/>
+			</div>
 		</>
 	);
 });
@@ -295,19 +337,23 @@ function TelcoPanel({
 	progress,
 	isPlaying,
 	isMuted,
+	previewOrientation,
 	duration,
 	onTogglePlay,
 	onRewind,
 	onSeek,
+	onToggleOrientation,
 	onToggleMute
 }: {
 	progress: number;
 	isPlaying: boolean;
 	isMuted: boolean;
+	previewOrientation: OrientationMode;
 	duration: number;
 	onTogglePlay: () => void;
 	onRewind: () => void;
 	onSeek: (progress: number, timeMs: number) => void;
+	onToggleOrientation: () => void;
 	onToggleMute: () => void;
 }) {
 	const onRangeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -342,6 +388,14 @@ function TelcoPanel({
 				className="flex-1"
 			/>
 			<output>{progress}&nbsp;%</output>
+			<button
+				type="button"
+				title={`Orientation: ${previewOrientation === ORIENTATION_PORTRAIT ? "Portrait" : "Paysage"}`}
+				className="shrink-0 rounded-md border border-stone-500 px-2 py-1 text-xs"
+				onClick={onToggleOrientation}
+			>
+				{previewOrientation === ORIENTATION_PORTRAIT ? "Portrait" : "Paysage"}
+			</button>
 			<button
 				type="button"
 				title={isMuted ? "Retablir le son" : "Couper le son"}

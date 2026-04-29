@@ -5,7 +5,20 @@ import { buildEditorGridClassName } from "@/config/class-prefix";
 import { getValuesFromGridName } from "@/lib/utils";
 import { ZoneBuilder } from "@/components/slot-editor/zone-builder";
 import { normalizePositionZones } from "@/components/slot-editor/zone-builder.service";
-import type { PositionZoneStored } from "@/lib/position-zones";
+import {
+	mergeZonesFromOrientationEdit,
+	projectZonesForOrientation,
+	type PositionZoneStored
+} from "@/lib/position-zones";
+import {
+	DEFAULT_EDITOR_PREVIEW_ORIENTATION,
+	type OrientationMode
+} from "@/config/orientation";
+import {
+	extractEditorGridClassName,
+	normalizeOrientationGridRecord,
+	resolveSceneGridForOrientation
+} from "@/lib/orientation-grid";
 import type { Content } from "@/api/db";
 import {
 	getActiveSceneContent,
@@ -49,13 +62,28 @@ export function SceneEdit({ allContents = [] }: SceneEditProps) {
 	const runtimeContents = SceneLogicContext.useSelector((state) =>
 		Object.values(state.context.contents || {})
 	);
+	const previewOrientation = SceneLogicContext.useSelector(
+		(state) => (state.context.active.previewOrientation as OrientationMode) || DEFAULT_EDITOR_PREVIEW_ORIENTATION
+	);
 
 	if (!sceneId || !mainCapsule) return null;
 
 	const sounds = getSounds(allContents, runtimeContents);
 	const linkedSoundId = sceneContent?.contentId ? String(sceneContent.contentId) : "";
 	const sceneDurationSec = getSafeDurationSec(getSceneContentDurationSec(sceneContent));
-	const gridValues = getValuesFromGridName(mainCapsule.grid);
+	const orientationGrid = normalizeOrientationGridRecord(
+		(mainCapsule as { orientationGrid?: unknown }).orientationGrid
+	);
+	const effectiveMainGrid =
+		resolveSceneGridForOrientation({
+			baseGrid: mainCapsule.grid,
+			orientationGrid,
+			orientation: previewOrientation,
+			defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+		}) || mainCapsule.grid;
+	const gridValues = getValuesFromGridName(effectiveMainGrid || "");
+	const normalizedMainZones = normalizePositionZones((mainCapsule as { cardZones?: unknown }).cardZones);
+	const projectedMainZones = projectZonesForOrientation(normalizedMainZones, previewOrientation);
 
 	const onCommitTitle = (titleInput: string) => {
 		const nextTitle = titleInput.trim() || "Scene";
@@ -88,21 +116,46 @@ export function SceneEdit({ allContents = [] }: SceneEditProps) {
 	const onChangeMainGrid = (nextCols: number, nextRows: number) => {
 		const cols = Math.max(1, Math.floor(nextCols || 1));
 		const rows = Math.max(1, Math.floor(nextRows || 1));
+		const nextGridClass = buildEditorGridClassName(cols, rows);
+		const nextOrientationGrid = {
+			portrait: orientationGrid.portrait || null,
+			landscape: orientationGrid.landscape || null,
+			[previewOrientation]: nextGridClass
+		};
+		const defaultGridClass =
+			extractEditorGridClassName(
+				resolveSceneGridForOrientation({
+					baseGrid: mainCapsule.grid,
+					orientationGrid: nextOrientationGrid,
+					orientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION,
+					defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+				})
+			) || nextGridClass;
+		const nextMainGrid = `root-scene ${defaultGridClass}`;
 		send({
 			type: "scene-patch-requested",
 			payload: {
 				sceneId,
-				patch: { mainGrid: `root-scene ${buildEditorGridClassName(cols, rows)}` }
+				patch: {
+					mainGrid: nextMainGrid,
+					mainOrientationGrid: nextOrientationGrid
+				}
 			}
 		});
 	};
 
 	const onChangeMainZones = (zones: PositionZoneStored[]) => {
+		const mergedZones = mergeZonesFromOrientationEdit({
+			baseZones: normalizedMainZones,
+			editedZones: zones,
+			orientation: previewOrientation,
+			defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+		});
 		send({
 			type: "scene-patch-requested",
 			payload: {
 				sceneId,
-				patch: { mainCardZones: zones }
+				patch: { mainCardZones: mergedZones }
 			}
 		});
 	};
@@ -180,12 +233,13 @@ export function SceneEdit({ allContents = [] }: SceneEditProps) {
 				</div>
 				{resolveCapsuleType(mainCapsule.type) === CAPSULE_TYPES.POSITION ? (
 					<div className="pt-1">
-						<ZoneBuilder
-							targetCapsuleId={mainCapsule.id}
-							buttonLabel="Mode zones (__MAIN__)"
-							zones={normalizePositionZones((mainCapsule as { cardZones?: unknown }).cardZones)}
-							onZonesChange={onChangeMainZones}
-						/>
+					<ZoneBuilder
+						targetCapsuleId={mainCapsule.id}
+						buttonLabel="Mode zones (__MAIN__)"
+						gridClassName={effectiveMainGrid}
+						zones={projectedMainZones}
+						onZonesChange={onChangeMainZones}
+					/>
 					</div>
 				) : null}
 			</div>

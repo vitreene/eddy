@@ -23,6 +23,7 @@ import { buildDefaultTransitionEventPatch, getCustomEventActions } from "./item-
 import { buildEditableVisualState, projectEditableVisualStateToNode } from "./editable-visual-state";
 import { editorSyncMachine } from "./editor-sync.machine";
 import { computeCueForSelectedCustomEvent, isItemDecorEventContext } from "@/provider/scene-logic.helpers";
+import { DEFAULT_EDITOR_PREVIEW_ORIENTATION, type OrientationMode } from "@/config/orientation";
 
 import type { Content, Decor, SceneComp } from "@/api/db";
 import type { EditableStyle } from "@/components/style-editor/types";
@@ -33,7 +34,7 @@ interface EditItemProps {
 }
 
 const POSITION_PLACEMENT_TOKEN_RE =
-	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-span-fill|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+)$/i;
+	/^(?:cell-span-r\d+-c\d+-rs\d+-cs\d+|cell-span-fill|cell-r\d+-c\d+|cell_layout_auto(?:_[a-z0-9_-]+)?-r\d+-c\d+|liste-r\d+|ed-zone-[a-z0-9_-]+|ed-posv1-.*)$/i;
 const ZONE_CLASS_TOKEN_RE = /^ed-zone-[a-z0-9_-]+$/i;
 
 function sameStyleValue(a: unknown, b: unknown): boolean {
@@ -238,6 +239,9 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 	const activeCueSec = SceneLogicContext.useSelector((state) => state.context.active.cue ?? null);
 	const activeAction = SceneLogicContext.useSelector((state) => state.context.active.action ?? null);
 	const activeItemEditTab = SceneLogicContext.useSelector((state) => state.context.active.itemEditTab);
+	const previewOrientation = SceneLogicContext.useSelector(
+		(state) => (state.context.active.previewOrientation as OrientationMode) || "landscape"
+	);
 
 	const selectedEvent = item && activeEventAction ? eventsByItem[item.id]?.[activeEventAction] : null;
 	const { decor, editDecor, selectedEventUsesItemDecor } = useMemo(
@@ -538,9 +542,16 @@ export function EditItem({ allContents = [] }: EditItemProps) {
 				onStyleChange={onStyleChange}
 				onDecorUpdate={onDecorUpdate}
 				onTreeMove={onTreeMove}
+				onResetToDefaultOrientation={() =>
+					send({
+						type: "ui.active.updated",
+						payload: { previewOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION }
+					})
+				}
 				item={item}
 				parentCapsuleType={parentCapsule?.type}
 				activeNode={activeNode}
+				previewOrientation={previewOrientation}
 			/>
 			{capsule ? (
 				<CapsuleEdit

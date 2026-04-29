@@ -9,17 +9,18 @@ import type { ActiveState } from "../app/provider/types";
 const normalizedFromEmpty = normalizeSceneLogicUiPreferences(null);
 assert.deepEqual(
 	normalizedFromEmpty,
-	{ telcoMuted: false, itemEditTab: "presets" },
+	{ telcoMuted: false, previewOrientation: "landscape", itemEditTab: "presets" },
 	"empty payload should fallback to defaults"
 );
 
 const normalizedFromInvalid = normalizeSceneLogicUiPreferences({
 	telcoMuted: true,
+	previewOrientation: "weird",
 	itemEditTab: "unknown"
 });
 assert.deepEqual(
 	normalizedFromInvalid,
-	{ telcoMuted: true, itemEditTab: "presets" },
+	{ telcoMuted: true, previewOrientation: "landscape", itemEditTab: "presets" },
 	"invalid tab should fallback while keeping valid mute value"
 );
 
@@ -36,6 +37,7 @@ const picked = pickSceneLogicUiPreferences({
 	sequenceFlushToken: 0,
 	sequenceFlushReason: null,
 	telcoMuted: true,
+	previewOrientation: "portrait",
 	itemEditTab: "advanced",
 	eventTouched: false,
 	decorTouched: false,
@@ -44,7 +46,7 @@ const picked = pickSceneLogicUiPreferences({
 } as ActiveState);
 assert.deepEqual(
 	picked,
-	{ telcoMuted: true, itemEditTab: "advanced" },
+	{ telcoMuted: true, previewOrientation: "portrait", itemEditTab: "advanced" },
 	"pick should extract persisted UI preferences from active state"
 );
 

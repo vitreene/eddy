@@ -8,6 +8,8 @@ import {
 	type PositionDragMode,
 	type PositionSnapGridSpec
 } from "./position-editor.service";
+import { ORIENTATION_LANDSCAPE } from "@/config/orientation";
+import { getPlacementForOrientation, parseOrientedPlacementFromClassName } from "@/lib/oriented-placement";
 
 type PositionProps = {
 	element: HTMLElement | null;
@@ -172,6 +174,7 @@ function isPositionClassToken(token: string): boolean {
 	if (/^cell_layout_auto(?:_[\w-]+)?$/.test(token)) return true;
 	if (/^liste-r\d+$/.test(token)) return true;
 	if (/^ed-zone-[\w-]+$/.test(token)) return true;
+	if (/^ed-posv1-/.test(token)) return true;
 	return false;
 }
 
@@ -310,6 +313,17 @@ function parseGridTrackShorthand(value: string): { start: number | null; span: n
 }
 
 function parseGridPlacementFromClassTokens(className: string): PositionGridPlacement | null {
+	const oriented = parseOrientedPlacementFromClassName(className);
+	if (oriented) {
+		const resolved = getPlacementForOrientation(oriented.variants, ORIENTATION_LANDSCAPE);
+		return {
+			row: resolved.row,
+			col: resolved.col,
+			rowSpan: resolved.rowSpan,
+			colSpan: resolved.colSpan
+		};
+	}
+
 	const tokens = className
 		.split(/\s+/)
 		.map((token) => token.trim())

@@ -9,6 +9,11 @@ import { getValuesFromGridName } from "@/lib/utils";
 import { buildNodeId } from "@/scene-runtime/node-id";
 import { getAssuredVisibleCue } from "@/provider/active-cue";
 import { createTransformController } from "./item-edit.transform-controller";
+import {
+	DEFAULT_EDITOR_PREVIEW_ORIENTATION,
+	type OrientationMode
+} from "@/config/orientation";
+import { resolveSceneGridForOrientation } from "@/lib/orientation-grid";
 
 import type { ElementTransform } from "@/components/position-editor/lib.types";
 import type { DragCommitMeta, DragMode } from "@/components/position-editor/transform-editor.service";
@@ -28,9 +33,11 @@ type EditTransformProps = {
 	onStyleChange: (payload: EditableStyle) => void;
 	onDecorUpdate: (payload: { id: number; area?: string | null; className?: string | null }) => void;
 	onTreeMove: (payload: { sourceId: number; targetCapsuleId: number; insertionIndex: number }) => void;
+	onResetToDefaultOrientation: () => void;
 	item?: ItemComp;
 	parentCapsuleType?: string | null;
 	activeNode: HTMLElement | null;
+	previewOrientation: OrientationMode;
 };
 
 export function EditTransform({
@@ -41,9 +48,11 @@ export function EditTransform({
 	onStyleChange,
 	onDecorUpdate,
 	onTreeMove,
+	onResetToDefaultOrientation,
 	item,
 	parentCapsuleType,
-	activeNode
+	activeNode,
+	previewOrientation
 }: EditTransformProps) {
 	const parentCapsule = SceneLogicContext.useSelector((state) => {
 		if (!item) return undefined;
@@ -102,7 +111,14 @@ export function EditTransform({
 				};
 
 			default: {
-				const grid = getValuesFromGridName(parentCapsule.grid || "");
+				const effectiveParentGrid =
+					resolveSceneGridForOrientation({
+						baseGrid: parentCapsule.grid,
+						orientationGrid: (parentCapsule as { orientationGrid?: unknown }).orientationGrid,
+						orientation: previewOrientation,
+						defaultOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION
+					}) || parentCapsule.grid;
+				const grid = getValuesFromGridName(effectiveParentGrid || "");
 				return {
 					kind: "grid" as const,
 					cols: Math.max(1, grid.w),
@@ -110,7 +126,7 @@ export function EditTransform({
 				};
 			}
 		}
-	}, [parentCapsule]);
+	}, [parentCapsule, previewOrientation]);
 
 	const transformController = useMemo(
 		() =>
@@ -118,13 +134,24 @@ export function EditTransform({
 				decor,
 				editDecor,
 				parentCapsuleType,
+				previewOrientation,
 				item,
 				activeNode,
 				onStyleChange,
 				onDecorUpdate,
 				onTreeMove
 			}),
-		[decor, editDecor, parentCapsuleType, item, activeNode, onStyleChange, onDecorUpdate, onTreeMove]
+		[
+			decor,
+			editDecor,
+			parentCapsuleType,
+			previewOrientation,
+			item,
+			activeNode,
+			onStyleChange,
+			onDecorUpdate,
+			onTreeMove
+		]
 	);
 
 	useEffect(() => {
@@ -149,6 +176,17 @@ export function EditTransform({
 	return (
 		<>
 			<div className="mb-2 flex justify-end">
+				<button
+					type="button"
+					onClick={() => {
+						transformController.onReturnToSimplePlacement();
+						onResetToDefaultOrientation();
+					}}
+					disabled={!isTransformEditorActive}
+					className="mr-1 inline-flex h-7 items-center rounded border border-stone-300 px-2 text-xs hover:bg-stone-100 disabled:cursor-not-allowed disabled:opacity-50"
+				>
+					Mode simple
+				</button>
 				<button
 					type="button"
 					onClick={transformController.onResetTransform}

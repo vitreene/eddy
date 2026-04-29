@@ -1,7 +1,13 @@
 import type { ActiveState, ItemEditTab } from "./types";
+import {
+	DEFAULT_EDITOR_PREVIEW_ORIENTATION,
+	normalizeOrientationMode,
+	type OrientationMode
+} from "@/config/orientation";
 
 export type SceneLogicUiPreferences = {
 	telcoMuted: boolean;
+	previewOrientation: OrientationMode;
 	itemEditTab: ItemEditTab;
 };
 
@@ -11,6 +17,7 @@ const ITEM_EDIT_TAB_VALUES: ItemEditTab[] = ["presets", "layout", "advanced"];
 
 const DEFAULT_SCENE_LOGIC_UI_PREFERENCES: SceneLogicUiPreferences = {
 	telcoMuted: false,
+	previewOrientation: DEFAULT_EDITOR_PREVIEW_ORIENTATION,
 	itemEditTab: "presets"
 };
 
@@ -24,6 +31,7 @@ export function normalizeSceneLogicUiPreferences(
 ): SceneLogicUiPreferences {
 	return {
 		telcoMuted: typeof value?.telcoMuted == "boolean" ? value.telcoMuted : fallback.telcoMuted,
+		previewOrientation: normalizeOrientationMode(value?.previewOrientation ?? fallback.previewOrientation),
 		itemEditTab: isItemEditTab(value?.itemEditTab) ? value.itemEditTab : fallback.itemEditTab
 	};
 }
@@ -31,6 +39,7 @@ export function normalizeSceneLogicUiPreferences(
 export function pickSceneLogicUiPreferences(active: ActiveState): SceneLogicUiPreferences {
 	return normalizeSceneLogicUiPreferences({
 		telcoMuted: active.telcoMuted,
+		previewOrientation: active.previewOrientation,
 		itemEditTab: active.itemEditTab
 	});
 }
