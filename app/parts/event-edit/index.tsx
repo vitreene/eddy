@@ -23,6 +23,7 @@ import { Rubber } from "../rubber/rubber";
 import { MediaEventParams } from "./media-event-params";
 import { SustainEventParams } from "./sustain-event-params";
 import { WaveformCanvas } from "../rubber/waveform-canvas";
+import { buildEventPayloadFromCuePoint } from "../rubber/timeline-point-editor.model";
 
 const actionOrder = [INTRO, SUSTAIN, OUTRO];
 const MEDIA_CONTENT_TYPES = new Set(["sound", "video", "lottie", "audio"]);
@@ -394,7 +395,13 @@ function ContentInfos({ item }: { item: ItemComp | null }) {
 			{item ? (
 				<div className="rounded border p-1">
 					{orderedEvents.map((event) => (
-						<MediaEventTransition key={event.action} event={event} activeEvent={activeEvent} cues={cues} />
+						<MediaEventTransition
+							key={event.action}
+							event={event}
+							activeEvent={activeEvent}
+							cues={cues}
+							events={events}
+						/>
 					))}
 				</div>
 			) : null}
@@ -411,17 +418,30 @@ function readTimelineView(value: unknown): TimelineViewMode {
 function MediaEventTransition({
 	event,
 	activeEvent,
-	cues
+	cues,
+	events
 }: {
 	event: Partial<ContentEvent> & { action: string };
 	activeEvent: string | null;
 	cues: Array<{ name: string; text: string }>;
+	events: Record<string, ContentEvent | undefined> | null;
 }) {
 	const sceneLogic = SceneLogicContext.useActorRef();
 	const isCustom = deriveEventKind(event.action) === "custom";
 	const isActive = activeEvent === event.action;
+	const isImplicitDefault = !isCustom && !isExplicitDefaultTransitionEvent(event, cues);
 
 	const toggleEvent = () => {
+		if (!isActive && !isCustom && isImplicitDefault) {
+			const defaultCueName = resolveDefaultCueNameForTransition(cues, event.action);
+			if (defaultCueName && (event.action === INTRO || event.action === OUTRO)) {
+				const defaultPosition = event.action === OUTRO ? "end" : "start";
+				sceneLogic.send({
+					type: "events-update",
+					payload: buildEventPayloadFromCuePoint(events, event.action, defaultCueName, defaultPosition)
+				});
+			}
+		}
 		sceneLogic.send({ type: "selection.event.requested", payload: { event: isActive ? null : event.action } });
 	};
 
@@ -444,7 +464,9 @@ function MediaEventTransition({
 				<CircleSmallIcon
 					className={cx(
 						"inline-block",
-						event.action === INTRO
+						isImplicitDefault
+							? "fill-stone-300 stroke-stone-500"
+							: event.action === INTRO
 							? "fill-green-300 stroke-green-500"
 							: event.action === SUSTAIN
 								? "fill-amber-200 stroke-amber-500"
@@ -469,4 +491,26 @@ function MediaEventTransition({
 			) : null}
 		</div>
 	);
+}
+
+function isExplicitDefaultTransitionEvent(
+	event: Partial<ContentEvent> & { action: string },
+	cues: Array<{ name: string; text: string }>
+): boolean {
+	if (deriveEventKind(event.action) === "custom") return true;
+	if (event.action === SUSTAIN) return typeof event.id === "number";
+	const name = typeof event.name === "string" ? event.name.trim() : "";
+	if (!name || name.startsWith("__auto_")) return false;
+	const cueByName = new Map(cues.map((cue) => [cue.name, cue]));
+	return Boolean(resolveCueEntryByEventName(cueByName, name)?.cueName);
+}
+
+function resolveDefaultCueNameForTransition(
+	cues: Array<{ name: string; text: string }>,
+	action: string
+): string | null {
+	if (!cues.length) return null;
+	if (action === OUTRO) return cues[cues.length - 1]?.name || null;
+	if (action === INTRO) return cues[0]?.name || null;
+	return null;
 }
