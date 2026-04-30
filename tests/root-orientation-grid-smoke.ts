@@ -63,8 +63,8 @@ function createScene(): any {
 
 	assert.equal(styles.includes(".root-scene.ed-preview-orientation--portrait"), true);
 	assert.equal(styles.includes(".root-scene.ed-preview-orientation--landscape"), true);
-	assert.equal(styles.includes("@media (orientation: portrait){.root-scene"), true);
-	assert.equal(styles.includes("@media (orientation: landscape){.root-scene"), true);
+	assert.equal(styles.includes("@container scene (aspect-ratio <= 1/1){.root-scene"), true);
+	assert.equal(styles.includes("@container scene (aspect-ratio > 1/1){.root-scene"), true);
 	assert.equal(styles.includes("grid-template-columns:repeat(9, minmax(0, 1fr))"), true);
 	assert.equal(styles.includes("grid-template-rows:repeat(16, minmax(0, 1fr))"), true);
 }

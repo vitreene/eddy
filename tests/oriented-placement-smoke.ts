@@ -28,8 +28,16 @@ assert.deepEqual(
 );
 
 const css = orientationPlacementTokenToCssDefinition(parsed!.token) || "";
-assert.equal(css.includes("@media (orientation: portrait)"), true, "token CSS should include portrait media rule");
-assert.equal(css.includes("@media (orientation: landscape)"), true, "token CSS should include landscape media rule");
+assert.equal(
+	css.includes("@container scene (aspect-ratio <= 1/1)"),
+	true,
+	"token CSS should include portrait container rule"
+);
+assert.equal(
+	css.includes("@container scene (aspect-ratio > 1/1)"),
+	true,
+	"token CSS should include landscape container rule"
+);
 assert.equal(
 	css.includes(".ed-preview-orientation--portrait"),
 	true,

@@ -1,7 +1,7 @@
 import { utils } from "animejs";
 
 import { P } from "../types";
-import { SCENE_ID, ROOT } from "@/scene-runtime/constants";
+import { ROOT, ROOT_SCENE_WRAPPER_ID, SCENE_ID } from "@/scene-runtime/constants";
 
 import type { Player } from "../player";
 import type { Perso, Initial, PersoMediaDef } from "../types";
@@ -10,6 +10,12 @@ export function createElements(this: Player): void {
 	if (!document) return null;
 	if (!this.render) return null;
 	this.$elements.set(SCENE_ID, this.render);
+
+	const rootWrapper = document.createElement("div");
+	rootWrapper.id = ROOT_SCENE_WRAPPER_ID;
+	rootWrapper.className = ROOT_SCENE_WRAPPER_ID;
+	this.render.appendChild(rootWrapper);
+	this.$elements.set(ROOT_SCENE_WRAPPER_ID, rootWrapper);
 
 	this.persos.forEach((perso) => {
 		const $el = createNode(perso);
@@ -20,7 +26,7 @@ export function createElements(this: Player): void {
 	this.persos.forEach(({ initial }) => {
 		//FIXME DEPRECIE à retirer
 		if ("id" in initial && initial.id == ROOT) {
-			this.render.appendChild(this.$elements.get(initial.id)!);
+			rootWrapper.appendChild(this.$elements.get(initial.id)!);
 		}
 
 		if ("move" in initial && typeof initial.move == "string") {

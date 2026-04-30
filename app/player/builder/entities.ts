@@ -9,7 +9,7 @@ import { getMediaUrl } from "@/lib/media-url";
 
 import type { CapsuleComp, ContentEvent, ItemComp, SceneComp } from "@/api/db";
 import { P, type ID } from "../types";
-import { SCENE_ID } from "@/scene-runtime/constants";
+import { ROOT_SCENE_WRAPPER_ID } from "@/scene-runtime/constants";
 import { buildCustomTweenActionName, buildEventActionName } from "./lib";
 import { getOrderedEventsForItem, getTransitionPresetForEvent, resolveSustainWindowMs } from "./events";
 import {
@@ -74,7 +74,7 @@ export function createCapsuleRenderable(
 		return {
 			type: P.LIST,
 			initial: {
-				move: SCENE_ID,
+				move: ROOT_SCENE_WRAPPER_ID,
 				tag: "div",
 				id,
 				...(className && { className }),

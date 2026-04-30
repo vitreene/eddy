@@ -213,8 +213,8 @@ function buildRootOrientationGridDefinitions(snapshot: SceneComp): string[] {
 	return [
 		`.${ROOT}.ed-preview-orientation--portrait{${portraitDecl}}`,
 		`.${ROOT}.ed-preview-orientation--landscape{${landscapeDecl}}`,
-		`@media (orientation: portrait){.${ROOT}{${portraitDecl}}}`,
-		`@media (orientation: landscape){.${ROOT}{${landscapeDecl}}}`
+		`@container scene (aspect-ratio <= 1/1){.${ROOT}{${portraitDecl}}}`,
+		`@container scene (aspect-ratio > 1/1){.${ROOT}{${landscapeDecl}}}`
 	];
 }
 

@@ -70,8 +70,8 @@ export function buildPositionZoneOrientationCssRules(className: string, variants
 	return [
 		`.root-scene.ed-preview-orientation--portrait .${className}{grid-row:${portrait.row} / span ${portrait.spanRow};grid-column:${portrait.column} / span ${portrait.spanColumn};}`,
 		`.root-scene.ed-preview-orientation--landscape .${className}{grid-row:${landscape.row} / span ${landscape.spanRow};grid-column:${landscape.column} / span ${landscape.spanColumn};}`,
-		`@media (orientation: portrait){.${className}{grid-row:${portrait.row} / span ${portrait.spanRow};grid-column:${portrait.column} / span ${portrait.spanColumn};}}`,
-		`@media (orientation: landscape){.${className}{grid-row:${landscape.row} / span ${landscape.spanRow};grid-column:${landscape.column} / span ${landscape.spanColumn};}}`
+		`@container scene (aspect-ratio <= 1/1){.${className}{grid-row:${portrait.row} / span ${portrait.spanRow};grid-column:${portrait.column} / span ${portrait.spanColumn};}}`,
+		`@container scene (aspect-ratio > 1/1){.${className}{grid-row:${landscape.row} / span ${landscape.spanRow};grid-column:${landscape.column} / span ${landscape.spanColumn};}}`
 	].join("");
 }
 

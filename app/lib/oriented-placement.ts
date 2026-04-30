@@ -70,8 +70,8 @@ export function orientationPlacementTokenToCssDefinition(token: string): string 
 		`.${token}{grid-row:${l.row} / span ${l.rowSpan};grid-column:${l.col} / span ${l.colSpan};}`,
 		`.root-scene.ed-preview-orientation--portrait .${token}{grid-row:${p.row} / span ${p.rowSpan};grid-column:${p.col} / span ${p.colSpan};}`,
 		`.root-scene.ed-preview-orientation--landscape .${token}{grid-row:${l.row} / span ${l.rowSpan};grid-column:${l.col} / span ${l.colSpan};}`,
-		`@media (orientation: portrait){.${token}{grid-row:${p.row} / span ${p.rowSpan};grid-column:${p.col} / span ${p.colSpan};}}`,
-		`@media (orientation: landscape){.${token}{grid-row:${l.row} / span ${l.rowSpan};grid-column:${l.col} / span ${l.colSpan};}}`
+		`@container scene (aspect-ratio <= 1/1){.${token}{grid-row:${p.row} / span ${p.rowSpan};grid-column:${p.col} / span ${p.colSpan};}}`,
+		`@container scene (aspect-ratio > 1/1){.${token}{grid-row:${l.row} / span ${l.rowSpan};grid-column:${l.col} / span ${l.colSpan};}}`
 	].join("");
 }
 
