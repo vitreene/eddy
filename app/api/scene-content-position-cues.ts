@@ -54,7 +54,12 @@ export async function action({ request }: Route.ActionArgs) {
 	});
 	const events = JSON.parse(sceneContent.events || "[]") as TextTime[];
 	const timestamp = parseContentTimestampWords(linkedContent?.timestamp);
-	const durationSec = getSceneContentDurationSec({ timestamp, events, cues: timestamp });
+	const durationSec = getSceneContentDurationSec({
+		totalDuration: sceneContent.totalDuration,
+		timestamp,
+		events,
+		cues: timestamp
+	});
 
 	return Response.json({
 		ok: true,

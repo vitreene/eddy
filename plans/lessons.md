@@ -1,5 +1,11 @@
 # Lessons
 
+## 2026-05-17 — Event transitions: explicit preset beats blank
+
+- Quand l'UI expose une option `--`, verifier si elle doit etre un preset explicite et pas un `""` cache.
+- Si le user doit pouvoir choisir `--`, lui donner une vraie clé de transition et la faire traverser UI, persistance et builder.
+- Ne pas confondre une absence de valeur avec une valeur metier explicite qui doit etre rejouee telle quelle.
+
 ## 2026-04-29 — Orientation scene: ne jamais supprimer le fallback auto col/row
 
 - Quand on retire une mutation ad hoc cote UI (toggle orientation), verifier immediatement que le comportement implicite equivalent existe encore cote modele/builder.
@@ -561,6 +567,24 @@
 - Pour des cues techniques references par `name`, choisir un prefixe structurel reserve (distinct des cues Whisper) et conserver ce `name` lors des deplacements.
 - Clarifier explicitement la fusion multi-sources: aggregation uniquement cote editeur/read-model; ne jamais re-persister une vue fusionnee dans une source DB unique.
 - En projection waveform ponctuelle, ne pas reutiliser des regles de snap `start/middle/end` de timelines segmentaires; travailler en ancrage temporel point-a-point.
+
+## 2026-05-17 — Duree de scene: persister l'override avant tout
+
+- Quand une duree est editable par l'utilisateur, la stocker dans une colonne dediee et la relire telle quelle au lieu de la recalculer depuis les cues.
+- Si une valeur suit le son par defaut, la calculer au moment de la selection ou de l'ecriture, pas au render.
+- Les routes de cues doivent preserver la duree manuelle sauf si elles modifient explicitement la duree elle-meme.
+
+## 2026-05-17 — Whisper audio: ne pas confondre waveform et transcript
+
+- `content.timestamp.waveform.durationSec` donne la duree du media, pas la presence d'une transcription.
+- Pour detecter une analyse Whisper manquante, tester l'existence de `words`, pas seulement `timestamp`.
+- Quand un son est relu depuis le stockage pour reanalyse, merger la nouvelle transcription avec l'objet timestamp existant pour conserver la waveform.
+
+## 2026-05-17 — XState: pas de logique metier dans React
+
+- Si une correction doit declencher un retry, une analyse ou une persistance, la mettre dans une action/effet XState, pas dans `useEffect`.
+- React dans ce projet ne doit porter que l'affichage et les interactions UI qui emettent des events machine.
+- Quand une logique a besoin d'un effet asynchrone au montage, la traduire en transition machine plutot qu'en hook de composant.
 - Ne pas encoder l'item dans la cle `name` des cues techniques: la cle doit rester globale pour supporter des triggers synchrones sur plusieurs items.
 - Quand `intro/outro` sont absents en waveform, conserver un mode de creation progressive sur fond vide (clic1 intro, clic2 outro) et un mode drag initial qui cree les deux bornes en une action.
 - Ajouter un garde-fou d'ordre apres toute edition `outro`: si `outro < intro`, inverser les references pour conserver `intro <= outro`.

@@ -184,6 +184,8 @@ interface DbSceneComp extends Scene {
 		order: number;
 		decorId: number | null;
 		events: string;
+		timestamp: string;
+		totalDuration: number;
 		content: Content;
 	}>;
 
@@ -485,6 +487,7 @@ export function flattenScene(scene: DbSceneComp): SceneComp {
 			const whisperTimestamp = parseContentTimestampWords(content.timestamp);
 			const cues = whisperTimestamp;
 			const totalDuration = getSceneContentDurationSec({
+				totalDuration: sceneContent.totalDuration,
 				timestamp: whisperTimestamp,
 				events: fallbackEvents,
 				cues
@@ -655,6 +658,7 @@ export async function upsertSceneContentCues(input: {
 	totalDuration?: number;
 }) {
 	const normalizedTimestamp = normalizeSceneContentCues(input.cues);
+	const hasExplicitDuration = Number.isFinite(input.totalDuration);
 
 	return await prisma.$transaction(async (tx) => {
 		const existing = await tx.sceneContent.findFirst({
@@ -681,10 +685,19 @@ export async function upsertSceneContentCues(input: {
 		const normalizedDuration = normalizeSceneDurationSec(input.totalDuration);
 		const existingEvents = safeParseSceneCues(existing?.events);
 		const preservedPositionCues = existingEvents.filter((cue) => isWaveformPositionCueName(cue.name));
+		const resolvedDuration = hasExplicitDuration
+			? normalizedDuration
+			: normalizedTimestamp.length > 0
+				? getSceneContentDurationSec({
+					timestamp: normalizedTimestamp,
+					events: normalizedTimestamp,
+					cues: normalizedTimestamp
+				})
+				: normalizedDuration;
 		const fallbackEvents =
 			normalizedTimestamp.length > 0
 				? []
-				: buildSceneFallbackEvents(scene?.title || "Scene", normalizedDuration);
+				: buildSceneFallbackEvents(scene?.title || "Scene", resolvedDuration);
 		const persistedSceneEvents = mergeSceneEditorCues(preservedPositionCues, fallbackEvents);
 		const eventsPayload = JSON.stringify(persistedSceneEvents);
 
@@ -693,7 +706,8 @@ export async function upsertSceneContentCues(input: {
 				where: { id: existing.id },
 				data: {
 					contentId: input.contentId,
-					events: eventsPayload
+					events: eventsPayload,
+					totalDuration: resolvedDuration
 				}
 			});
 		}
@@ -709,7 +723,8 @@ export async function upsertSceneContentCues(input: {
 				sceneId: input.sceneId,
 				contentId: input.contentId,
 				order: (maxOrder?.order || 0) + 1000,
-				events: eventsPayload
+				events: eventsPayload,
+				totalDuration: resolvedDuration
 			}
 		});
 	});
@@ -746,7 +761,8 @@ export async function upsertSceneContentPositionCue(input: {
 		return tx.sceneContent.update({
 			where: { id: sceneContent.id },
 			data: {
-				events: JSON.stringify(nextEvents)
+				events: JSON.stringify(nextEvents),
+				totalDuration: sceneContent.totalDuration
 			}
 		});
 	});
@@ -769,7 +785,8 @@ export async function deleteSceneContentPositionCue(input: { sceneId: number; cu
 		return tx.sceneContent.update({
 			where: { id: sceneContent.id },
 			data: {
-				events: JSON.stringify(nextEvents)
+				events: JSON.stringify(nextEvents),
+				totalDuration: sceneContent.totalDuration
 			}
 		});
 	});
@@ -809,6 +826,7 @@ export async function upsertSceneAudioSettings(input: {
 }) {
 	return await prisma.$transaction(async (tx) => {
 		const normalizedDuration = normalizeSceneDurationSec(input.totalDuration);
+		const hasExplicitDuration = Number.isFinite(input.totalDuration);
 		const scene = await tx.scene.findUnique({ where: { id: input.sceneId }, select: { title: true } });
 		const linkedContent = input.contentId
 			? await tx.content.findUnique({ where: { id: input.contentId }, select: { timestamp: true, type: true } })
@@ -834,7 +852,16 @@ export async function upsertSceneAudioSettings(input: {
 				where: { id: existing.id },
 				data: {
 					contentId: input.contentId,
-					events: linkedTimestamp.length > 0 ? JSON.stringify(linkedTimestamp) : JSON.stringify(fallbackEvents)
+					events: linkedTimestamp.length > 0 ? JSON.stringify(linkedTimestamp) : JSON.stringify(fallbackEvents),
+					totalDuration: hasExplicitDuration
+						? normalizedDuration
+						: linkedTimestamp.length > 0
+							? getSceneContentDurationSec({
+								timestamp: linkedTimestamp,
+								events: linkedTimestamp,
+								cues: linkedTimestamp
+							})
+							: normalizedDuration
 				}
 			});
 		}
@@ -850,7 +877,16 @@ export async function upsertSceneAudioSettings(input: {
 				sceneId: input.sceneId,
 				contentId: input.contentId,
 				order: (maxOrder?.order || 0) + 1000,
-				events: linkedTimestamp.length > 0 ? JSON.stringify(linkedTimestamp) : JSON.stringify(fallbackEvents)
+				events: linkedTimestamp.length > 0 ? JSON.stringify(linkedTimestamp) : JSON.stringify(fallbackEvents),
+				totalDuration: hasExplicitDuration
+					? normalizedDuration
+					: linkedTimestamp.length > 0
+						? getSceneContentDurationSec({
+							timestamp: linkedTimestamp,
+							events: linkedTimestamp,
+							cues: linkedTimestamp
+						})
+						: normalizedDuration
 			}
 		});
 	});

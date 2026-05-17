@@ -12,6 +12,11 @@ export type TransitionPreset = {
 };
 
 export const transitions = {
+	"--": {
+		name: "--",
+		[INTRO]: { style: {} },
+		[OUTRO]: { style: {} }
+	},
 	cut: {
 		name: "cut",
 		[INTRO]: { style: {} },

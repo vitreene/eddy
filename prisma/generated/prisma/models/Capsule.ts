@@ -192,7 +192,7 @@ export type CapsuleGroupByOutputType = {
   _max: CapsuleMaxAggregateOutputType | null
 }
 
-type GetCapsuleGroupByPayload<T extends CapsuleGroupByArgs> = Prisma.PrismaPromise<
+export type GetCapsuleGroupByPayload<T extends CapsuleGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<CapsuleGroupByOutputType, T['by']> &
       {
@@ -1535,6 +1535,11 @@ export type CapsuleFindManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Skip the first `n` Capsules.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Capsules.
+   */
   distinct?: Prisma.CapsuleScalarFieldEnum | Prisma.CapsuleScalarFieldEnum[]
 }
 

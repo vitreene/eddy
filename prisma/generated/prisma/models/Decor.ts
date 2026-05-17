@@ -214,7 +214,7 @@ export type DecorGroupByOutputType = {
   _max: DecorMaxAggregateOutputType | null
 }
 
-type GetDecorGroupByPayload<T extends DecorGroupByArgs> = Prisma.PrismaPromise<
+export type GetDecorGroupByPayload<T extends DecorGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<DecorGroupByOutputType, T['by']> &
       {
@@ -1968,6 +1968,11 @@ export type DecorFindManyArgs<ExtArgs extends runtime.Types.Extensions.InternalA
    * Skip the first `n` Decors.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Decors.
+   */
   distinct?: Prisma.DecorScalarFieldEnum | Prisma.DecorScalarFieldEnum[]
 }
 

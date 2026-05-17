@@ -29,6 +29,7 @@ export type AggregateSceneContent = {
 export type SceneContentAvgAggregateOutputType = {
   id: number | null
   order: number | null
+  totalDuration: number | null
   contentId: number | null
   sceneId: number | null
   decorId: number | null
@@ -37,6 +38,7 @@ export type SceneContentAvgAggregateOutputType = {
 export type SceneContentSumAggregateOutputType = {
   id: number | null
   order: number | null
+  totalDuration: number | null
   contentId: number | null
   sceneId: number | null
   decorId: number | null
@@ -46,6 +48,8 @@ export type SceneContentMinAggregateOutputType = {
   id: number | null
   order: number | null
   events: string | null
+  timestamp: string | null
+  totalDuration: number | null
   contentId: number | null
   sceneId: number | null
   decorId: number | null
@@ -55,6 +59,8 @@ export type SceneContentMaxAggregateOutputType = {
   id: number | null
   order: number | null
   events: string | null
+  timestamp: string | null
+  totalDuration: number | null
   contentId: number | null
   sceneId: number | null
   decorId: number | null
@@ -64,6 +70,8 @@ export type SceneContentCountAggregateOutputType = {
   id: number
   order: number
   events: number
+  timestamp: number
+  totalDuration: number
   contentId: number
   sceneId: number
   decorId: number
@@ -74,6 +82,7 @@ export type SceneContentCountAggregateOutputType = {
 export type SceneContentAvgAggregateInputType = {
   id?: true
   order?: true
+  totalDuration?: true
   contentId?: true
   sceneId?: true
   decorId?: true
@@ -82,6 +91,7 @@ export type SceneContentAvgAggregateInputType = {
 export type SceneContentSumAggregateInputType = {
   id?: true
   order?: true
+  totalDuration?: true
   contentId?: true
   sceneId?: true
   decorId?: true
@@ -91,6 +101,8 @@ export type SceneContentMinAggregateInputType = {
   id?: true
   order?: true
   events?: true
+  timestamp?: true
+  totalDuration?: true
   contentId?: true
   sceneId?: true
   decorId?: true
@@ -100,6 +112,8 @@ export type SceneContentMaxAggregateInputType = {
   id?: true
   order?: true
   events?: true
+  timestamp?: true
+  totalDuration?: true
   contentId?: true
   sceneId?: true
   decorId?: true
@@ -109,6 +123,8 @@ export type SceneContentCountAggregateInputType = {
   id?: true
   order?: true
   events?: true
+  timestamp?: true
+  totalDuration?: true
   contentId?: true
   sceneId?: true
   decorId?: true
@@ -205,6 +221,8 @@ export type SceneContentGroupByOutputType = {
   id: number
   order: number
   events: string
+  timestamp: string
+  totalDuration: number
   contentId: number
   sceneId: number
   decorId: number | null
@@ -215,7 +233,7 @@ export type SceneContentGroupByOutputType = {
   _max: SceneContentMaxAggregateOutputType | null
 }
 
-type GetSceneContentGroupByPayload<T extends SceneContentGroupByArgs> = Prisma.PrismaPromise<
+export type GetSceneContentGroupByPayload<T extends SceneContentGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<SceneContentGroupByOutputType, T['by']> &
       {
@@ -237,6 +255,8 @@ export type SceneContentWhereInput = {
   id?: Prisma.IntFilter<"SceneContent"> | number
   order?: Prisma.IntFilter<"SceneContent"> | number
   events?: Prisma.StringFilter<"SceneContent"> | string
+  timestamp?: Prisma.StringFilter<"SceneContent"> | string
+  totalDuration?: Prisma.FloatFilter<"SceneContent"> | number
   contentId?: Prisma.IntFilter<"SceneContent"> | number
   sceneId?: Prisma.IntFilter<"SceneContent"> | number
   decorId?: Prisma.IntNullableFilter<"SceneContent"> | number | null
@@ -249,6 +269,8 @@ export type SceneContentOrderByWithRelationInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
   events?: Prisma.SortOrder
+  timestamp?: Prisma.SortOrder
+  totalDuration?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   sceneId?: Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -264,6 +286,8 @@ export type SceneContentWhereUniqueInput = Prisma.AtLeast<{
   NOT?: Prisma.SceneContentWhereInput | Prisma.SceneContentWhereInput[]
   order?: Prisma.IntFilter<"SceneContent"> | number
   events?: Prisma.StringFilter<"SceneContent"> | string
+  timestamp?: Prisma.StringFilter<"SceneContent"> | string
+  totalDuration?: Prisma.FloatFilter<"SceneContent"> | number
   contentId?: Prisma.IntFilter<"SceneContent"> | number
   sceneId?: Prisma.IntFilter<"SceneContent"> | number
   decorId?: Prisma.IntNullableFilter<"SceneContent"> | number | null
@@ -276,6 +300,8 @@ export type SceneContentOrderByWithAggregationInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
   events?: Prisma.SortOrder
+  timestamp?: Prisma.SortOrder
+  totalDuration?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   sceneId?: Prisma.SortOrder
   decorId?: Prisma.SortOrderInput | Prisma.SortOrder
@@ -293,6 +319,8 @@ export type SceneContentScalarWhereWithAggregatesInput = {
   id?: Prisma.IntWithAggregatesFilter<"SceneContent"> | number
   order?: Prisma.IntWithAggregatesFilter<"SceneContent"> | number
   events?: Prisma.StringWithAggregatesFilter<"SceneContent"> | string
+  timestamp?: Prisma.StringWithAggregatesFilter<"SceneContent"> | string
+  totalDuration?: Prisma.FloatWithAggregatesFilter<"SceneContent"> | number
   contentId?: Prisma.IntWithAggregatesFilter<"SceneContent"> | number
   sceneId?: Prisma.IntWithAggregatesFilter<"SceneContent"> | number
   decorId?: Prisma.IntNullableWithAggregatesFilter<"SceneContent"> | number | null
@@ -301,6 +329,8 @@ export type SceneContentScalarWhereWithAggregatesInput = {
 export type SceneContentCreateInput = {
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   content: Prisma.ContentCreateNestedOneWithoutSceneContentsInput
   scene: Prisma.SceneCreateNestedOneWithoutSceneContentsInput
   decor?: Prisma.DecorCreateNestedOneWithoutSceneContentsInput
@@ -310,6 +340,8 @@ export type SceneContentUncheckedCreateInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   contentId: number
   sceneId: number
   decorId?: number | null
@@ -318,6 +350,8 @@ export type SceneContentUncheckedCreateInput = {
 export type SceneContentUpdateInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   content?: Prisma.ContentUpdateOneRequiredWithoutSceneContentsNestedInput
   scene?: Prisma.SceneUpdateOneRequiredWithoutSceneContentsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutSceneContentsNestedInput
@@ -327,6 +361,8 @@ export type SceneContentUncheckedUpdateInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   sceneId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -336,6 +372,8 @@ export type SceneContentCreateManyInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   contentId: number
   sceneId: number
   decorId?: number | null
@@ -344,12 +382,16 @@ export type SceneContentCreateManyInput = {
 export type SceneContentUpdateManyMutationInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
 }
 
 export type SceneContentUncheckedUpdateManyInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   sceneId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
@@ -369,6 +411,8 @@ export type SceneContentCountOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
   events?: Prisma.SortOrder
+  timestamp?: Prisma.SortOrder
+  totalDuration?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   sceneId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -377,6 +421,7 @@ export type SceneContentCountOrderByAggregateInput = {
 export type SceneContentAvgOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  totalDuration?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   sceneId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -386,6 +431,8 @@ export type SceneContentMaxOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
   events?: Prisma.SortOrder
+  timestamp?: Prisma.SortOrder
+  totalDuration?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   sceneId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -395,6 +442,8 @@ export type SceneContentMinOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
   events?: Prisma.SortOrder
+  timestamp?: Prisma.SortOrder
+  totalDuration?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   sceneId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -403,6 +452,7 @@ export type SceneContentMinOrderByAggregateInput = {
 export type SceneContentSumOrderByAggregateInput = {
   id?: Prisma.SortOrder
   order?: Prisma.SortOrder
+  totalDuration?: Prisma.SortOrder
   contentId?: Prisma.SortOrder
   sceneId?: Prisma.SortOrder
   decorId?: Prisma.SortOrder
@@ -448,6 +498,14 @@ export type SceneContentUncheckedUpdateManyWithoutSceneNestedInput = {
   update?: Prisma.SceneContentUpdateWithWhereUniqueWithoutSceneInput | Prisma.SceneContentUpdateWithWhereUniqueWithoutSceneInput[]
   updateMany?: Prisma.SceneContentUpdateManyWithWhereWithoutSceneInput | Prisma.SceneContentUpdateManyWithWhereWithoutSceneInput[]
   deleteMany?: Prisma.SceneContentScalarWhereInput | Prisma.SceneContentScalarWhereInput[]
+}
+
+export type FloatFieldUpdateOperationsInput = {
+  set?: number
+  increment?: number
+  decrement?: number
+  multiply?: number
+  divide?: number
 }
 
 export type SceneContentCreateNestedManyWithoutContentInput = {
@@ -537,6 +595,8 @@ export type SceneContentUncheckedUpdateManyWithoutDecorNestedInput = {
 export type SceneContentCreateWithoutSceneInput = {
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   content: Prisma.ContentCreateNestedOneWithoutSceneContentsInput
   decor?: Prisma.DecorCreateNestedOneWithoutSceneContentsInput
 }
@@ -545,6 +605,8 @@ export type SceneContentUncheckedCreateWithoutSceneInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   contentId: number
   decorId?: number | null
 }
@@ -581,6 +643,8 @@ export type SceneContentScalarWhereInput = {
   id?: Prisma.IntFilter<"SceneContent"> | number
   order?: Prisma.IntFilter<"SceneContent"> | number
   events?: Prisma.StringFilter<"SceneContent"> | string
+  timestamp?: Prisma.StringFilter<"SceneContent"> | string
+  totalDuration?: Prisma.FloatFilter<"SceneContent"> | number
   contentId?: Prisma.IntFilter<"SceneContent"> | number
   sceneId?: Prisma.IntFilter<"SceneContent"> | number
   decorId?: Prisma.IntNullableFilter<"SceneContent"> | number | null
@@ -589,6 +653,8 @@ export type SceneContentScalarWhereInput = {
 export type SceneContentCreateWithoutContentInput = {
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   scene: Prisma.SceneCreateNestedOneWithoutSceneContentsInput
   decor?: Prisma.DecorCreateNestedOneWithoutSceneContentsInput
 }
@@ -597,6 +663,8 @@ export type SceneContentUncheckedCreateWithoutContentInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   sceneId: number
   decorId?: number | null
 }
@@ -629,6 +697,8 @@ export type SceneContentUpdateManyWithWhereWithoutContentInput = {
 export type SceneContentCreateWithoutDecorInput = {
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   content: Prisma.ContentCreateNestedOneWithoutSceneContentsInput
   scene: Prisma.SceneCreateNestedOneWithoutSceneContentsInput
 }
@@ -637,6 +707,8 @@ export type SceneContentUncheckedCreateWithoutDecorInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   contentId: number
   sceneId: number
 }
@@ -670,6 +742,8 @@ export type SceneContentCreateManySceneInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   contentId: number
   decorId?: number | null
 }
@@ -677,6 +751,8 @@ export type SceneContentCreateManySceneInput = {
 export type SceneContentUpdateWithoutSceneInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   content?: Prisma.ContentUpdateOneRequiredWithoutSceneContentsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutSceneContentsNestedInput
 }
@@ -685,6 +761,8 @@ export type SceneContentUncheckedUpdateWithoutSceneInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
@@ -693,6 +771,8 @@ export type SceneContentUncheckedUpdateManyWithoutSceneInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
@@ -701,6 +781,8 @@ export type SceneContentCreateManyContentInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   sceneId: number
   decorId?: number | null
 }
@@ -708,6 +790,8 @@ export type SceneContentCreateManyContentInput = {
 export type SceneContentUpdateWithoutContentInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   scene?: Prisma.SceneUpdateOneRequiredWithoutSceneContentsNestedInput
   decor?: Prisma.DecorUpdateOneWithoutSceneContentsNestedInput
 }
@@ -716,6 +800,8 @@ export type SceneContentUncheckedUpdateWithoutContentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   sceneId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
@@ -724,6 +810,8 @@ export type SceneContentUncheckedUpdateManyWithoutContentInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   sceneId?: Prisma.IntFieldUpdateOperationsInput | number
   decorId?: Prisma.NullableIntFieldUpdateOperationsInput | number | null
 }
@@ -732,6 +820,8 @@ export type SceneContentCreateManyDecorInput = {
   id?: number
   order: number
   events?: string
+  timestamp?: string
+  totalDuration?: number
   contentId: number
   sceneId: number
 }
@@ -739,6 +829,8 @@ export type SceneContentCreateManyDecorInput = {
 export type SceneContentUpdateWithoutDecorInput = {
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   content?: Prisma.ContentUpdateOneRequiredWithoutSceneContentsNestedInput
   scene?: Prisma.SceneUpdateOneRequiredWithoutSceneContentsNestedInput
 }
@@ -747,6 +839,8 @@ export type SceneContentUncheckedUpdateWithoutDecorInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   sceneId?: Prisma.IntFieldUpdateOperationsInput | number
 }
@@ -755,6 +849,8 @@ export type SceneContentUncheckedUpdateManyWithoutDecorInput = {
   id?: Prisma.IntFieldUpdateOperationsInput | number
   order?: Prisma.IntFieldUpdateOperationsInput | number
   events?: Prisma.StringFieldUpdateOperationsInput | string
+  timestamp?: Prisma.StringFieldUpdateOperationsInput | string
+  totalDuration?: Prisma.FloatFieldUpdateOperationsInput | number
   contentId?: Prisma.IntFieldUpdateOperationsInput | number
   sceneId?: Prisma.IntFieldUpdateOperationsInput | number
 }
@@ -765,6 +861,8 @@ export type SceneContentSelect<ExtArgs extends runtime.Types.Extensions.Internal
   id?: boolean
   order?: boolean
   events?: boolean
+  timestamp?: boolean
+  totalDuration?: boolean
   contentId?: boolean
   sceneId?: boolean
   decorId?: boolean
@@ -777,6 +875,8 @@ export type SceneContentSelectCreateManyAndReturn<ExtArgs extends runtime.Types.
   id?: boolean
   order?: boolean
   events?: boolean
+  timestamp?: boolean
+  totalDuration?: boolean
   contentId?: boolean
   sceneId?: boolean
   decorId?: boolean
@@ -789,6 +889,8 @@ export type SceneContentSelectUpdateManyAndReturn<ExtArgs extends runtime.Types.
   id?: boolean
   order?: boolean
   events?: boolean
+  timestamp?: boolean
+  totalDuration?: boolean
   contentId?: boolean
   sceneId?: boolean
   decorId?: boolean
@@ -801,12 +903,14 @@ export type SceneContentSelectScalar = {
   id?: boolean
   order?: boolean
   events?: boolean
+  timestamp?: boolean
+  totalDuration?: boolean
   contentId?: boolean
   sceneId?: boolean
   decorId?: boolean
 }
 
-export type SceneContentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "order" | "events" | "contentId" | "sceneId" | "decorId", ExtArgs["result"]["sceneContent"]>
+export type SceneContentOmit<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = runtime.Types.Extensions.GetOmit<"id" | "order" | "events" | "timestamp" | "totalDuration" | "contentId" | "sceneId" | "decorId", ExtArgs["result"]["sceneContent"]>
 export type SceneContentInclude<ExtArgs extends runtime.Types.Extensions.InternalArgs = runtime.Types.Extensions.DefaultArgs> = {
   content?: boolean | Prisma.ContentDefaultArgs<ExtArgs>
   scene?: boolean | Prisma.SceneDefaultArgs<ExtArgs>
@@ -834,6 +938,8 @@ export type $SceneContentPayload<ExtArgs extends runtime.Types.Extensions.Intern
     id: number
     order: number
     events: string
+    timestamp: string
+    totalDuration: number
     contentId: number
     sceneId: number
     decorId: number | null
@@ -1266,6 +1372,8 @@ export interface SceneContentFieldRefs {
   readonly id: Prisma.FieldRef<"SceneContent", 'Int'>
   readonly order: Prisma.FieldRef<"SceneContent", 'Int'>
   readonly events: Prisma.FieldRef<"SceneContent", 'String'>
+  readonly timestamp: Prisma.FieldRef<"SceneContent", 'String'>
+  readonly totalDuration: Prisma.FieldRef<"SceneContent", 'Float'>
   readonly contentId: Prisma.FieldRef<"SceneContent", 'Int'>
   readonly sceneId: Prisma.FieldRef<"SceneContent", 'Int'>
   readonly decorId: Prisma.FieldRef<"SceneContent", 'Int'>
@@ -1465,6 +1573,11 @@ export type SceneContentFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Skip the first `n` SceneContents.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of SceneContents.
+   */
   distinct?: Prisma.SceneContentScalarFieldEnum | Prisma.SceneContentScalarFieldEnum[]
 }
 

@@ -8,10 +8,9 @@ import { getTransitionOptions } from "@/config/transitions";
 import { deriveEventKind, parseCustomEventMoveOptions } from "@/config/custom-events";
 import {
 	parseEventMediaFromRef,
-	readEventTransition,
+	readEventTransitionValue,
 	replaceEventRefPreservingMedia,
 	writeEventMedia,
-	writeEventTransition,
 	type EventMediaParams
 } from "@/lib/event-ref";
 import { SceneLogicContext } from "@/provider/scene-logic";
@@ -162,9 +161,10 @@ function EventParams({
 	};
 
 	const onChangeTransition = (ref: string) => {
+		if (!ref) return;
 		send({
 			type: "events-update",
-			payload: { action: event.action, ref: writeEventTransition(event.ref, ref, event.action) }
+			payload: { action: event.action, ref: replaceEventRefPreservingMedia(event.ref, ref) }
 		});
 	};
 
@@ -257,9 +257,8 @@ function EventParams({
 					<select
 						name="ref"
 						onChange={(e) => onChangeTransition(e.currentTarget.value)}
-						value={resolveTransitionRefValue(event.ref, event.action)}
+						value={resolveTransitionRefValue(event.ref)}
 					>
-						<option value="">--</option>
 						{getTransitionOptions(event.action).map(({ key, name }) => (
 							<option key={key} value={key}>
 								{name}
@@ -277,8 +276,8 @@ function resolveMediaParams(ref: unknown): EventMediaParams {
 	return parseEventMediaFromRef(ref) || { action: "play", offset: 0, changeAt: 0 };
 }
 
-function resolveTransitionRefValue(ref: unknown, action: string): string {
-	return readEventTransition(ref, action);
+function resolveTransitionRefValue(ref: unknown): string {
+	return readEventTransitionValue(ref) || "--";
 }
 
 function ClearEvents() {

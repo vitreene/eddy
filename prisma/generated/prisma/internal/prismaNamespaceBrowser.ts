@@ -100,6 +100,8 @@ export const SceneContentScalarFieldEnum = {
   id: 'id',
   order: 'order',
   events: 'events',
+  timestamp: 'timestamp',
+  totalDuration: 'totalDuration',
   contentId: 'contentId',
   sceneId: 'sceneId',
   decorId: 'decorId'

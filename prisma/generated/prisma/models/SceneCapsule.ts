@@ -186,7 +186,7 @@ export type SceneCapsuleGroupByOutputType = {
   _max: SceneCapsuleMaxAggregateOutputType | null
 }
 
-type GetSceneCapsuleGroupByPayload<T extends SceneCapsuleGroupByArgs> = Prisma.PrismaPromise<
+export type GetSceneCapsuleGroupByPayload<T extends SceneCapsuleGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<SceneCapsuleGroupByOutputType, T['by']> &
       {
@@ -1208,6 +1208,11 @@ export type SceneCapsuleFindManyArgs<ExtArgs extends runtime.Types.Extensions.In
    * Skip the first `n` SceneCapsules.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of SceneCapsules.
+   */
   distinct?: Prisma.SceneCapsuleScalarFieldEnum | Prisma.SceneCapsuleScalarFieldEnum[]
 }
 

@@ -9,6 +9,11 @@ import type { Decor, CapsuleComp, Content, ContentEvent, SceneComp, ItemComp, Sc
 import type { EditableStyle } from "@/components/style-editor/types";
 import type { Theme } from "prisma/generated/prisma/client";
 import { mergeCssStrings } from "@/lib/merge-css-classes";
+import { getMediaUrl } from "@/lib/media-url";
+import {
+	hasWhisperWords,
+	mergeContentTimestampWords,
+} from "@/lib/content-timestamp";
 import { AUTOCOMMIT_TOUCHED_IDLE_MS, INTRO, OUTRO, SUSTAIN } from "@/config/constants";
 import { DEFAULT_EDITOR_PREVIEW_ORIENTATION } from "@/config/orientation";
 import { DEFAULT_TRANSITION_BY_ACTION } from "@/config/transitions";
@@ -56,6 +61,7 @@ import {
 	type ScenePatchRequest
 } from "./scene-logic.api";
 import { ensureEventDecorId } from "./scene-logic.decor";
+import { transcribeAudioFileToCues } from "@/whisper/transcribe-to-cues";
 import type {
 	ActiveState,
 	TreeMoveEvent,
@@ -99,6 +105,61 @@ const emptyScene: SceneComp = {
 };
 
 const ACTIVE_SET_SEEK_EPSILON_SEC = 0.0005;
+
+async function reanalyzeSceneSoundIfNeeded(
+	context: SceneComp,
+	self: any,
+	params: { sceneId: number; contentId: number }
+): Promise<void> {
+	const content = context.contents[params.contentId];
+	if (!content || content.type !== "sound") return;
+	if (hasWhisperWords(content.timestamp)) return;
+	if (!content.path) return;
+
+	const mediaUrl = getMediaUrl(content.path);
+	if (!mediaUrl) return;
+
+	const response = await fetch(mediaUrl);
+	if (!response.ok) return;
+
+	const blob = await response.blob();
+	const fileName = content.path.split("/").pop() || content.name || `sound-${content.id}.mp3`;
+	const file = new File([blob], fileName, { type: blob.type || "audio/mpeg" });
+	const { cues, totalDurationSec } = await transcribeAudioFileToCues(file, {
+		language: "fr",
+		soundId: content.id
+	});
+
+	if (!cues.length) return;
+
+	const persistResponse = await fetch("/api/scene-content/cues", {
+		method: "POST",
+		headers: {
+			Accept: "application/json",
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			sceneId: params.sceneId,
+			contentId: content.id,
+			cues,
+			totalDuration: totalDurationSec
+		})
+	});
+
+	if (!persistResponse.ok) return;
+
+	const payload = (await persistResponse.json()) as { sceneContent?: SceneContent };
+	if (!payload.sceneContent) return;
+
+	self.send({
+		type: "content-sync-updated",
+		payload: {
+			id: content.id,
+			timestamp: mergeContentTimestampWords(content.timestamp, cues)
+		}
+	});
+	self.send({ type: "scene-content-upsert", payload: payload.sceneContent });
+}
 
 function buildFallbackTransitionEvent(action: string, itemId: number): ContentEvent | null {
 	if (action === INTRO || action === OUTRO) {
@@ -319,6 +380,7 @@ export const sceneLogic = setup({
 			| { type: "item-update"; payload: Partial<ItemComp & { decor: Decor }> }
 			| { type: "item-visibility-toggle"; payload: { itemId: number; visible: boolean } }
 			| { type: "content-update"; payload: { id: number; inner?: string; name?: string } }
+			| { type: "content-sync-updated"; payload: { id: number; inner?: string; name?: string; timestamp?: string } }
 			| { type: "content-text-commit-requested"; payload: { id: number; inner: string } }
 			| {
 					type: "decor-patch-requested";
@@ -482,6 +544,12 @@ export const sceneLogic = setup({
 		},
 		persistContentText: async (_, params: { id: number; inner: string }) => {
 			await persistContentTextOnServer(params.id, params.inner);
+		},
+		ensureSceneSoundTranscript: async (
+			{ context, self },
+			params: { sceneId: number; contentId: number }
+		) => {
+			await reanalyzeSceneSoundIfNeeded(context, self, params);
 		},
 		ensureDecorPatchTarget: async (
 			{ self },
@@ -803,6 +871,13 @@ export const sceneLogic = setup({
 
 									return { ...context, capsules, active };
 								}),
+								assign(({ context }) => ({
+									...context,
+									active: {
+										...markSequenceTouched(context.active),
+										capsuleTouched: true
+									}
+								})),
 								raise(() => ({ type: "persist-touched" }))
 							]
 						}
@@ -926,15 +1001,16 @@ export const sceneLogic = setup({
 
 								return {
 									...context,
-									decors: {
-										...context.decors,
-										...decorsToEnsure
-									},
-									events: {
-										...context.events,
-										[event.payload.itemId]: merged
-									}
-								};
+										decors: {
+											...context.decors,
+											...decorsToEnsure
+										},
+										events: {
+											...context.events,
+											[event.payload.itemId]: merged
+										},
+										active: markSequenceTouched(context.active)
+									};
 							})
 						},
 						"content-update": {
@@ -952,6 +1028,24 @@ export const sceneLogic = setup({
 										}
 									},
 									active: markSequenceTouched(context.active)
+								};
+							})
+						},
+						"content-sync-updated": {
+							actions: assign(({ context, event }) => {
+								const current = context.contents[event.payload.id];
+								if (!current) return context;
+
+								return {
+									...context,
+									contents: {
+										...context.contents,
+										[event.payload.id]: {
+											...current,
+											...event.payload
+										}
+									},
+									active: context.active
 								};
 							})
 						},
@@ -1240,15 +1334,24 @@ export const sceneLogic = setup({
 							})
 						},
 						"scene-content-upsert": {
-							actions: assign(({ context, event }) => {
-								return {
-									...context,
-									sceneContents: {
-										...context.sceneContents,
-										[event.payload.id]: event.payload
-									}
-								};
-							})
+							actions: [
+								assign(({ context, event }) => {
+									return {
+										...context,
+										sceneContents: {
+											...context.sceneContents,
+											[event.payload.id]: event.payload
+										}
+									};
+								}),
+								{
+									type: "ensureSceneSoundTranscript",
+									params: ({ context, event }) => ({
+										sceneId: event.payload.sceneId,
+										contentId: event.payload.contentId
+									})
+								}
+							]
 						},
 						"scene-content-remove": {
 							actions: assign(({ context, event }) => {
@@ -1261,7 +1364,7 @@ export const sceneLogic = setup({
 									...context,
 									sceneContents
 								};
-							})
+								})
 						}
 					}
 				},
@@ -1382,19 +1485,19 @@ export const sceneLogic = setup({
 								src: "capsuleReorder",
 								onDone: {
 									target: "#scene.edit",
-									actions: [
-										assign(({ context, event }) => {
-											if (event.output == "no-reorder") return context;
-											const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
-											const items = reorders.map((r) => ({
-												[r.id]: { ...context.items[r.id], order: r.order }
-											}));
-											return {
-												...context,
-												items: Object.assign({}, context.items, ...items),
-												active: markSequenceTouched(context.active)
-											};
-										}),
+											actions: [
+												assign(({ context, event }) => {
+													if (event.output == "no-reorder") return context;
+													const reorders = (event.output as Array<{ id: 2; order: 1000 }[]>).map((out) => out[0]);
+													const items = reorders.map((r) => ({
+														[r.id]: { ...context.items[r.id], order: r.order }
+													}));
+													return {
+														...context,
+														items: Object.assign({}, context.items, ...items),
+														active: markSequenceTouched(context.active)
+													};
+												}),
 										raise(() => ({
 											type: "sequence-flush-request",
 											payload: { reason: "tree-mutation", force: true }

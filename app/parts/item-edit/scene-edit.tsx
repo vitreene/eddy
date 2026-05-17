@@ -19,6 +19,7 @@ import {
 	normalizeOrientationGridRecord,
 	resolveSceneGridForOrientation
 } from "@/lib/orientation-grid";
+import { getContentTimestampDurationSec } from "@/lib/content-timestamp";
 import type { Content } from "@/api/db";
 import {
 	getActiveSceneContent,
@@ -48,6 +49,10 @@ function getSounds(allContents: Content[], runtimeContents: Content[]): Content[
 	for (const content of allContents) merged.set(content.id, content);
 	for (const content of runtimeContents) merged.set(content.id, content);
 	return [...merged.values()].filter((content) => content.type === "sound");
+}
+
+function getSoundDurationSec(content: Content | null | undefined): number {
+	return getContentTimestampDurationSec(content?.timestamp) || SCENE_DEFAULT_DURATION_SEC;
 }
 
 export function SceneEdit({ allContents = [] }: SceneEditProps) {
@@ -104,11 +109,15 @@ export function SceneEdit({ allContents = [] }: SceneEditProps) {
 
 	const onChangeAudio = (nextValue: string) => {
 		const nextContentId = nextValue ? Number(nextValue) : null;
+		const nextSound = nextContentId ? sounds.find((sound) => sound.id === nextContentId) : null;
 		send({
 			type: "scene-patch-requested",
 			payload: {
 				sceneId,
-				patch: { contentId: nextContentId, totalDuration: sceneDurationSec }
+				patch: {
+					contentId: nextContentId,
+					totalDuration: nextSound ? getSoundDurationSec(nextSound) : sceneDurationSec
+				}
 			}
 		});
 	};

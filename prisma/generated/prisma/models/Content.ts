@@ -217,7 +217,7 @@ export type ContentGroupByOutputType = {
   _max: ContentMaxAggregateOutputType | null
 }
 
-type GetContentGroupByPayload<T extends ContentGroupByArgs> = Prisma.PrismaPromise<
+export type GetContentGroupByPayload<T extends ContentGroupByArgs> = Prisma.PrismaPromise<
   Array<
     Prisma.PickEnumerable<ContentGroupByOutputType, T['by']> &
       {
@@ -1498,6 +1498,11 @@ export type ContentFindManyArgs<ExtArgs extends runtime.Types.Extensions.Interna
    * Skip the first `n` Contents.
    */
   skip?: number
+  /**
+   * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+   * 
+   * Filter by unique combinations of Contents.
+   */
   distinct?: Prisma.ContentScalarFieldEnum | Prisma.ContentScalarFieldEnum[]
 }
 

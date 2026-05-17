@@ -581,12 +581,12 @@ const cases: Case[] = [
 	},
 	{
 		name: "main orientation grid emits preview and container root rules",
-			run: () => {
-				const context = createSceneBase();
-				(context.capsules[1] as any).orientationGrid = {
-					portrait: "ed-grid-w9-h16",
-					landscape: "ed-grid-w16-h9"
-				};
+		run: () => {
+		const context = createSceneBase();
+		(context.capsules[1] as any).orientationGrid = {
+			portrait: "ed-grid-w9-h16",
+			landscape: "ed-grid-w16-h9"
+		};
 
 			const scene = buildScene(context);
 			const styles = scene.styles || "";
@@ -597,15 +597,19 @@ const cases: Case[] = [
 			assert.equal(styles.includes("@container scene (aspect-ratio > 1/1){.root-scene"), true);
 			assert.equal(styles.includes("grid-template-columns:repeat(9, minmax(0, 1fr))"), true);
 			assert.equal(styles.includes("grid-template-rows:repeat(16, minmax(0, 1fr))"), true);
+			assert.equal(
+				styles.indexOf(".root-scene.ed-preview-orientation--portrait") > styles.indexOf(".ed-grid-w1-h1{"),
+				true
+			);
 		}
 	},
 	{
 		name: "main orientation grid derives missing variant from base grid",
-			run: () => {
-				const context = createSceneBase();
-				(context.capsules[1] as any).orientationGrid = {
-					portrait: "ed-grid-w9-h16"
-				};
+		run: () => {
+		const context = createSceneBase();
+		(context.capsules[1] as any).orientationGrid = {
+			portrait: "ed-grid-w9-h16"
+		};
 
 			const scene = buildScene(context);
 			const styles = scene.styles || "";

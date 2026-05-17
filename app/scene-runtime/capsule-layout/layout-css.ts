@@ -167,9 +167,6 @@ function buildZoneDefinitionsByClass(snapshot: SceneComp): Record<string, string
  */
 function buildGridDefinitions(snapshot: SceneComp): string[] {
 	const definitions = new Set<string>();
-	for (const definition of buildRootOrientationGridDefinitions(snapshot)) {
-		definitions.add(definition);
-	}
 
 	for (const capsule of Object.values(snapshot.capsules || {})) {
 		if (!capsule?.grid) continue;
@@ -189,6 +186,10 @@ function buildGridDefinitions(snapshot: SceneComp): string[] {
 			const definition = gridClassNameToCssDefinition(className);
 			if (definition) definitions.add(definition);
 		}
+	}
+
+	for (const definition of buildRootOrientationGridDefinitions(snapshot)) {
+		definitions.add(definition);
 	}
 
 	return [...definitions];
