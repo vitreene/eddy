@@ -1,5 +1,34 @@
 # Lessons
 
+## 2026-06-02 — Communication utilisateur: employer le vouvoiement
+
+- En francais, s'adresser a l'utilisateur en le vouvoyant dans toutes les reponses.
+- Relire particulierement les exemples, confirmations courtes et propositions d'etapes suivantes: c'est la que le tutoiement peut revenir par reflexe.
+
+## 2026-06-02 — API publique extraite: nommage neutre et vocabulaire non lie au runtime hote
+
+- Pour un composant portable, nommer la classe et les types publics des le debut selon le nom produit retenu par l'utilisateur (`AutoCapsule` ici), pas avec un nom provisoire.
+- Eviter dans le contrat public les termes qui collisionnent avec des globaux de plateforme ou suggerent un couplage implicite (`Window` pour une plage temporelle, par exemple).
+- Ne pas figer dans la spec publique des details de l'implementation legacy des events si l'utilisateur signale deja une evolution cible du modele.
+
+## 2026-06-02 — Composant portable: privilegier le cas d'usage principal et bannir le vocabulaire metier local
+
+- Pour une API grille portable, documenter et coder d'abord le cas principal explicite (`rows/cols` en mode manuel), puis seulement les modes derives.
+- Si l'utilisateur signale qu'un terme est lie a Eddy (`cue` ici), le retirer du contrat public et le remplacer par un concept generique portable (`eventTime`).
+- Si des transitions nommees comme `fade` font partie du comportement produit, les modeliser explicitement comme definitions portables modifiables par API, pas comme details implicites caches dans la doc.
+
+## 2026-06-02 — Constantes publiques: ne pas comparer aux littéraux métier
+
+- Si le composant exporte des constantes de domaine (`GRID_MODE`, `CAPSULE_TYPE`, `EVENT_ACTION`, etc.), utiliser ces constantes partout dans le code et la doc au lieu de chaînes littérales en dur.
+- En particulier, eviter les comparaisons du type `grid.mode === "derived"`; preferer `grid.mode === GRID_MODE.derived`.
+- Garder ce style coherent aussi dans les exemples du README pour que l'API publique montre le bon contrat d'usage.
+
+## 2026-06-02 — Composant autonome: documenter les helpers structurants et bannir les references projet source
+
+- Pour un composant portable, ne pas se limiter a documenter les seules methodes publiques: ajouter aussi du JSDoc sur les fonctions internes structurantes et les registres/variables principales.
+- Les commentaires doivent expliquer le role des variables de calcul importantes (`behavior`, `slots`, `eventTimeByName`, etc.) quand elles portent la logique metier principale.
+- Supprimer toute mention du projet source dans le code et la doc du composant; il doit se lire comme module autonome sans contexte externe.
+
 ## 2026-05-17 — Event transitions: explicit preset beats blank
 
 - Quand l'UI expose une option `--`, verifier si elle doit etre un preset explicite et pas un `""` cache.
